@@ -513,6 +513,8 @@ function mergeLevels(plan: Plan, parts: AnalysisReport[]): AnalysisReport {
   };
 }
 const ALPHA = 0.05;
+/** For the tests: how often a configuration was scored in full (point estimates; never per bootstrap draw). */
+export const analysisStats = { fullScores: 0 };
 /**
  * The per-outcome scores of one bootstrap draw, exactly as analyzeLevel's scoreAgent(agentId,
  * indices, rng).scores computes them: the same random numbers in the same order and the same
@@ -657,13 +659,84 @@ function bootstrapScorer(
  */
 interface LevelCore {
   report: Omit<AnalysisReport, "contrasts" | "notes"> & { notesBefore: string[]; notesAfter: string[] };
-  contrastsFor: (chosen: ReturnType<typeof resolveComparisons>) => ContrastScore[];
+  contrasts: ContrastData;
 }
 /**
  * Scores of a campaign's analysis kept for further analyses of the same plan, human data and
  * results with other comparisons: only the contrasts are computed again. Opaque to callers.
  */
 export type AnalysisMemo = Map<string, LevelCore>;
+/**
+ * What a level's contrasts need from its scores (see LevelCore): plain data, nothing of the runs, so
+ * kept scores do not keep a campaign's results in memory.
+ */
+interface ContrastData {
+  study: Study;
+  informative: boolean[];
+  targetSets: Map<string, Set<string>>;
+  point: Map<string, (number | null)[]>;
+  draws: Map<string, (number | null)[][]>;
+  simulatedOnlyIds: Set<string>;
+}
+/** The chosen comparisons of one level, from its point scores and bootstrap draws. */
+function levelContrasts(d: ContrastData, chosen: ReturnType<typeof resolveComparisons>): ContrastScore[] {
+  const plan = { study: d.study },
+    outcomes = d.study.outcomes,
+    simulatedOnlyIds = d.simulatedOnlyIds;
+  const weightsOver = (domain: Domain, ...agentIds: string[]) =>
+    outcomeWeights(
+      d.study,
+      domain,
+      d.informative.map((x, i) => x && agentIds.every((id) => d.targetSets.get(id)!.has(outcomes[i].id))),
+    );
+  const point = new Map([...d.point].map(([id, scores]) => [id, { scores }]));
+  const bootstrapOf = (agentId: string, w: Map<number, number>) =>
+    d.draws.get(agentId)!.map((scores) => weightedScore(scores, w));
+  return chosen.map((c) => {
+    // Weighted over the outcomes both configs predict (common coverage).
+    const w = weightsOver(c.domain, c.baseline, c.candidate);
+    const baseScore = weightedScore(point.get(c.baseline)!.scores, w),
+      candScore = weightedScore(point.get(c.candidate)!.scores, w);
+    const difference =
+      baseScore != null && candScore != null ? candScore - baseScore : null;
+    const a = bootstrapOf(c.baseline, w),
+      b = bootstrapOf(c.candidate, w);
+    const diffs = b.map((x, i) =>
+      x !== null && a[i] !== null ? x! - a[i]! : null,
+    );
+    const valid = diffs.filter((x): x is number => x !== null);
+    const eligible =
+      difference !== null &&
+      valid.length >= plan.study.analysis.bootstrapDraws * 0.9;
+    const degenerate =
+      valid.length > 0 && Math.max(...valid) - Math.min(...valid) < 1e-12;
+    // Invented forecasts are never tested against real ones: the difference is shown, untested
+    // (it still counts in the declared Holm family, like every untestable comparison).
+    const mixed = simulatedOnlyIds.has(c.baseline) !== simulatedOnlyIds.has(c.candidate);
+    const p =
+      eligible && !degenerate && !mixed
+        ? (1 +
+            valid.filter(
+              (x) => Math.abs(x - difference!) >= Math.abs(difference!) - 1e-12,
+            ).length) /
+          (valid.length + 1)
+        : null;
+    return {
+      ...c,
+      difference,
+      ci95: eligible && !mixed ? interval(diffs) : null,
+      p,
+      holmP: null,
+      status: !eligible
+        ? "Insufficient matched coverage"
+        : mixed
+        ? "Not tested: compares simulated (invented) with real runs"
+        : degenerate
+        ? "No test: empirically degenerate bootstrap variance"
+        : "Exploratory centered-bootstrap contrast; Holm across the declared family",
+    };
+    });
+}
 function analyzeLevel(
   plan: Plan,
   human: HumanData,
@@ -680,7 +753,7 @@ function analyzeLevel(
     core = scoreLevel(plan, human, bundle, pairRule);
     memo?.set(key, core);
   }
-  const contrasts = core.contrastsFor(chosen);
+  const contrasts = levelContrasts(core.contrasts, chosen);
   holmAdjust(contrasts);
   const { notesBefore, notesAfter, ...r } = core.report;
   // A kept core is shared: what callers may change (lists, audits' issues) is copied.
@@ -957,6 +1030,7 @@ function scoreLevel(
     units: number[];
     pairs: number[];
   } => {
+    analysisStats.fullScores++;
     const candidates = validJobs(agentId, adherent);
     const populationJobs =
       rng && plan.study.predictionLevel === "population"
@@ -1099,50 +1173,6 @@ function scoreLevel(
         compliant: validJobs(a.id, true).length,
       });
     }
-  const contrastsFor = (chosen: ReturnType<typeof resolveComparisons>): ContrastScore[] => chosen.map((c) => {
-    // Weighted over the outcomes both configs predict (common coverage).
-    const w = weightsOver(c.domain, c.baseline, c.candidate);
-    const baseScore = weightedScore(point.get(c.baseline)!.scores, w),
-      candScore = weightedScore(point.get(c.candidate)!.scores, w);
-    const difference =
-      baseScore != null && candScore != null ? candScore - baseScore : null;
-    const a = bootstrapOf(c.baseline, w),
-      b = bootstrapOf(c.candidate, w);
-    const diffs = b.map((x, i) =>
-      x !== null && a[i] !== null ? x! - a[i]! : null,
-    );
-    const valid = diffs.filter((x): x is number => x !== null);
-    const eligible =
-      difference !== null &&
-      valid.length >= plan.study.analysis.bootstrapDraws * 0.9;
-    const degenerate =
-      valid.length > 0 && Math.max(...valid) - Math.min(...valid) < 1e-12;
-    // Invented forecasts are never tested against real ones: the difference is shown, untested
-    // (it still counts in the declared Holm family, like every untestable comparison).
-    const mixed = simulatedOnlyIds.has(c.baseline) !== simulatedOnlyIds.has(c.candidate);
-    const p =
-      eligible && !degenerate && !mixed
-        ? (1 +
-            valid.filter(
-              (x) => Math.abs(x - difference!) >= Math.abs(difference!) - 1e-12,
-            ).length) /
-          (valid.length + 1)
-        : null;
-    return {
-      ...c,
-      difference,
-      ci95: eligible && !mixed ? interval(diffs) : null,
-      p,
-      holmP: null,
-      status: !eligible
-        ? "Insufficient matched coverage"
-        : mixed
-        ? "Not tested: compares simulated (invented) with real runs"
-        : degenerate
-        ? "No test: empirically degenerate bootstrap variance"
-        : "Exploratory centered-bootstrap contrast; Holm across the declared family",
-    };
-  });
   // Distribution data for plots: agreement per population run or per participant
   // (weights renormalised over the outcomes available for that unit), plus values.
   const level = plan.study.predictionLevel;
@@ -1310,5 +1340,8 @@ function scoreLevel(
         : []),
     ],
   };
-  return { report, contrastsFor };
+  return {
+    report,
+    contrasts: { study: plan.study, informative, targetSets, point: new Map([...point].map(([id, v]) => [id, v.scores])), draws, simulatedOnlyIds },
+  };
 }

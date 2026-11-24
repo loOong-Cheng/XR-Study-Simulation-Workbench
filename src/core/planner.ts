@@ -44,11 +44,15 @@ export function agentTargets(study: Study, a: AgentProtocol): string[] {
  * Default run count when a configuration sets none. `perParticipant` is the number of
  * runs per participant: an individual configuration runs that often for every person,
  * and a population configuration gets participants × perParticipant runs, so both levels
- * produce the same number of forecasts by default. A configuration may set fewer.
+ * produce the same number of forecasts by default. A configuration may set fewer. The population
+ * default stops at MAX_POPULATION_RUNS, the most a population configuration may have (large studies
+ * would otherwise get a count nobody typed, which validation then refuses).
  */
 export function defaultRuns(study: Study, a: AgentProtocol, perParticipant: number): number {
-  return agentLevel(study, a) === "individual" ? perParticipant : Math.max(1, study.participants.length) * perParticipant;
+  return agentLevel(study, a) === "individual" ? perParticipant : Math.min(MAX_POPULATION_RUNS, Math.max(1, study.participants.length) * perParticipant);
 }
+/** The most runs a population configuration may have (validateAgents refuses more). */
+export const MAX_POPULATION_RUNS = 1000;
 /** Configurations with their default run count written in, so the frozen plan states every count explicitly. */
 export function withDefaultRuns(study: Study, agents: AgentProtocol[], perParticipant: number): AgentProtocol[] {
   requireThat(Number.isInteger(perParticipant) && perParticipant >= 1 && perParticipant <= 50, "Use 1–50 runs per participant.");

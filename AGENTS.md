@@ -149,7 +149,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
    1. Run `agents-draft study.json agents.json`.
    2. For each configuration, set:
       - `level` (`population` or `individual`);
-      - `repetitions`: individual = runs per person; population = runs in total. Leave it out to use the default: *runs per participant* chosen at freeze (default 1), and participants × that for population configurations. Set fewer population runs only when the researcher wants to save usage;
+      - `repetitions`: individual = runs per person; population = runs in total. Leave it out to use the default: *runs per participant* chosen at freeze (default 1), and participants × that for population configurations (at most 1,000). Set fewer population runs only when the researcher wants to save usage;
       - `model`: `agents-draft` writes the Settings forecasting model (by default provider `claude-code`, model `claude-opus-5-5`, reasoning `default`); change it where the researcher wants another;
       - `runtime` (`none`, `webxr`, `unreal`, `unity` or `visionos`);
       - `targets`;

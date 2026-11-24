@@ -27,11 +27,14 @@ interface ValueIndex {
   byCell: Map<string, Value[]>;
   human: Map<string, HumanValue[]>;
 }
+/** For the tests: how often a report's values were indexed. */
+export const figureStats = { indexBuilds: 0 };
 const valueIndexes = new WeakMap<AnalysisReport, { values: Value[] | undefined; humanValues: HumanValue[] | undefined; index: ValueIndex }>();
 function valueIndex(report: AnalysisReport): ValueIndex {
   const kept = valueIndexes.get(report);
   // Built again if the report's lists were replaced.
   if (kept && kept.values === report.values && kept.humanValues === report.humanValues) return kept.index;
+  figureStats.indexBuilds++;
   const index: ValueIndex = { byAgent: new Map(), byCell: new Map(), human: new Map() };
   const add = <T>(map: Map<string, T[]>, key: string, v: T) => {
     const list = map.get(key);
