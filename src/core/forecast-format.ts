@@ -36,8 +36,22 @@ function inRange(t: ForecastTarget, v: number): boolean {
   return v >= t.range[0] - slack && v <= t.range[1] + slack;
 }
 
-/** What one row of a measure needs, e.g. `"items" general, spatial, involvement, realness, each on 1–7 (no "value")`. */
+/**
+ * How the items of a measure are used, in the words every job gets: only their mean or sum (as the
+ * measure declares, validation.ts → compositeRule) is scored, and each item is a forecast of its own,
+ * so agents do not copy one value into every item.
+ */
+export function itemsRule(t: ForecastTarget): string {
+  const estimate = "give your best estimate for each item (they may differ)";
+  // A sum's shape already says that the sum is the score.
+  return t.componentRule === "sum" ? estimate : `only the ${t.componentWeights ? "weighted " : ""}mean of the items is scored; ${estimate}`;
+}
+/** What one row of a measure needs, e.g. `"items" general, spatial, involvement, realness, each on 1–7 (… no "value"); only the mean …`. */
 export function answerNeeds(t: ForecastTarget, designs: number): string {
+  return t.components?.length ? `${answerShape(t, designs)}; ${itemsRule(t)}` : answerShape(t, designs);
+}
+/** The shape of one row alone (what a rejection repeats), e.g. `"items" general, …, each on 1–7 (an object {…}, no "value")`. */
+function answerShape(t: ForecastTarget, designs: number): string {
   const range = rangeText(t);
   if (t.components?.length) {
     const shape = `(an object {${t.components.map((c) => `"${c}": number`).join(", ")}}, no "value")`;
@@ -145,7 +159,7 @@ export function checkForecast(
       notNumber.length ? `no numeric "value" for ${notNumber.join(", ")}` : "",
       outOfRange.length ? `out of range for ${outOfRange.join(", ")}` : "",
     ].filter(Boolean);
-    if (parts.length) problems.push(`${t.id} needs ${answerNeeds(t, designIds.length)} for every design: ${parts.join("; ")}.`);
+    if (parts.length) problems.push(`${t.id} needs ${answerShape(t, designIds.length)} for every design: ${parts.join("; ")}.`);
   }
   return { problems, measurements };
 }

@@ -54,6 +54,8 @@ export function validateStudy(value: unknown): Study {
         "id",
         "title",
         "researchQuestion",
+        "agentQuestions",
+        "agentTitle",
         "synthetic",
         "design",
         "predictionLevel",
@@ -85,6 +87,8 @@ export function validateStudy(value: unknown): Study {
     "State the research question.",
   );
   textField(s.researchQuestion, STUDY_TEXT_LIMITS.long, "The research question");
+  textField(s.agentQuestions, STUDY_TEXT_LIMITS.long, "The questions about the agents", true);
+  textField(s.agentTitle, STUDY_TEXT_LIMITS.label, "The title agents see", true);
   requireThat(
     typeof s.synthetic === "boolean",
     "Declare whether the study is synthetic.",
@@ -164,7 +168,7 @@ export function validateStudy(value: unknown): Study {
     keys(x, ["id", "stratum", "conditionOrder"], "participant"),
   );
   s.sources.forEach((x) =>
-    keys(x, ["id", "label", "kind", "description", "fields"], "source"),
+    keys(x, ["id", "label", "kind", "description", "fields", "phases"], "source"),
   );
   s.outcomes.forEach((x) =>
     keys(
@@ -302,6 +306,20 @@ export function validateStudy(value: unknown): Study {
       requireThat(
         !source.fields.some((f) => s.outcomes.some((o) => o.id === f)),
         `Target outcome field included in source ${source.id}. Use predictor-only source definitions.`,
+      );
+    }
+  for (const source of s.sources)
+    if (source.phases !== undefined) {
+      requireThat(
+        source.kind === "trajectory",
+        `Only movement recordings (trajectory) can be limited to phases; remove "phases" from ${source.id}.`,
+      );
+      requireThat(
+        Array.isArray(source.phases) &&
+          source.phases.length > 0 &&
+          source.phases.every((p) => typeof p === "string" && phases.has(p)) &&
+          new Set(source.phases).size === source.phases.length,
+        `The phases of ${source.id} must list known phases of this study (${[...phases].join(", ")}), each once.`,
       );
     }
   requireThat(

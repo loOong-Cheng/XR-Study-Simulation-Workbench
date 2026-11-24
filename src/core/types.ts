@@ -40,7 +40,18 @@ export interface Study {
   schemaVersion: "1.0";
   id: string;
   title: string;
+  /** The human study's research question(s): sent to every forecasting agent. Never questions about the agents. */
   researchQuestion: string;
+  /**
+   * The researcher's questions about the agents (which configurations reproduce the human
+   * differences, and so on). Kept with the study for the researcher; never sent to agents.
+   */
+  agentQuestions?: string;
+  /**
+   * The neutral title agents see (default "An XR user study"). The study's own title stays with
+   * the researcher: it may name the result, the data ("synthetic") or the purpose of a run.
+   */
+  agentTitle?: string;
   synthetic: boolean;
   design: "within-subjects" | "between-subjects";
   predictionLevel: "population" | "individual";
@@ -75,6 +86,12 @@ export interface Study {
     kind: SourceKind;
     description: string;
     fields?: string[];
+    /**
+     * Movement recordings (trajectory) only: deliver only rows of these phases (the table's phase
+     * column), e.g. ["practice"], so recordings of scored phases cannot stand in for their measures.
+     * Absent = every row.
+     */
+    phases?: string[];
   }[];
   runtime: {
     engine: "unreal" | "unity" | "custom";
@@ -265,6 +282,13 @@ export interface RunResult {
     runtimeStarts?: number;
     /** Set when the session was finished from its files after a workbench restart (its end was never seen). */
     recovered?: string;
+    /**
+     * The design order the executor assigned this session at launch (play order for the app, and
+     * the order designs are listed in): the participant's own order, or for population sessions the
+     * human orders in rotation over repetitions. The audit checks visits against it. Absent in runs
+     * made before it was recorded (they used the protocol's order).
+     */
+    designOrder?: string[];
   };
   measurements: Measurement[];
   trace: TraceEvent[];

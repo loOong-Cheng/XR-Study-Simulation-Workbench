@@ -8,6 +8,7 @@ import type {
 } from "./types.js";
 import { measurementKey, measurementValue, requireThat } from "./validation.js";
 import { agentTargets, protocolForJob, verifyPlan } from "./planner.js";
+import { casesInOrder, validOrder } from "./fairness.js";
 
 /**
  * Whether an action event is a scored action (a task answer): marked `scored: true` when the
@@ -451,6 +452,10 @@ export function auditRun(
     trace && trace.filter((t) => t?.type === "forecast").length === 1,
     "Record exactly one forecast boundary.",
   );
+  // The design order the executor assigned at launch (counterbalanced population sessions): visits
+  // are checked against it. Runs without one were given the protocol's order.
+  const assigned = (e as { designOrder?: unknown } | undefined)?.designOrder;
+  if (validOrder(plan.study, assigned, agent.requiredCaseIds)) agent.requiredCaseIds = casesInOrder(plan.study, agent.requiredCaseIds, assigned);
   if (trace) guarded(() => issues.push(...exposureIssues(plan, agent, trace)));
   return {
     jobId: job.id,

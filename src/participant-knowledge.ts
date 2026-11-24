@@ -74,6 +74,15 @@ export function toCsv(head: string[], rows: string[][]): string {
   return [head, ...rows].map((r) => r.map((v) => cell(v ?? "")).join(",")).join("\n") + "\n";
 }
 export const idColumn = (head: string[]) => head.findIndex((h) => /^(participant|participant_id|id)$/i.test(h));
+/** The column naming each row's phase (movement recordings limited to phases need it). */
+export const phaseColumn = (head: string[]) => head.findIndex((h) => /^phase(_id)?$/i.test(h.trim()));
+/** Whether a row belongs to the given phases (always, without a limit). */
+const inPhases = (table: Table, phases: string[] | undefined) => {
+  if (!phases?.length) return () => true;
+  const col = phaseColumn(table.head);
+  return (r: string[]) => col >= 0 && phases.includes((r[col] ?? "").trim());
+};
+const phaseText = (phases: string[]) => `the ${phases.length === 1 ? "phase" : "phases"} ${phases.join(", ")}`;
 
 const list = (ids: string[], max = 6) => (ids.length > max ? `${ids.slice(0, max).join(", ")} and ${ids.length - max} more` : ids.join(", "));
 /** "realism" / "realism, presence" with the verb that fits: one column is … / columns are … */
@@ -126,9 +135,10 @@ const isTable = (f: string) => /\.(csv|tsv)$/i.test(f);
  * Problems that make participant-specific knowledge unusable, each phrased to follow the source's
  * name ("Background has no entry for p03"): a participant without an entry, a duplicate entry,
  * a declared field that is not a column or is named like a measure, or an empty value.
+ * Movement recordings limited to phases need a phase column and rows of those phases for everyone.
  * Empty list = complete.
  */
-export function participantProblems(study: Study, kind: string, path: string, fields: string[]): string[] {
+export function participantProblems(study: Study, kind: string, path: string, fields: string[], phases?: string[]): string[] {
   if (!existsSync(path)) return [`does not exist (${path})`];
   const people = study.participants.map((p) => p.id);
   if (kind === "trajectory" && statSync(path).isDirectory()) {
@@ -138,10 +148,13 @@ export function participantProblems(study: Study, kind: string, path: string, fi
       empty: string[] = [],
       notTables: string[] = [],
       absent = new Set<string>(),
-      blanks: string[] = [];
+      blanks: string[] = [],
+      noPhase: string[] = [],
+      outside: string[] = [];
     for (const p of people) {
       const mine = filesOf(files, p);
       if (!mine.length) without.push(p);
+      let rowsInPhases = 0;
       for (const f of mine) {
         if (!isTable(f)) {
           notTables.push(f);
@@ -154,8 +167,13 @@ export function participantProblems(study: Study, kind: string, path: string, fi
         fields.filter((x) => !table.head.includes(x)).forEach((x) => absent.add(`${x} (${f})`));
         for (const x of fields.filter((y) => table.head.includes(y)))
           if (table.rows.some((r) => isMissing(r[table.head.indexOf(x)]))) blanks.push(`${x} in ${f}`);
+        if (phases?.length && phaseColumn(table.head) < 0) noPhase.push(f);
+        rowsInPhases += table.rows.filter(inPhases(table, phases)).length;
       }
+      if (phases?.length && mine.length && !rowsInPhases) outside.push(p);
     }
+    if (noPhase.length) problems.push(`has no phase column in ${list(noPhase)}, so its rows cannot be limited to ${phaseText(phases!)}`);
+    else if (outside.length) problems.push(`has no rows of ${phaseText(phases!)} for ${list(outside)}`);
     if (without.length) problems.push(`has no recording for ${list(without)}`);
     if (empty.length) problems.push(`has ${plural(empty.length, "an empty recording", "empty recordings")} (no rows below the header): ${list(empty)}`);
     if (notTables.length) problems.push(`has ${plural(notTables.length, "a file", "files")} that ${plural(notTables.length, "is", "are")} not a CSV table, so ${plural(notTables.length, "its", "their")} fields cannot be limited: ${list(notTables)}`);
@@ -163,10 +181,10 @@ export function participantProblems(study: Study, kind: string, path: string, fi
     if (blanks.length) problems.push(`has empty values for ${list(blanks)}`);
     return problems;
   }
-  return participantProblemsText(study, kind, readTextSync(path), fields);
+  return participantProblemsText(study, kind, readTextSync(path), fields, phases);
 }
 /** The same check on the text of a table that is not written yet. */
-export function participantProblemsText(study: Study, kind: string, text: string, fields: string[]): string[] {
+export function participantProblemsText(study: Study, kind: string, text: string, fields: string[], phases?: string[]): string[] {
   const people = study.participants.map((p) => p.id);
   const table = parseCsv(text);
   const { head, rows } = table;
@@ -186,6 +204,14 @@ export function participantProblemsText(study: Study, kind: string, text: string
     const col = head.indexOf(f);
     const empty = people.filter((p) => (byPerson.get(p) ?? []).some((r) => isMissing(r[col])));
     if (empty.length) problems.push(`has an empty ${f} for ${list(empty)}`);
+  }
+  if (phases?.length) {
+    if (phaseColumn(head) < 0) problems.push(`has no phase column, so its rows cannot be limited to ${phaseText(phases)}`);
+    else {
+      const keep = inPhases(table, phases);
+      const outside = people.filter((p) => byPerson.has(p) && !byPerson.get(p)!.some(keep));
+      if (outside.length) problems.push(`has no rows of ${phaseText(phases)} for ${list(outside)}`);
+    }
   }
   return problems;
 }
@@ -268,21 +294,24 @@ function onlyFields(table: Table, fields: string[], keep: (row: string[]) => boo
 /**
  * A participant's movement rows as agents receive them: only the ID column and the declared
  * fields, from a CSV with a participant column, or from every file of a folder of per-participant
- * recordings (sorted, each under its file name).
+ * recordings (sorted, each under its file name). With `phases` (the source's phases), only rows of
+ * those phases (the table's phase column); a table without one gives nothing.
  */
-export function trajectoryText(path: string, participantId: string, fields: string[]): string {
+export function trajectoryText(path: string, participantId: string, fields: string[], phases?: string[]): string {
   const none = "(no movement recorded for this participant)";
   if (statSync(path).isDirectory()) {
     const mine = filesOf(readdirSync(path), participantId).filter((f) => isTable(f) && statSync(join(path, f)).isFile());
     const parts = mine.flatMap((f) => {
-      const part = onlyFields(parseCsv(readTextSync(join(path, f))), fields, () => true);
+      const table = parseCsv(readTextSync(join(path, f)));
+      const part = onlyFields(table, fields, inPhases(table, phases));
       return part.rows ? [`## ${f}\n${part.text}`] : [];
     });
     return parts.length ? parts.join("\n\n") : none;
   }
   const table = parseCsv(readTextSync(path));
   const idCol = idColumn(table.head);
-  const part = onlyFields(table, fields, (r) => r[idCol]?.trim() === participantId);
+  const keep = inPhases(table, phases);
+  const part = onlyFields(table, fields, (r) => r[idCol]?.trim() === participantId && keep(r));
   return idCol >= 0 && part.rows ? part.text : none;
 }
 

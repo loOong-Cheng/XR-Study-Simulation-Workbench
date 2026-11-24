@@ -153,7 +153,7 @@ export function missingSources(dir: string, study: Study, manifest: WorkspaceMan
     const path = where.path;
     // Participant-specific knowledge must exist for every participant, with no empty field.
     if ((PARTICIPANT_KINDS as readonly string[]).includes(s.kind)) {
-      const problems = participantProblems(study, s.kind, path, s.fields ?? []);
+      const problems = participantProblems(study, s.kind, path, s.fields ?? [], s.phases);
       const shown = String(manifest.sources?.[id] ?? "");
       if (problems.length) return [{ id, label: s.label, message: `Source '${id}' (${s.label}, ${isAbsolute(shown) ? `…/${basename(shown)}` : shown}) ${problems.join("; ")}. Participant-specific knowledge needs exactly one complete entry per participant: fix it on Evidence & knowledge.` }];
     }

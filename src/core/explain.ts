@@ -2,7 +2,7 @@
 // that checks a file prints one of these, so a reader sees what the framework
 // understood, not only whether the JSON validated.
 import type { AgentProtocol, Comparison, HumanData, Plan, Study } from "./types.js";
-import { agentLevel, agentTargets, methodGets } from "./planner.js";
+import { agentLevel, agentTargets, agentTitle, methodGets } from "./planner.js";
 import { compositeRule, measurementValue, mixedLevelsMessage } from "./validation.js";
 import { smallestMannWhitneyP, smallestWilcoxonP } from "./rank-tests.js";
 import {
@@ -64,6 +64,8 @@ export function explainStudy(study: Study, agents?: AgentProtocol[]): string {
   const parts = [
     `# ${study.title}${study.synthetic ? " (synthetic)" : ""}`,
     `**Research question:** ${study.researchQuestion}`,
+    ...(study.agentQuestions ? [`**Questions about the agents** (never sent to agents): ${study.agentQuestions}`] : []),
+    `**Title agents see:** ${agentTitle(study)}`,
     `**Design:** ${study.design}; **prediction:** ${study.predictionLevel}, ${study.predictionTiming}; **runtime:** ${study.runtime.engine} / ${study.runtime.backend}, ${study.runtime.observation}, ${study.runtime.deviceProfile}`,
     "## Designs (conditions)",
     table(
@@ -95,7 +97,7 @@ export function explainStudy(study: Study, agents?: AgentProtocol[]): string {
     "## Information agents may receive",
     table(
       ["ID", "Kind", "Label", "Allowed fields"],
-      study.sources.map((s) => [s.id, s.kind, s.label, s.fields?.join(", ") ?? "—"]),
+      study.sources.map((s) => [s.id, s.kind, s.label, (s.fields?.join(", ") ?? "—") + (s.phases ? ` (rows of ${s.phases.join(", ")} only)` : "")]),
     ),
     ...(study.analysis.contrasts.length ? ["## Comparisons stored with the study (optional; usually chosen at analysis)"] : []),
     study.analysis.contrasts.length

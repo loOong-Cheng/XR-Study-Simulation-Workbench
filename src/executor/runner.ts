@@ -25,8 +25,9 @@ import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
 import { agentFileList } from "../runtimes/guard.js";
 import { readText } from "../files.js";
-import { answerNeeds } from "../core/forecast-format.js";
 import { unfinishedCases } from "../runtimes/exposure.js";
+import { casesInOrder, designOrder } from "../core/fairness.js";
+import { buildPrompt, READ_FILES_LINE, type PromptSection } from "./prompt.js";
 
 /** not-started: never asked to run; queued: asked to run and waiting for a free slot. */
 export type JobStatus = "not-started" | "queued" | "running" | "done" | "failed" | "stopped" | "reused";
@@ -915,7 +916,10 @@ export class Executor implements Schedulable {
       tokensAtSubmit: null,
     };
     // Only the forecast the study server accepted in this attempt (it carries the attempt's ID from job.json).
-    const attemptId = parse<{ attemptId?: string }>(await text("job.json"))?.attemptId;
+    const jobSpec = parse<{ attemptId?: string; designOrder?: unknown }>(await text("job.json"));
+    const attemptId = jobSpec?.attemptId;
+    // The design order the session was given at launch (the audit checks the visits against it).
+    const designOrder = Array.isArray(jobSpec?.designOrder) && jobSpec!.designOrder.every((x) => typeof x === "string") ? (jobSpec!.designOrder as string[]) : null;
     const written = parse<{ attemptId?: string; measurements?: unknown[] }>(await text("forecast.json"));
     const forecast = attemptId && written?.attemptId === attemptId ? written : null;
     const xr = a.tools.includes("xr-interact");
@@ -970,6 +974,7 @@ export class Executor implements Schedulable {
         humanTimeEstimateMs: null,
         technicalRetries: 0,
         ...(bridged ? { runtimeStarts } : {}),
+        ...(designOrder ? { designOrder } : {}),
         ...(full.tokensAtSubmit !== null ? { tokensAtSubmit: full.tokensAtSubmit } : {}),
         recovered: RECOVERED,
       },
@@ -1150,7 +1155,7 @@ export class Executor implements Schedulable {
     // sources before a run starts; this guard covers files removed after that check.
     const missing = missingSources(wsDir, study, this.manifest, a.sourceIds);
     requireThat(missing.length === 0, missing.map((m) => m.message).join(" "));
-    const injected: { sourceId: string; title: string; content: string }[] = [];
+    const injected: PromptSection[] = [];
     for (const id of a.sourceIds) {
       const kind = kindOf(id);
       const path = src(id);
@@ -1159,26 +1164,27 @@ export class Executor implements Schedulable {
       else if (kind === "project") {
         // The same files list_files and read_file give: nothing hidden from agents is named.
         const files = (await agentFileList(path!)).join("\n");
-        injected.push({ sourceId: id, title: "Project files you can open with read_file", content: files });
+        // The same one line for every configuration that can read files (its content, hashed for the audit, is the list).
+        injected.push({ sourceId: id, title: "Project files you can open with read_file", content: files, ...(a.tools.includes("read-files") ? { note: READ_FILES_LINE } : {}) });
       } else if (kind === "demographics")
         injected.push({ sourceId: id, title: `Participant background: ${labelOf(id)} (allowed fields only)`, content: await demographics(path, study.sources.find((s) => s.id === id)!.fields ?? [], job.participantId, study.participants.map((p) => p.id)) });
       else if (kind === "trajectory")
-        injected.push({ sourceId: id, title: `This participant's recorded movement: ${labelOf(id)} (allowed fields only)`, content: await trajectory(path, job.participantId, study.sources.find((s) => s.id === id)!.fields ?? []) });
+        injected.push({ sourceId: id, title: `This participant's recorded movement: ${labelOf(id)} (allowed fields only)`, content: await trajectory(path, job.participantId, study.sources.find((s) => s.id === id)!.fields ?? [], study.sources.find((s) => s.id === id)!.phases) });
     }
     const inputs = a.inputs?.length ? describeInputs(await readHuman(this.workspaceId), study, a, job) : null;
-    const designs = (job.participantId ? study.participants.find((p) => p.id === job.participantId)!.conditionOrder : study.conditions.map((c) => c.id)).map((id) => ({
-      id,
-      label: study.conditions.find((c) => c.id === id)!.label,
-    }));
+    // The session's design order, derived at launch and recorded in job.json and the result: the
+    // person's own order, or for population sessions the human orders in rotation over repetitions
+    // (the same for every configuration). Designs are listed and played in it.
+    const order = designOrder(study, job);
+    const designs = order.map((id) => ({ id, label: study.conditions.find((c) => c.id === id)!.label }));
+    const caseIds = casesInOrder(study, protocol.requiredCaseIds, order);
     const runtime = runtimeFor(study, a);
     const caseOf = (design: string, kind: string) => {
       const phase = study.phases.find((p) => p.kind === kind);
       const c = phase && study.cases.find((x) => x.conditionId === design && x.phaseId === phase.id);
       return c ? { caseId: c.id, phaseId: phase!.id } : null;
     };
-    const ordered = a.tools.includes("xr-interact")
-      ? [...new Set(protocol.requiredCaseIds.map((id) => study.cases.find((c) => c.id === id)!.conditionId))]
-      : designs.map((d) => d.id);
+    const ordered = a.tools.includes("xr-interact") ? [...new Set(caseIds.map((id) => study.cases.find((c) => c.id === id)!.conditionId))] : designs.map((d) => d.id);
     await writeFile(
       join(jobDir, "job.json"),
       JSON.stringify(
@@ -1193,6 +1199,7 @@ export class Executor implements Schedulable {
           // The study's ID of that project source, for the read events of the audit trace.
           projectSourceId: a.tools.includes("read-files") ? a.sourceIds.find((id) => kindOf(id) === "project" && src(id)) ?? null : null,
           participantId: job.participantId ?? null,
+          designOrder: order,
           designs,
           targets: study.outcomes
             .filter((o) => targets.includes(o.id))
@@ -1205,7 +1212,7 @@ export class Executor implements Schedulable {
                 trace: join(jobDir, "trace.jsonl"),
                 screenshots: join(jobDir, "screenshots"),
                 designs: ordered.map((id) => ({ id, label: study.conditions.find((c) => c.id === id)!.label, practice: caseOf(id, "practice"), main: caseOf(id, "main") })),
-                cases: protocol.requiredCaseIds.map((id) => {
+                cases: caseIds.map((id) => {
                   const c = study.cases.find((x) => x.id === id)!;
                   return {
                     caseId: c.id,
@@ -1262,38 +1269,12 @@ export class Executor implements Schedulable {
       servers[runtime] = { ...bridge, command: process.execPath, args: [bridgeProxy, jobDir, bridge.command, ...bridge.args] };
     }
     await writeFile(join(jobDir, "mcp.json"), JSON.stringify({ mcpServers: servers }, null, 2));
-    const system = [
-      "You are an AI agent forecasting the results of a completed XR user study. You have not seen any participant's answers and must not try to obtain them.",
-      "Use only the tools provided. Your elapsed time, clicks and errors are not the participants' times or errors; predict what the participants did and reported.",
-      "Finish by calling submit_forecast exactly once with one row per design × outcome listed, each as its \"answer\" says (the named items for measures with items, not a value), plus your uncertainty and a short reasoning. Then stop.",
-      ...(a.tools.includes("xr-interact")
-        ? [
-            runtime === "webxr"
-              ? playInstructions(runtime, ordered, study, protocol.requiredCaseIds, typeof this.manifest.app?.instructions === "string" ? this.manifest.app.instructions : undefined, webxrCapabilities(this.manifest))
-              : playInstructions(runtime, ordered, study, protocol.requiredCaseIds, settings.runtimes[runtime]?.instructions, settings.runtimes[runtime]?.capabilities ?? []),
-          ]
-        : []),
-    ].join("\n");
-    const prompt = [
-      `# Task\n${JSON.stringify(
-        {
-          study: (packet.task as { title?: string }).title,
-          researchQuestion: (packet.task as { researchQuestion?: string }).researchQuestion,
-          level: agentLevel(study, a),
-          ...(job.participantId ? { participant: (packet.task as { orderContext?: unknown }).orderContext } : { cohort: (packet.task as { orderContext?: unknown }).orderContext }),
-          designs,
-          phases: study.phases,
-          // "answer" says exactly what submit_forecast needs per row (the item IDs of measures with
-          // items, the declared range); range is left out of the JSON when the measure declares none.
-          predict: study.outcomes.filter((o) => targets.includes(o.id)).map((o) => ({ outcome: o.id, label: o.label, domain: o.domain, unit: o.unit, scale: o.scale, range: o.range, items: o.components, answer: `give ${answerNeeds(o, designs.length)}`, description: o.description })),
-        },
-        null,
-        2,
-      )}`,
-      ...injected.map((s) => `# ${s.title}\n${s.content}`),
-      ...(inputs ? [`# Measured data you may use as predictors\n${inputs}`] : []),
-      `# What to return\n${a.forecastInstruction}\n${agentLevel(study, a) === "individual" ? `Predict for participant ${job.participantId} only.` : "Predict the group of participants as a whole (population means; mean rank for rankings)."}`,
-    ].join("\n\n");
+    const play = !a.tools.includes("xr-interact")
+      ? null
+      : runtime === "webxr"
+      ? playInstructions(runtime, ordered, study, caseIds, typeof this.manifest.app?.instructions === "string" ? this.manifest.app.instructions : undefined, webxrCapabilities(this.manifest))
+      : playInstructions(runtime, ordered, study, caseIds, settings.runtimes[runtime]?.instructions, settings.runtimes[runtime]?.capabilities ?? []);
+    const { system, prompt } = buildPrompt({ study, agent: a, job, designs, orderContext: (packet.task as { orderContext?: unknown }).orderContext, play, sections: injected, inputs });
     await writeFile(join(jobDir, "prompt.md"), `## System\n${system}\n\n## Prompt\n${prompt}\n`);
     const sourceEvents: TraceEvent[] = injected.map((s) => ({ type: "source", sourceId: s.sourceId, delivery: "injected", sha256: sha(s.content) }));
 
@@ -1680,6 +1661,8 @@ export class Executor implements Schedulable {
         humanTimeEstimateMs: null,
         technicalRetries: 0,
         ...(bridge ? { runtimeStarts } : {}),
+        // The order this session was given; the audit checks the visits against it.
+        designOrder: order,
         // The audit checks the token budget up to here; the closing turn after acceptance is reported apart.
         ...(atForecast !== null ? { tokensAtSubmit: atForecast } : {}),
       },
@@ -1817,12 +1800,13 @@ async function demographics(path: string | null, fields: string[], participantId
 /**
  * A participant's movement recordings, only the ID column and the declared fields: from a CSV with
  * a participant column (that person's rows, with the header), or every file of a folder of
- * per-participant files named after the participant ID. Population jobs get none.
+ * per-participant files named after the participant ID. Population jobs get none. With `phases`
+ * (the source's phases), only rows of those phases.
  */
-export async function trajectory(path: string | null, participantId: string | undefined, fields: string[]): Promise<string> {
+export async function trajectory(path: string | null, participantId: string | undefined, fields: string[], phases?: string[]): Promise<string> {
   if (!participantId) return "(movement recordings are per participant; none for population forecasts)";
   if (!path || !existsSync(path)) return "(no movement recordings declared)";
-  return trajectoryText(path, participantId, fields);
+  return trajectoryText(path, participantId, fields, phases);
 }
 /** Declared input variables (measured outcomes used as predictors): the person's values, or cohort means. Never targets. */
 function describeInputs(human: HumanData | null, study: Plan["study"], a: AgentProtocol, job: Job): string {

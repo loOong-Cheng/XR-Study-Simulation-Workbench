@@ -23,6 +23,15 @@ export function canonical(value: unknown): string {
 export function hash(value: unknown): string {
   return createHash("sha256").update(canonical(value)).digest("hex");
 }
+/** What agents see as the study's title unless the study sets agentTitle. */
+export const NEUTRAL_TITLE = "An XR user study";
+/**
+ * The title agents see: the study's agentTitle, else a neutral one. Never the study's own title,
+ * which may name the result, the data ("synthetic") or the purpose of a run.
+ */
+export function agentTitle(study: Pick<Study, "agentTitle">): string {
+  return study.agentTitle?.trim() || NEUTRAL_TITLE;
+}
 /** Prediction level of a config (its own, else the study's). */
 export function agentLevel(study: Study, a: AgentProtocol): "population" | "individual" {
   return a.level ?? study.predictionLevel;
@@ -196,9 +205,12 @@ function recipe(
     forecastInstruction,
   };
 }
-// Built-in method templates. Each adds one kind of information to the previous
-// one, so neighbouring methods can be compared. IDs and labels say what the
-// agent gets; the rationale says which question the method answers.
+// Built-in method templates. Each differs from a named neighbour in exactly one
+// ingredient (the files, the running app, the evidence, the participants), so that
+// comparison isolates it; the rationale names the neighbour and the ingredient.
+// IDs and labels say what the agent gets. Uses the app keeps the project files, so
+// "Uses the app vs Text only" changes two ingredients: compare Uses the app only
+// with Text only, or Uses the app with Reads the project files.
 export class BaselineDesigner implements PlanningAgent {
   id = "baseline-designer";
   async propose(s: Study): Promise<AgentProtocol[]> {
@@ -207,7 +219,7 @@ export class BaselineDesigner implements PlanningAgent {
         s,
         "text-only",
         "Text only",
-        "Baseline: how well can people's results be predicted from the written description alone, without seeing the app?",
+        "Baseline: the written description alone, without the project or the app. Every other template adds one ingredient to it or to another template.",
         [],
         [],
       ),
@@ -218,7 +230,7 @@ export class BaselineDesigner implements PlanningAgent {
           s,
           "reads-project",
           "Reads the project files",
-          "Does inspecting the app's files (code, scenes, materials) without running it beat the description alone?",
+          "Compared with Text only, one ingredient: the project files (code, scenes, materials), read but not run.",
           ["project"],
           ["read-files"],
         ),
@@ -233,9 +245,18 @@ export class ExperienceDesigner implements PlanningAgent {
     return [
       recipe(
         s,
+        "app-only",
+        "Uses the app only",
+        "Compared with Text only, one ingredient: experiencing the running app like a participant (looking around, doing the practice and main tasks), without the project files.",
+        [],
+        ["xr-interact"],
+        true,
+      ),
+      recipe(
+        s,
         "uses-app",
         "Uses the app",
-        "Does experiencing the app like a participant (looking around and doing the practice and main tasks) beat only reading its files?",
+        "Compared with Reads the project files, one ingredient: experiencing the running app like a participant (it keeps the files). Compared with Uses the app only, one ingredient: the project files. Against Text only it changes both.",
         ["project"],
         ["read-files", "xr-interact"],
         true,
@@ -252,7 +273,7 @@ export class EvidenceDesigner implements PlanningAgent {
         s,
         "reads-evidence",
         "Reads the project + your evidence",
-        "Does your evidence document (published findings, a computational model) add anything beyond reading the files?",
+        "Compared with Reads the project files, one ingredient: your evidence document (published findings, a computational model).",
         ["project", "evidence"],
         ["read-files", "read-evidence"],
       ),
@@ -272,7 +293,7 @@ export class ParticipantDesigner implements PlanningAgent {
         s,
         "uses-app-people",
         "Uses the app + knows the participants",
-        "Does knowing who took part (only the allowed background, never their answers) improve on using the app alone?",
+        "Compared with Uses the app, one ingredient: what is known about who took part (only the allowed background, never their answers).",
         ["project", ...kinds],
         ["read-files", "xr-interact", "read-participant-data"],
         true,
@@ -370,7 +391,8 @@ export function jobPacket(plan: Plan, job: Job): object {
     protocol: a,
     task: {
       studyId: plan.study.id,
-      title: plan.study.title,
+      // What the forecaster may see: a neutral title and the human study's question only (never agentQuestions).
+      title: agentTitle(plan.study),
       researchQuestion: plan.study.researchQuestion,
       synthetic: plan.study.synthetic,
       predictionLevel: plan.study.predictionLevel,
