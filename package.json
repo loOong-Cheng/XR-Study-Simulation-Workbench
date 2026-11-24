@@ -15,7 +15,7 @@
     "start": "npm run build && node dist/server.js",
     "cli": "node dist/cli.js",
     "demo": "npm run build && node dist/cli.js demo",
-    "test": "npm run build && tsc -p tsconfig.test.json && node --test .test-build/test/research.test.js .test-build/test/proposal.test.js .test-build/test/campaign.test.js .test-build/test/continuation.test.js .test-build/test/examples.test.js .test-build/test/integrity.test.js .test-build/test/webxr-runtime.test.js .test-build/test/security.test.js"
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test .test-build/test/research.test.js .test-build/test/proposal.test.js .test-build/test/campaign.test.js .test-build/test/continuation.test.js .test-build/test/examples.test.js .test-build/test/integrity.test.js .test-build/test/webxr-runtime.test.js .test-build/test/security.test.js .test-build/test/cli.test.js"
   },
   "devDependencies": {
     "@types/node": "22.10.2",
