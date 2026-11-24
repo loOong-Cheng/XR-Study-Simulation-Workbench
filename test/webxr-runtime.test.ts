@@ -34,8 +34,8 @@ window.xrStudy = {
 // Servers end with this file's tests, also when a test hangs and --test-timeout cancels it.
 const children = new Set<ChildProcess>();
 after(() => children.forEach((c) => c.kill()));
-function client(jobDir: string) {
-  const child = spawn(process.execPath, [server, jobDir], { stdio: ["pipe", "pipe", "ignore"] });
+function client(jobDir: string, path = server) {
+  const child = spawn(process.execPath, [path, jobDir], { stdio: ["pipe", "pipe", "ignore"] });
   children.add(child);
   const waiting = new Map<number, (m: any) => void>();
   createInterface({ input: child.stdout! }).on("line", (l) => {
@@ -279,10 +279,11 @@ window.xrStudy = {
   look: (azimuth, polar) => ({ azimuth, polar: Math.min(120, polar) }),
   act: (name, args) => new Promise((ok) => setTimeout(() => {
     if (name === "turn") return ok({ accepted: true });
+    if (name === "inspect") return ok({ accepted: ["rock", "pillar", "flag"].includes(args.target) && args.list[0] === "rock" });
     if (args.to === "wall") return ok({ accepted: false, reason: "A wall is in the way." });
     s.pos = args.to; s.spawned = true; ok({ accepted: true });
   }, 150)),
-  actions: () => [{ name: "turn", params: { degrees: "number" }, scored: false }],
+  actions: () => [{ name: "turn", params: { degrees: "number" }, scored: false }, { name: "inspect", params: { target: "object ID" }, scored: false }],
 };
 </script></body>`;
 
@@ -318,6 +319,9 @@ test("WebXR runtime: app actions, late and hidden objects, limited view, abandon
     await mcp.call("list_objects");
     const ids = (await readFile(join(jobDir, "object-ids.jsonl"), "utf8")).trim().split("\n").map((l) => JSON.parse(l));
     const flag = Object.entries(ids.at(-1).shownToApp as Record<string, string>).find(([, app]) => app === "flag")![0];
+    // Neutral IDs inside an action's arguments (at any depth) reach the app as its own IDs.
+    const rock = Object.entries(ids.at(-1).shownToApp as Record<string, string>).find(([, app]) => app === "rock")![0];
+    assert.equal(JSON.parse((await mcp.call("act", { name: "inspect", args: { target: flag, list: [rock] } })).text!).result.accepted, true);
     assert.equal(JSON.parse((await mcp.call("select", { object: flag })).text!).result.correct, true);
     assert.match((await mcp.call("select", { object: flag })).text!, /finished\. That was the last design: submit your forecast\./);
     await mcp.close();
@@ -328,8 +332,142 @@ test("WebXR runtime: app actions, late and hidden objects, limited view, abandon
     const acts = events.filter((e) => e.type === "action" && e.caseId === "one-main").map((e) => [e.action, e.completed, e.scored]);
     assert.deepEqual(acts, [["look-around", true, false], ["teleport", false, false], ["teleport", true, true], ["turn", true, false]]);
     assert.deepEqual(events.find((e) => e.action === "teleport").result, { accepted: false, reason: "A wall is in the way." });
+    // The trace keeps the arguments as the agent sent them (neutral IDs).
+    assert.deepEqual(events.find((e) => e.action === "inspect").args, { target: flag, list: [rock] });
     assert.ok(events.find((e) => e.type === "runtime").capabilities.includes("actions"));
   } finally {
     await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   }
+});
+
+// A task that ends 900 ms after its last click, with no state change in between (a fade-out):
+// two clicks finish it. Design "busy" reports busy: true while the fade runs.
+const delayedApp = `<!doctype html><meta charset="utf-8"><body style="background:#333"><script>
+const design = new URLSearchParams(location.search).get("design");
+const s = { clicks: 0, done: false, fading: false };
+window.xrStudy = {
+  getState: () => ({ phase: s.done ? "questionnaire" : "main", trial: s.clicks, done: s.done, instruction: "Click twice.", public: { clicks: s.clicks }, ...(design === "busy" ? { busy: s.fading } : {}) }),
+  start: () => {},
+  pointer: (x, y, kind) => {
+    if (kind !== "up") return undefined;
+    if (s.done || s.fading) return { accepted: false, reason: "No active target." };
+    if (++s.clicks === 2) { s.fading = true; setTimeout(() => { s.fading = false; s.done = true; }, 900); }
+    return { accepted: true, hit: true };
+  },
+};
+</script></body>`;
+const studyServerPath = resolve(dirname(fileURLToPath(import.meta.url)), "../../dist/runtimes/study-mcp.js");
+
+test("WebXR runtime: a transition after the last action still finishes the task (next design, busy apps, the forecast gate, the session's end)", { skip: !existsSync(chrome) && `Chrome not found at ${chrome}` }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "xr-webxr-test-"));
+  try {
+    const ids = ["a", "busy", "b"];
+    const designs = ids.map((id) => ({ id, label: id, practice: null, main: { caseId: `${id}-main`, phaseId: "main" } }));
+    const jobDir = await webxrJob(root, delayedApp, { capabilities: ["screenshot", "pointer-xy", "phase-events"], designs });
+    // The study server reads the same job.json: the required cases and the runtime (for the flush before judging).
+    const spec = JSON.parse(await readFile(join(jobDir, "job.json"), "utf8"));
+    await writeFile(
+      join(jobDir, "job.json"),
+      JSON.stringify({
+        ...spec,
+        jobId: "t",
+        attemptId: "a1",
+        budget: 80,
+        tokenBudget: null,
+        projectDir: null,
+        participantId: null,
+        designs: ids.map((id) => ({ id, label: id })),
+        targets: [{ id: "m", label: "M", unit: "", scale: "likert", aggregation: "arithmetic" }],
+        app: { runtime: "webxr", cases: ids.map((id) => ({ caseId: `${id}-main`, conditionId: id })) },
+      }),
+    );
+    const mcp = client(jobDir);
+    const study = client(jobDir, studyServerPath);
+    await mcp.rpc("initialize", { protocolVersion: "2025-06-18" });
+    await study.rpc("initialize", { protocolVersion: "2025-06-18" });
+    const click = () => mcp.call("click", { x: 0.5, y: 0.5 });
+
+    // Opening the next design at once: the runtime waits for the fade, so the task counts as finished.
+    await mcp.call("open_design", { design: "a" });
+    await click();
+    assert.equal(JSON.parse((await click()).text!).state.done, false, "the fade outlasts the 400 ms settle");
+    await mcp.call("open_design", { design: "busy" });
+    // An app that reports busy is read until it is not: the click's own reply already says done.
+    await click();
+    assert.equal(JSON.parse((await click()).text!).state.done, true);
+    // The forecast right after the last click: the study server asks the runtime to flush first.
+    await mcp.call("open_design", { design: "b" });
+    await click();
+    await click();
+    const forecast = { predictions: ids.map((design) => ({ design, outcome: "m", value: 3 })) };
+    assert.match((await study.call("submit_forecast", forecast)).text!, /Forecast accepted/);
+    await mcp.close();
+    await study.close();
+    const events = await traceOf(jobDir);
+    assert.deepEqual(events.filter((e) => e.type === "case-end").map((e) => [e.caseId, e.submitted]), [["a-main", true], ["busy-main", true], ["b-main", true]]);
+    assert.ok(events.findIndex((e) => e.type === "forecast") > events.findIndex((e) => e.type === "case-end" && e.caseId === "b-main"), "finished before the forecast");
+    assert.equal(JSON.parse(await readFile(join(jobDir, "forecast.json"), "utf8")).toolCalls, 9);
+
+    // The session ends right after the last click (no forecast): the task still counts as finished.
+    const second = join(root, "second");
+    await mkdir(second);
+    await writeFile(join(second, "job.json"), JSON.stringify({ webxr: { ...spec.webxr, designs: [designs[0]] } }));
+    const end = client(second);
+    await end.rpc("initialize", { protocolVersion: "2025-06-18" });
+    await end.call("open_design", { design: "a" });
+    await end.call("click", { x: 0.5, y: 0.5 });
+    await end.call("click", { x: 0.5, y: 0.5 });
+    await end.close();
+    assert.deepEqual((await traceOf(second)).filter((e) => e.type === "case-end").map((e) => e.submitted), [true]);
+  } finally {
+    await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  }
+});
+
+test("WebXR runtime: the study's motor-noise model moves clicks off the requested point, reproducibly per seed; the trace keeps both", { skip: !existsSync(chrome) && `Chrome not found at ${chrome}` }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "xr-webxr-test-"));
+  try {
+    const designs = [{ id: "fn", label: "fn", practice: { caseId: "fn-practice", phaseId: "practice" }, main: { caseId: "fn-main", phaseId: "main" } }];
+    const landed: unknown[][] = [];
+    for (const run of ["one", "two"]) {
+      await mkdir(join(root, run));
+      const jobDir = await webxrJob(join(root, run), pointingApp, { capabilities: ["screenshot", "pointer-xy", "phase-events"], designs, pointer: { scatter: "gaussian", sdPx: { fn: 25 }, seed: 42 } });
+      const mcp = client(jobDir);
+      await mcp.rpc("initialize", { protocolVersion: "2025-06-18" });
+      await mcp.call("open_design", { design: "fn" });
+      for (const i of [0, 1, 1, 2, 3]) await mcp.call("click", { x: (240 + i * 260) / 1280, y: 0.5 });
+      await mcp.close();
+      const clicks = (await traceOf(jobDir)).filter((e) => e.type === "action" && e.action === "select-target");
+      assert.equal(clicks.length, 5);
+      for (const c of clicks) assert.ok(c.args.landed && typeof c.args.x === "number", JSON.stringify(c.args));
+      assert.ok(clicks.some((c) => c.args.landed.x !== c.args.x || c.args.landed.y !== c.args.y), "the clicks land beside the requested points");
+      // Within a few SDs of the requested point (25 px on 1280 × 720).
+      assert.ok(clicks.every((c) => Math.abs(c.args.landed.x - c.args.x) * 1280 < 150 && Math.abs(c.args.landed.y - c.args.y) * 720 < 150));
+      landed.push(clicks.map((c) => c.args.landed));
+    }
+    assert.deepEqual(landed[0], landed[1], "the same seed gives the same scatter");
+  } finally {
+    await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  }
+});
+
+test("exposure: a task left unfinished is not finished; calls after the forecast are reported apart", async () => {
+  const { caseProgress, unfinishedCases } = await import("../src/runtimes/exposure.js");
+  const { callsUntilForecast, sessionWarnings } = await import("../src/executor/runner.js");
+  const events = [
+    { type: "case-start", caseId: "p" },
+    { type: "case-end", caseId: "p", submitted: true },
+    { type: "case-start", caseId: "m" },
+    { type: "case-end", caseId: "m", submitted: false },
+  ];
+  assert.deepEqual(caseProgress(["p", "m", "x"], events), { missing: ["m", "x"], started: ["m"] });
+  assert.deepEqual(unfinishedCases(["p", "m"], [...events, { type: "case-start", caseId: "m" }, { type: "case-end", caseId: "m", submitted: true }]), [], "started again and finished");
+  assert.deepEqual(unfinishedCases(["m"], [...events, { type: "forecast" }, { type: "case-start", caseId: "m" }, { type: "case-end", caseId: "m", submitted: true }]), ["m"], "not after the forecast");
+  assert.deepEqual(callsUntilForecast(150, { toolCalls: 91 }), { calls: 91, afterForecast: 59 });
+  assert.deepEqual(callsUntilForecast(12, null), { calls: 12, afterForecast: 0 });
+  assert.deepEqual(callsUntilForecast(12, { toolCalls: 40 }), { calls: 12, afterForecast: 0 }, "a count above the total is not trusted");
+  const run = { status: "completed", execution: { synthetic: false, toolCallsAfterForecast: 59 }, trace: events } as never;
+  const [exposure, after] = sessionWarnings(["p", "m"], "webxr", run);
+  assert.match(exposure, /submitted without required exposure \(1 of 2 required tasks not finished: m; 1 of them started but left unfinished\)/);
+  assert.equal(after, "59 tool calls after the forecast was accepted (not counted)");
 });

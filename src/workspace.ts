@@ -48,9 +48,13 @@ export interface WebXRAppManifest {
   /** Capability names the app provides (screenshot is the runtime's own): look, pointer-select, pointer-xy, actions, phase-events, quality-lock. */
   capabilities?: string[];
   /** The app's own task actions, called through the runtime's `act` tool and window.xrStudy.act(name, args). */
-  actions?: { name: string; description?: string; params?: Record<string, unknown> }[];
+  actions?: { name: string; description?: string; params?: Record<string, unknown>; scored?: boolean; safe?: boolean; example?: Record<string, unknown> }[];
   /** How to use the app's controls, shown to agents with the tool descriptions. */
   instructions?: string;
+  /** How long a transition may follow an action, in ms (default 3000): the runtime waits this long before it ends a task as unfinished. */
+  settleMs?: number;
+  /** Optional motor-noise model for clicks (pointer-xy), e.g. {"scatter": "gaussian", "sdPx": 4}; off without it. */
+  pointer?: { scatter: "gaussian" | "fitts"; sdPx?: number | Record<string, number>; effectiveWidthPx?: number | Record<string, number> };
 }
 
 /** Study folders and files that hold human results or runs. No source may be, contain or reach them. */
@@ -240,7 +244,15 @@ export function appFingerprint(dir: string, manifest: WorkspaceManifest): AppFin
   const app = manifest.app;
   if (!app || typeof app !== "object") return null;
   const where = typeof app.serve === "string" ? sourceLocation(dir, "project", app.serve) : { problem: "missing" };
-  const declared = JSON.stringify({ capabilities: app.capabilities ?? null, actions: app.actions ?? null, instructions: app.instructions ?? null });
+  // The motor-noise model and the settle time are part of what agents experience; recorded only when
+  // declared, so apps frozen before these existed keep their fingerprint.
+  const declared = JSON.stringify({
+    capabilities: app.capabilities ?? null,
+    actions: app.actions ?? null,
+    instructions: app.instructions ?? null,
+    ...(app.pointer !== undefined ? { pointer: app.pointer } : {}),
+    ...(app.settleMs !== undefined ? { settleMs: app.settleMs } : {}),
+  });
   return {
     serve: String(app.serve ?? ""),
     query: String(app.query ?? ""),
@@ -361,7 +373,7 @@ const load = <T>(path: string) => readJsonFile<T>(path);
  * workspace.json, with every path as written but without surrounding quotes, which a path pasted
  * from Windows Explorer ("Copy as path") brings along.
  */
-async function loadManifest(dir: string): Promise<WorkspaceManifest> {
+export async function loadManifest(dir: string): Promise<WorkspaceManifest> {
   if (!existsSync(join(dir, "workspace.json"))) return {};
   const m = await load<WorkspaceManifest>(join(dir, "workspace.json"));
   if (!m || typeof m !== "object") return m;

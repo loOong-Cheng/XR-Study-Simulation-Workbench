@@ -9,7 +9,7 @@ import { spawn, type ChildProcess } from "node:child_process";
 import { createHash, randomInt } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { existsSync, realpathSync, statSync } from "node:fs";
-import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { appendFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { normalAction, type AppAction } from "../executor/runtimes.js";
@@ -30,10 +30,22 @@ interface WebXRSpec {
   actions?: AppAction[];
   /** Designs in the order this job must visit them, with their case IDs per phase. */
   designs: { id: string; label: string; practice: { caseId: string; phaseId: string } | null; main: { caseId: string; phaseId: string } | null }[];
+  /** How long a transition may take after an action, in ms (workspace.json → app.settleMs; default 3000). */
+  settleMs?: number;
+  /** The study's motor-noise model for clicks (workspace.json → app.pointer) with this job's seed; absent: clicks land where asked. */
+  pointer?: PointerNoise | null;
+}
+/** Endpoint scatter of clicks (docs/runtime-adapters.md → "Motor noise"): a Gaussian with a fixed SD, or one derived from an effective width (SD = We / 4.133). */
+interface PointerNoise {
+  scatter: "gaussian" | "fitts";
+  sdPx?: number | Record<string, number>;
+  effectiveWidthPx?: number | Record<string, number>;
+  seed: number;
 }
 const jobDir = resolve(process.argv[2] ?? ".");
 const spec = (JSON.parse(await readFile(join(jobDir, "job.json"), "utf8")) as { webxr: WebXRSpec }).webxr;
 const caps = new Set(spec.capabilities ?? ["screenshot", "look", "pointer-select", "phase-events"]);
+const settleMs = typeof spec.settleMs === "number" && Number.isFinite(spec.settleMs) && spec.settleMs >= 0 ? Math.min(30_000, spec.settleMs) : 3000;
 const declaredActions = (spec.actions ?? []).map(normalAction).filter((a): a is AppAction => !!a);
 const sha = (x: string | Buffer) => createHash("sha256").update(x).digest("hex");
 const log = (entry: Record<string, unknown>) =>
@@ -332,17 +344,18 @@ async function check(): Promise<void> {
 }
 const stableKey = (s: Raw) => JSON.stringify(publicState(s));
 /**
- * After an action: read the state until it has not changed for 400 ms (at most 2 s), so delayed
- * transitions (a teleport fade, an animated walk) land in the right case. Apps may also return a
- * Promise from an action that resolves when it is done.
+ * After an action: read the state until it has not changed for 400 ms (at most 2 s), and on while
+ * the app reports `busy: true` (at most settleMs), so delayed transitions (a teleport fade, an
+ * animated walk) land in the right case. Apps may also return a Promise from an action that
+ * resolves when it is done.
  */
 async function settle(trackChanges = true): Promise<Raw> {
   let s = await rawState();
   if (trackChanges) await track(s);
   let key = stableKey(s);
   let since = Date.now();
-  const until = since + 2000;
-  while (Date.now() < until && Date.now() - since < 400) {
+  const start = since;
+  while ((Date.now() < start + 2000 && Date.now() - since < 400) || (s.busy === true && Date.now() < start + settleMs)) {
     await wait(100);
     const next = await rawState();
     if (stableKey(next) !== key) {
@@ -354,6 +367,28 @@ async function settle(trackChanges = true): Promise<Raw> {
   }
   last = s;
   return s;
+}
+/** When the agent last acted on the app (start, an action, a click, a look): a transition may follow within settleMs. */
+let lastActionAt = 0;
+/**
+ * Before a case is ended as unfinished (the agent opens another design, the session ends, or the
+ * study server asks before it judges a forecast): wait for a transition the app may still make
+ * after the agent's last action. An app that reports `busy` is read until it reports busy: false
+ * (at most settleMs); without it the runtime watches until settleMs after the last action. Stops as
+ * soon as the open case ends.
+ */
+async function flush(): Promise<void> {
+  if (!design || !ws || stage === "done") return;
+  const open = current();
+  const busyUntil = Date.now() + settleMs;
+  for (;;) {
+    const s = await rawState();
+    await track(s);
+    // track() may have ended the case (stage is "done" then, or the next case is open).
+    if (current() !== open || s.busy === false) return;
+    if (Date.now() >= (s.busy === true ? busyUntil : lastActionAt + settleMs)) return;
+    await wait(100);
+  }
 }
 function requireOpen() {
   if (!design) throw new ToolError("Open a design first with open_design.");
@@ -430,6 +465,37 @@ function point(args: Record<string, unknown>) {
     throw new ToolError("x and y are fractions of the screen from its top-left corner, each from 0 to 1 (0.5, 0.5 is the centre).");
   return { x: Math.round(x * 10_000) / 10_000, y: Math.round(y * 10_000) / 10_000 };
 }
+// Motor noise (workspace.json → app.pointer): a modelling assumption the researcher chooses, off by
+// default. Each click's endpoint is drawn from an isotropic Gaussian around the requested point, from
+// a generator seeded per job (job.json → webxr.pointer.seed), so a session's scatter can be reproduced.
+let rng = (spec.pointer?.seed ?? 0) >>> 0;
+/** mulberry32: a small, fixed generator, uniform in [0, 1). */
+function uniform(): number {
+  rng = (rng + 0x6d2b79f5) >>> 0;
+  let t = rng;
+  t = Math.imul(t ^ (t >>> 15), t | 1);
+  t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+  return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+}
+/** The per-axis SD in CSS pixels for the open design, or 0 (no noise for this design). */
+function scatterSd(): number {
+  const p = spec.pointer;
+  if (!p || !design) return 0;
+  const pick = (v: number | Record<string, number> | undefined) => (typeof v === "number" ? v : v && typeof v === "object" ? v[design!.id] : undefined);
+  const value = p.scatter === "fitts" ? (pick(p.effectiveWidthPx) ?? 0) / 4.133 : (pick(p.sdPx) ?? 0);
+  return Number.isFinite(value) && value > 0 ? value : 0;
+}
+/** Where a click asked for at (x, y) lands: the same point without a noise model, else beside it (kept on the screen). */
+function landing(x: number, y: number): { x: number; y: number } {
+  const sd = scatterSd();
+  if (!sd) return { x, y };
+  // Box–Muller: two independent standard normals, one per axis.
+  const r = Math.sqrt(-2 * Math.log(1 - uniform())),
+    a = 2 * Math.PI * uniform();
+  const px = Math.min(view.w - 1, Math.max(0, x * view.w + sd * r * Math.cos(a)));
+  const py = Math.min(view.h - 1, Math.max(0, y * view.h + sd * r * Math.sin(a)));
+  return { x: Math.round((px / view.w) * 10_000) / 10_000, y: Math.round((py / view.h) * 10_000) / 10_000 };
+}
 /** Draw the pointer (a crosshair) into the page, so screenshots show where it is. */
 async function showPointer(x: number, y: number) {
   await evaluate(`(() => {
@@ -464,6 +530,19 @@ async function availableActions(): Promise<AppAction[]> {
   const all = [...declaredActions, ...(Array.isArray(fromApp) ? fromApp.map(normalAction).filter((a): a is AppAction => !!a) : [])];
   return [...new Map(all.map((a) => [a.name, a])).values()];
 }
+/**
+ * An action's arguments as the app needs them: every string that is exactly a neutral ID shown for
+ * this design (obj-3), at any depth, becomes the app's own ID; everything else passes unchanged.
+ */
+async function toAppIds(v: unknown): Promise<unknown> {
+  if (typeof v === "string" && /^obj-\d+$/.test(v)) {
+    if (!shownToApp.has(v)) await refreshObjects();
+    return shownToApp.get(v) ?? v;
+  }
+  if (Array.isArray(v)) return Promise.all(v.map(toAppIds));
+  if (v && typeof v === "object") return Object.fromEntries(await Promise.all(Object.entries(v).map(async ([k, x]) => [k, await toAppIds(x)])));
+  return v;
+}
 const describeActions = (list: AppAction[]) =>
   list.map((a) => `${a.name}(${a.params ? Object.keys(a.params).join(", ") : ""})${a.description ? `: ${a.description}` : ""}`).join("; ");
 
@@ -478,7 +557,8 @@ const tools: Tool[] = [
       const d = spec.designs.find((x) => x.id === args.design);
       if (!d) throw new ToolError("Unknown design.");
       if (design) {
-        await check().catch(() => undefined);
+        // A transition the app makes shortly after the last action (a fade before "done") still counts.
+        await flush().catch(() => undefined);
         // Leaving a design before the app reported it done: the task is not submitted.
         if (stage !== "done") {
           await saveAppLog();
@@ -507,6 +587,7 @@ const tools: Tool[] = [
       view = await evaluate("({ w: innerWidth, h: innerHeight })");
       await refreshObjects();
       await evaluate("window.xrStudy.start()");
+      lastActionAt = Date.now();
       await enter(d.practice ? "practice" : "main");
       const state = await settle(false);
       await refreshObjects();
@@ -568,6 +649,7 @@ if (caps.has("look"))
       if (!Number.isFinite(azimuth) || !Number.isFinite(asked)) throw new ToolError("azimuth and polar are numbers in degrees.");
       const polar = Math.min(180, Math.max(0, asked));
       const reply = (await evaluate(`window.xrStudy.look(${azimuth}, ${polar})`)) as Raw | undefined;
+      lastActionAt = Date.now();
       // The app may reply with the view it applied ({azimuth, polar}) when it limits the view.
       const applied = reply && typeof reply === "object" && Number.isFinite(reply.azimuth) && Number.isFinite(reply.polar) ? { azimuth: Number(reply.azimuth), polar: Number(reply.polar) } : { azimuth, polar };
       const turn = (a: number, b: number) => Math.abs((((a - b) % 360) + 540) % 360 - 180) > 0.01;
@@ -611,6 +693,7 @@ if (caps.has("pointer-select"))
         const appId = shownToApp.get(shown);
         if (!appId) throw new ToolError(`Unknown object "${shown}". Use an ID from list_objects for this design; IDs change with every design.`);
         const result = await publicReply(await evaluate(`window.xrStudy.select(${JSON.stringify(appId)})`));
+        lastActionAt = Date.now();
         const accepted = result?.accepted !== false;
         await action("select-target", { scored: accepted, completed: accepted, result, args: { object: shown } });
         const state = await settle();
@@ -633,6 +716,7 @@ if (caps.has("pointer-xy"))
         const own = await hasFn("pointer");
         await showPointer(x, y);
         const result = await publicReply(await pointer(x, y, "move", own));
+        lastActionAt = Date.now();
         await action("point", { scored: false, result, args: { x, y } });
         return text(JSON.stringify({ pointer: { x, y }, ...(result ? { result } : {}) }));
       },
@@ -647,7 +731,9 @@ if (caps.has("pointer-xy"))
         requireOpen();
         await check();
         requireActive();
-        const { x, y } = point(args);
+        const asked = point(args);
+        // With the study's motor-noise model the click lands beside the requested point (the trace keeps both).
+        const { x, y } = landing(asked.x, asked.y);
         const own = await hasFn("pointer");
         // The app's state apart from its clock, to tell whether a real mouse click did anything.
         const snapshot = async () => JSON.stringify({ ...(await rawState()), timeMs: undefined });
@@ -658,11 +744,12 @@ if (caps.has("pointer-xy"))
           const r = await pointer(x, y, kind, own);
           if (replied(r)) reply = r;
         }
+        lastActionAt = Date.now();
         if (!own) await wait(100);
         const result = await publicReply(reply);
         // With real mouse events the app gives no reply: a click counts when the app's state changed.
         const accepted = own ? result?.accepted !== false : (await snapshot()) !== before;
-        await action("select-target", { scored: accepted, completed: accepted, result: own ? result : null, args: { x, y } });
+        await action("select-target", { scored: accepted, completed: accepted, result: own ? result : null, args: { ...asked, ...(spec.pointer ? { landed: { x, y } } : {}) } });
         const state = await settle();
         return text(JSON.stringify({ result: own ? result : "The app reports no outcome for mouse clicks; see a screenshot or app_state.", state: publicState(state) }));
       },
@@ -684,7 +771,10 @@ if (caps.has("actions"))
       const known = await availableActions();
       const a = known.find((x) => x.name === name);
       if (!a) throw new ToolError(`Unknown action "${name}". Actions: ${describeActions(known) || "none"}.`);
-      const result = await publicReply(await evaluate(`window.xrStudy.act(${JSON.stringify(name)}, ${JSON.stringify(params)})`));
+      // Neutral object IDs in the arguments reach the app as its own IDs; the trace keeps what the agent sent.
+      const forApp = await toAppIds(params);
+      const result = await publicReply(await evaluate(`window.xrStudy.act(${JSON.stringify(name)}, ${JSON.stringify(forApp)})`));
+      lastActionAt = Date.now();
       const accepted = result?.accepted !== false;
       await action(name, { scored: accepted && a.scored !== false, completed: accepted, result, args: params });
       const state = await settle();
@@ -700,8 +790,45 @@ for (const t of tools) {
     return next;
   };
 }
+/** Run `f` after the tool call in progress, as one more call in the queue. */
+function queued<T>(f: () => Promise<T>): Promise<T> {
+  const next = chain.then(f);
+  chain = next.catch(() => undefined);
+  return next;
+}
+// Before the study server judges a forecast it asks for a flush (it writes flush-request.json
+// {id}); the runtime records what the app did since the last tool call, waits for a pending
+// transition (flush) and answers with flush-done.json {id}. Nothing is recorded once the forecast
+// was accepted (forecast.json): only the closing case-end may follow it.
+const flushRequest = join(jobDir, "flush-request.json");
+const forecastAccepted = () => existsSync(join(jobDir, "forecast.json"));
+let answering = false;
+const watcher = setInterval(() => {
+  if (answering || !existsSync(flushRequest)) return;
+  answering = true;
+  void (async () => {
+    let id: unknown = null;
+    try {
+      id = (JSON.parse(await readFile(flushRequest, "utf8")) as { id?: unknown }).id ?? null;
+    } catch {
+      // being written: try again on the next tick
+      return;
+    }
+    await rm(flushRequest, { force: true }).catch(() => undefined);
+    await queued(() => (forecastAccepted() ? Promise.resolve() : flush())).catch(() => undefined);
+    const done = join(jobDir, "flush-done.json");
+    await writeFile(`${done}.tmp`, JSON.stringify({ id, t: Date.now() }));
+    await rename(`${done}.tmp`, done);
+  })()
+    .catch(() => undefined)
+    .finally(() => (answering = false));
+}, 100);
+watcher.unref();
 // Chrome must never outlive this server, however it ends. An unfinished task's app log is kept.
 const shutdown = async () => {
+  clearInterval(watcher);
+  // A transition shortly after the last action still counts when the session ends without a forecast.
+  if (!forecastAccepted()) await Promise.race([queued(flush).catch(() => undefined), wait(settleMs + 2000)]);
   if (design && stage !== "done") await saveAppLog();
   await resetBrowser();
   server.close();
