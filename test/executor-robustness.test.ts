@@ -243,13 +243,21 @@ setInterval(() => {}, 1 << 30);`,
     });
     const dir = runDir(a.id, c.id);
     const attemptDir = (job: string, n = 1) => join(dir, "jobs", job, `a${n}`);
-    const marker = async (job: string) => JSON.parse(await readFile(join(attemptDir(job), "attempt.json"), "utf8").catch(() => "{}"));
+    // A JSON file as it is now: {} while it is missing or being rewritten (usage.json changes every turn).
+    const jsonNow = async (path: string) => {
+      try {
+        return JSON.parse(await readFile(path, "utf8"));
+      } catch {
+        return {};
+      }
+    };
+    const marker = (job: string) => jsonNow(join(attemptDir(job), "attempt.json"));
     assert.ok(
       await until(
         async () =>
           // The workbench noted the accepted forecast (usage.json) and the other session's first tokens.
-          typeof JSON.parse(await readFile(join(attemptDir(finished), "usage.json"), "utf8").catch(() => "{}")).tokensAtSubmit === "number" &&
-          JSON.parse(await readFile(join(attemptDir(cut), "usage.json"), "utf8").catch(() => "{}")).output === 400 &&
+          typeof (await jsonNow(join(attemptDir(finished), "usage.json"))).tokensAtSubmit === "number" &&
+          (await jsonNow(join(attemptDir(cut), "usage.json"))).output === 400 &&
           (await marker(finished)).pid &&
           (await marker(cut)).pid,
       ),

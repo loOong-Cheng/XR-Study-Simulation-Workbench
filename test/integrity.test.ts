@@ -75,8 +75,14 @@ const message = (mid, usage, final, content) => {
     const value = t.scale === "proportion" ? 0.5 : t.scale === "rank" ? 1 + job.designs.indexOf(d) : t.aggregation === "geometric" ? 20 : 3;
     predictions.push(t.components ? { design: d.id, outcome: t.id, items: Object.fromEntries(t.components.map((c) => [c, 4])) } : { design: d.id, outcome: t.id, value });
   }
-  message("m2", { input_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 5000, output_tokens: 2 }, 200, [{ type: "tool_use", name: "mcp__study__submit_forecast", input: {} }]);
+  const u2 = { input_tokens: 10, cache_creation_input_tokens: 0, cache_read_input_tokens: 5000, output_tokens: 2 };
+  const submitting = [{ type: "tool_use", id: "t2", name: "mcp__study__submit_forecast", input: {} }];
+  // FAKE_REAL_ORDER: as real Claude Code prints it, the tool runs and its result is printed before
+  // the submitting message's final usage (message_delta).
+  if (!process.env.FAKE_REAL_ORDER) message("m2", u2, 200, submitting);
+  else { out({ type: "stream_event", event: { type: "message_start", message: { id: "m2", usage: u2 } } }); out({ type: "assistant", message: { id: "m2", usage: u2, content: submitting } }); }
   const r = await call("tools/call", { name: "submit_forecast", arguments: { predictions, uncertainty: "test" } });
+  if (process.env.FAKE_REAL_ORDER) { out({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t2", content: "Forecast accepted." }] } }); await sleep(100); out({ type: "stream_event", event: { type: "message_delta", usage: { output_tokens: 200 } } }); }
   const closing = Number(process.env.FAKE_CLOSING || 0);
   if (closing) { message("m3", { input_tokens: 5, cache_creation_input_tokens: 0, cache_read_input_tokens: closing, output_tokens: 1 }, 50, [{ type: "text", text: "Done." }]); await sleep(300); }
   out({ type: "result", subtype: r.result.isError ? "error" : "success", usage: { input_tokens: closing ? 25 : 20, cache_creation_input_tokens: 2000, cache_read_input_tokens: 8000 + closing, output_tokens: closing ? 650 : 600 }, total_cost_usd: 0.01, num_turns: 2 });
@@ -352,12 +358,16 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     assert.deepEqual([ex.jobs.get(person)!.tokensIn, ex.jobs.get(person)!.tokensOut, ex.jobs.get(person)!.toolCalls], [10_020, 600, 0]);
     assert.equal((await sessionAttempts(a.id, c, person)).attempts[0].toolCalls, 0);
 
-    // Over budget after the forecast was accepted: never killed, and shown as over budget.
+    // Over budget after the forecast was accepted: never killed, and shown as over budget. The stream
+    // comes in real Claude Code's order (the tool result before the submitting message's final
+    // usage): the tokens at the forecast still include all of that message's output.
     const budgeted = c.jobs.find((j) => j.conditionId === "text-only")!.id;
     process.env.FAKE_CLOSING = "30000";
+    process.env.FAKE_REAL_ORDER = "1";
     await ex.start("agent", [budgeted]);
     await until(() => ["done", "failed"].includes(ex.jobs.get(budgeted)!.status), "the session to end", { executor: ex });
     delete process.env.FAKE_CLOSING;
+    delete process.env.FAKE_REAL_ORDER;
     const over = ex.jobs.get(budgeted)!;
     assert.equal(over.status, "done", over.error ?? "");
     assert.equal(over.warning, "over budget: 40,675 of 20,000 tokens (10,620 when the forecast was accepted)");
@@ -422,6 +432,7 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     delete process.env.XR_STUDY_SETTINGS;
     delete process.env.FAKE_HANG;
     delete process.env.FAKE_CLOSING;
+    delete process.env.FAKE_REAL_ORDER;
     await removeDir(a.dir);
     await removeDir(bin);
   }

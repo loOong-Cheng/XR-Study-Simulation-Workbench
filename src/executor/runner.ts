@@ -234,6 +234,10 @@ const joinWarnings = (...w: (string | null | undefined)[]) => w.filter(Boolean).
 export class UsageMeter {
   private messages = new Map<string, { uncached: number; cacheWrite: number; cacheRead: number; output: number }>();
   private current = "";
+  /** The API message the last message_start began (stream events carry no ID after it). */
+  get currentMessage() {
+    return this.current;
+  }
   /**
    * Whether any model answered. Claude Code's own messages do not count: with an unknown model it
    * writes the error as an assistant message of model "<synthetic>" with zero usage.
@@ -1453,10 +1457,15 @@ export class Executor implements Schedulable {
       existsSync(join(jobDir, "calls.log")) ? (await readFile(join(jobDir, "calls.log"), "utf8")).split("\n").filter((l) => l.trim() && l.trim() !== "submit_forecast").length : 0;
     /**
      * The moment the study server accepted the forecast: the tokens up to here are what the budget
-     * is checked against. Noted when the next turn begins (the tool result or a new message), so the
-     * message that submitted it is counted in full and the closing turn is not.
+     * is checked against. Noted when the submitting message is complete (its message_delta), or the
+     * next message begins, or the session ends, so the message that submitted it is counted in full
+     * and the closing turn is not. Not at the tool result alone: Claude Code runs the tool, and prints
+     * its result, before the submitting message's final usage (message_delta) arrives.
      */
     let submitSeen = false;
+    /** The message that called submit_forecast, and whether its final usage (message_delta) has arrived. */
+    let submitMessage: string | null = null;
+    let submitFinal = false;
     const noteForecast = async () => {
       if (atForecast !== null || !submitSeen || !existsSync(forecastPath)) return;
       atForecast = meter.totals().total;
@@ -1513,7 +1522,9 @@ export class Executor implements Schedulable {
       const keep = m?.type !== "stream_event" || ["message_start", "message_delta"].includes(m.event?.type);
       if (keep) await appendFile(join(jobDir, "stream.jsonl"), (await compactStreamLine(line, shots)) + "\n");
       if (!m) return;
-      if (meter.startsTurn(m)) await noteForecast();
+      // A tool result counts as the next turn only once the submitting message's final usage is in
+      // (or without partial messages, which never bring it).
+      if (meter.startsTurn(m) && (m.type !== "user" || submitFinal || !cli.partialMessages)) await noteForecast();
       if (m.type === "system" && m.subtype === "init") {
         sessionId = m.session_id ?? "";
         actualModel = m.model ?? "";
@@ -1531,14 +1542,21 @@ export class Executor implements Schedulable {
           stopForRuntime(
             `${needed.map((s) => (s.name === "study" ? "The study server" : `${runtimeName(runtime)[0].toUpperCase()}${runtimeName(runtime).slice(1)}`)).join(" and ")} failed to connect (${needed.map((s) => s.status).join(", ")}). The session was stopped${bridge ? `; check Settings → Runtimes → ${runtime}` : ""}.`,
           );
-      } else if (m.type === "stream_event") await trackUsage(m);
+      } else if (m.type === "stream_event") {
+        await trackUsage(m);
+        // The submitting message is complete: its output is in (Claude Code prints this after the tool result).
+        if (m.event?.type === "message_delta" && submitMessage !== null && meter.currentMessage === submitMessage) {
+          submitFinal = true;
+          await noteForecast();
+        }
+      }
       else if (m.type === "assistant") {
         await trackUsage(m);
         for (const c of m.message?.content ?? []) {
           if (c.type === "tool_use") {
             const name = String(c.name).replace(/^mcp__/, "").replace("__", ".");
             noteToolCall(String(c.id), /submit_forecast$/.test(name));
-            if (/submit_forecast$/.test(name)) submitSeen = true;
+            if (/submit_forecast$/.test(name)) (submitSeen = true), (submitMessage = String(m.message?.id ?? meter.currentMessage));
             const shots = existsSync(join(jobDir, "screenshots")) ? (await readdir(join(jobDir, "screenshots"))).sort() : [];
             if (mine())
               this.update(jobId, {
