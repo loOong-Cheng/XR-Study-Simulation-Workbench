@@ -1,0 +1,395 @@
+// Workbench API for study workspaces: planner, executor, analyzer, assistant.
+import type { IncomingMessage, ServerResponse } from "node:http";
+import { existsSync } from "node:fs";
+import { readFile } from "node:fs/promises";
+import { join, resolve, sep } from "node:path";
+import { campaignFromPlan, campaignPlan, continueCampaign, continueFromStatus, type Campaign, type CampaignContinuation } from "./core/campaign.js";
+import { analyzeCampaign, mergeCampaignResults, type CampaignAnalysis } from "./core/campaign-study.js";
+import { compareAgents } from "./core/agent-comparison.js";
+import { compareCampaignScores } from "./core/campaign-comparison.js";
+import { agentVsHumanFigure, agreementFigure, correlationFigure, humanFigure, populationVsIndividualFigure, trajectoryFigure } from "./core/figures.js";
+import { agentLevel, agentTargets, freezePlan, methodGets, proposeAgents, withDefaultRuns } from "./core/planner.js";
+import { extractProposal } from "./core/proposal.js";
+import type { AgentProtocol, Comparison, Domain, Study } from "./core/types.js";
+import { requireThat } from "./core/validation.js";
+import { understandStudy, explainResults } from "./assistant.js";
+import { closeExecutor, Executor } from "./executor/runner.js";
+import { exportRuns, importRuns } from "./executor/archive.js";
+import { runtimeFor, runtimeStatus } from "./executor/runtimes.js";
+import { approvalState, approve } from "./review.js";
+import { readSettings, writeSettings, type Settings } from "./settings.js";
+import {
+  listCampaigns,
+  listWorkspaces,
+  readCampaign,
+  readHuman,
+  readReceipts,
+  readResults,
+  readWorkspace,
+  saveCampaign,
+  saveWorkspace,
+  workspaceDir,
+  missingSources,
+  runDir,
+  createStudy,
+} from "./workspace.js";
+import { campaignSummaries, deleteCampaign, sameDesignKey, sessionAttempts, writeLabel } from "./history.js";
+import { evidenceOverview, knowledgeDraft, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
+
+type Json = (value: unknown, status?: number) => void;
+const analysisCache = new Map<string, CampaignAnalysis>();
+
+/** Agent configs of a workspace, or templates with your default forecasting model when none exist yet. */
+async function configs(study: Study, saved: AgentProtocol[] | null, settings: Settings) {
+  if (saved) return saved;
+  const templates = await proposeAgents(study);
+  return templates.map((a) => ({
+    ...a,
+    model: { provider: settings.forecasting.provider, model: settings.forecasting.model, reasoning: settings.forecasting.reasoning },
+  }));
+}
+async function lineage(id: string, campaign: Campaign) {
+  const all = await listCampaigns(id);
+  return [...(campaign.lineage ?? []).map((d) => all.find((c) => c.digest === d)!).filter(Boolean), campaign];
+}
+async function analysis(id: string, campaignId: string, comparisons?: Comparison[]) {
+  const campaign = await readCampaign(id, campaignId);
+  const chain = await lineage(id, campaign);
+  const receipts = await readReceipts(id, chain.map((c) => c.id));
+  const key = `${id}|${campaign.digest}|${receipts.length}|${JSON.stringify(comparisons ?? null)}`;
+  if (analysisCache.has(key)) return { campaign, analysis: analysisCache.get(key)!, receipts };
+  const human = await readHuman(id);
+  requireThat(human, "This study has no human reference (human.json) yet; the analyzer needs it.");
+  const bundles = await readResults(id, campaign.suite.study!, chain.map((c) => c.id));
+  requireThat(bundles.length, "No results yet. Run or simulate jobs in the executor, or load a runs zip.");
+  // comparisons.json belongs to the study; a campaign may freeze only some of its configurations.
+  const present = new Set(campaign.suite.conditions.map((c) => c.id));
+  const usable = comparisons?.filter((c) => present.has(c?.candidate) && present.has(c?.baseline));
+  const skipped = (comparisons ?? []).filter((c) => !usable?.includes(c));
+  const result = analyzeCampaign(campaign, human!, bundles, usable);
+  if (skipped.length)
+    result.report.notes.push(
+      `Skipped ${skipped.length} saved comparison(s) whose configurations are not in this campaign: ${skipped.map((c) => `${c.candidate} − ${c.baseline} (${c.domain})`).join("; ")}. The Holm family covers the remaining ${usable!.length}.`,
+    );
+  analysisCache.set(key, result);
+  return { campaign, analysis: result, receipts };
+}
+function sse(res: ServerResponse, ex: Executor) {
+  res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-store", Connection: "keep-alive" });
+  res.write(`data: ${JSON.stringify({ type: "snapshot", snapshot: ex.snapshot() })}\n\n`);
+  const listener = (e: unknown) => res.write(`data: ${JSON.stringify(e)}\n\n`);
+  ex.listeners.add(listener);
+  const ping = setInterval(() => res.write(": ping\n\n"), 15_000);
+  res.on("close", () => {
+    clearInterval(ping);
+    ex.listeners.delete(listener);
+  });
+}
+
+export async function handleGet(path: string, url: URL, res: ServerResponse, json: Json): Promise<boolean> {
+  const id = url.searchParams.get("id") ?? "";
+  const campaignId = url.searchParams.get("campaign") ?? "";
+  switch (path) {
+    case "/api/workspaces":
+      json(await listWorkspaces());
+      return true;
+    case "/api/workspace": {
+      const ws = await readWorkspace(id);
+      const settings = await readSettings();
+      const agents = await configs(ws.study, ws.agents, settings);
+      json({
+        id,
+        study: ws.study,
+        agents,
+        agentsSaved: !!ws.agents,
+        comparisons: ws.comparisons,
+        manifest: ws.manifest,
+        hasHuman: existsSync(join(ws.dir, "human.json")),
+        approval: await approvalState(join(ws.dir, "study.json"), ws.study, ws.agents ?? undefined),
+        gets: Object.fromEntries(agents.map((a) => [a.id, methodGets(a, ws.study)])),
+        runtimes: Object.fromEntries(agents.map((a) => [a.id, runtimeFor(ws.study, a)])),
+        missingSources: Object.fromEntries(agents.map((a) => [a.id, missingSources(ws.dir, ws.study, ws.manifest, a.sourceIds).map((m) => m.label)])),
+        campaigns: await campaignSummaries(id),
+      });
+      return true;
+    }
+    case "/api/settings":
+      json(await readSettings());
+      return true;
+    case "/api/runtimes": {
+      const ws = await readWorkspace(id);
+      const settings = await readSettings();
+      json(["none", "webxr", "unreal", "unity", "visionos"].map((r) => runtimeStatus(r, settings, ws.manifest)));
+      return true;
+    }
+    case "/api/workspace/source": {
+      // What agents get (brief, project, evidence), as plain text for the researcher. Never human data.
+      const text = await sourceText(id, url.searchParams.get("source") ?? "");
+      res.writeHead(200, { "Content-Type": "text/plain; charset=utf-8", "X-Content-Type-Options": "nosniff", "Cache-Control": "no-store" });
+      res.end(text);
+      return true;
+    }
+    case "/api/workspace/evidence": {
+      const ws = await readWorkspace(id);
+      json({ general: await evidenceOverview(id, ws.agents ?? []), participants: await participantKnowledgeOverview(id, ws.agents ?? []) });
+      return true;
+    }
+    case "/api/executor/attempts":
+      json(await sessionAttempts(id, await readCampaign(id, campaignId), url.searchParams.get("job") ?? ""));
+      return true;
+    case "/api/executor/state":
+      json((await Executor.open(id, campaignId)).snapshot());
+      return true;
+    case "/api/executor/events":
+      sse(res, await Executor.open(id, campaignId));
+      return true;
+    case "/api/workspace/file": {
+      // Only run screenshots are served (for the executor's live view).
+      const rel = url.searchParams.get("path") ?? "";
+      const base = join(workspaceDir(id), "runs", campaignId);
+      const file = resolve(base, rel);
+      requireThat(file.startsWith(base + sep) && /[\\/]screenshots[\\/][^\\/]+\.(jpg|png)$/.test(file) && existsSync(file), "Not found.");
+      res.writeHead(200, { "Content-Type": file.endsWith(".png") ? "image/png" : "image/jpeg" });
+      res.end(await readFile(file));
+      return true;
+    }
+    case "/api/runs/export": {
+      const zip = await exportRuns(id, campaignId);
+      res.writeHead(200, {
+        "Content-Type": "application/zip",
+        "Content-Disposition": `attachment; filename="runs-${campaignId}.zip"`,
+      });
+      res.end(zip);
+      return true;
+    }
+  }
+  return false;
+}
+
+export async function handlePost(path: string, body: Record<string, any>, json: Json): Promise<boolean> {
+  const id = String(body.id ?? "");
+  switch (path) {
+    case "/api/settings":
+      json(await writeSettings(body.settings as Settings));
+      return true;
+    case "/api/workspace/create":
+      json(await createStudy(String(body.name ?? "")));
+      return true;
+    case "/api/workspace/save":
+      await saveWorkspace(id, { study: body.study, agents: body.agents, comparisons: body.comparisons });
+      json({ saved: true });
+      return true;
+    case "/api/workspace/approve": {
+      const ws = await readWorkspace(id);
+      requireThat(ws.agents, "Save the agent configurations before approving.");
+      const a = await approve(join(ws.dir, "study.json"), ws.study, ws.agents!, typeof body.note === "string" ? body.note.slice(0, 2000) : "");
+      json(a);
+      return true;
+    }
+    case "/api/workspace/freeze": {
+      const ws = await readWorkspace(id);
+      const settings = await readSettings();
+      const agents = await configs(ws.study, ws.agents, settings);
+      // body.repetitions = runs per participant; configurations without their own count get it resolved here.
+      const perParticipant = Number(body.repetitions ?? 1);
+      const plan = freezePlan(ws.study, withDefaultRuns(ws.study, agents, perParticipant), perParticipant);
+      const campaign = campaignFromPlan(plan);
+      if (body.check) {
+        // Warn before repeating a campaign: same configurations, models and sessions.
+        const key = sameDesignKey(campaign);
+        json({ duplicates: (await campaignSummaries(id)).filter((c) => c.designKey === key).map((c) => ({ id: c.id, label: c.label, createdAt: c.createdAt })), jobs: campaign.jobs.filter((j) => j.kind === "llm").length });
+        return true;
+      }
+      await saveCampaign(id, campaign);
+      if (typeof body.label === "string" && body.label.trim()) await writeLabel(id, campaign.id, body.label);
+      json({ campaignId: campaign.id, jobs: campaign.jobs.length });
+      return true;
+    }
+    case "/api/workspace/human-figure": {
+      // Human data only (no agent runs needed). Only once a campaign is frozen, so human results
+      // stay hidden while the study and configurations are planned.
+      const campaign = await readCampaign(id, String(body.campaignId));
+      const human = await readHuman(id);
+      requireThat(human, "This study has no human reference (human.json) yet.");
+      const study = campaign.suite.study!;
+      json(humanFigure(study, human!, String(body.outcomeId || study.outcomes[0].id)));
+      return true;
+    }
+    case "/api/workspace/compare-agents": {
+      // Configurations against each other: needs no human data.
+      const campaign = await readCampaign(id, String(body.campaignId));
+      const chain = await lineage(id, campaign);
+      const bundles = await readResults(id, campaign.suite.study!, chain.map((c) => c.id));
+      const merged = mergeCampaignResults(campaign, bundles).bundle;
+      const receipts = await readReceipts(id, chain.map((c) => c.id));
+      const dirOf = new Map(chain.map((c) => [c.digest, runDir(id, c.id)]));
+      const extras: Record<string, { costUsd: number | null }> = {};
+      for (const r of receipts)
+        if (r.status === "completed" && r.executionManifest && !extras[r.jobId]) {
+          try {
+            const m = JSON.parse(await readFile(join(dirOf.get(r.campaignDigest) ?? "", r.executionManifest.path), "utf8")) as { costUsd?: number | null };
+            extras[r.jobId] = { costUsd: typeof m.costUsd === "number" ? m.costUsd : null };
+          } catch {
+            // manifest not here (e.g. a partial zip)
+          }
+        }
+      json({ campaignId: campaign.id, ...compareAgents(campaignPlan(campaign), merged.runs, extras) });
+      return true;
+    }
+    case "/api/workspace/knowledge-draft":
+      requireThat(typeof body.base64 === "string" && typeof body.name === "string", "Choose a file.");
+      json(await knowledgeDraft(id, body.name, Buffer.from(body.base64, "base64")));
+      return true;
+    case "/api/workspace/knowledge-save":
+      json(await saveKnowledge(id, { study: body.study, agents: body.agents, write: body.write, unmap: body.unmap }));
+      return true;
+    case "/api/workspace/campaign-delete":
+      closeExecutor(id, String(body.campaignId));
+      json(await deleteCampaign(id, String(body.campaignId)));
+      return true;
+    case "/api/workspace/campaign-label":
+      json(await writeLabel(id, String(body.campaignId), String(body.label ?? "")));
+      return true;
+    case "/api/workspace/continue": {
+      const ws = await readWorkspace(id);
+      void ws;
+      const previous = await readCampaign(id, String(body.campaignId));
+      const chain = await lineage(id, previous);
+      const receipts = await readReceipts(id, chain.map((c) => c.id));
+      const changes = body.changes as CampaignContinuation;
+      const next = body.useReceipts && receipts.length ? continueFromStatus(previous, receipts, changes) : continueCampaign(previous, changes);
+      if (body.preview) {
+        json({ preview: true, campaign: next });
+        return true;
+      }
+      await saveCampaign(id, next);
+      json({ campaignId: next.id, reused: next.jobs.filter((j) => j.inheritedFrom).length, jobs: next.jobs.length });
+      return true;
+    }
+    case "/api/executor/start": {
+      const ex = await Executor.open(id, String(body.campaignId));
+      json(await ex.start(body.mode === "agent" ? "agent" : "simulate", body.jobIds));
+      return true;
+    }
+    case "/api/executor/blockers": {
+      const ex = await Executor.open(id, String(body.campaignId));
+      json(await ex.blockers(body.jobIds ?? [...ex.jobs.keys()]));
+      return true;
+    }
+    case "/api/executor/estimate": {
+      const ex = await Executor.open(id, String(body.campaignId));
+      json(await ex.estimate(body.jobIds ?? []));
+      return true;
+    }
+    case "/api/executor/pause":
+      json((await Executor.open(id, String(body.campaignId))).pause());
+      return true;
+    case "/api/executor/resume":
+      json((await Executor.open(id, String(body.campaignId))).resume());
+      return true;
+    case "/api/executor/stop":
+      json((await Executor.open(id, String(body.campaignId))).stop());
+      return true;
+    case "/api/runs/import": {
+      requireThat(typeof body.base64 === "string", "Choose a runs zip.");
+      json(await importRuns(id, Buffer.from(body.base64, "base64")));
+      return true;
+    }
+    case "/api/workspace/analyze": {
+      const { campaign, analysis: a, receipts } = await analysis(id, String(body.campaignId), body.comparisons);
+      const study = campaign.suite.study!;
+      // Interim or final: a session with no receipt in this campaign (and not reused) was never run.
+      const llmJobs = campaign.jobs.filter((j) => j.kind === "llm");
+      const mine = receipts.filter((r) => r.campaignDigest === campaign.digest);
+      const completed = new Set(mine.filter((r) => r.status === "completed").map((r) => r.jobId));
+      const tried = new Set(mine.map((r) => r.jobId));
+      const notStarted = new Set(llmJobs.filter((j) => !j.inheritedFrom && !tried.has(j.id)).map((j) => j.id));
+      const progress = {
+        sessions: llmJobs.length,
+        finished: llmJobs.filter((j) => j.inheritedFrom || completed.has(j.id)).length,
+        failed: llmJobs.filter((j) => !j.inheritedFrom && tried.has(j.id) && !completed.has(j.id)).length,
+        notStarted: notStarted.size,
+      };
+      json({
+        campaignId: campaign.id,
+        configs: campaign.suite.conditions.map((c) => ({
+          id: c.id,
+          label: c.label,
+          level: agentLevel(study, { ...c.recipe.protocol!, model: a.models[c.id] } as AgentProtocol),
+          model: a.models[c.id],
+          targets: agentTargets(study, { ...c.recipe.protocol!, model: a.models[c.id] } as AgentProtocol),
+        })),
+        outcomes: study.outcomes.map((o) => ({ id: o.id, label: o.label, domain: o.domain, unit: o.unit })),
+        summaries: a.report.summaries,
+        contrasts: a.report.contrasts,
+        design: study.design,
+        pairRule: a.report.pairRule ?? "means",
+        humanPairs: a.report.humanPairs ?? [],
+        absoluteFit: a.report.absoluteFit ?? [],
+        significantOnly: a.report.significantOnly ?? null,
+        // Sessions never run are counted in progress, not listed as lost runs.
+        audits: a.report.audits.filter((x) => (!x.compliant || !x.scoreable) && !notStarted.has(x.jobId)).slice(0, 200),
+        progress,
+        assigned: a.report.audits.length,
+        notes: a.report.notes,
+        exclusions: a.report.exclusions,
+        reused: a.reused.length,
+        synthetic: a.report.synthetic,
+        scorecard: a.scorecard,
+      });
+      return true;
+    }
+    case "/api/workspace/figure": {
+      const { campaign, analysis: a } = await analysis(id, String(body.campaignId), body.comparisons);
+      const study = campaign.suite.study!;
+      const labels = Object.fromEntries(campaign.suite.conditions.map((c) => [c.id, c.label]));
+      const ids = (body.agentIds as string[]) ?? [];
+      requireThat(ids.length, "Select at least one agent configuration.");
+      const domain = (body.domain ?? "subjective") as Domain;
+      const kind = String(body.kind);
+      json(
+        kind === "agreement"
+          ? agreementFigure(a.report, ids, domain, labels)
+          : kind === "agent-vs-human"
+          ? agentVsHumanFigure(study, a.report, ids, String(body.outcomeId), labels)
+          : kind === "correlation"
+          ? correlationFigure(study, a.report, ids, labels)
+          : kind === "population-vs-individual"
+          ? populationVsIndividualFigure(study, a.report, ids, domain, labels)
+          : kind === "trajectories"
+          ? trajectoryFigure(a.report, ids, domain, labels)
+          : (() => {
+              throw new Error("Unknown figure.");
+            })(),
+      );
+      return true;
+    }
+    case "/api/workspace/compare": {
+      const before = await analysis(id, String(body.before), body.comparisons);
+      const after = await analysis(id, String(body.after), body.comparisons);
+      json(compareCampaignScores(before.campaign, before.analysis.scorecard, after.campaign, after.analysis.scorecard));
+      return true;
+    }
+    case "/api/assistant/understand": {
+      requireThat(typeof body.name === "string" && typeof body.base64 === "string", "Choose a document.");
+      const document = await extractProposal(body.name, Buffer.from(body.base64, "base64"));
+      const current = id ? (await readWorkspace(id)).study : null;
+      json(await understandStudy(document, typeof body.participantsCsv === "string" ? body.participantsCsv : null, current));
+      return true;
+    }
+    case "/api/assistant/explain": {
+      const { analysis: a } = await analysis(id, String(body.campaignId), body.comparisons);
+      json({
+        text: await explainResults({
+          summaries: a.report.summaries,
+          contrasts: a.report.contrasts,
+          exclusions: a.report.exclusions,
+          notes: a.report.notes,
+        }),
+      });
+      return true;
+    }
+  }
+  return false;
+}
+export type { IncomingMessage };

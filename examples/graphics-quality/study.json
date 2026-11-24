@@ -1,0 +1,448 @@
+{
+  "schemaVersion": "1.0",
+  "id": "toy-graphics-quality",
+  "title": "Graphics quality and subjective experience in a WebXR room",
+  "researchQuestion": "RQ1: How does the graphics quality of a virtual environment (low, medium, high) affect presence, perceived realism, visual appeal, visual discomfort, preference and a material-search task? RQ2: Which agent methods (text only, reading the project files, using the app, adding an evidence document, knowing the participants) reproduce these human differences?",
+  "synthetic": true,
+  "design": "within-subjects",
+  "predictionLevel": "population",
+  "predictionTiming": "after-experience",
+  "conditions": [
+    {
+      "id": "low",
+      "label": "Low quality (flat, unlit colours)"
+    },
+    {
+      "id": "medium",
+      "label": "Medium quality (simple shading and textures)"
+    },
+    {
+      "id": "high",
+      "label": "High quality (PBR materials, reflections, soft shadows)"
+    }
+  ],
+  "phases": [
+    {
+      "id": "practice",
+      "label": "Practice trial",
+      "kind": "practice"
+    },
+    {
+      "id": "main",
+      "label": "Scored search trials",
+      "kind": "main"
+    },
+    {
+      "id": "questionnaire",
+      "label": "Questionnaire after each level",
+      "kind": "questionnaire"
+    },
+    {
+      "id": "break",
+      "label": "Break between levels",
+      "kind": "break"
+    }
+  ],
+  "cases": [
+    {
+      "id": "low-practice",
+      "conditionId": "low",
+      "phaseId": "practice",
+      "label": "Practice: select the wooden box",
+      "requiredActions": [
+        "look-around",
+        "select-target"
+      ],
+      "minActions": 1
+    },
+    {
+      "id": "low-main",
+      "conditionId": "low",
+      "phaseId": "main",
+      "label": "Main: Select the glossy ceramic mug, the brushed-metal bowl and the glass vase.",
+      "requiredActions": [
+        "look-around",
+        "select-target"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "medium-practice",
+      "conditionId": "medium",
+      "phaseId": "practice",
+      "label": "Practice: select the wooden box",
+      "requiredActions": [
+        "look-around",
+        "select-target"
+      ],
+      "minActions": 1
+    },
+    {
+      "id": "medium-main",
+      "conditionId": "medium",
+      "phaseId": "main",
+      "label": "Main: Select the glossy ceramic mug, the brushed-metal bowl and the glass vase.",
+      "requiredActions": [
+        "look-around",
+        "select-target"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "high-practice",
+      "conditionId": "high",
+      "phaseId": "practice",
+      "label": "Practice: select the wooden box",
+      "requiredActions": [
+        "look-around",
+        "select-target"
+      ],
+      "minActions": 1
+    },
+    {
+      "id": "high-main",
+      "conditionId": "high",
+      "phaseId": "main",
+      "label": "Main: Select the glossy ceramic mug, the brushed-metal bowl and the glass vase.",
+      "requiredActions": [
+        "look-around",
+        "select-target"
+      ],
+      "minActions": 12
+    }
+  ],
+  "participants": [
+    {
+      "id": "p01",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "id": "p02",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "low",
+        "high",
+        "medium"
+      ]
+    },
+    {
+      "id": "p03",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "medium",
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "p04",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "medium",
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "p05",
+      "stratum": "order-5",
+      "conditionOrder": [
+        "high",
+        "low",
+        "medium"
+      ]
+    },
+    {
+      "id": "p06",
+      "stratum": "order-6",
+      "conditionOrder": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    {
+      "id": "p07",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "id": "p08",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "low",
+        "high",
+        "medium"
+      ]
+    },
+    {
+      "id": "p09",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "medium",
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "p10",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "medium",
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "p11",
+      "stratum": "order-5",
+      "conditionOrder": [
+        "high",
+        "low",
+        "medium"
+      ]
+    },
+    {
+      "id": "p12",
+      "stratum": "order-6",
+      "conditionOrder": [
+        "high",
+        "medium",
+        "low"
+      ]
+    },
+    {
+      "id": "p13",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    {
+      "id": "p14",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "low",
+        "high",
+        "medium"
+      ]
+    },
+    {
+      "id": "p15",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "medium",
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "p16",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "medium",
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "p17",
+      "stratum": "order-5",
+      "conditionOrder": [
+        "high",
+        "low",
+        "medium"
+      ]
+    },
+    {
+      "id": "p18",
+      "stratum": "order-6",
+      "conditionOrder": [
+        "high",
+        "medium",
+        "low"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "brief",
+      "label": "Study brief",
+      "kind": "brief",
+      "description": "examples/graphics-quality/agent-brief.md: room, task, the three quality levels and the questionnaire items, without any participant answers."
+    },
+    {
+      "id": "project",
+      "label": "WebXR project",
+      "kind": "project",
+      "description": "examples/graphics-quality/webxr-app/: the scene, the material settings per quality level and the task logic. Run it with ?quality=low|medium|high&study=1."
+    },
+    {
+      "id": "evidence",
+      "label": "Toy evidence note",
+      "kind": "evidence",
+      "description": "examples/graphics-quality/evidence/toy-evidence.md: invented, general statements about visual fidelity and experience. Not fitted to the synthetic answers."
+    },
+    {
+      "id": "demographics",
+      "label": "Participant demographics",
+      "kind": "demographics",
+      "description": "data/raw/demographics.csv, cohort summary only for population forecasts.",
+      "fields": [
+        "age_band",
+        "xr_experience",
+        "gaming_hours_per_week"
+      ]
+    }
+  ],
+  "runtime": {
+    "engine": "custom",
+    "backend": "custom",
+    "deviceProfile": "webxr-desktop-browser-1280x720",
+    "observation": "mono",
+    "requiredCapabilities": [
+      "screenshot",
+      "pointer-select",
+      "phase-events",
+      "quality-lock"
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "search-time",
+      "label": "Search time",
+      "domain": "objective",
+      "unit": "seconds per main trial",
+      "scale": "continuous",
+      "aggregation": "geometric",
+      "family": "task-time",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Geometric mean over the four scored main trials; practice excluded."
+    },
+    {
+      "id": "selection-errors",
+      "label": "Wrong selections",
+      "domain": "objective",
+      "unit": "wrong selections per main trial",
+      "scale": "continuous",
+      "aggregation": "arithmetic",
+      "family": "task-accuracy",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Mean number of non-target objects selected per scored main trial."
+    },
+    {
+      "id": "presence",
+      "label": "Presence (4 items)",
+      "domain": "subjective",
+      "unit": "1-7 item mean",
+      "scale": "ordinal",
+      "aggregation": "arithmetic",
+      "family": "presence",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "components": [
+        "general",
+        "spatial",
+        "involvement",
+        "realness"
+      ],
+      "description": "Mean of four presence items (general, spatial, involvement, realness), asked after each level."
+    },
+    {
+      "id": "realism",
+      "label": "Perceived realism",
+      "domain": "subjective",
+      "unit": "1-7",
+      "scale": "ordinal",
+      "aggregation": "arithmetic",
+      "family": "realism",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "'How realistic did the objects and room look?' after each level."
+    },
+    {
+      "id": "appeal",
+      "label": "Visual appeal",
+      "domain": "subjective",
+      "unit": "1-7",
+      "scale": "ordinal",
+      "aggregation": "arithmetic",
+      "family": "aesthetics",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "'How visually appealing was the scene?' after each level."
+    },
+    {
+      "id": "visual-discomfort",
+      "label": "Visual discomfort",
+      "domain": "subjective",
+      "unit": "0-10",
+      "scale": "ordinal",
+      "aggregation": "arithmetic",
+      "family": "comfort",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "'How much visual discomfort (eye strain, blur, flicker) did you feel?' after each level."
+    },
+    {
+      "id": "preference",
+      "label": "Overall preference",
+      "domain": "subjective",
+      "unit": "rank; 1 = best",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "Final ranking of the three levels after the whole session."
+    }
+  ],
+  "analysis": {
+    "mode": "both",
+    "familyWeights": {
+      "task-time": 0.5,
+      "task-accuracy": 0.5,
+      "presence": 0.3,
+      "realism": 0.2,
+      "aesthetics": 0.2,
+      "comfort": 0.15,
+      "preference": 0.15
+    },
+    "bootstrapDraws": 1000,
+    "seed": 2026,
+    "tieTolerance": 1e-08,
+    "contrasts": []
+  }
+}

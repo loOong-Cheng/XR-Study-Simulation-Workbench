@@ -1,0 +1,13 @@
+participant,age_band,xr_experience,gaming_hours_per_week,handedness
+P01,18-24,none,4,right
+P02,25-34,some,8,right
+P03,35-44,frequent,16,right
+P04,35-44,none,0,right
+P05,35-44,some,11,left
+P06,18-24,frequent,13,right
+P07,35-44,none,0,right
+P08,35-44,some,6,right
+P09,25-34,frequent,9,right
+P10,35-44,some,2,left
+P11,25-34,none,4,right
+P12,35-44,none,0,right

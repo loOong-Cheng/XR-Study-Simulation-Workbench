@@ -1,0 +1,32 @@
+[
+  {
+    "candidate": "C",
+    "baseline": "B",
+    "domain": "objective"
+  },
+  {
+    "candidate": "C",
+    "baseline": "B",
+    "domain": "subjective"
+  },
+  {
+    "candidate": "D",
+    "baseline": "C",
+    "domain": "subjective"
+  },
+  {
+    "candidate": "UD",
+    "baseline": "U1",
+    "domain": "subjective"
+  },
+  {
+    "candidate": "UDO",
+    "baseline": "UD",
+    "domain": "subjective"
+  },
+  {
+    "candidate": "UDOT",
+    "baseline": "UDO",
+    "domain": "subjective"
+  }
+]

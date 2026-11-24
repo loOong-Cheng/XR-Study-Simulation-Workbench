@@ -1,0 +1,1735 @@
+{
+  "schemaVersion": "1.0",
+  "studyId": "synthetic-selection",
+  "synthetic": true,
+  "measurements": [
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P01",
+      "value": 11.974108602250052
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P01",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P01",
+      "value": 1.8333333333333333
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P01",
+      "value": 9.272293688834202
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P01",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P01",
+      "value": 0.16666666666666666
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P01",
+      "value": 9.445176910587422
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P01",
+      "value": 0.5
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P01",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P02",
+      "value": 8.640842646327398
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P02",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P02",
+      "value": 1.5
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P02",
+      "value": 7.060402548562123
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P02",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P02",
+      "value": 0.3333333333333333
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P02",
+      "value": 6.289022854158055
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P02",
+      "value": 0.75
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P02",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P03",
+      "value": 6.833494031059684
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P03",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P03",
+      "value": 0.8333333333333334
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P03",
+      "value": 6.811422321147287
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P03",
+      "value": 0.75
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P03",
+      "value": 0.5
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P03",
+      "value": 4.466725493456516
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P03",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P03",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P04",
+      "value": 11.670498650999415
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P04",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P04",
+      "value": 1.1666666666666667
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P04",
+      "value": 7.268273977426823
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P04",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P04",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P04",
+      "value": 8.241167272425932
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P04",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P04",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P05",
+      "value": 8.127703586203184
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P05",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P05",
+      "value": 1.6666666666666667
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P05",
+      "value": 6.616267442766838
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P05",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P05",
+      "value": 0.3333333333333333
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P05",
+      "value": 5.407558089966786
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P05",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P05",
+      "value": 0.16666666666666666
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P06",
+      "value": 7.474820080881606
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P06",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P06",
+      "value": 1.1666666666666667
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P06",
+      "value": 6.121600814224512
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P06",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P06",
+      "value": 0.16666666666666666
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P06",
+      "value": 4.150545095124631
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P06",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P06",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P07",
+      "value": 11.948497924558751
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P07",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P07",
+      "value": 1.6666666666666667
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P07",
+      "value": 8.630660422074019
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P07",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P07",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P07",
+      "value": 6.923594971834672
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P07",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P07",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P08",
+      "value": 9.481144907450007
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P08",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P08",
+      "value": 1.5
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P08",
+      "value": 7.396896215210471
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P08",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P08",
+      "value": 0.3333333333333333
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P08",
+      "value": 6.382925881242792
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P08",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P08",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P09",
+      "value": 6.135193327359384
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P09",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P09",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P09",
+      "value": 5.601349876731575
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P09",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P09",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P09",
+      "value": 6.341147185478923
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P09",
+      "value": 0.75
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P09",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P10",
+      "value": 9.543817907347687
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P10",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P10",
+      "value": 0.8333333333333334
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P10",
+      "value": 7.720201802084583
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P10",
+      "value": 0.75
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P10",
+      "value": 0.16666666666666666
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P10",
+      "value": 8.07579481059605
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P10",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P10",
+      "value": 0.16666666666666666
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P11",
+      "value": 13.448030185219018
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P11",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P11",
+      "value": 0.8333333333333334
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P11",
+      "value": 9.389174036415575
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P11",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P11",
+      "value": 0.16666666666666666
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P11",
+      "value": 7.68518085696486
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P11",
+      "value": 0.75
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P11",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "direct",
+      "participantId": "P12",
+      "value": 14.53146679077922
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "direct",
+      "participantId": "P12",
+      "value": 1.0
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "direct",
+      "participantId": "P12",
+      "value": 1.1666666666666667
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "hybrid",
+      "participantId": "P12",
+      "value": 7.319903461724175
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "hybrid",
+      "participantId": "P12",
+      "value": 0.8571428571428571
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "hybrid",
+      "participantId": "P12",
+      "value": 0.16666666666666666
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "ray",
+      "participantId": "P12",
+      "value": 8.152531929038663
+    },
+    {
+      "outcomeId": "accuracy",
+      "conditionId": "ray",
+      "participantId": "P12",
+      "value": 0.75
+    },
+    {
+      "outcomeId": "teleports",
+      "conditionId": "ray",
+      "participantId": "P12",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P01",
+      "components": {
+        "mental": 5.0,
+        "physical": 4.0,
+        "temporal": 4.0,
+        "effort": 4.0,
+        "frustration": 6.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P01",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P01",
+      "components": {
+        "mental": 5.0,
+        "physical": 5.0,
+        "temporal": 5.0,
+        "effort": 5.0,
+        "frustration": 5.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P01",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P01",
+      "components": {
+        "mental": 3.0,
+        "physical": 4.0,
+        "temporal": 4.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P01",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P02",
+      "components": {
+        "mental": 4.0,
+        "physical": 4.0,
+        "temporal": 3.0,
+        "effort": 4.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P02",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P02",
+      "components": {
+        "mental": 3.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P02",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P02",
+      "components": {
+        "mental": 3.0,
+        "physical": 3.0,
+        "temporal": 4.0,
+        "effort": 4.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P02",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P03",
+      "components": {
+        "mental": 3.0,
+        "physical": 2.0,
+        "temporal": 2.0,
+        "effort": 2.0,
+        "frustration": 2.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P03",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P03",
+      "components": {
+        "mental": 1.0,
+        "physical": 2.0,
+        "temporal": 2.0,
+        "effort": 2.0,
+        "frustration": 1.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P03",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P03",
+      "components": {
+        "mental": 4.0,
+        "physical": 5.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 2.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P03",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P04",
+      "components": {
+        "mental": 4.0,
+        "physical": 4.0,
+        "temporal": 3.0,
+        "effort": 4.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P04",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P04",
+      "components": {
+        "mental": 4.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P04",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P04",
+      "components": {
+        "mental": 5.0,
+        "physical": 5.0,
+        "temporal": 4.0,
+        "effort": 5.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P04",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P05",
+      "components": {
+        "mental": 3.0,
+        "physical": 2.0,
+        "temporal": 2.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P05",
+      "components": {
+        "mental": 4.0,
+        "physical": 5.0,
+        "temporal": 4.0,
+        "effort": 4.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P05",
+      "components": {
+        "mental": 3.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P06",
+      "components": {
+        "mental": 4.0,
+        "physical": 5.0,
+        "temporal": 3.0,
+        "effort": 4.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P06",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P06",
+      "components": {
+        "mental": 3.0,
+        "physical": 3.0,
+        "temporal": 2.0,
+        "effort": 3.0,
+        "frustration": 2.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P06",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P06",
+      "components": {
+        "mental": 2.0,
+        "physical": 3.0,
+        "temporal": 2.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P06",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P07",
+      "components": {
+        "mental": 3.0,
+        "physical": 3.0,
+        "temporal": 2.0,
+        "effort": 3.0,
+        "frustration": 2.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P07",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P07",
+      "components": {
+        "mental": 4.0,
+        "physical": 5.0,
+        "temporal": 4.0,
+        "effort": 5.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P07",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P07",
+      "components": {
+        "mental": 3.0,
+        "physical": 4.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P07",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P08",
+      "components": {
+        "mental": 4.0,
+        "physical": 5.0,
+        "temporal": 3.0,
+        "effort": 4.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P08",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P08",
+      "components": {
+        "mental": 2.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 2.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P08",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P08",
+      "components": {
+        "mental": 4.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P08",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P09",
+      "components": {
+        "mental": 3.0,
+        "physical": 2.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P09",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P09",
+      "components": {
+        "mental": 3.0,
+        "physical": 2.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P09",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P09",
+      "components": {
+        "mental": 3.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 4.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P09",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P10",
+      "components": {
+        "mental": 2.0,
+        "physical": 2.0,
+        "temporal": 2.0,
+        "effort": 2.0,
+        "frustration": 2.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P10",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P10",
+      "components": {
+        "mental": 3.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P10",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P10",
+      "components": {
+        "mental": 4.0,
+        "physical": 4.0,
+        "temporal": 4.0,
+        "effort": 4.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P10",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P11",
+      "components": {
+        "mental": 4.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 4.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P11",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P11",
+      "components": {
+        "mental": 4.0,
+        "physical": 6.0,
+        "temporal": 4.0,
+        "effort": 4.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P11",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P11",
+      "components": {
+        "mental": 2.0,
+        "physical": 3.0,
+        "temporal": 3.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P11",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "direct",
+      "participantId": "P12",
+      "components": {
+        "mental": 3.0,
+        "physical": 5.0,
+        "temporal": 3.0,
+        "effort": 4.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "direct",
+      "participantId": "P12",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "ray",
+      "participantId": "P12",
+      "components": {
+        "mental": 3.0,
+        "physical": 3.0,
+        "temporal": 2.0,
+        "effort": 3.0,
+        "frustration": 3.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "ray",
+      "participantId": "P12",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "hybrid",
+      "participantId": "P12",
+      "components": {
+        "mental": 4.0,
+        "physical": 4.0,
+        "temporal": 4.0,
+        "effort": 4.0,
+        "frustration": 4.0
+      }
+    },
+    {
+      "outcomeId": "appeal",
+      "conditionId": "hybrid",
+      "participantId": "P12",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P01",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P01",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P01",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P01",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P01",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P01",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P02",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P02",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P02",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P02",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P02",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P02",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P03",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P03",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P03",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P03",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P03",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P03",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P04",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P04",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P04",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P04",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P04",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P04",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P05",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P05",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P05",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P05",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P05",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P05",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P06",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P06",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P06",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P06",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P06",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P06",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P07",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P07",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P07",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P07",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P07",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P07",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P08",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P08",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P08",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P08",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P08",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P08",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P09",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P09",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P09",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P09",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P09",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P09",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P10",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P10",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P10",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P10",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P10",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P10",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P11",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P11",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P11",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P11",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P11",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P11",
+      "value": 2
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "ray",
+      "participantId": "P12",
+      "value": 3
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "ray",
+      "participantId": "P12",
+      "value": 3
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "direct",
+      "participantId": "P12",
+      "value": 1
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "direct",
+      "participantId": "P12",
+      "value": 1
+    },
+    {
+      "outcomeId": "interaction-preference",
+      "conditionId": "hybrid",
+      "participantId": "P12",
+      "value": 2
+    },
+    {
+      "outcomeId": "overall-preference",
+      "conditionId": "hybrid",
+      "participantId": "P12",
+      "value": 2
+    }
+  ]
+}

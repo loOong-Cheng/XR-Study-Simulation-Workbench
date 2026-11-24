@@ -1,0 +1,741 @@
+[
+  {
+    "id": "A",
+    "label": "A · Direct forecast",
+    "rationale": "Task brief only.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "none"
+  },
+  {
+    "id": "A-Dem",
+    "label": "A · Direct forecast + demographics",
+    "rationale": "Task brief only. Adds the cohort's demographics.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "none"
+  },
+  {
+    "id": "B",
+    "label": "B · Static project analysis",
+    "rationale": "Brief + read-only project snapshot.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project"
+    ],
+    "tools": [
+      "read-files"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "project"
+    ],
+    "maxToolCalls": 60,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "none"
+  },
+  {
+    "id": "B-Dem",
+    "label": "B · Static project analysis + demographics",
+    "rationale": "Brief + read-only project snapshot. Adds the cohort's demographics.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "demographics"
+    ],
+    "tools": [
+      "read-files",
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "demographics"
+    ],
+    "maxToolCalls": 60,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "none"
+  },
+  {
+    "id": "C",
+    "label": "C · Files + live app",
+    "rationale": "B + the running Unreal app.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "unreal"
+  },
+  {
+    "id": "C-Dem",
+    "label": "C · Files + live app + demographics",
+    "rationale": "B + the running Unreal app. Adds the cohort's demographics.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "demographics"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-participant-data"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "demographics"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "unreal"
+  },
+  {
+    "id": "D",
+    "label": "D · Files + app + model evidence",
+    "rationale": "C + computational model evidence.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-evidence"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "unreal"
+  },
+  {
+    "id": "D-Dem",
+    "label": "D · Files + app + model evidence + demographics",
+    "rationale": "C + computational model evidence. Adds the cohort's demographics.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-evidence",
+      "read-participant-data"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "unreal"
+  },
+  {
+    "id": "F",
+    "label": "F · Files + model evidence",
+    "rationale": "B + model evidence, without the app.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence"
+    ],
+    "tools": [
+      "read-files",
+      "read-evidence"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence"
+    ],
+    "maxToolCalls": 60,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "none"
+  },
+  {
+    "id": "F-Dem",
+    "label": "F · Files + model evidence + demographics",
+    "rationale": "B + model evidence, without the app. Adds the cohort's demographics.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics"
+    ],
+    "tools": [
+      "read-files",
+      "read-evidence",
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics"
+    ],
+    "maxToolCalls": 60,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "population",
+    "repetitions": 10,
+    "runtime": "none"
+  },
+  {
+    "id": "U1",
+    "label": "U1 · Order and tasks",
+    "rationale": "The person's design order and planned tasks (D-based tour).",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-evidence"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "repetitions": 3,
+    "runtime": "unreal",
+    "targets": [
+      "workload",
+      "beauvis",
+      "ssq",
+      "rank-places",
+      "rank-zones",
+      "rank-interaction",
+      "rank-building",
+      "rank-overall"
+    ]
+  },
+  {
+    "id": "UD",
+    "label": "UD · + demographics",
+    "rationale": "U1 + the person's demographics.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-evidence",
+      "read-participant-data"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "repetitions": 3,
+    "runtime": "unreal",
+    "targets": [
+      "workload",
+      "beauvis",
+      "ssq",
+      "rank-places",
+      "rank-zones",
+      "rank-interaction",
+      "rank-building",
+      "rank-overall"
+    ]
+  },
+  {
+    "id": "UDO",
+    "label": "UDO · + objective data",
+    "rationale": "UD + the person's measured task performance as inputs.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-evidence",
+      "read-participant-data"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "repetitions": 3,
+    "runtime": "unreal",
+    "targets": [
+      "workload",
+      "beauvis",
+      "ssq",
+      "rank-places",
+      "rank-zones",
+      "rank-interaction",
+      "rank-building",
+      "rank-overall"
+    ],
+    "inputs": [
+      "place-accuracy",
+      "zone-accuracy",
+      "place-time",
+      "zone-time"
+    ]
+  },
+  {
+    "id": "UDOT",
+    "label": "UDOT · + compact movement",
+    "rationale": "UDO + the person's main-task movement summary.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics",
+      "trajectory"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-evidence",
+      "read-participant-data"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics",
+      "trajectory"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "repetitions": 3,
+    "runtime": "unreal",
+    "targets": [
+      "workload",
+      "beauvis",
+      "ssq",
+      "rank-places",
+      "rank-zones",
+      "rank-interaction",
+      "rank-building",
+      "rank-overall"
+    ],
+    "inputs": [
+      "place-accuracy",
+      "zone-accuracy",
+      "place-time",
+      "zone-time"
+    ]
+  },
+  {
+    "id": "UDOT-full",
+    "label": "Full · practice and main movement",
+    "rationale": "UDO + the person's practice and main-task movement.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics",
+      "trajectory-full"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-evidence",
+      "read-participant-data"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics",
+      "trajectory-full"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "repetitions": 1,
+    "runtime": "unreal",
+    "targets": [
+      "workload",
+      "beauvis",
+      "ssq",
+      "rank-places",
+      "rank-zones",
+      "rank-interaction",
+      "rank-building",
+      "rank-overall"
+    ],
+    "inputs": [
+      "place-accuracy",
+      "zone-accuracy",
+      "place-time",
+      "zone-time"
+    ]
+  },
+  {
+    "id": "UDOT-full-reason",
+    "label": "Full-Reason · movement with explicit reasoning",
+    "rationale": "As Full, but the agent must explain how each movement feature changes its forecast before submitting.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "effort=high"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics",
+      "trajectory-full"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-evidence",
+      "read-participant-data"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "SP-practice",
+      "SP-main",
+      "VO-practice",
+      "VO-main",
+      "PP-practice",
+      "PP-main",
+      "HP-practice",
+      "HP-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence",
+      "demographics",
+      "trajectory-full"
+    ],
+    "maxToolCalls": 200,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome. Report uncertainty and limitations separately. Before submitting, state for each design how the person's movement and task performance change your forecast relative to a typical participant, and challenge your own forecast once.",
+    "level": "individual",
+    "repetitions": 1,
+    "runtime": "unreal",
+    "targets": [
+      "workload",
+      "beauvis",
+      "ssq",
+      "rank-places",
+      "rank-zones",
+      "rank-interaction",
+      "rank-building",
+      "rank-overall"
+    ],
+    "inputs": [
+      "place-accuracy",
+      "zone-accuracy",
+      "place-time",
+      "zone-time"
+    ]
+  }
+]

@@ -1,0 +1,29 @@
+{
+  "name": "xr-study-sim",
+  "version": "0.4.0",
+  "private": true,
+  "description": "A local HCI workbench for reproducible XR simulation protocols and human\u2013agent comparison.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "setup": "node scripts/setup.mjs",
+    "build": "tsc -p tsconfig.json",
+    "check": "tsc -p tsconfig.json --noEmit",
+    "start": "npm run build && node dist/server.js",
+    "cli": "node dist/cli.js",
+    "demo": "npm run build && node dist/cli.js demo",
+    "test": "npm run build && tsc -p tsconfig.test.json && node --test .test-build/test/research.test.js .test-build/test/proposal.test.js .test-build/test/campaign.test.js .test-build/test/continuation.test.js .test-build/test/examples.test.js .test-build/test/webxr-runtime.test.js"
+  },
+  "devDependencies": {
+    "@types/node": "22.10.2",
+    "typescript": "5.9.3"
+  },
+  "dependencies": {
+    "mammoth": "1.13.0",
+    "pdfjs-dist": "6.5.438",
+    "jszip": "3.10.2"
+  }
+}

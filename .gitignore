@@ -1,0 +1,18 @@
+node_modules/
+dist/
+.test-build/
+artifacts/
+coverage/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+__pycache__/
+*.pyc
+private/
+
+# Campaigns and runs created when trying the examples
+examples/*/campaigns/
+examples/*/runs/
+examples/*/study.approval.json

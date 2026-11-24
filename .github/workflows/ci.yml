@@ -1,0 +1,28 @@
+name: TypeScript and research contracts
+on: [push, pull_request]
+jobs:
+  check:
+    # Windows too: path separators, line endings, process spawning and file locks differ there
+    # (test-PC findings S1–S5), and researchers run the workbench on Windows lab PCs.
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      # Chrome for the WebXR runtime test (test/webxr-runtime.test.ts skips without it).
+      - uses: browser-actions/setup-chrome@v1
+        id: chrome
+        with:
+          install-dependencies: true
+      - run: npm ci --ignore-scripts
+      - run: npm run check
+      - run: npm test
+        env:
+          CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
+      - run: npm run demo

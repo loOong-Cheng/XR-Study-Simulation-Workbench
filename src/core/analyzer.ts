@@ -1,0 +1,880 @@
+import type {
+  AnalysisReport,
+  Comparison,
+  ContrastScore,
+  Domain,
+  HumanData,
+  Measurement,
+  MetricScore,
+  Plan,
+  AbsoluteFit,
+  HumanPair,
+  PredictedValue,
+  ResultBundle,
+  RunResult,
+  RunScore,
+  SummaryScore,
+} from "./types.js";
+import { agentLevel, agentTargets, verifyPlan } from "./planner.js";
+import { holm, mannWhitney, wilcoxonSignedRank } from "./rank-tests.js";
+import { auditRun } from "./protocol.js";
+import {
+  measurementKey,
+  measurementValue,
+  requireThat,
+  validateHumanData,
+} from "./validation.js";
+
+export function random(seed: number): () => number {
+  let state = seed >>> 0;
+  return () => {
+    state += 0x6d2b79f5;
+    let t = state;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+export function mean(values: number[]): number | null {
+  return values.length
+    ? values.reduce((a, b) => a + b, 0) / values.length
+    : null;
+}
+export function quantile(values: number[], p: number): number {
+  const a = [...values].sort((x, y) => x - y);
+  const i = (a.length - 1) * p;
+  const lo = Math.floor(i);
+  return a[lo] + (a[Math.ceil(i)] - a[lo]) * (i - lo);
+}
+function interval(
+  values: (number | null)[],
+): { low: number; high: number } | null {
+  const valid = values.filter(
+    (x): x is number => x !== null && Number.isFinite(x),
+  );
+  return valid.length >= values.length * 0.9 && valid.length
+    ? { low: quantile(valid, 0.025), high: quantile(valid, 0.975) }
+    : null;
+}
+function sign(v: number, tolerance: number): number {
+  return Math.abs(v) <= tolerance ? 0 : Math.sign(v);
+}
+export function directionalAgreement(
+  human: number[],
+  predicted: number[],
+  tolerance = 1e-8,
+  mask?: boolean[],
+): { score: number | null; pairs: number } {
+  let sum = 0,
+    count = 0,
+    index = 0;
+  for (let i = 0; i < human.length; i++)
+    for (let j = i + 1; j < human.length; j++) {
+      const hs = sign(human[j] - human[i], tolerance),
+        ps = sign(predicted[j] - predicted[i], tolerance);
+      const retained = mask ? mask[index] : hs !== 0;
+      index++;
+      if (!retained) continue;
+      // A tie created by human resampling is neutral on the original pair mask.
+      sum += hs === 0 || ps === 0 ? 0.5 : hs === ps ? 1 : 0;
+      count++;
+    }
+  return { score: count ? sum / count : null, pairs: count };
+}
+function pairMask(values: number[], tolerance: number): boolean[] {
+  const result: boolean[] = [];
+  for (let i = 0; i < values.length; i++)
+    for (let j = i + 1; j < values.length; j++)
+      result.push(sign(values[j] - values[i], tolerance) !== 0);
+  return result;
+}
+function resamplePeople(plan: Plan, rng: () => number): number[] {
+  const strata = new Map<string, number[]>();
+  plan.study.participants.forEach((p, i) => {
+    const a = strata.get(p.stratum) ?? [];
+    a.push(i);
+    strata.set(p.stratum, a);
+  });
+  return [...strata.values()].flatMap((indices) =>
+    indices.map(() => indices[Math.floor(rng() * indices.length)]),
+  );
+}
+function balancedWeights(
+  plan: Plan,
+  domain: Domain,
+  informative: boolean[],
+): Map<number, number> {
+  const groups = new Map<string, number[]>();
+  plan.study.outcomes.forEach((o, i) => {
+    if (o.domain === domain && informative[i]) {
+      const rows = groups.get(o.family) ?? [];
+      rows.push(i);
+      groups.set(o.family, rows);
+    }
+  });
+  const total = [...groups.keys()].reduce(
+    (a, f) => a + plan.study.analysis.familyWeights[f],
+    0,
+  );
+  const weights = new Map<number, number>();
+  for (const [f, indices] of groups) {
+    const within = indices.reduce(
+      (a, i) => a + plan.study.outcomes[i].weight,
+      0,
+    );
+    for (const i of indices)
+      weights.set(
+        i,
+        ((plan.study.analysis.familyWeights[f] / total) *
+          plan.study.outcomes[i].weight) /
+          within,
+      );
+  }
+  return weights;
+}
+function weightedScore(
+  values: (number | null)[],
+  weights: Map<number, number>,
+): number | null {
+  if (!weights.size || [...weights.keys()].some((i) => values[i] === null))
+    return null;
+  return [...weights].reduce((a, [i, w]) => a + values[i]! * w, 0);
+}
+export function holmAdjust(rows: ContrastScore[]): void {
+  const ordered = rows.filter((r) => r.p !== null).sort((a, b) => a.p! - b.p!);
+  let previous = 0;
+  for (let i = 0; i < ordered.length; i++) {
+    previous = Math.max(
+      previous,
+      Math.min(1, (rows.length - i) * ordered[i].p!),
+    );
+    ordered[i].holmP = previous;
+  }
+}
+export function analyze(
+  plan: Plan,
+  human: HumanData,
+  bundle: ResultBundle,
+  comparisons?: Comparison[],
+): AnalysisReport {
+  verifyPlan(plan);
+  return analyzeVerifiedPlan(plan, human, bundle, comparisons);
+}
+/**
+ * Comparisons are an analysis choice: they are not needed to collect data. If
+ * none are given, those stored with the plan are used. Each is labelled with
+ * where it was declared so the report can disclose analysis-time choices.
+ */
+export function resolveComparisons(
+  plan: Plan,
+  comparisons?: Comparison[],
+): (Comparison & { id: string; declared: "in plan" | "at analysis" })[] {
+  const inPlan = plan.study.analysis.contrasts;
+  const list = comparisons ?? inPlan;
+  requireThat(Array.isArray(list) && list.length <= 50, "Give comparisons as a list (at most 50).");
+  const ids = new Set(plan.agents.map((a) => a.id));
+  const seen = new Set<string>();
+  return list.map((c) => {
+    requireThat(
+      c && ids.has(c.candidate) && ids.has(c.baseline) && c.candidate !== c.baseline &&
+        ["objective", "subjective"].includes(c.domain),
+      `Comparison ${c?.candidate} − ${c?.baseline}: choose two different agent methods of this plan and a domain.`,
+    );
+    const key = `${c.candidate}|${c.baseline}|${c.domain}`;
+    requireThat(!seen.has(key), `Duplicate comparison ${c.candidate} − ${c.baseline} (${c.domain}).`);
+    seen.add(key);
+    const planned = inPlan.find(
+      (x) => x.candidate === c.candidate && x.baseline === c.baseline && x.domain === c.domain,
+    );
+    return {
+      id: c.id ?? planned?.id ?? `${c.candidate}-vs-${c.baseline}-${c.domain}`,
+      candidate: c.candidate,
+      baseline: c.baseline,
+      domain: c.domain,
+      declared: planned ? ("in plan" as const) : ("at analysis" as const),
+    };
+  });
+}
+/**
+ * Analysis core for an already-verified schedule. Campaigns use this after
+ * verifying their own digest, because a continued campaign can have unequal
+ * repetition counts per condition and therefore is not a uniform Plan.
+ */
+export function analyzeVerifiedPlan(
+  plan: Plan,
+  human: HumanData,
+  bundle: ResultBundle,
+  comparisons?: Comparison[],
+): AnalysisReport {
+  // Configs can predict at different levels; each level is analysed with its own
+  // resampling, then merged. Comparisons must stay within one level.
+  const resolved = resolveComparisons(plan, comparisons);
+  const levelOf = new Map(plan.agents.map((a) => [a.id, agentLevel(plan.study, a)]));
+  resolved.forEach((c) =>
+    requireThat(
+      levelOf.get(c.candidate) === levelOf.get(c.baseline),
+      `Comparison ${c.candidate} − ${c.baseline} mixes population and individual configs; use the population-vs-individual view instead.`,
+    ),
+  );
+  const levels = [...new Set(levelOf.values())];
+  const parts = levels.map((level) => {
+    const ids = new Set(plan.agents.filter((a) => levelOf.get(a.id) === level).map((a) => a.id));
+    const jobIds = new Set(plan.jobs.filter((j) => ids.has(j.agentId)).map((j) => j.id));
+    const sub: Plan = {
+      ...plan,
+      study: { ...plan.study, predictionLevel: level },
+      agents: plan.agents.filter((a) => ids.has(a.id)),
+      jobs: plan.jobs.filter((j) => ids.has(j.agentId)),
+    };
+    return analyzeLevel(
+      sub,
+      human,
+      { ...bundle, runs: bundle.runs.filter((r) => jobIds.has(r.jobId)) },
+      resolved.filter((c) => ids.has(c.candidate)),
+    );
+  });
+  const report = mergeLevels(plan, parts);
+  // Within subjects, the main scores keep every difference of the means; a second view scores the
+  // population configurations on significant paired differences only (Wilcoxon signed-rank, Holm).
+  if (plan.study.design === "within-subjects" && levels.includes("population")) {
+    const ids = new Set(plan.agents.filter((a) => levelOf.get(a.id) === "population").map((a) => a.id));
+    const jobIds = new Set(plan.jobs.filter((j) => ids.has(j.agentId)).map((j) => j.id));
+    const sub: Plan = { ...plan, study: { ...plan.study, predictionLevel: "population" }, agents: plan.agents.filter((a) => ids.has(a.id)), jobs: plan.jobs.filter((j) => ids.has(j.agentId)) };
+    const sig = analyzeLevel(sub, human, { ...bundle, runs: bundle.runs.filter((r) => jobIds.has(r.jobId)) }, [], "significant");
+    report.significantOnly = { summaries: sig.summaries, exclusions: sig.exclusions, humanPairs: sig.humanPairs ?? [] };
+  }
+  return report;
+}
+function mergeLevels(plan: Plan, parts: AnalysisReport[]): AnalysisReport {
+  if (parts.length === 1) return parts[0];
+  const [first] = parts;
+  const contrasts = parts.flatMap((p) => p.contrasts);
+  holmAdjust(contrasts);
+  return {
+    ...first,
+    predictionLevel: plan.study.predictionLevel,
+    metrics: parts.flatMap((p) => p.metrics),
+    summaries: parts.flatMap((p) => p.summaries),
+    contrasts,
+    audits: parts.flatMap((p) => p.audits),
+    exclusions: [...new Set(parts.flatMap((p) => p.exclusions.map((e) => e)))],
+    notes: [
+      ...new Set(parts.flatMap((p) => p.notes)),
+      "Population and individual configs are analysed separately (each with its own resampling); one Holm family covers all comparisons.",
+    ],
+    runScores: parts.flatMap((p) => p.runScores ?? []),
+    values: parts.flatMap((p) => p.values ?? []),
+    humanValues: first.humanValues,
+    pairRule: parts.find((p) => p.predictionLevel === "population")?.pairRule ?? first.pairRule,
+    humanPairs: parts.flatMap((p) => p.humanPairs ?? []),
+    absoluteFit: parts.flatMap((p) => p.absoluteFit ?? []),
+  };
+}
+/** Two-sided 97.5% Student t quantile for a 95% interval. */
+function t975(df: number): number {
+  const table = [12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.16, 2.145, 2.131, 2.12, 2.11, 2.101, 2.093, 2.086, 2.08, 2.074, 2.069, 2.064, 2.06, 2.056, 2.052, 2.048, 2.045, 2.042];
+  return df < 1 ? NaN : df <= 30 ? table[df - 1] : df <= 60 ? 2.042 - ((df - 30) / 30) * 0.042 : 1.96 + 40 / (df * df);
+}
+const ALPHA = 0.05;
+function analyzeLevel(
+  plan: Plan,
+  human: HumanData,
+  bundle: ResultBundle,
+  comparisons?: Comparison[],
+  // Between subjects, a design difference counts only when a test supports it (independent groups).
+  pairRule: "means" | "significant" = plan.study.design === "between-subjects" ? "significant" : "means",
+): AnalysisReport {
+  const chosen = resolveComparisons(plan, comparisons);
+  validateHumanData(plan.study, human);
+  requireThat(
+    bundle.schemaVersion === "1.0" &&
+      bundle.studyId === plan.study.id &&
+      Array.isArray(bundle.runs),
+    "Results do not match the study.",
+  );
+  requireThat(
+    bundle.runs.every(
+      (r) => r && typeof r === "object" && typeof r.jobId === "string",
+    ),
+    "Every returned execution needs a scheduled job identifier.",
+  );
+  const jobs = new Map(plan.jobs.map((j) => [j.id, j]));
+  const returned = new Map(bundle.runs.map((r) => [r.jobId, r]));
+  requireThat(
+    returned.size === bundle.runs.length,
+    "Duplicate job outputs: preserve attempts separately; return one selected result per scheduled job.",
+  );
+  requireThat(
+    bundle.runs.every((r) => jobs.has(r.jobId)),
+    "Results contain an unscheduled job.",
+  );
+  const audits = plan.jobs.map((j) => auditRun(plan, j, returned.get(j.id)));
+  const sessions = new Map<string, string[]>();
+  for (const r of bundle.runs) {
+    const ids = sessions.get(r.sessionId) ?? [];
+    ids.push(r.jobId);
+    sessions.set(r.sessionId, ids);
+  }
+  for (const ids of sessions.values())
+    if (ids.length > 1)
+      for (const id of ids) {
+        const a = audits.find((a) => a.jobId === id)!;
+        a.compliant = false;
+        a.issues.push("Session identifier reused across jobs.");
+      }
+  const frames = new Map<string, Set<string>>();
+  for (const r of bundle.runs)
+    for (const e of Array.isArray(r.trace) ? r.trace : [])
+      if (e && e.type === "observation" && Array.isArray(e.captures))
+        for (const c of e.captures) {
+          if (!c || typeof c.frameId !== "string") continue;
+          const owners = frames.get(c.frameId) ?? new Set<string>();
+          owners.add(r.jobId + "|" + e.caseId);
+          frames.set(c.frameId, owners);
+        }
+  for (const owners of frames.values())
+    if (owners.size > 1)
+      for (const owner of owners) {
+        const id = owner.split("|")[0];
+        const a = audits.find((a) => a.jobId === id)!;
+        a.compliant = false;
+        a.issues.push("Capture frame identity reused across jobs or cases.");
+      }
+  // Real and simulated runs are never pooled. When a configuration has real runs, its simulated
+  // runs are left out of every score (they stay listed in the audit); a configuration with only
+  // simulated runs is scored on them and named in a note.
+  const isSimulated = (r: RunResult) => (r.execution as { synthetic?: unknown } | undefined)?.synthetic === true;
+  const kinds = new Map<string, { real: number; simulated: number }>();
+  for (const r of bundle.runs) {
+    const agentId = jobs.get(r.jobId)!.agentId;
+    const k = kinds.get(agentId) ?? { real: 0, simulated: 0 };
+    if (isSimulated(r)) k.simulated++;
+    else k.real++;
+    kinds.set(agentId, k);
+  }
+  const labelOf = (id: string) => plan.agents.find((a) => a.id === id)?.label ?? id;
+  const poolingNotes: string[] = [];
+  for (const [agentId, k] of kinds)
+    if (k.real && k.simulated) {
+      for (const r of bundle.runs)
+        if (jobs.get(r.jobId)!.agentId === agentId && isSimulated(r)) {
+          const a = audits.find((x) => x.jobId === r.jobId)!;
+          a.scoreable = false;
+          a.issues.push("Simulated run left out: this configuration also has real runs, and real and simulated runs are never pooled.");
+        }
+      poolingNotes.push(`${labelOf(agentId)}: ${k.real} real + ${k.simulated} simulated run(s). Scored on the ${k.real} real run(s) only; the simulated ones are left out.`);
+    }
+  const simulatedOnly = [...kinds].filter(([, k]) => k.simulated && !k.real).map(([id]) => labelOf(id));
+  if (simulatedOnly.length && [...kinds.values()].some((k) => k.real))
+    poolingNotes.push(`Scored on simulated (invented) runs only: ${simulatedOnly.join(", ")}. Comparisons between these and configurations with real runs compare invented with real forecasts.`);
+  const auditMap = new Map(audits.map((a) => [a.jobId, a]));
+  const targetSets = new Map(
+    plan.agents.map((a) => [a.id, new Set(agentTargets(plan.study, a))]),
+  );
+  const outcomes = plan.study.outcomes,
+    conditions = plan.study.conditions,
+    people = plan.study.participants;
+  const humanMap = new Map(
+    human.measurements.map((r) => [measurementKey(r), r]),
+  );
+  const transform = (i: number, v: number): number =>
+    outcomes[i].aggregation === "geometric" ? Math.log(v) : v;
+  const restore = (i: number, v: number): number =>
+    outcomes[i].aggregation === "geometric" ? Math.exp(v) : v;
+  const h = outcomes.map((o, oi) =>
+    people.map((p) =>
+      conditions.map((c) => {
+        const r = humanMap.get(`${p.id}|${c.id}|${o.id}`);
+        return r ? transform(oi, measurementValue(plan.study, r)) : null;
+      }),
+    ),
+  );
+  const truthProfile = (oi: number, indices: number[]): number[] | null => {
+    const means = conditions.map((_, ci) =>
+      mean(
+        indices
+          .map((pi) => h[oi][pi][ci])
+          .filter((x): x is number => x !== null),
+      ),
+    );
+    return means.some((v) => v === null) ? null : (means as number[]);
+  };
+  const all = people.map((_, i) => i),
+    tolerance = plan.study.analysis.tieTolerance;
+  // Which human design differences count. "means": any difference of the design means beyond the
+  // tie tolerance. "significant": only pairs a test supports, Holm-adjusted over the design pairs of
+  // one measure at .05: Mann–Whitney U between the two groups (between-subjects) or Wilcoxon
+  // signed-rank on each person's difference (within-subjects). Rank tests are unaffected by the
+  // log scale used for geometric measures.
+  const between = plan.study.design === "between-subjects";
+  const humanPairs: HumanPair[] = [];
+  const masks = outcomes.map((o, oi) => {
+    const profile = truthProfile(oi, all);
+    if (!profile) return [];
+    const byMean = pairMask(profile, tolerance);
+    if (plan.study.predictionLevel !== "population") return byMean;
+    const tests: { i: number; j: number; p: number | null }[] = [];
+    for (let i = 0; i < conditions.length; i++)
+      for (let j = i + 1; j < conditions.length; j++) {
+        const group = (ci: number) => h[oi].map((row) => row[ci]).filter((x): x is number => x !== null);
+        const paired = h[oi].filter((row) => row[i] !== null && row[j] !== null).map((row) => (row[j] as number) - (row[i] as number));
+        tests.push({ i, j, p: between ? mannWhitney(group(i), group(j)).p : wilcoxonSignedRank(paired).p });
+      }
+    const adjusted = holm(tests.map((t) => t.p));
+    const significant = adjusted.map((p) => p !== null && p < ALPHA);
+    tests.forEach((t, k) =>
+      humanPairs.push({
+        outcomeId: o.id,
+        a: conditions[t.i].id,
+        b: conditions[t.j].id,
+        meanA: restore(oi, profile[t.i]),
+        meanB: restore(oi, profile[t.j]),
+        test: between ? "Mann–Whitney U" : "Wilcoxon signed-rank",
+        p: t.p,
+        pHolm: adjusted[k],
+        significant: significant[k],
+        used: byMean[k] && (pairRule === "means" || significant[k]),
+      }),
+    );
+    return pairRule === "means" ? byMean : byMean.map((m, k) => m && significant[k]);
+  });
+  const individualEligible = outcomes.map((_, oi) =>
+    people.map(
+      (_, pi) =>
+        h[oi][pi].every((x) => x !== null) &&
+        pairMask(h[oi][pi] as number[], tolerance).some(Boolean),
+    ),
+  );
+  const informative = outcomes.map((_, oi) =>
+    plan.study.predictionLevel === "population"
+      ? masks[oi].some(Boolean)
+      : individualEligible[oi].some(Boolean),
+  );
+  const exclusions = outcomes.flatMap((o, i) =>
+    informative[i]
+      ? []
+      : [
+          pairRule === "significant" && plan.study.predictionLevel === "population"
+            ? `${o.label}: no design pair differs significantly for the humans; excluded identically for all agents.`
+            : `${o.label}: no complete, non-tied human design comparison; excluded identically for all agents.`,
+        ],
+  );
+  if (plan.study.predictionLevel === "population")
+    outcomes.forEach((o, oi) =>
+      conditions.forEach((c, ci) => {
+        const assigned = people.filter((p) =>
+          p.conditionOrder.includes(c.id),
+        ).length;
+        const observed = h[oi].filter((row) => row[ci] !== null).length;
+        if (observed < assigned)
+          exclusions.push(
+            `${o.label}, ${c.label}: ${observed}/${assigned} assigned people observed. Available-case population means are used; missing values are not imputed.`,
+          );
+      }),
+    );
+  if (plan.study.predictionLevel === "individual")
+    outcomes.forEach((o, oi) => {
+      const n = individualEligible[oi].filter(Boolean).length;
+      if (n < people.length)
+        exclusions.push(
+          `${o.label}: ${n}/${people.length} people have complete, non-tied profiles; the same human support is used for all agents.`,
+        );
+    });
+  const agentOfJob = new Map(plan.jobs.map((j) => [j.id, j.agentId]));
+  const predicted = new Map<string, number[][]>();
+  for (const r of bundle.runs)
+    if (auditMap.get(r.jobId)!.scoreable) {
+      const lookup = new Map(
+        r.measurements.map((m) => [`${m.conditionId}|${m.outcomeId}`, m]),
+      );
+      const targets = targetSets.get(agentOfJob.get(r.jobId)!)!;
+      predicted.set(
+        r.jobId,
+        outcomes.map((o, oi) =>
+          !targets.has(o.id) ? [] : conditions.map((c) =>
+            transform(
+              oi,
+              measurementValue(
+                plan.study,
+                lookup.get(`${c.id}|${o.id}`) as Measurement,
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+  const metrics: MetricScore[] = [],
+    summaries: SummaryScore[] = [];
+  const primaryJobs = (agentId: string) =>
+    plan.jobs.filter(
+      (j) =>
+        j.agentId === agentId &&
+        (plan.study.predictionLevel === "population" || j.repetition === 1),
+    );
+  const validJobs = (agentId: string, adherent = false) =>
+    primaryJobs(agentId).filter(
+      (j) =>
+        predicted.has(j.id) && (!adherent || auditMap.get(j.id)!.compliant),
+    );
+  const scoreAgent = (
+    agentId: string,
+    indices: number[],
+    rng?: () => number,
+    adherent = false,
+  ): {
+    scores: (number | null)[];
+    absolute: (number | null)[];
+    units: number[];
+    pairs: number[];
+  } => {
+    const candidates = validJobs(agentId, adherent);
+    const populationJobs =
+      rng && plan.study.predictionLevel === "population"
+        ? candidates.map(
+            () => candidates[Math.floor(rng() * candidates.length)],
+          )
+        : candidates;
+    const byPerson = new Map(candidates.map((j) => [j.participantId, j]));
+    const individualComplete =
+      plan.study.predictionLevel === "population" ||
+      people.every((p) => byPerson.has(p.id));
+    const scores: (number | null)[] = [],
+      absolute: (number | null)[] = [],
+      units: number[] = [],
+      pairs: number[] = [];
+    const targets = targetSets.get(agentId)!;
+    for (let oi = 0; oi < outcomes.length; oi++) {
+      if (!individualComplete || !targets.has(outcomes[oi].id)) {
+        scores.push(null);
+        absolute.push(null);
+        units.push(0);
+        pairs.push(0);
+        continue;
+      }
+      const values: number[] = [],
+        errors: number[] = [];
+      let pairCount = 0;
+      if (plan.study.predictionLevel === "population") {
+        const truth = truthProfile(oi, indices);
+        if (truth)
+          for (const j of populationJobs) {
+            const p = predicted.get(j.id)![oi];
+            const a = directionalAgreement(truth, p, tolerance, masks[oi]);
+            if (a.score !== null) values.push(a.score);
+            pairCount = a.pairs;
+            errors.push(
+              ...truth.map((v, i) =>
+                Math.abs(restore(oi, v) - restore(oi, p[i])),
+              ),
+            );
+          }
+        units.push(
+          truth
+            ? indices.filter((pi) => h[oi][pi].some((x) => x !== null)).length
+            : 0,
+        );
+      } else {
+        for (const pi of indices)
+          if (h[oi][pi].every((v) => v !== null)) {
+            const j = byPerson.get(people[pi].id)!;
+            const truth = h[oi][pi] as number[];
+            const p = predicted.get(j.id)![oi];
+            const a = directionalAgreement(truth, p, tolerance);
+            if (a.score !== null) values.push(a.score);
+            pairCount += a.pairs;
+            errors.push(
+              ...truth.map((v, i) =>
+                Math.abs(restore(oi, v) - restore(oi, p[i])),
+              ),
+            );
+          }
+        units.push(values.length);
+      }
+      scores.push(mean(values));
+      absolute.push(mean(errors));
+      pairs.push(pairCount);
+    }
+    return { scores, absolute, units, pairs };
+  };
+  const domains: Domain[] = ["objective", "subjective"];
+  const weightsOver = (domain: Domain, ...agentIds: string[]) =>
+    balancedWeights(
+      plan,
+      domain,
+      informative.map((x, i) => x && agentIds.every((id) => targetSets.get(id)!.has(outcomes[i].id))),
+    );
+  const point = new Map<
+    string,
+    {
+      scores: (number | null)[];
+      absolute: (number | null)[];
+      units: number[];
+      pairs: number[];
+    }
+  >();
+  for (const a of plan.agents) {
+    const values = scoreAgent(a.id, all);
+    point.set(a.id, values);
+    outcomes.forEach((o, i) =>
+      targetSets.get(a.id)!.has(o.id) && metrics.push({
+        agentId: a.id,
+        outcomeId: o.id,
+        domain: o.domain,
+        agreement: values.scores[i],
+        absoluteMAE:
+          plan.study.analysis.mode === "both" ? values.absolute[i] : null,
+        informativeUnits: values.units[i],
+        informativePairs: values.pairs[i],
+        runs: validJobs(a.id).length,
+      }),
+    );
+  }
+  // Per-outcome bootstrap scores, so any comparison can be weighted over common targets.
+  const draws = new Map<string, (number | null)[][]>(plan.agents.map((a) => [a.id, []]));
+  const rng = random(plan.study.analysis.seed);
+  for (let draw = 0; draw < plan.study.analysis.bootstrapDraws; draw++) {
+    const indices = resamplePeople(plan, rng);
+    for (const a of plan.agents) draws.get(a.id)!.push(scoreAgent(a.id, indices, rng).scores);
+  }
+  const bootstrapOf = (agentId: string, w: Map<number, number>) =>
+    draws.get(agentId)!.map((scores) => weightedScore(scores, w));
+  for (const a of plan.agents)
+    for (const domain of domains) {
+      const w = weightsOver(domain, a.id);
+      if (!outcomes.some((o) => o.domain === domain && targetSets.get(a.id)!.has(o.id))) continue;
+      const assigned = primaryJobs(a.id),
+        ret = assigned.filter((j) => returned.has(j.id));
+      summaries.push({
+        agentId: a.id,
+        level: plan.study.predictionLevel,
+        domain,
+        agreement: weightedScore(point.get(a.id)!.scores, w),
+        ci95: interval(bootstrapOf(a.id, w)),
+        completeAdherenceSensitivity: weightedScore(
+          scoreAgent(a.id, all, undefined, true).scores,
+          w,
+        ),
+        assigned: assigned.length,
+        returned: ret.length,
+        real: ret.filter((j) => !isSimulated(returned.get(j.id)!)).length,
+        simulated: ret.filter((j) => isSimulated(returned.get(j.id)!)).length,
+        scoreable: validJobs(a.id).length,
+        compliant: validJobs(a.id, true).length,
+      });
+    }
+  const contrasts: ContrastScore[] = chosen.map((c) => {
+    // Weighted over the outcomes both configs predict (common coverage).
+    const w = weightsOver(c.domain, c.baseline, c.candidate);
+    const baseScore = weightedScore(point.get(c.baseline)!.scores, w),
+      candScore = weightedScore(point.get(c.candidate)!.scores, w);
+    const difference =
+      baseScore != null && candScore != null ? candScore - baseScore : null;
+    const a = bootstrapOf(c.baseline, w),
+      b = bootstrapOf(c.candidate, w);
+    const diffs = b.map((x, i) =>
+      x !== null && a[i] !== null ? x! - a[i]! : null,
+    );
+    const valid = diffs.filter((x): x is number => x !== null);
+    const eligible =
+      difference !== null &&
+      valid.length >= plan.study.analysis.bootstrapDraws * 0.9;
+    const degenerate =
+      valid.length > 0 && Math.max(...valid) - Math.min(...valid) < 1e-12;
+    const p =
+      eligible && !degenerate
+        ? (1 +
+            valid.filter(
+              (x) => Math.abs(x - difference!) >= Math.abs(difference!) - 1e-12,
+            ).length) /
+          (valid.length + 1)
+        : null;
+    return {
+      ...c,
+      difference,
+      ci95: eligible ? interval(diffs) : null,
+      p,
+      holmP: null,
+      status: !eligible
+        ? "Insufficient matched coverage"
+        : degenerate
+        ? "No test: empirically degenerate bootstrap variance"
+        : "Exploratory centered-bootstrap contrast; Holm across the declared family",
+    };
+  });
+  holmAdjust(contrasts);
+  // Distribution data for plots: agreement per population run or per participant
+  // (weights renormalised over the outcomes available for that unit), plus values.
+  const level = plan.study.predictionLevel;
+  const runScores: RunScore[] = [];
+  const values: PredictedValue[] = [];
+  const available = (scores: (number | null)[], w: Map<number, number>) => {
+    let sum = 0,
+      total = 0;
+    for (const [i, wi] of w)
+      if (scores[i] !== null) {
+        sum += scores[i]! * wi;
+        total += wi;
+      }
+    return total > 0 ? sum / total : null;
+  };
+  for (const a of plan.agents) {
+    const targets = targetSets.get(a.id)!;
+    const ownWeights = new Map(domains.map((d) => [d, weightsOver(d, a.id)]));
+    for (const job of plan.jobs.filter((j) => j.agentId === a.id && predicted.has(j.id))) {
+      const p = predicted.get(job.id)!;
+      const pi = job.participantId ? people.findIndex((x) => x.id === job.participantId) : -1;
+      const perOutcome = outcomes.map((o, oi) => {
+        if (!targets.has(o.id) || !informative[oi]) return null;
+        if (level === "population") {
+          const truth = truthProfile(oi, all);
+          return truth ? directionalAgreement(truth, p[oi], tolerance, masks[oi]).score : null;
+        }
+        const truth = h[oi][pi];
+        return truth && truth.every((x) => x !== null)
+          ? directionalAgreement(truth as number[], p[oi], tolerance).score
+          : null;
+      });
+      for (const domain of domains)
+        if (ownWeights.get(domain)!.size)
+          runScores.push({
+            agentId: a.id,
+            level,
+            domain,
+            unit: level === "population" ? job.id : job.participantId!,
+            repetition: job.repetition,
+            agreement: available(perOutcome, ownWeights.get(domain)!),
+          });
+      outcomes.forEach((o, oi) => {
+        if (!targets.has(o.id)) return;
+        conditions.forEach((c, ci) =>
+          values.push({
+            agentId: a.id,
+            level,
+            unit: level === "population" ? job.id : job.participantId!,
+            repetition: job.repetition,
+            ...(job.participantId ? { participantId: job.participantId } : {}),
+            outcomeId: o.id,
+            conditionId: c.id,
+            value: restore(oi, p[oi][ci]),
+          }),
+        );
+      });
+    }
+  }
+  const humanValues = outcomes.flatMap((o, oi) =>
+    people.flatMap((person, pi) =>
+      conditions.flatMap((c, ci) =>
+        h[oi][pi][ci] === null
+          ? []
+          : [{ participantId: person.id, outcomeId: o.id, conditionId: c.id, value: restore(oi, h[oi][pi][ci]!) }],
+      ),
+    ),
+  );
+  // Absolute values (population level): each configuration's mean prediction against the human
+  // group's 95% t interval, per measure and design (geometric measures on the log scale).
+  const absoluteFit: AbsoluteFit[] = [];
+  if (plan.study.predictionLevel === "population")
+    for (const a of plan.agents) {
+      const jobs = validJobs(a.id);
+      if (!jobs.length) continue;
+      outcomes.forEach((o, oi) => {
+        if (!targetSets.get(a.id)!.has(o.id)) return;
+        conditions.forEach((c, ci) => {
+          const hv = h[oi].map((row) => row[ci]).filter((x): x is number => x !== null);
+          if (hv.length < 2) return;
+          const m = mean(hv)!;
+          const sd = Math.sqrt(hv.reduce((s, x) => s + (x - m) ** 2, 0) / (hv.length - 1));
+          const half = t975(hv.length - 1) * (sd / Math.sqrt(hv.length));
+          const av = mean(jobs.map((j) => predicted.get(j.id)![oi][ci]))!;
+          absoluteFit.push({
+            agentId: a.id,
+            outcomeId: o.id,
+            conditionId: c.id,
+            human: restore(oi, m),
+            low: restore(oi, m - half),
+            high: restore(oi, m + half),
+            n: hv.length,
+            agent: restore(oi, av),
+            error: restore(oi, av) - restore(oi, m),
+            inside: av >= m - half && av <= m + half,
+          });
+        });
+      });
+    }
+  const pairNote =
+    plan.study.predictionLevel !== "population"
+      ? []
+      : pairRule === "significant"
+      ? [
+          `Scored on significant human design differences only: ${between ? "Mann–Whitney U between the independent groups" : "Wilcoxon signed-rank on each person's paired difference"}, Holm-adjusted over the design pairs of each measure, α = .05. ${humanPairs.filter((p) => p.used).length} of ${humanPairs.length} design pairs are used; the others are reported, not scored.`,
+        ]
+      : ["Scored on every human design difference of the means (the significant-only view is reported separately)."];
+  return {
+    pairRule,
+    humanPairs,
+    absoluteFit,
+    runScores,
+    values,
+    humanValues,
+    studyId: plan.study.id,
+    title: plan.study.title,
+    synthetic: plan.study.synthetic,
+    planDigest: plan.digest,
+    predictionLevel: plan.study.predictionLevel,
+    metrics,
+    summaries,
+    contrasts,
+    audits,
+    exclusions,
+    bootstrapDraws: plan.study.analysis.bootstrapDraws,
+    seed: plan.study.analysis.seed,
+    notes: [
+      ...poolingNotes,
+      ...pairNote,
+      // Individual scores compare every person; say when some forecasts are still missing.
+      ...(plan.study.predictionLevel === "individual"
+        ? plan.agents.flatMap((a) => {
+            const have = new Set(validJobs(a.id).map((j) => j.participantId)).size;
+            return have < people.length ? [`${a.label}: scored once every participant has a forecast (${have} of ${people.length} so far).`] : [];
+          })
+        : []),
+      "Directional agreement concerns raw measure ordering across designs, not which design is objectively better. Random directions have expectation 50%.",
+      "Exact human ties are excluded; tied forecasts receive half credit. Bootstrap-created human ties are neutral on the fixed original population pair mask.",
+      "Declared family budgets are normalized within objective and subjective domains; outcome weights are normalized within a family. Correlated/duplicate measures must be grouped in the frozen plan, not selected using favorable model results.",
+      "Complete numeric outputs remain in the main score despite protocol deviations. Adherence-only sensitivity is descriptive and may select a different set of runs. Failed, missing and malformed outputs are reported rather than imputed as zero.",
+      plan.study.predictionLevel === "population"
+        ? "Shared whole-participant resampling within order/design strata, with independent whole-run resampling within each agent."
+        : "First scheduled repetition per person is primary. Later repetitions are diagnostics and never replace a failed primary. Whole people are resampled; generation uncertainty is not estimated.",
+      "Intervals are approximate, unadjusted 95% participant-cluster bootstrap intervals with fixed groups and pair masks. Near ties and small human samples limit interpretation; nonsignificance is not equivalence.",
+      "Candidate-minus-baseline comparisons use two-sided centered-bootstrap p-values and one Holm family over every comparison listed. Exploratory weights and any post-results plan changes must be disclosed.",
+      ...(chosen.some((c) => c.declared === "at analysis")
+        ? [
+            "Comparisons marked 'at analysis' were chosen when analysing, not frozen with the plan. If they were chosen after seeing these scores, report them as exploratory.",
+          ]
+        : []),
+      "Model inference wall time, simulation time and estimated human response time are distinct. Runtime fidelity and trace receipts do not prove human experience or internal use of evidence.",
+      "Hashes detect changes and bind artifacts to a plan; they do not authenticate a worker or establish that target data were never leaked.",
+      ...(Object.values(
+        people.reduce<Record<string, number>>((a, p) => {
+          a[p.stratum] = (a[p.stratum] ?? 0) + 1;
+          return a;
+        }, {}),
+      ).some((n) => n === 1)
+        ? [
+            "At least one order/design stratum contains a single person. Stratified resampling cannot estimate within-stratum human variation there.",
+          ]
+        : []),
+      ...(plan.study.predictionLevel === "population" &&
+      plan.agents.some((a) => validJobs(a.id).length === 1)
+        ? [
+            "A method has only one scoreable forecast run; its between-generation variability cannot be estimated from this execution.",
+          ]
+        : []),
+      ...(plan.study.synthetic
+        ? [
+            "SYNTHETIC DEMONSTRATION. No result is evidence about real people, agent quality, engine fidelity or headset experience.",
+          ]
+        : []),
+    ],
+  };
+}

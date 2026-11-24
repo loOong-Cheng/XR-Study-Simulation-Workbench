@@ -1,0 +1,25 @@
+participant,age,gender,education,field,handedness,vr_experience
+P01,35,non-binary,bachelor,computer science,right,some
+P02,41,man,doctorate,architecture,left,some
+P03,30,man,doctorate,architecture,right,none
+P04,29,woman,bachelor,natural sciences,left,some
+P05,21,non-binary,doctorate,engineering,right,regular
+P06,20,man,master,natural sciences,right,none
+P07,23,man,master,computer science,right,none
+P08,37,non-binary,master,architecture,right,regular
+P09,34,non-binary,master,engineering,right,none
+P10,25,non-binary,doctorate,engineering,right,regular
+P11,35,non-binary,master,natural sciences,right,some
+P12,34,man,doctorate,natural sciences,right,some
+P13,20,non-binary,master,natural sciences,right,regular
+P14,26,non-binary,doctorate,natural sciences,right,some
+P15,35,non-binary,master,natural sciences,right,some
+P16,38,man,master,architecture,right,regular
+P17,30,non-binary,doctorate,computer science,right,regular
+P18,35,man,master,architecture,right,some
+P19,40,woman,doctorate,architecture,right,some
+P20,39,man,master,computer science,right,some
+P21,33,man,doctorate,engineering,right,regular
+P22,27,man,master,natural sciences,right,none
+P23,30,non-binary,master,architecture,right,none
+P24,29,woman,doctorate,natural sciences,right,none

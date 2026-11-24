@@ -1,0 +1,1148 @@
+import { test } from "node:test";
+import assert from "node:assert/strict";
+import { existsSync } from "node:fs";
+import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { freezePlan, proposeAgents, withDefaultRuns } from "../src/core/planner.js";
+import { validateAgents, validateHumanData, validateStudy } from "../src/core/validation.js";
+import { campaignFromPlan } from "../src/core/campaign.js";
+import { analyzeCampaign, syntheticCampaignExecution } from "../src/core/campaign-study.js";
+import { holm, mannWhitney, wilcoxonSignedRank } from "../src/core/figures.js";
+import type { AgentProtocol, Comparison, HumanData, Study } from "../src/core/types.js";
+
+// Run from the repository root (npm test).
+const example = (p: string) => resolve("examples/graphics-quality", p);
+const json = async <T>(p: string) => JSON.parse(await readFile(example(p), "utf8")) as T;
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+test("graphics-quality workspace: study, configs, human data and the campaign path stay valid", async () => {
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json"));
+  const human = await json<HumanData>("human.json");
+  validateHumanData(study, human);
+  assert.equal(human.measurements.length, 18 * 3 * 7);
+  assert.ok(agents.some((a) => a.level === "individual") && agents.some((a) => a.inputs?.length));
+  const plan = freezePlan(study, agents, 2, "2026-11-23T10:00:00.000Z");
+  const c = campaignFromPlan(plan, undefined, "toy", "2026-11-23T10:00:00.000Z");
+  const run = syntheticCampaignExecution(c);
+  const comparisons = await json<Comparison[]>("comparisons.json");
+  const result = analyzeCampaign(c, human, [run.results], comparisons);
+  assert.ok(result.report.audits.every((a) => a.scoreable));
+  // Per-level analysis and per-config targets: the measured-data config is scored on subjective targets only.
+  const levels = new Set(result.report.summaries.map((s) => s.level));
+  assert.deepEqual([...levels].sort(), ["individual", "population"]);
+  assert.deepEqual(
+    result.report.summaries.filter((s) => s.agentId === "text-with-task-data").map((s) => s.domain),
+    ["subjective"],
+  );
+  assert.ok((result.report.runScores ?? []).some((r) => r.level === "individual"));
+  assert.ok((result.report.humanValues ?? []).length > 0);
+  // Choosing comparisons changes no other number.
+  const without = analyzeCampaign(c, human, [run.results]);
+  assert.deepEqual(without.report.summaries, result.report.summaries);
+  assert.throws(
+    () => analyzeCampaign(c, human, [run.results], [{ candidate: "uses-app", baseline: "knows-participant", domain: "subjective" }]),
+    /mixes population and individual/,
+  );
+});
+
+test("a config cannot predict what it is given, and inputs need after-experience forecasts", async () => {
+  const study = validateStudy(await json("study.json"));
+  const [a] = await proposeAgents(study);
+  assert.throws(() => validateAgents(study, [{ ...a, targets: ["presence"], inputs: ["presence"] }]), /cannot predict an outcome it is given/);
+  assert.throws(() => validateAgents({ ...study, predictionTiming: "before-experience" } as Study, [{ ...a, inputs: ["search-time"] }]), /after-experience/);
+});
+
+test("rank tests match R and Holm adjusts step-down", () => {
+  // R: wilcox.test(x, y, paired = TRUE) -> p = 0.03906; wilcox.test(a, b) -> W = 35, p = 0.2544
+  const x = [1.83, 0.5, 1.62, 2.48, 1.68, 1.88, 1.55, 3.06, 1.3],
+    y = [0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29];
+  assert.ok(Math.abs(wilcoxonSignedRank(x.map((v, i) => v - y[i])).p! - 0.0390625) < 1e-9);
+  assert.ok(Math.abs(mannWhitney([0.8, 0.83, 1.89, 1.04, 1.45, 1.38, 1.91, 1.64, 0.73, 1.46], [1.15, 0.88, 0.9, 0.74, 1.21]).p! - 0.2544122544) < 1e-6);
+  assert.deepEqual(holm([0.01, 0.04, 0.03, null, 0.005]), [0.03, 0.06, 0.06, null, 0.02]);
+});
+
+test("agent-drafted readings need exact quotes; human data mismatches are named", async () => {
+  const { extractProposal, checkedReading } = await import("../src/core/proposal.js");
+  const { humanCoverage } = await import("../src/core/explain.js");
+  const doc = await extractProposal("proposal.md", await readFile(example("proposal.md")));
+  const fact = (value: string, quote: string) => ({ value, quote });
+  const facts = {
+    title: fact("Graphics quality", "Graphics quality and subjective experience in a WebXR room"),
+    researchQuestion: fact("RQ", "How does the graphics quality"),
+    design: fact("within-subjects", "Design: within-subjects"),
+    participantCount: fact("18", "Participants: 18"),
+    conditions: fact("Low\nMedium\nHigh", "Conditions: Low quality; Medium quality; High quality"),
+    task: fact("", ""),
+    objectiveOutcomes: fact("Search time", "Objective outcomes: Search time"),
+    subjectiveOutcomes: fact("Presence", "Subjective outcomes: Presence"),
+  };
+  const reader = { mode: "agent" as const, provider: "coding-agent", model: "test", usage: null };
+  assert.deepEqual(checkedReading(doc, { facts }, reader).missing, ["task"]);
+  assert.throws(() => checkedReading(doc, { facts: { ...facts, participantCount: fact("20", "Participants: 20") } }, reader), /copied exactly/);
+  const study = validateStudy(await json("study.json"));
+  const human = await json<HumanData>("human.json");
+  human.measurements[0].participantId = "P01";
+  const cov = humanCoverage(study, human);
+  assert.deepEqual(cov.unknownPeople, ["P01"]);
+  assert.equal(cov.missing.length, 1);
+});
+
+// ---------- executor: runs in a throw-away study folder under private/studies ----------
+async function tempWorkspace(from: string) {
+  const name = `__test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+  const dir = resolve("private/studies", name);
+  await mkdir(dir, { recursive: true });
+  for (const f of ["study.json", "agents.json", "human.json", "comparisons.json", "workspace.json", "agent-brief.md"])
+    if (existsSync(join(from, f))) await cp(join(from, f), join(dir, f));
+  // The files and folders behind the study's sources (workspace.json → sources), so configurations can run.
+  const manifest = existsSync(join(from, "workspace.json")) ? JSON.parse(await readFile(join(from, "workspace.json"), "utf8")) : {};
+  for (const rel of Object.values<string>(manifest.sources ?? {}))
+    if (existsSync(join(from, rel)) && !existsSync(join(dir, rel))) await cp(join(from, rel), join(dir, rel), { recursive: true });
+  return { id: `private/studies/${name}`, dir };
+}
+// On Windows a just-exited session's MCP children can still hold the folder for a moment (EBUSY).
+const removeDir = (dir: string) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 });
+
+test("executor: simulated runs, runtime blockers, zip export and import", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { exportRuns, importRuns } = await import("../src/executor/archive.js");
+  const { readWorkspace, saveCampaign } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  const b = await tempWorkspace(resolve("examples/selection"));
+  // Test-only settings with no runtimes: the blocker check must not depend on this machine's private/settings.json.
+  const cfg = await mkdtemp(join(tmpdir(), "xr-settings-"));
+  await writeFile(join(cfg, "settings.json"), "{}");
+  process.env.XR_STUDY_SETTINGS = join(cfg, "settings.json");
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, ws.agents!, 1), undefined, "exec-test", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    const blocked = await ex.blockers([...ex.jobs.keys()]);
+    assert.equal(blocked.length, 1);
+    assert.match(blocked[0].message, /Unity MCP runtime is not configured/);
+    await assert.rejects(ex.start("agent"), /Unity MCP runtime is not configured/);
+    await ex.start("simulate");
+    for (let i = 0; i < 400 && ex.snapshot().counts.done !== ex.jobs.size; i++) await wait(250);
+    assert.equal(ex.snapshot().counts.done, ex.jobs.size);
+    const zip = await exportRuns(a.id, c.id);
+    await saveCampaign(b.id, c);
+    const r = await importRuns(b.id, zip);
+    assert.ok(r.written >= ex.jobs.size);
+    const again = await importRuns(b.id, zip);
+    assert.equal(again.written, 0);
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(a.dir);
+    await removeDir(b.dir);
+    await removeDir(cfg);
+  }
+});
+
+test("executor: an agent session goes through the study MCP server and passes the audit (fake claude CLI)", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign, readHuman, readResults, runDir } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  const bin = await mkdtemp(join(tmpdir(), "fake-claude-"));
+  // A stand-in for `claude -p`: starts the MCP servers from --mcp-config, submits a valid
+  // forecast through the study server, and prints stream-json like the real CLI.
+  // It is a .cjs file named in a test-only settings file, so it runs on Windows too and the
+  // machine's real Claude Code (private/settings.json → claudePath) is never started.
+  await writeFile(
+    join(bin, "claude.cjs"),
+    `const { spawn } = require("child_process"); const fs = require("fs");
+const args = process.argv.slice(2); const cfg = JSON.parse(fs.readFileSync(args[args.indexOf("--mcp-config") + 1], "utf8"));
+const model = args[args.indexOf("--model") + 1];
+const s = cfg.mcpServers.study; const p = spawn(s.command, s.args); let buf = ""; const wait = {}; let id = 0;
+p.stdout.on("data", (d) => { buf += d; let i; while ((i = buf.indexOf("\\n")) >= 0) { const m = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1); wait[m.id] && wait[m.id](m); } });
+const call = (method, params) => new Promise((r) => { const n = ++id; wait[n] = r; p.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: n, method, params }) + "\\n"); });
+(async () => {
+  console.log(JSON.stringify({ type: "system", subtype: "init", session_id: "fake-session", model, claude_code_version: "fake", mcp_servers: [{ name: "study", status: "connected" }] }));
+  await call("initialize", {});
+  const job = JSON.parse(fs.readFileSync(s.args[1] + "/job.json", "utf8"));
+  const predictions = [];
+  for (const d of job.designs) for (const t of job.targets) {
+    const value = t.scale === "proportion" ? 0.5 : t.scale === "rank" ? 1 + job.designs.indexOf(d) : t.aggregation === "geometric" ? 20 : 3;
+    predictions.push(t.components ? { design: d.id, outcome: t.id, items: Object.fromEntries(t.components.map((c) => [c, 4])) } : { design: d.id, outcome: t.id, value });
+  }
+  console.log(JSON.stringify({ type: "assistant", message: { content: [{ type: "tool_use", name: "mcp__study__submit_forecast", input: {} }] } }));
+  const r = await call("tools/call", { name: "submit_forecast", arguments: { predictions, uncertainty: "test" } });
+  console.log(JSON.stringify({ type: "result", subtype: r.result.isError ? "error" : "success", usage: { input_tokens: 100, output_tokens: 50 }, num_turns: 1 }));
+  p.stdin.end(); process.exit(0);
+})();`,
+  );
+  await writeFile(join(bin, "settings.json"), JSON.stringify({ claudePath: join(bin, "claude.cjs") }));
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  try {
+    const ws = await readWorkspace(a.id);
+    const agents = ws.agents!.filter((x) => x.id === "text-only").map((x) => ({ ...x, repetitions: 1 }));
+    const c = campaignFromPlan(freezePlan(ws.study, agents, 1), undefined, "agent-test", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    await ex.start("agent");
+    for (let i = 0; i < 80 && ex.snapshot().counts.done !== 1 && !ex.snapshot().counts.failed; i++) await wait(250);
+    assert.equal(ex.snapshot().counts.done, 1, JSON.stringify(ex.snapshot().jobs.map((j) => j.error)));
+    // The session must have been the stand-in, never a real (billed) Claude Code session.
+    const manifest = JSON.parse(await readFile(join(runDir(a.id, c.id), "jobs", c.jobs[0].id, "a1", "execution-manifest.json"), "utf8"));
+    assert.equal(manifest.cliVersion, "fake");
+    const human = (await readHuman(a.id))!;
+    const result = analyzeCampaign(c, human, await readResults(a.id, ws.study, [c.id]));
+    const audit = result.report.audits[0];
+    assert.ok(audit.scoreable && audit.compliant, JSON.stringify(audit.issues));
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    if (!process.env.KEEP_TEST_STUDY) await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});
+
+test("default runs: per participant for individual configurations, participants × that for population ones", async () => {
+  const { withDefaultRuns } = await import("../src/core/planner.js");
+  const study = validateStudy(await json("study.json"));
+  const n = study.participants.length;
+  const agents = (await json<AgentProtocol[]>("agents.json")).map(({ repetitions, ...a }) => a as AgentProtocol);
+  const resolved = withDefaultRuns(study, agents, 2);
+  for (const a of resolved) assert.equal(a.repetitions, (a.level ?? study.predictionLevel) === "individual" ? 2 : 2 * n, a.id);
+  // A configuration's own (lower) count is kept, and the frozen plan states every count.
+  const own = withDefaultRuns(study, [{ ...agents[0], repetitions: 3 }, agents[1]], 1);
+  assert.deepEqual(own.map((a) => a.repetitions), [3, n]);
+  const plan = freezePlan(study, own, 1);
+  assert.equal(plan.jobs.filter((j) => j.agentId === agents[1].id).length, n);
+  // Population counts above 50 are allowed (participants × runs); individual ones stay at most 50 per person.
+  assert.doesNotThrow(() => validateAgents(study, [{ ...agents[0], level: "population", repetitions: 72 }]));
+  assert.throws(() => validateAgents(study, [{ ...agents[0], level: "individual", repetitions: 72 }]), /1–50 runs per participant/);
+  assert.throws(() => withDefaultRuns(study, agents, 0), /1–50 runs per participant/);
+});
+
+test("executor: reasoning settings map to Claude Code --effort; unknown ones are refused", async () => {
+  const { effortArgs, playInstructions } = await import("../src/executor/runner.js");
+  assert.deepEqual(effortArgs("default"), []);
+  assert.deepEqual(effortArgs("effort=high"), ["--effort", "high"]);
+  assert.deepEqual(effortArgs("xhigh"), ["--effort", "xhigh"]);
+  assert.throws(() => effortArgs("budget=8000"), /not understood/);
+  const study = await json<Study>("study.json");
+  const ids = study.cases.map((c) => c.id);
+  assert.match(playInstructions("webxr", ["low"], study, ids), /open_design/);
+  const ue = playInstructions("unreal", ["low"], study, ids, "Call load_level first.");
+  assert.doesNotMatch(ue, /open_design/);
+  assert.match(ue, /look-around, select-target/);
+  assert.match(ue, /How to use the unreal tools: Call load_level first\./);
+});
+
+/** Writes a fake study bridge (bridge.cjs) and a fake `claude -p` (claude.cjs) into bin. */
+async function writeFakeEngine(bin: string) {
+  // A stand-in for a study bridge over an engine MCP: one `play` tool that walks every case
+  // in job.json and logs the trace events a real bridge would log while the agent plays.
+  await writeFile(
+    join(bin, "bridge.cjs"),
+    `const fs = require("fs"); const rl = require("readline").createInterface({ input: process.stdin });
+const jobFile = process.argv[2];
+if (process.env.XR_STUDY_JOB_FILE !== jobFile) { console.error("env and {jobFile} differ"); process.exit(3); }
+const log = (event) => fs.appendFileSync(process.env.XR_STUDY_TRACE, JSON.stringify({ t: Date.now(), server: "unreal", event }) + "\\n");
+rl.on("line", (line) => {
+  const m = JSON.parse(line); const reply = (result) => process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: m.id, result }) + "\\n");
+  if (m.method === "initialize") return reply({ protocolVersion: "2025-06-18", capabilities: { tools: {} }, serverInfo: { name: "fake-ue", version: "1" } });
+  if (m.method === "tools/call") {
+    const app = JSON.parse(fs.readFileSync(jobFile, "utf8")).app;
+    log(JSON.parse(process.env.FAKE_RUNTIME_EVENT || JSON.stringify({ type: "runtime", engine: "unreal", engineVersion: "5.7-fake", backend: "editor", deviceProfile: "webxr-desktop-browser-1280x720", observation: "mono", capabilities: ["screenshot", "pointer-select", "phase-events", "quality-lock"] })));
+    for (const c of app.cases) {
+      log({ type: "phase", phaseId: c.phaseId });
+      log({ type: "case-start", caseId: c.caseId, phaseId: c.phaseId });
+      log({ type: "observation", caseId: c.caseId, phaseId: c.phaseId, captures: [{ eye: "mono", sha256: "0".repeat(64), frameId: c.caseId, simulationTimeMs: 0 }] });
+      for (const action of c.requiredActions) log({ type: "action", caseId: c.caseId, phaseId: c.phaseId, action, completed: true });
+      log({ type: "case-end", caseId: c.caseId, phaseId: c.phaseId, submitted: true });
+    }
+    return reply({ content: [{ type: "text", text: "played " + app.cases.length + " cases" }] });
+  }
+});`,
+  );
+  await writeFile(
+    join(bin, "claude.cjs"),
+    `const { spawn } = require("child_process"); const fs = require("fs");
+const args = process.argv.slice(2); fs.writeFileSync("args.json", JSON.stringify(args));
+const cfg = JSON.parse(fs.readFileSync(args[args.indexOf("--mcp-config") + 1], "utf8"));
+const start = (s) => { const p = spawn(s.command, s.args, { env: { ...process.env, ...(s.env || {}) } }); let buf = ""; const wait = {}; let id = 0;
+  p.stdout.on("data", (d) => { buf += d; let i; while ((i = buf.indexOf("\\n")) >= 0) { const m = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1); wait[m.id] && wait[m.id](m); } });
+  return { p, call: (method, params) => new Promise((r) => { const n = ++id; wait[n] = r; p.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: n, method, params }) + "\\n"); }) }; };
+(async () => {
+  console.log(JSON.stringify({ type: "system", subtype: "init", session_id: "fake-session", model: args[args.indexOf("--model") + 1], claude_code_version: "fake" }));
+  const study = start(cfg.mcpServers.study), ue = cfg.mcpServers.unreal ? start(cfg.mcpServers.unreal) : null;
+  const tl = (what) => process.env.FAKE_TIMELINE && fs.appendFileSync(process.env.FAKE_TIMELINE, JSON.stringify({ what, unreal: !!ue, t: Date.now() }) + "\\n");
+  tl("start");
+  await study.call("initialize", {});
+  if (ue) {
+    await ue.call("initialize", {});
+    console.log(JSON.stringify({ type: "assistant", message: { id: "msg-1", usage: { input_tokens: 100, cache_creation_input_tokens: 200, cache_read_input_tokens: 700, output_tokens: 50 }, content: [{ type: "tool_use", name: "mcp__unreal__play", input: {} }] } }));
+    await ue.call("tools/call", { name: "play", arguments: {} });
+  }
+  await new Promise((r) => setTimeout(r, Number(process.env.FAKE_SLEEP || 0)));
+  tl("end");
+  const job = JSON.parse(fs.readFileSync(cfg.mcpServers.study.args[1] + "/job.json", "utf8"));
+  const predictions = [];
+  for (const d of job.designs) for (const t of job.targets)
+    predictions.push(t.components ? { design: d.id, outcome: t.id, items: Object.fromEntries(t.components.map((c) => [c, 4])) } : { design: d.id, outcome: t.id, value: t.scale === "proportion" ? 0.5 : 3 });
+  const r = await study.call("tools/call", { name: "submit_forecast", arguments: { predictions, uncertainty: "test" } });
+  console.log(JSON.stringify({ type: "result", subtype: r.result.isError ? "error" : "success", usage: { input_tokens: 1, output_tokens: 1 }, num_turns: 1 }));
+  study.p.stdin.end(); ue && ue.p.stdin.end(); process.exit(0);
+})();`,
+  );
+}
+
+test("executor: an external runtime gets the job folder, writes the audit trace, and the session passes the audit", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign, readHuman, readResults, runDir } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  const bin = await mkdtemp(join(tmpdir(), "fake-ue-"));
+  await writeFakeEngine(bin);
+  await writeFile(
+    join(bin, "settings.json"),
+    JSON.stringify({ claudePath: join(bin, "claude.cjs"), runtimes: { unreal: { command: process.execPath, args: [join(bin, "bridge.cjs"), "{jobFile}"], instructions: "Call play.", capabilities: ["screenshot", "pointer-select", "phase-events", "quality-lock"] } } }),
+  );
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  try {
+    const ws = await readWorkspace(a.id);
+    const agents = ws.agents!
+      .filter((x) => x.id === "uses-app")
+      .map((x) => ({ ...x, repetitions: 1, runtime: "unreal", model: { ...x.model, reasoning: "effort=high" } }));
+    const c = campaignFromPlan(freezePlan(ws.study, agents, 1), undefined, "external-runtime-test", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    await ex.start("agent");
+    for (let i = 0; i < 80 && ex.snapshot().counts.done !== 1 && !ex.snapshot().counts.failed; i++) await wait(250);
+    assert.equal(ex.snapshot().counts.done, 1, JSON.stringify(ex.snapshot().jobs.map((j) => j.error)));
+    const jobDir = join(runDir(a.id, c.id), "jobs", c.jobs[0].id, "a1");
+    const args = JSON.parse(await readFile(join(jobDir, "session", "args.json"), "utf8")) as string[];
+    assert.equal(args[args.indexOf("--effort") + 1], "high");
+    assert.match(args[args.indexOf("--system-prompt") + 1], /How to use the unreal tools: Call play\./);
+    const manifest = JSON.parse(await readFile(join(jobDir, "execution-manifest.json"), "utf8"));
+    assert.equal(manifest.cliVersion, "fake");
+    assert.equal(manifest.effort, "high");
+    assert.equal(manifest.runtimeCommand.args[1], join(jobDir, "job.json"));
+    const result = analyzeCampaign(c, (await readHuman(a.id))!, await readResults(a.id, ws.study, [c.id]));
+    const audit = result.report.audits[0];
+    assert.ok(audit.scoreable && audit.compliant, JSON.stringify(audit.issues));
+    // The execution record carries what the runtime reported, not a copy of study.json.
+    const run = (await readResults(a.id, ws.study, [c.id]))[0].runs[0];
+    assert.equal(run.execution.engine, "unreal");
+    assert.equal(run.execution.versions.engine, "unreal 5.7-fake");
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    if (!process.env.KEEP_TEST_STUDY) await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});
+
+test("synthetic Ecolar suite: valid, complete, mixed levels, inputs and movement reach only individual jobs", async () => {
+  const { trajectory } = await import("../src/executor/runner.js");
+  const dir = resolve("examples/ecolar");
+  const read = async <T>(p: string) => JSON.parse(await readFile(join(dir, p), "utf8")) as T;
+  const study = validateStudy(await read("study.json"));
+  assert.equal(study.synthetic, true);
+  const agents = validateAgents(study, await read<AgentProtocol[]>("agents.json"));
+  const human = await read<HumanData>("human.json");
+  validateHumanData(study, human);
+  assert.equal(human.synthetic, true);
+  assert.equal(human.measurements.length, 24 * 4 * 14);
+  assert.equal(agents.length, 16);
+  // Williams square: every design appears once in every position across each block of four orders.
+  for (let pos = 0; pos < 4; pos++) assert.equal(new Set(study.participants.slice(0, 4).map((p) => p.conditionOrder[pos])).size, 4);
+  const plan = freezePlan(study, agents, 1, "2026-11-24T10:00:00.000Z");
+  assert.equal(plan.jobs.length, 10 * 10 + 24 * (4 * 3 + 2 * 1));
+  const c = campaignFromPlan(plan, undefined, "synthetic-ecolar", "2026-11-24T10:00:00.000Z");
+  const run = syntheticCampaignExecution(c);
+  const result = analyzeCampaign(c, human, [run.results], await read<Comparison[]>("comparisons.json"));
+  assert.deepEqual([...new Set(result.report.summaries.map((s) => s.level))].sort(), ["individual", "population"]);
+  // UDO and later predict only subjective measures; their objective measures are inputs.
+  assert.deepEqual([...new Set(result.report.summaries.filter((s) => s.agentId === "UDO").map((s) => s.domain))], ["subjective"]);
+  const compact = await trajectory(join(dir, "data/raw/trajectories_main.csv"), "P03");
+  assert.match(compact, /^participant,design,phase/);
+  assert.ok(compact.split("\n").slice(1).every((l) => l.startsWith("P03,") && l.includes(",main,")));
+  assert.equal(compact.split("\n").length, 1 + 4);
+  assert.match(await trajectory(join(dir, "data/raw/trajectories.csv"), undefined), /none for population/);
+});
+
+test("executor: a source without a file blocks the configurations that read it; nothing is substituted", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  const cfg = await mkdtemp(join(tmpdir(), "xr-settings-"));
+  await writeFile(join(cfg, "settings.json"), "{}");
+  process.env.XR_STUDY_SETTINGS = join(cfg, "settings.json");
+  try {
+    // The brief exists; project and evidence have no file on this machine.
+    await writeFile(join(a.dir, "workspace.json"), JSON.stringify({ title: "test", sources: { brief: "agent-brief.md" } }));
+    const ws = await readWorkspace(a.id);
+    const agents = ws.agents!;
+    const c = campaignFromPlan(freezePlan(ws.study, agents, 1), undefined, "missing-test", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    const blocked = await ex.blockers([...ex.jobs.keys()]);
+    const byMessage = Object.fromEntries(blocked.map((b) => [b.message, b.configs]));
+    const project = Object.keys(byMessage).find((m) => /Source 'project'/.test(m))!;
+    const evidence = Object.keys(byMessage).find((m) => /Source 'evidence'/.test(m))!;
+    assert.ok(project && evidence, JSON.stringify(blocked));
+    const label = (id: string) => agents.find((x) => x.id === id)!.label;
+    const reading = (src: string) => agents.filter((x) => x.sourceIds.includes(src)).map((x) => x.label).sort();
+    assert.deepEqual(byMessage[project].sort(), reading("project"));
+    assert.ok(reading("project").includes(label("uses-app")) && reading("project").includes(label("reads-project")));
+    assert.deepEqual(byMessage[evidence], [label("reads-evidence")]);
+    assert.ok(!blocked.some((b) => b.configs.includes(label("text-only"))), "text-only reads only the brief and must run");
+    await assert.rejects(ex.start("agent"), /has no file on this machine/);
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(a.dir);
+    await removeDir(cfg);
+  }
+});
+
+test("executor: only the chosen sessions run; the others stay not started", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, ws.agents!, 1), undefined, "pilot-test", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    assert.equal(ex.snapshot().counts["not-started"], ex.jobs.size, "nothing is queued before it is asked for");
+    const firstTwo = [...ex.jobs.values()].filter((j) => j.agentId === "text-only").slice(0, 2).map((j) => j.jobId);
+    const estimate = await ex.estimate(firstTwo);
+    assert.deepEqual(estimate.map((e) => [e.agentId, e.sessions, e.perSession]), [["text-only", 2, null]]);
+    await ex.start("simulate", firstTwo);
+    for (let i = 0; i < 200 && ex.snapshot().counts.done !== 2; i++) await wait(100);
+    const counts = ex.snapshot().counts;
+    assert.equal(counts.done, 2);
+    assert.equal(counts["not-started"], ex.jobs.size - 2);
+    assert.equal(counts.queued ?? 0, 0);
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+test("analyzer: real and simulated runs of a configuration are never pooled", async () => {
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json")).filter((a) => ["text-only", "reads-project"].includes(a.id));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "pool-test", new Date(Date.now() - 1000).toISOString());
+  const human = await json<HumanData>("human.json");
+  const run = syntheticCampaignExecution(c);
+  // One text-only run is "real"; the rest are simulated. reads-project stays simulated only.
+  const realJob = c.jobs.find((j) => j.conditionId === "text-only" && j.kind === "llm")!;
+  run.results.runs.find((r) => r.jobId === realJob.id)!.execution.synthetic = false;
+  const textRuns = run.results.runs.filter((r) => c.jobs.find((j) => j.id === r.jobId)!.conditionId === "text-only").length;
+  const { report } = analyzeCampaign(c, human, [run.results]);
+  for (const s of report.summaries.filter((s) => s.agentId === "text-only")) {
+    assert.equal(s.real, 1);
+    assert.equal(s.simulated, textRuns - 1);
+    assert.equal(s.scoreable, 1, "scored on the real run only");
+  }
+  assert.ok(report.runScores!.filter((r) => r.agentId === "text-only").every((r) => r.unit === realJob.id));
+  const leftOut = report.audits.filter((x) => x.issues.some((i) => /Simulated run left out/.test(i)));
+  assert.equal(leftOut.length, textRuns - 1);
+  assert.ok(report.notes.some((n) => /1 real \+ \d+ simulated/.test(n)));
+  assert.ok(report.notes.some((n) => /simulated \(invented\) runs only: .*/.test(n)));
+  for (const s of report.summaries.filter((s) => s.agentId === "reads-project")) assert.equal(s.scoreable, s.simulated);
+});
+
+test("executor: engine runtimes run one session at a time; app-free sessions still run in parallel", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  const bin = await mkdtemp(join(tmpdir(), "fake-ue-"));
+  await writeFakeEngine(bin);
+  await writeFile(
+    join(bin, "settings.json"),
+    JSON.stringify({ claudePath: join(bin, "claude.cjs"), concurrency: 4, runtimes: { unreal: { command: process.execPath, args: [join(bin, "bridge.cjs"), "{jobFile}"], capabilities: ["screenshot", "pointer-select", "phase-events", "quality-lock"] } } }),
+  );
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  process.env.FAKE_TIMELINE = join(bin, "timeline.jsonl");
+  process.env.FAKE_SLEEP = "700";
+  try {
+    const ws = await readWorkspace(a.id);
+    const agents = ws.agents!
+      .filter((x) => x.id === "uses-app" || x.id === "text-only")
+      .map((x) => ({ ...x, repetitions: 3, ...(x.id === "uses-app" ? { runtime: "unreal" } : {}) }));
+    const c = campaignFromPlan(freezePlan(ws.study, agents, 1), undefined, "parallel-test", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    await ex.start("agent");
+    for (let i = 0; i < 200 && (ex.snapshot().counts.done ?? 0) + (ex.snapshot().counts.failed ?? 0) < 6; i++) await wait(250);
+    assert.equal(ex.snapshot().counts.done, 6, JSON.stringify(ex.snapshot().jobs.map((j) => j.error)));
+    const events = (await readFile(join(bin, "timeline.jsonl"), "utf8")).trim().split("\n").map((l) => JSON.parse(l) as { what: string; unreal: boolean; t: number }).sort((x, y) => x.t - y.t);
+    let unreal = 0, all = 0, maxUnreal = 0, maxAll = 0;
+    for (const e of events) {
+      const d = e.what === "start" ? 1 : -1;
+      all += d;
+      if (e.unreal) unreal += d;
+      maxUnreal = Math.max(maxUnreal, unreal);
+      maxAll = Math.max(maxAll, all);
+    }
+    assert.equal(maxUnreal, 1, "two Unreal sessions overlapped");
+    assert.ok(maxAll >= 2, "app-free sessions should run alongside");
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    delete process.env.FAKE_TIMELINE;
+    delete process.env.FAKE_SLEEP;
+    await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});
+
+test("audit: the runtime's own report is compared with the frozen recipe", async () => {
+  const { auditRun } = await import("../src/core/protocol.js");
+  const { runtimeStatus } = await import("../src/executor/runtimes.js");
+  const { campaignPlan } = await import("../src/core/campaign.js");
+  const dir = resolve("examples/selection");
+  const study = validateStudy(JSON.parse(await readFile(join(dir, "study.json"), "utf8")));
+  const agents = validateAgents(study, JSON.parse(await readFile(join(dir, "agents.json"), "utf8")));
+  const c = campaignFromPlan(freezePlan(study, agents, 1), undefined, "runtime-report", new Date(Date.now() - 1000).toISOString());
+  const plan = campaignPlan(c);
+  const run = syntheticCampaignExecution(c).results.runs.find((r) => c.jobs.find((j) => j.id === r.jobId)!.conditionId === "uses-app")!;
+  const job = plan.jobs.find((j) => j.id === run.jobId)!;
+  assert.ok(auditRun(plan, job, run).compliant, JSON.stringify(auditRun(plan, job, run).issues));
+  // A bridge that reports mono for a stereo configuration makes the run non-compliant.
+  const mono = structuredClone(run);
+  const ev = mono.trace.find((e) => e.type === "runtime") as Extract<(typeof run.trace)[number], { type: "runtime" }>;
+  ev.observation = "mono";
+  const a1 = auditRun(plan, job, mono);
+  assert.equal(a1.compliant, false);
+  assert.ok(a1.issues.some((i) => /reported observation 'mono'/.test(i)), JSON.stringify(a1.issues));
+  // No report at all: unverified.
+  const silent = structuredClone(run);
+  silent.trace = silent.trace.filter((e) => e.type !== "runtime");
+  assert.ok(auditRun(plan, job, silent).issues.some((i) => /did not report itself/.test(i)));
+  // Stereo support comes from the declared capability, not from being external.
+  const s = (caps: string[]) => ({ runtimes: { unity: { command: "x", capabilities: caps } } }) as never;
+  assert.deepEqual(runtimeStatus("unity", s(["screenshot"]), {}).observations, ["mono"]);
+  assert.deepEqual(runtimeStatus("unity", s(["stereo-capture"]), {}).observations, ["mono", "stereo-pair"]);
+});
+
+test("planner: the least tool calls a protocol needs, from the study's tasks", async () => {
+  const { minToolCalls } = await import("../src/core/planner.js");
+  const dir = resolve("examples/ecolar");
+  const study = validateStudy(JSON.parse(await readFile(join(dir, "study.json"), "utf8")));
+  const agents = validateAgents(study, JSON.parse(await readFile(join(dir, "agents.json"), "utf8")));
+  const c = agents.find((a) => a.id === "C")!;
+  // 4 designs + (4 × 3 practice + 4 × 12 main answers) + 8 views + 1 file read; the forecast is not counted.
+  assert.equal(minToolCalls(study, c).min, 4 + 60 + 8 + 1);
+  assert.equal(minToolCalls(study, agents.find((a) => a.id === "A")!).min, 0);
+});
+
+test("campaign history: labels, lineage, progress, duplicate designs and every attempt of a session", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign, runDir } = await import("../src/workspace.js");
+  const { campaignSummaries, writeLabel, sameDesignKey, sessionAttempts } = await import("../src/history.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const agents = ws.agents!;
+    const c1 = campaignFromPlan(freezePlan(ws.study, agents, 1), undefined, "hist-1", new Date(Date.now() - 2000).toISOString());
+    const c2 = campaignFromPlan(freezePlan(ws.study, agents, 1), undefined, "hist-2", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c1);
+    await saveCampaign(a.id, c2);
+    assert.equal(sameDesignKey(c1), sameDesignKey(c2), "same configurations, models and sessions");
+    await writeLabel(a.id, c1.id, "  pilot   A×2 ");
+    const ex = await Executor.open(a.id, c1.id);
+    const first = [...ex.jobs.keys()][0];
+    await ex.start("simulate", [first]);
+    for (let i = 0; i < 100 && ex.snapshot().counts.done !== 1; i++) await wait(100);
+    // A stopped attempt leaves a folder but no receipt; it is still listed.
+    await mkdir(join(runDir(a.id, c1.id), "jobs", [...ex.jobs.keys()][1], "a1"), { recursive: true });
+    const list = await campaignSummaries(a.id);
+    const s1 = list.find((x) => x.id === c1.id)!;
+    assert.equal(s1.label, "pilot A×2");
+    assert.equal(s1.done, 1);
+    assert.equal(s1.simulated, 1);
+    assert.equal(s1.notStarted, s1.jobs - 1);
+    assert.equal(s1.costUsd, null);
+    const done = await sessionAttempts(a.id, c1, first);
+    assert.deepEqual(done.attempts.map((x) => [x.attempt, x.status, x.counts]), [[1, "completed", true]]);
+    const stopped = await sessionAttempts(a.id, c1, [...ex.jobs.keys()][1]);
+    assert.deepEqual(stopped.attempts.map((x) => [x.attempt, x.status, x.counts]), [[1, "stopped", false]]);
+    // Simulated sessions report no token usage.
+    assert.equal(ex.jobs.get(first)!.tokensIn, null);
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+test("compare agents: run-to-run agreement, agreement between configurations, never pooling real and simulated", async () => {
+  const { compareAgents, directional } = await import("../src/core/agent-comparison.js");
+  const { campaignPlan } = await import("../src/core/campaign.js");
+  assert.equal(directional([1, 2, 3], [1, 2, 3]), 1);
+  assert.equal(directional([1, 2, 3], [3, 2, 1]), 0);
+  assert.equal(directional([1, 1, 2], [1, 2, 3]), (0.5 + 1 + 1) / 3);
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json")).filter((x) => ["text-only", "reads-project"].includes(x.id));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "cmp-test", new Date(Date.now() - 1000).toISOString());
+  const runs = syntheticCampaignExecution(c).results.runs;
+  const realJob = c.jobs.find((j) => j.conditionId === "text-only" && j.kind === "llm")!;
+  runs.find((r) => r.jobId === realJob.id)!.execution.synthetic = false;
+  const out = compareAgents(campaignPlan(c), runs, { [realJob.id]: { costUsd: 0.09 } });
+  const text = out.configs.find((x) => x.id === "text-only")!;
+  assert.equal(text.basis, "real");
+  assert.equal(text.real, 1);
+  assert.equal(text.consistencyPairs, 0, "one real run has no pairs");
+  assert.equal(text.meanCostUsd, 0.09);
+  const proj = out.configs.find((x) => x.id === "reads-project")!;
+  assert.equal(proj.basis, "simulated");
+  assert.ok(proj.consistencyPairs > 0 && proj.consistency.subjective !== null);
+  assert.equal(proj.meanToolCalls, null, "no tool calls for simulated runs");
+  assert.ok(out.pairs.some((p) => p.a === "text-only" && p.b === "reads-project" && p.agreement !== null));
+  assert.ok(out.notes.some((n) => /1 real \+ \d+ simulated/.test(n)));
+});
+
+test("sources: read what agents get; outcome-blind check counts only", async () => {
+  const { sourceText, leakCheck, evidenceOverview } = await import("../src/sources.js");
+  const { readWorkspace, readHuman } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  try {
+    assert.match(await sourceText(a.id, "brief"), /\w/);
+    await assert.rejects(sourceText(a.id, "demographics"), /Only the brief, project and evidence/);
+    const ws = await readWorkspace(a.id);
+    // A number equal to a human design mean (2 decimals) and a participant ID are flagged by count only.
+    const human = (await readHuman(a.id))!;
+    const { measurementValue } = await import("../src/core/validation.js");
+    const o = ws.study.outcomes[0], d = ws.study.conditions[0];
+    const vals = human.measurements.filter((m) => m.outcomeId === o.id && m.conditionId === d.id).map((m) => measurementValue(ws.study, m));
+    const mean = (vals.reduce((s, x) => s + x, 0) / vals.length).toFixed(2);
+    const leaky = `People rated it ${mean} on average; ${ws.study.participants[0].id} liked it.`;
+    assert.deepEqual(await leakCheck(a.id, ws.study, leaky), { participantIds: 1, humanMeanMatches: 1, checkedAgainstHuman: true });
+    assert.deepEqual(await leakCheck(a.id, ws.study, "A model predicts higher presence at high quality."), { participantIds: 0, humanMeanMatches: 0, checkedAgainstHuman: true });
+    const overview = await evidenceOverview(a.id, ws.agents ?? []);
+    assert.ok(overview.some((e) => e.id === "evidence" && e.exists));
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+test("knowledge: drafted, reviewed, saved, renamed, edited and deleted; participant tables must be complete", async () => {
+  const { knowledgeDraft, saveKnowledge } = await import("../src/sources.js");
+  const { readWorkspace } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  const bin = await mkdtemp(join(tmpdir(), "fake-assistant-"));
+  // A stand-in for the assistant (claude -p --output-format json): it reads the prompt and drafts
+  // a general note, or, for a document about the participants, one row per participant.
+  await writeFile(
+    join(bin, "claude.cjs"),
+    `const args = process.argv.slice(2); const prompt = args[args.indexOf("-p") + 1];
+const ids = (prompt.match(/Participant IDs: ([^\\n]*)\\./) || [, ""])[1].split(", ").filter(Boolean);
+const draft = /handedness/.test(prompt)
+  ? { kind: "participant", label: "Handedness", description: "From the session notes.", participants: { fields: ["handedness"], rows: ids.map((id) => ({ id, handedness: "right" })) }, notes: "" }
+  : { kind: "general", label: "Fidelity and presence", description: "Summary of a paper.", evidence: "# Fidelity and presence\\nHigher fidelity tends to raise presence.", notes: "Left out the paper's own study results." };
+console.log(JSON.stringify({ result: JSON.stringify(draft) }));`,
+  );
+  await writeFile(join(bin, "settings.json"), JSON.stringify({ claudePath: join(bin, "claude.cjs") }));
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  try {
+    let ws = await readWorkspace(a.id);
+    const ids = ws.study.participants.map((p) => p.id);
+    // A paper (here as text) is read by the assistant and drafted as general knowledge.
+    const paper = await knowledgeDraft(a.id, "Fidelity paper.md", Buffer.from("A study found that higher visual fidelity raised presence."));
+    assert.equal(paper.kind, "general");
+    assert.equal(paper.via, "assistant");
+    assert.match(paper.text, /Higher fidelity/);
+    assert.match(paper.path, /^evidence\/[a-z0-9-]+\.md$/);
+    assert.match(paper.notes, /Left out/);
+    // Saving adds it to the study and writes the reviewed text.
+    const study = structuredClone(ws.study);
+    study.sources.push({ id: paper.sourceId, label: paper.label, kind: "evidence", description: paper.description });
+    await saveKnowledge(a.id, { study, agents: ws.agents, write: [{ sourceId: paper.sourceId, path: paper.path, text: paper.text }] });
+    ws = await readWorkspace(a.id);
+    assert.equal(ws.manifest.sources?.[paper.sourceId], paper.path);
+    assert.match(await readFile(join(a.dir, paper.path), "utf8"), /Higher fidelity/);
+    // A document about the participants becomes a participant table.
+    const notes = await knowledgeDraft(a.id, "session notes.txt", Buffer.from("Notes on each participant's handedness."));
+    assert.equal(notes.kind, "participant");
+    assert.deepEqual(notes.columns!.map((c) => [c.name, c.missing.length]), [["handedness", 0]]);
+    assert.deepEqual(notes.problems, []);
+    // A table with this study's IDs is participant-specific as it is (no assistant); a column named like a measure is left out.
+    const table = await knowledgeDraft(a.id, "background.csv", Buffer.from(`participant,age_band,presence\n${ids.map((p, i) => `${p},"25-34, urban",${i}`).join("\n")}\n`));
+    assert.equal(table.kind, "participant");
+    assert.equal(table.via, "table");
+    assert.deepEqual(table.columns!.map((c) => c.name), ["age_band"]);
+    assert.match(table.notes, /Left out presence/);
+    // Incomplete tables are drafted with their problems, and refused on saving.
+    const partial = await knowledgeDraft(a.id, "partial.csv", Buffer.from(`participant,age_band\n${ids[0]},18-24\n`));
+    assert.ok(partial.problems.some((p) => /^no entry for /.test(p)));
+    const s2 = structuredClone(ws.study);
+    s2.sources.push({ id: partial.sourceId, label: "Partial", kind: "demographics", description: "x", fields: ["age_band"] });
+    await assert.rejects(saveKnowledge(a.id, { study: s2, agents: ws.agents, write: [{ sourceId: partial.sourceId, path: partial.path, text: partial.text }] }), /incomplete: no entry for/);
+    assert.equal(existsSync(join(a.dir, partial.path)), false, "nothing written when refused");
+    // Rename and edit text.
+    const s3 = structuredClone(ws.study);
+    s3.sources.find((x) => x.id === paper.sourceId)!.label = "Renamed";
+    await saveKnowledge(a.id, { study: s3, agents: ws.agents, write: [{ sourceId: paper.sourceId, path: paper.path, text: "# Edited\n" }] });
+    ws = await readWorkspace(a.id);
+    assert.equal(ws.study.sources.find((x) => x.id === paper.sourceId)!.label, "Renamed");
+    assert.equal(await readFile(join(a.dir, paper.path), "utf8"), "# Edited\n");
+    // Writing outside evidence/ or data/ is refused.
+    await assert.rejects(saveKnowledge(a.id, { study: ws.study, agents: ws.agents, write: [{ sourceId: paper.sourceId, path: "../../escape.md", text: "x" }] }), /evidence\/ or data\//);
+    // Delete: gone from the study and the map; the file stays.
+    const s4 = structuredClone(ws.study);
+    s4.sources = s4.sources.filter((x) => x.id !== paper.sourceId);
+    await saveKnowledge(a.id, { study: s4, agents: ws.agents, unmap: [paper.sourceId] });
+    ws = await readWorkspace(a.id);
+    assert.equal(ws.study.sources.some((x) => x.id === paper.sourceId), false);
+    assert.equal(ws.manifest.sources?.[paper.sourceId], undefined);
+    assert.ok(existsSync(join(a.dir, paper.path)));
+    // Without the assistant, the extracted text is offered as the draft.
+    await writeFile(join(bin, "settings.json"), JSON.stringify({ claudePath: join(bin, "missing-claude.cjs") }));
+    const raw = await knowledgeDraft(a.id, "notes.md", Buffer.from("Plain notes."));
+    assert.equal(raw.via, "raw");
+    assert.match(raw.text, /Plain notes/);
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});
+
+test("stream log: image data is replaced by its hash, size and the saved screenshot", async () => {
+  const { compactStreamLine, ScreenshotIndex } = await import("../src/executor/stream-log.js");
+  const { createHash } = await import("node:crypto");
+  const dir = await mkdtemp(join(tmpdir(), "xr-stream-"));
+  try {
+    const png = Buffer.from("not really a png, but bytes");
+    await mkdir(join(dir, "screenshots"));
+    await writeFile(join(dir, "screenshots", "001-low.jpg"), png);
+    const b64 = png.toString("base64");
+    const line = JSON.stringify({ type: "user", message: { content: [{ type: "tool_result", content: [{ type: "image", source: { type: "base64", media_type: "image/jpeg", data: b64 } }, { type: "image", data: b64, mimeType: "image/jpeg" }, { type: "text", text: "ok" }] }] } });
+    const out = JSON.parse(await compactStreamLine(line, new ScreenshotIndex(join(dir, "screenshots"))));
+    const [anth, mcp, txt] = out.message.content[0].content;
+    const hash = createHash("sha256").update(png).digest("hex");
+    for (const holder of [anth.source, mcp]) {
+      assert.equal(holder.data, undefined);
+      assert.equal(holder.sha256, hash);
+      assert.equal(holder.bytes, png.length);
+      assert.equal(holder.file, "screenshots/001-low.jpg");
+    }
+    assert.equal(txt.text, "ok");
+    const plain = JSON.stringify({ type: "assistant", message: { content: [{ type: "text", text: "no images" }] } });
+    assert.equal(await compactStreamLine(plain, new ScreenshotIndex(join(dir, "screenshots"))), plain);
+  } finally {
+    await removeDir(dir);
+  }
+});
+
+test("suite 3 app runs offline: three.js is vendored, no network imports", async () => {
+  const html = await readFile(example("webxr-app/index.html"), "utf8");
+  assert.doesNotMatch(html, /https?:\/\//);
+  for (const f of ["build/three.module.js", "examples/jsm/controls/OrbitControls.js", "examples/jsm/webxr/VRButton.js", "examples/jsm/environments/RoomEnvironment.js", "LICENSE"])
+    assert.ok(existsSync(example(`webxr-app/vendor/three/${f}`)), f);
+  const main = await readFile(example("webxr-app/main.js"), "utf8");
+  assert.match(main, /trial \$\{n\} of 4/);
+});
+
+test("suite 2: valid, background reaches only individual jobs, and background drives the invented outcomes", async () => {
+  const dir = resolve("examples/selection");
+  const study = validateStudy(JSON.parse(await readFile(join(dir, "study.json"), "utf8")));
+  const agents = validateAgents(study, JSON.parse(await readFile(join(dir, "agents.json"), "utf8")));
+  const human = JSON.parse(await readFile(join(dir, "human.json"), "utf8")) as HumanData;
+  validateHumanData(study, human);
+  const plan = freezePlan(study, withDefaultRuns(study, agents, 1), 1);
+  assert.equal(plan.jobs.length, 36);
+  const individual = agents.filter((a) => a.level === "individual").map((a) => a.id).sort();
+  assert.deepEqual(individual, ["knows-participant", "uses-app-people"]);
+  assert.ok(agents.filter((a) => a.sourceIds.includes("demographics")).every((a) => a.level === "individual"));
+  // No XR experience → slower with direct touch than frequent users (invented effect).
+  const dem = (await readFile(join(dir, "data/raw/demographics.csv"), "utf8")).trim().split("\n").slice(1).map((l) => l.split(","));
+  const xp = new Map(dem.map((r) => [r[0], r[2]]));
+  const time = (level: string) => {
+    const v = human.measurements.filter((m) => m.outcomeId === "completion-time" && m.conditionId === "direct" && xp.get(m.participantId!) === level).map((m) => m.value!);
+    return v.reduce((s, x) => s + x, 0) / v.length;
+  };
+  assert.ok(time("none") > time("frequent") * 1.3, `${time("none")} vs ${time("frequent")}`);
+});
+
+test("between-subjects end to end: no rankings, no individual configs, significant group differences, absolute fit, figures", async () => {
+  const { agreementFigure, agentVsHumanFigure, correlationFigure } = await import("../src/core/figures.js");
+  const within = validateStudy(await json("study.json"));
+  const humanWithin = await json<HumanData>("human.json");
+  // Suite 3 as a between-subjects study: each of the 18 people keeps only the first level of their order.
+  const s = structuredClone(within) as Study;
+  s.design = "between-subjects";
+  s.participants = s.participants.map((p) => ({ id: p.id, stratum: `group-${p.conditionOrder[0]}`, conditionOrder: [p.conditionOrder[0]] }));
+  assert.throws(() => validateStudy(s), /ranking of the designs/);
+  s.outcomes = s.outcomes.filter((o) => o.scale !== "rank");
+  s.analysis.familyWeights = Object.fromEntries(Object.entries(s.analysis.familyWeights).filter(([f]) => s.outcomes.some((o) => o.family === f)));
+  const study = validateStudy(s);
+  const assigned = new Map(study.participants.map((p) => [p.id, p.conditionOrder[0]]));
+  const human: HumanData = { ...humanWithin, measurements: humanWithin.measurements.filter((m) => assigned.get(m.participantId!) === m.conditionId && study.outcomes.some((o) => o.id === m.outcomeId)) };
+  validateHumanData(study, human);
+  const raw = (await json<AgentProtocol[]>("agents.json")).map((a) => ({ ...a, targets: a.targets?.filter((t) => study.outcomes.some((o) => o.id === t)), inputs: a.inputs?.filter((t) => study.outcomes.some((o) => o.id === t)) }));
+  assert.throws(() => validateAgents(study, raw), /individual level, which needs every person/);
+  const agents = validateAgents(study, raw.filter((a) => a.level !== "individual" && !a.inputs?.length));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "between-e2e", new Date(Date.now() - 1000).toISOString());
+  const { report } = analyzeCampaign(c, human, [syntheticCampaignExecution(c).results]);
+  assert.equal(report.pairRule, "significant");
+  assert.ok(report.humanPairs!.length > 0 && report.humanPairs!.every((p) => p.test === "Mann–Whitney U"));
+  assert.ok(report.notes.some((n) => /Mann–Whitney U between the independent groups/.test(n)));
+  // Only significant pairs are scored; an outcome without one is excluded for every configuration.
+  for (const o of study.outcomes) {
+    const pairs = report.humanPairs!.filter((p) => p.outcomeId === o.id);
+    assert.ok(pairs.every((p) => p.used === (p.significant && p.meanA !== p.meanB)));
+    if (!pairs.some((p) => p.used)) assert.ok(report.exclusions.some((e) => e.startsWith(`${o.label}:`)));
+  }
+  assert.equal(report.significantOnly, undefined, "the second view is for within-subjects studies");
+  // Absolute values: every population configuration × predicted measure × design, inside or outside the human 95% CI.
+  const fit = report.absoluteFit!;
+  assert.ok(fit.length > 0);
+  for (const f of fit) {
+    assert.ok(f.low <= f.human && f.human <= f.high && f.n >= 2);
+    assert.equal(f.inside, f.agent >= f.low - 1e-9 && f.agent <= f.high + 1e-9);
+  }
+  // Figures work on a between-subjects report.
+  const ids = agents.map((a) => a.id);
+  const labels = Object.fromEntries(agents.map((a) => [a.id, a.label]));
+  assert.ok(agreementFigure(report, ids, "subjective", labels));
+  assert.ok(agentVsHumanFigure(study, report, ids, study.outcomes[0].id, labels));
+  assert.ok(correlationFigure(study, report, ids, labels));
+});
+
+test("within-subjects: main scores keep mean differences; a second view uses significant paired differences", async () => {
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json"));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "within-views", new Date(Date.now() - 1000).toISOString());
+  const { report } = analyzeCampaign(c, await json<HumanData>("human.json"), [syntheticCampaignExecution(c).results]);
+  assert.equal(report.pairRule, "means");
+  const sig = report.significantOnly!;
+  assert.ok(sig.humanPairs.length > 0 && sig.humanPairs.every((p) => p.test === "Wilcoxon signed-rank"));
+  assert.ok(sig.humanPairs.every((p) => p.used === (p.significant && p.meanA !== p.meanB)));
+  const population = agents.filter((a) => (a.level ?? study.predictionLevel) === "population").map((a) => a.id);
+  assert.deepEqual([...new Set(sig.summaries.map((x) => x.agentId))].sort(), population.sort());
+});
+
+test("token budget: validated, enforced by the study server at 90%, and audited", async () => {
+  const { spawn } = await import("node:child_process");
+  const { createInterface } = await import("node:readline");
+  const { auditRun } = await import("../src/core/protocol.js");
+  const { campaignPlan } = await import("../src/core/campaign.js");
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json"));
+  assert.throws(() => validateAgents(study, agents.map((a) => (a.id === "text-only" ? { ...a, maxTokens: 500 } : a))), /at least 1000 tokens/);
+  // Templates come with a budget sized to what the configuration does.
+  const proposed = await proposeAgents(study);
+  assert.ok(proposed.every((a) => a.maxTokens! >= 100_000));
+  assert.ok(proposed.find((a) => a.id === "uses-app")!.maxTokens! > proposed.find((a) => a.id === "text-only")!.maxTokens!);
+  // The study server refuses tools once 90% is used; submitting stays possible.
+  const dir = await mkdtemp(join(tmpdir(), "xr-tokens-"));
+  try {
+    await writeFile(join(dir, "job.json"), JSON.stringify({ jobId: "t", budget: 50, tokenBudget: 10_000, projectDir: dir, participantId: null, designs: [], targets: [] }));
+    await writeFile(join(dir, "usage.json"), JSON.stringify({ tokens: 9_500, budget: 10_000 }));
+    const child = spawn(process.execPath, [resolve("dist/runtimes/study-mcp.js"), dir], { stdio: ["pipe", "pipe", "ignore"] });
+    const waiting = new Map<number, (m: any) => void>();
+    createInterface({ input: child.stdout! }).on("line", (l) => {
+      const m = JSON.parse(l);
+      waiting.get(m.id)?.(m);
+    });
+    let seq = 0;
+    const rpc = (method: string, params: Record<string, unknown> = {}) =>
+      new Promise<any>((ok) => {
+        const id = ++seq;
+        waiting.set(id, ok);
+        child.stdin!.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
+      });
+    await rpc("initialize");
+    const listed = await rpc("tools/call", { name: "list_files", arguments: {} });
+    assert.match(listed.result.content[0].text, /Token budget of 10000 tokens is nearly used up/);
+    const submitted = await rpc("tools/call", { name: "submit_forecast", arguments: { predictions: [] } });
+    assert.doesNotMatch(submitted.result.content[0].text, /Token budget/);
+    child.stdin!.end();
+    await new Promise((ok) => child.on("exit", ok));
+  } finally {
+    await removeDir(dir);
+  }
+  // The audit flags a real session above its token budget.
+  const withBudget = agents.map((a) => (a.id === "text-only" ? { ...a, maxTokens: 5_000 } : a));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, withBudget, 1), 1), undefined, "tokens", new Date(Date.now() - 1000).toISOString());
+  const plan = campaignPlan(c);
+  const run = syntheticCampaignExecution(c).results.runs.find((r) => c.jobs.find((j) => j.id === r.jobId)!.conditionId === "text-only")!;
+  Object.assign(run.execution, { synthetic: false, inputTokens: 1_000, cacheReadTokens: 6_000, cacheWriteTokens: 0, outputTokens: 500 });
+  const audit = auditRun(plan, plan.jobs.find((j) => j.id === run.jobId)!, run);
+  assert.ok(audit.issues.some((i) => /Token budget exceeded: 7500 of 5000/.test(i)), JSON.stringify(audit.issues));
+});
+
+test("human data only: per-design values with the design's test, matching the analyzer's human pairs", async () => {
+  const { humanFigure } = await import("../src/core/figures.js");
+  const study = validateStudy(await json("study.json"));
+  const human = await json<HumanData>("human.json");
+  const fig = humanFigure(study, human, "presence");
+  assert.equal(fig.groups.length, 3);
+  assert.ok(fig.groups.every((g) => g.stats.n === 18));
+  assert.ok(fig.brackets.every((b) => b.test === "Wilcoxon signed-rank"));
+  assert.ok(fig.summary.every((r) => r.low <= r.mean && r.mean <= r.high));
+  // Same tests as the analyzer's significant-only view.
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json"));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "human-only", new Date(Date.now() - 1000).toISOString());
+  const { report } = analyzeCampaign(c, human, [syntheticCampaignExecution(c).results]);
+  for (const b of fig.brackets) {
+    const p = report.significantOnly!.humanPairs.find((x) => x.outcomeId === "presence" && x.a === b.a && x.b === b.b)!;
+    assert.ok(Math.abs((p.pHolm ?? 1) - (b.holm ?? 1)) < 1e-12, `${b.a}-${b.b}`);
+  }
+  // Between subjects: independent groups, Mann–Whitney U.
+  const s = structuredClone(study) as Study;
+  s.design = "between-subjects";
+  s.participants = s.participants.map((p) => ({ id: p.id, stratum: `group-${p.conditionOrder[0]}`, conditionOrder: [p.conditionOrder[0]] }));
+  s.outcomes = s.outcomes.filter((o) => o.scale !== "rank");
+  const assigned = new Map(s.participants.map((p) => [p.id, p.conditionOrder[0]]));
+  const between = humanFigure(s, { ...human, measurements: human.measurements.filter((m) => assigned.get(m.participantId!) === m.conditionId) }, "realism");
+  assert.ok(between.brackets.every((b) => b.test === "Mann–Whitney U"));
+  assert.ok(between.groups.every((g) => g.stats.n === 6));
+});
+
+test("executor: token counts show live while a session runs", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  const bin = await mkdtemp(join(tmpdir(), "fake-ue-"));
+  await writeFakeEngine(bin);
+  await writeFile(join(bin, "settings.json"), JSON.stringify({ claudePath: join(bin, "claude.cjs"), runtimes: { unreal: { command: process.execPath, args: [join(bin, "bridge.cjs"), "{jobFile}"], capabilities: ["screenshot", "pointer-select", "phase-events", "quality-lock"] } } }));
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  process.env.FAKE_SLEEP = "1500";
+  try {
+    const ws = await readWorkspace(a.id);
+    const agents = ws.agents!.filter((x) => x.id === "uses-app").map((x) => ({ ...x, repetitions: 1, runtime: "unreal" }));
+    const c = campaignFromPlan(freezePlan(ws.study, agents, 1), undefined, "live-tokens", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    await ex.start("agent");
+    let live: { in: number | null; out: number | null } | null = null;
+    for (let i = 0; i < 100 && !live; i++) {
+      const j = ex.snapshot().jobs[0];
+      if (j.status === "running" && j.tokensIn != null) live = { in: j.tokensIn, out: j.tokensOut };
+      else await wait(50);
+    }
+    assert.deepEqual(live, { in: 1000, out: 50 }, "input = uncached + cache writes + cache reads, while the session runs");
+    for (let i = 0; i < 80 && ex.snapshot().counts.done !== 1 && !ex.snapshot().counts.failed; i++) await wait(250);
+    assert.equal(ex.snapshot().counts.done, 1, JSON.stringify(ex.snapshot().jobs.map((j) => j.error)));
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    delete process.env.FAKE_SLEEP;
+    await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});
+
+test("participant-specific knowledge: complete for everyone, or the configurations that get it are blocked", async () => {
+  const { missingSources, readWorkspace } = await import("../src/workspace.js");
+  const { participantKnowledgeOverview } = await import("../src/sources.js");
+  const { backgroundText, participantProblems } = await import("../src/participant-knowledge.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const src = ws.study.sources.find((x) => x.kind === "demographics")!;
+    const path = join(a.dir, ws.manifest.sources![src.id]);
+    assert.deepEqual(missingSources(a.dir, ws.study, ws.manifest, [src.id]), [], "the example is complete");
+    const overview = (await participantKnowledgeOverview(a.id, ws.agents ?? [])).find((x) => x.id === src.id)!;
+    assert.deepEqual(overview.problems, []);
+    // Population configurations get the cohort summary, individual ones the person's own entry.
+    assert.match(overview.population!, /^age_band: .*\(n=18\)/m);
+    assert.match(overview.individual!.text, /^age_band: /m);
+    // One person missing, one empty value: incomplete, and configurations that get it are blocked.
+    const lines = (await readFile(path, "utf8")).trim().split("\n");
+    const head = lines[0].split(","), first = lines[1].split(",");
+    first[head.indexOf("xr_experience")] = " ";
+    await writeFile(path, [lines[0], first.join(","), ...lines.slice(3)].join("\n") + "\n");
+    const problems = participantProblems(ws.study, "demographics", path, src.fields ?? []);
+    assert.ok(problems.some((p) => /^no entry for /.test(p)), JSON.stringify(problems));
+    assert.ok(problems.some((p) => /^empty xr_experience for /.test(p)), JSON.stringify(problems));
+    const blocked = missingSources(a.dir, ws.study, ws.manifest, [src.id]);
+    assert.match(blocked[0].message, /is incomplete: .*must exist for every participant/);
+    // "none" is an answer, not a missing value.
+    assert.equal(backgroundText("participant,xr\np1,none\np2,some\n", ["xr"], "p1"), "xr: none");
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+test("rerun selected configurations: a new campaign with fresh sessions for them, all others reused", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign, readReceipts, readCampaign } = await import("../src/workspace.js");
+  const { continueFromStatus } = await import("../src/core/campaign.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, withDefaultRuns(ws.study, ws.agents!, 1), 1), undefined, "rerun-test", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    await ex.start("simulate");
+    for (let i = 0; i < 400 && ex.snapshot().counts.done !== ex.jobs.size; i++) await wait(100);
+    assert.equal(ex.snapshot().counts.done, ex.jobs.size);
+    // What the executor's "Rerun the checked configurations" sends to workspace/continue.
+    const next = continueFromStatus(c, await readReceipts(a.id, [c.id]), { rerunConditions: ["text-only"], note: "Rerun of Text only" });
+    const llm = next.jobs.filter((j) => j.kind === "llm");
+    assert.ok(llm.filter((j) => j.conditionId === "text-only").every((j) => !j.inheritedFrom), "fresh sessions for the rerun configuration");
+    assert.ok(llm.filter((j) => j.conditionId !== "text-only").every((j) => j.inheritedFrom), "finished runs of the others are reused");
+    assert.equal(next.parentDigest, c.digest);
+    // The original campaign stays as it was.
+    assert.equal((await readCampaign(a.id, c.id)).digest, c.digest);
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+// ---------- found by the exploratory test round (Nov 2026) ----------
+test("create study: the placeholder is valid, and a refused name creates nothing", async () => {
+  const { createStudy, readWorkspace } = await import("../src/workspace.js");
+  const name = `zz-test-create-${Date.now().toString(36)}`;
+  const r = await createStudy(`  ${name.toUpperCase()}  `);
+  const dir = resolve("private/studies", name);
+  try {
+    assert.equal(r.id, `private/studies/${name}`);
+    const ws = await readWorkspace(r.id);
+    assert.equal(ws.study.id, name);
+    await assert.rejects(createStudy(name), /already exists/);
+    await assert.rejects(createStudy("!"), /Give the study folder a name/);
+    assert.equal(existsSync(resolve("private/studies", "-")), false);
+  } finally {
+    await removeDir(dir);
+  }
+});
+
+test("understand study: the assistant's words are normalised and a new study's placeholder is replaced", async () => {
+  const { understandStudy } = await import("../src/assistant.js");
+  const { extractProposal } = await import("../src/core/proposal.js");
+  const { createStudy, readWorkspace } = await import("../src/workspace.js");
+  const text = "Material cues in VR\nTwo designs: matte and glossy. Within-subjects.\n";
+  const doc = await extractProposal("doc.md", Buffer.from(text));
+  const empty = { value: "", quote: "" };
+  const draft = {
+    facts: { title: { value: "Material cues in VR", quote: "Material cues in VR" }, researchQuestion: empty, design: empty, participantCount: empty, conditions: empty, task: empty, objectiveOutcomes: empty, subjectiveOutcomes: empty },
+    study: {
+      title: "Material cues in VR",
+      design: "within-subjects",
+      conditions: [{ id: "matte", label: "Matte" }, { id: "glossy", label: "Glossy" }],
+      outcomes: [
+        { id: "Task Time (s)", label: "Task time", domain: "Objective", scale: "continuous (seconds)", aggregation: "geometric (times)", family: "time", phaseIds: ["main"] },
+        { id: "", label: "Realism", domain: "subjective rating", scale: "ordinal 1-7", aggregation: "", components: [1, 2] },
+      ],
+    },
+    questions: ["Which headset?"],
+  };
+  const bin = await mkdtemp(join(tmpdir(), "fake-assistant-"));
+  await writeFile(join(bin, "claude.cjs"), `console.log(JSON.stringify({ result: ${JSON.stringify(JSON.stringify(draft))} }));`);
+  await writeFile(join(bin, "settings.json"), JSON.stringify({ claudePath: join(bin, "claude.cjs") }));
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  const name = `zz-test-understand-${Date.now().toString(36)}`;
+  try {
+    const { id } = await createStudy(name);
+    const placeholder = (await readWorkspace(id)).study;
+    const csv = "participant,order\nq1,matte glossy\nq2,glossy matte\n";
+    const r = await understandStudy(doc, csv, placeholder);
+    assert.equal(r.valid, true, r.questions.join(" | "));
+    assert.equal(r.study.id, name, "the folder's study ID is kept");
+    assert.deepEqual(r.study.conditions.map((c) => c.id), ["matte", "glossy"], "the placeholder designs are not kept");
+    const [time, realism] = r.study.outcomes;
+    assert.deepEqual([time.id, time.domain, time.scale, time.aggregation], ["task-time-s", "objective", "continuous", "geometric"]);
+    assert.deepEqual([realism.id, realism.domain, realism.scale, realism.aggregation, realism.components], ["measure-2", "subjective", "ordinal", "arithmetic", ["1", "2"]]);
+    assert.ok(r.study.cases.every((c) => c.requiredActions.includes("complete-task")));
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(resolve("private/studies", name));
+    await removeDir(bin);
+  }
+});
+
+test("runs zip: refused for another study or a non-zip, and a refused zip writes nothing", async () => {
+  const { exportRuns, importRuns } = await import("../src/executor/archive.js");
+  const { readWorkspace, saveCampaign, listCampaigns } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  const b = await tempWorkspace(resolve("examples/graphics-quality"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, ws.agents!, 1), undefined, "zip-test", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const zip = await exportRuns(a.id, c.id);
+    await assert.rejects(importRuns(b.id, zip), /belong to study "synthetic-selection", but this study's ID is "toy-graphics-quality"/);
+    assert.equal(existsSync(join(b.dir, "campaigns", c.id)), false, "nothing written");
+    assert.equal((await listCampaigns(b.id)).length, 0);
+    await assert.rejects(importRuns(b.id, Buffer.from("not a zip")), /This file is not a zip/);
+  } finally {
+    await removeDir(a.dir);
+    await removeDir(b.dir);
+  }
+});
+
+test("campaign delete: moves the campaign and its runs to deleted/, never one another campaign continues from", async () => {
+  const { readWorkspace, saveCampaign, listCampaigns, runDir } = await import("../src/workspace.js");
+  const { deleteCampaign, writeLabel, readLabels } = await import("../src/history.js");
+  const { continueCampaign } = await import("../src/core/campaign.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const parent = campaignFromPlan(freezePlan(ws.study, ws.agents!, 1), undefined, "del-parent", new Date(Date.now() - 2000).toISOString());
+    await saveCampaign(a.id, parent);
+    const child = continueCampaign(parent, { rerunConditions: [ws.agents![0].id] });
+    await saveCampaign(a.id, child);
+    await mkdir(join(runDir(a.id, child.id), "results"), { recursive: true });
+    await writeLabel(a.id, child.id, "to delete");
+    await assert.rejects(deleteCampaign(a.id, parent.id), /continue from this one/);
+    const r = await deleteCampaign(a.id, child.id);
+    assert.match(r.movedTo, /^deleted\/\d{8}-\d{6}-campaign-/);
+    assert.ok(existsSync(join(a.dir, r.movedTo, "campaign", "campaign.json")));
+    assert.ok(existsSync(join(a.dir, r.movedTo, "runs", "results")));
+    assert.deepEqual((await listCampaigns(a.id)).map((c) => c.id), [parent.id]);
+    assert.equal((await readLabels(a.id))[child.id], undefined);
+    // With its child gone, the parent can be deleted too.
+    await deleteCampaign(a.id, parent.id);
+    assert.equal((await listCampaigns(a.id)).length, 0);
+    await assert.rejects(deleteCampaign(a.id, parent.id), /Unknown campaign/);
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+test("human data and designs: removed measures are skipped; renamed designs, missing people and wrong orders are named", async () => {
+  const study = validateStudy(await json("study.json"));
+  const human = await json<HumanData>("human.json");
+  const fewer = structuredClone(study);
+  fewer.outcomes = fewer.outcomes.filter((o) => o.id !== "preference");
+  assert.doesNotThrow(() => validateHumanData(fewer, human));
+  const renamed = structuredClone(study);
+  const old = renamed.conditions[0].id;
+  renamed.conditions[0].id = "renamed";
+  renamed.participants.forEach((p) => (p.conditionOrder = p.conditionOrder.map((x) => (x === old ? "renamed" : x))));
+  assert.throws(() => validateHumanData(renamed, human), new RegExp(`design "${old}", which this study does not have.*renamed`));
+  const fewerPeople = structuredClone(study);
+  const gone = fewerPeople.participants.pop()!.id;
+  assert.throws(() => validateHumanData(fewerPeople, human), new RegExp(`participant "${gone}", who is not in this study`));
+  const between = structuredClone(study);
+  between.design = "between-subjects";
+  assert.throws(() => validateStudy(between), /In a between-subjects study each person experiences one design, but \S+ has 3/);
+  const twice = structuredClone(study);
+  twice.participants[0].conditionOrder = [old, old, twice.conditions[2].id];
+  assert.throws(() => validateStudy(twice), /must list known designs .* each at most once/);
+});
+
+test("two eyes: simulated stereo sessions pass the audit; the built-in WebXR runtime refuses them with a way out", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  const cfg = await mkdtemp(join(tmpdir(), "xr-settings-"));
+  await writeFile(join(cfg, "settings.json"), JSON.stringify({ chromePath: process.execPath }));
+  process.env.XR_STUDY_SETTINGS = join(cfg, "settings.json");
+  try {
+    const ws = await readWorkspace(a.id);
+    const study = structuredClone(ws.study);
+    study.runtime.observation = "stereo-pair";
+    const agents = ws.agents!.filter((x) => x.id === "uses-app" || x.id === "text-only").map((x) => ({ ...x, repetitions: 2, observation: x.tools.includes("xr-interact") ? ("stereo-pair" as const) : x.observation }));
+    const plan = freezePlan(validateStudy(study), validateAgents(study, agents), 1);
+    const c = campaignFromPlan(plan, undefined, "stereo-test", new Date(Date.now() - 1000).toISOString());
+    const run = syntheticCampaignExecution(c);
+    const result = analyzeCampaign(c, await json<HumanData>("human.json"), [run.results]);
+    assert.deepEqual(result.report.audits.filter((x) => !x.compliant).map((x) => x.issues), [], "simulated stereo sessions are compliant");
+    assert.ok(result.report.audits.length > 0);
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    const blocked = await ex.blockers([...ex.jobs.keys()]);
+    assert.equal(blocked.length, 1);
+    assert.deepEqual(blocked[0].configs, [agents.find((x) => x.id === "uses-app")!.label]);
+    assert.match(blocked[0].message, /mono screenshots only.*Single image \(mono\).*or simulate/);
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(a.dir);
+    await removeDir(cfg);
+  }
+});

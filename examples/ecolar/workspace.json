@@ -1,0 +1,13 @@
+{
+  "title": "Building-scale temperature visualization in VR (synthetic)",
+  "suite": "Suite 1 · Unreal (synthetic Ecolar)",
+  "description": "Synthetic version of the Ecolar VR study: four temperature visualizations, 24 invented participants, 16 agent configurations at population and individual level. Unreal runs need a study bridge over your Unreal MCP (see docs/runtime-adapters.md); without one, simulate.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "project": "project-snapshot",
+    "evidence": "evidence/model-evidence.md",
+    "demographics": "data/raw/demographics.csv",
+    "trajectory": "data/raw/trajectories_main.csv",
+    "trajectory-full": "data/raw/trajectories.csv"
+  }
+}

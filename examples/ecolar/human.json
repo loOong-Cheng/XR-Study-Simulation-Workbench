@@ -1,0 +1,8071 @@
+{
+ "schemaVersion": "1.0",
+ "studyId": "synthetic-ecolar-vr-temperature",
+ "synthetic": true,
+ "measurements": [
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 7.985
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 8.615
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.25
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 4.76
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 9.5
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 6.305
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 13.165
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 9.045
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 6.24
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 11.16
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 11.045
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 6.74
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 9.065
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 7.29
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 11.66
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 9.095
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 8.955
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 8.065
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 11.535
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 6.295
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 11.195
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 6.93
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 8.785
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 8.44
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 3.875
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 6.795
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 5.0
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 11.465
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 18.975
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 7.92
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 9.645
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 8.53
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 14.86
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 9.82
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 10.63
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 11.115
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 12.755
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 6.3
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 12.17
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 8.4
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.0
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 13.85
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 9.65
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 10.12
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 12.07
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 18.44
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.5
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 8.5
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 13.215
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 7.105
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 17.17
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 14.445
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 11.08
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 14.81
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 25.595
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 9.025
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 19.15
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 8.745
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 14.69
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.375
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 12.015
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 3.875
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 11.305
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 11.43
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 15.81
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 7.035
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 11.54
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 7.885
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 14.655
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 3.5
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 8.85
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 8.34
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 13.27
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 17.43
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 7.855
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 14.69
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.375
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 10.285
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 3.875
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 16.95
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 10.83
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 12.45
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 6.73
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 7.575
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 4.67
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 7.525
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 5.11
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 8.9
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 9.075
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 6.565
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 13.11
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 16.95
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.5
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 9.825
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 15.725
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 8.325
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 18.64
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 16.645
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 7.465
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 12.505
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 16.85
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 6.235
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 11.255
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 7.695
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 11.14
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.375
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 9.34
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 7.255
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 7.925
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 10.01
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 4.56
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 6.745
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 6.125
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 9.975
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 6.6
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 6.075
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 9.7
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.0
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 14.665
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.25
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 6.185
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 12.165
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 6.16
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 13.15
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 3.25
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 8.455
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 7.66
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 3.25
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 9.575
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 3.875
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 10.74
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.5
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 7.515
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 6.28
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 5.025
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 7.55
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 3.25
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.375
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 10.27
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 7.05
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 9.945
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 14.1
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 6.945
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 10.26
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 7.15
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 14.44
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 8.525
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 6.045
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 16.475
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 5.0
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 17.815
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 9.385
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 16.72
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 14.325
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 17.185
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 14.11
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 10.66
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 13.84
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 17.64
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 9.11
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 12.865
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 8.82
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 18.935
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 12.665
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 11.535
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 13.765
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 14.625
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 9.4
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 15.285
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 6.94
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 15.735
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 5.0
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 9.64
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 9.66
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 9.48
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.625
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 9.29
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 4.895
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 8.15
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 3.25
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 6.605
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 13.78
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 8.685
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 7.22
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 13.62
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 14.745
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 7.0
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.875
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 12.995
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 7.135
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 18.61
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.375
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 12.58
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 9.205
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.75
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 11.235
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 10.41
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 6.325
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 8.355
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 6.79
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 8.705
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 8.4
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 4.125
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 6.375
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 8.055
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 13.35
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 6.375
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 8.72
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.625
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 6.33
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 10.595
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 7.725
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 6.965
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.5
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "place-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "place-time",
+   "value": 10.45
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "zone-time",
+   "value": 15.275
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "place-accuracy",
+   "value": 0.875
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "place-time",
+   "value": 5.2
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "place-confidence",
+   "value": 4.375
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "zone-time",
+   "value": 9.535
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "place-time",
+   "value": 5.77
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "place-confidence",
+   "value": 4.25
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "zone-accuracy",
+   "value": 0.25
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "zone-time",
+   "value": 14.045
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "zone-confidence",
+   "value": 3.75
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "place-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "place-time",
+   "value": 7.865
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "place-confidence",
+   "value": 3.875
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "zone-accuracy",
+   "value": 0.75
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "zone-time",
+   "value": 7.61
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "zone-confidence",
+   "value": 4.0
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 2.48
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.13
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 22.44
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 3.97
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 4.46
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 48.62
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 4.9
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 3.83
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 48.62
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.37
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 5.29
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.91
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 6.53
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.02
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.27
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 7.48
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 4.24
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 5.25
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 7.48
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.66
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 2.71
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 2.95
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.28
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.28
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 5.7
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 2.75
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 4.73
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.23
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.36
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 7.48
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 4.41
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.05
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 29.92
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.76
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.89
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.85
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 5.09
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.59
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 4.81
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 29.92
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.23
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.52
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.18
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.13
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 7.48
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 4.46
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 3.47
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 22.44
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.25
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.61
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.51
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 22.44
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.5
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.05
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.59
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 5.52
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 22.44
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.78
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.59
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 22.44
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.63
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 3.95
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 0.0
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.66
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.33
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 29.92
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 3.71
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.02
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 26.18
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.35
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.52
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.6
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 5.14
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.49
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 3.28
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 2.75
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 2.88
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 0.0
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.98
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 4.91
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.54
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.95
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 26.18
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.72
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.21
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 52.36
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 4.51
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 2.96
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 41.14
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 4.25
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 3.83
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 26.18
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 5.32
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.15
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 29.92
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.3
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 5.02
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 4.47
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 5.47
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 5.13
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 2.6
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 33.66
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.79
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.4
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 0.0
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 4.74
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.1
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 7.48
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.64
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.83
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.15
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.81
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 7.48
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.67
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.08
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 4.28
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 5.44
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 2.86
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.1
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 0.0
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.86
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.79
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 4.41
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.22
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.5
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 4.5
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 26.18
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.71
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.61
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 26.18
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.62
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 3.54
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.12
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.39
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 26.18
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 2.84
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 3.94
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 4.3
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 6.48
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 7.48
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 4.16
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.26
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 26.18
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.09
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 3.96
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 4.38
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.43
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 22.44
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 3.61
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.14
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 29.92
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 2.24
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.02
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.38
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 3.2
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.06
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 3.92
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 2.65
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 5.05
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.47
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.82
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.92
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 3.77
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.61
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.13
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 0.0
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 4.63
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 5.47
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 0.0
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.39
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.29
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 0.0
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 3.96
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.73
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.46
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 3.88
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 4.1
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.86
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.42
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.1
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 2.82
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 3.7
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.86
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.2
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 29.92
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.7
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.4
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 4.45
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.39
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.7
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 3.14
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 1.98
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 5.6
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 1.45
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.14
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 3.74
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 2.82
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.64
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.02
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.44
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 22.44
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 3.93
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.21
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 29.92
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.78
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 3.05
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 41.14
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 3.72
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 5.11
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 5.17
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.22
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 41.14
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 4.24
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.01
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 4.61
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.79
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 22.44
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 5.5
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 4.48
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 37.4
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 2.93
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 4.76
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 14.96
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 3.56
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 3.7
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 29.92
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 4.17
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.25
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 37.4
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 2.51
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.68
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "workload",
+   "value": 2.77
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "beauvis",
+   "value": 3.29
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "ssq",
+   "value": 18.7
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "workload",
+   "value": 3.3
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "beauvis",
+   "value": 4.26
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "ssq",
+   "value": 7.48
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "workload",
+   "value": 2.42
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "beauvis",
+   "value": 3.72
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "ssq",
+   "value": 0.0
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "workload",
+   "value": 3.36
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "beauvis",
+   "value": 5.62
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "ssq",
+   "value": 11.22
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P17",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P18",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P19",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P20",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P21",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P22",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P23",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "rank-places",
+   "value": 2
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "rank-places",
+   "value": 4
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "rank-places",
+   "value": 3
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "rank-places",
+   "value": 1
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "rank-zones",
+   "value": 2
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "rank-zones",
+   "value": 1
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "rank-zones",
+   "value": 3
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "rank-zones",
+   "value": 4
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "rank-interaction",
+   "value": 4
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "rank-interaction",
+   "value": 2
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "rank-interaction",
+   "value": 3
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "rank-interaction",
+   "value": 1
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "rank-building",
+   "value": 3
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "rank-building",
+   "value": 1
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "rank-building",
+   "value": 4
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "rank-building",
+   "value": 2
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "SP",
+   "outcomeId": "rank-overall",
+   "value": 4
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "VO",
+   "outcomeId": "rank-overall",
+   "value": 1
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "PP",
+   "outcomeId": "rank-overall",
+   "value": 3
+  },
+  {
+   "participantId": "P24",
+   "conditionId": "HP",
+   "outcomeId": "rank-overall",
+   "value": 2
+  }
+ ]
+}

@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Plan, run and analyse AI-agent forecasts of finished XR user studies." />
+    <title>XR Study Sim</title>
+    <link rel="stylesheet" href="/app.css" />
+    <script type="module" src="/app.js"></script>
+  </head>
+  <body>
+    <div class="shell">
+      <aside class="sidebar">
+        <a class="brand" href="/" aria-label="XR Study Sim home"
+          ><span class="brand-icon">xr</span><span>Study Sim<small>HCI RESEARCH WORKBENCH</small></span></a
+        >
+        <nav aria-label="Workflow" id="nav">
+          <button data-page="home" class="nav"><span>◎</span> Open study</button>
+          <div class="sidebar-label">PLANNER</div>
+          <button data-page="study" class="nav"><span>1</span> Study &amp; variables</button>
+          <button data-page="evidence" class="nav"><span>E</span> Evidence &amp; knowledge</button>
+          <button data-page="configs" class="nav"><span>2</span> Agent configurations</button>
+          <button data-page="freeze" class="nav"><span>3</span> Freeze &amp; campaigns</button>
+          <div class="sidebar-label">EXECUTOR</div>
+          <button data-page="executor" class="nav"><span>4</span> Run agents</button>
+          <div class="sidebar-label">ANALYZER</div>
+          <button data-page="compare" class="nav"><span>5</span> Compare agents</button>
+          <button data-page="analyzer" class="nav"><span>6</span> Compare with humans</button>
+          <div class="sidebar-label">PLANNER</div>
+          <button data-page="continue" class="nav"><span>7</span> Continue / rerun</button>
+        </nav>
+        <div class="sidebar-bottom">
+          <button data-page="settings" class="nav"><span>⚙</span> Settings</button>
+          <p>Reference answers are withheld from you and from agents until analysis.</p>
+          <small>v0.4 · Open research software</small>
+        </div>
+      </aside>
+      <div class="workspace">
+        <header class="topbar">
+          <span id="study-breadcrumb">No study open</span>
+          <div><span class="pill" id="data-label">—</span></div>
+        </header>
+        <main id="content" aria-live="polite"></main>
+        <footer>Agent forecasts are evaluated against human evidence; they do not replace it.</footer>
+      </div>
+    </div>
+    <div id="toast" role="status" hidden></div>
+  </body>
+</html>

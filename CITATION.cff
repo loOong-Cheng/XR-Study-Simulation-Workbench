@@ -1,0 +1,9 @@
+cff-version: 1.2.0
+message: "Cite the immutable software release and associated paper when their public identifiers are available."
+type: software
+title: "XR Study Sim: A Workbench for HCI Simulation Protocols and Human–Agent Comparison"
+authors:
+  - name: "XR Study Sim contributors"
+version: 0.3.0
+date-released: 2026-11-23
+license: MIT
