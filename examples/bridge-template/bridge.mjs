@@ -213,7 +213,8 @@ const tools = [
       needTask();
       await call("look", () => engine.look(Number(yaw) || 0, Number(pitch) || 0));
       const c = currentCase();
-      trace({ type: "action", caseId: c.caseId, phaseId: c.phaseId, action: "look-around", completed: true });
+      // Looking is not a task answer: scored false (minActions and observeBeforeEachAction count scored actions).
+      trace({ type: "action", caseId: c.caseId, phaseId: c.phaseId, action: "look-around", completed: true, scored: false });
       return [...text("You turned your head. Your view:"), ...(await view())];
     },
   },
@@ -250,8 +251,18 @@ const tools = [
       const target = object === undefined ? undefined : state.shownToEngine[String(object)];
       if (object !== undefined && !target) throw new ToolError(`Unknown object ${object}. Use an ID from list_objects for this design.`);
       const r = await call("act", () => engine.act(String(action), target));
-      // Completed only when the engine confirms it.
-      trace({ type: "action", caseId: c.caseId, phaseId: c.phaseId, action: String(action), completed: !!r.completed });
+      // Completed only when the engine confirms it; one scored action per answer. `result` holds only
+      // what the participant perceives; `args` the neutral object ID.
+      trace({
+        type: "action",
+        caseId: c.caseId,
+        phaseId: c.phaseId,
+        action: String(action),
+        completed: !!r.completed,
+        scored: true,
+        result: { accepted: !!r.completed },
+        ...(object !== undefined ? { args: { object: String(object) } } : {}),
+      });
       if (!r.taskDone) return text(r.message);
       endCase(true);
       if (state.stage === "practice" && design().main) {
