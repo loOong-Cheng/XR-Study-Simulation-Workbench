@@ -64,7 +64,7 @@ npm start      # http://127.0.0.1:4317 → Open study → Graphics quality
 **Setup on a new machine.** This suite needs only Google Chrome; there is no engine, MCP server or app server to install.
 - The WebXR runtime is built into the framework. Each session starts its own headless Chrome and serves `webxr-app/` itself.
 - `node scripts/setup.mjs` finds Chrome and writes its path into Settings. Check **Settings → Chrome path** if the WebXR runtime card says Chrome was not found.
-- To build another WebXR study, copy `webxr-app/` and expose the `window.xrStudy` functions the runtime calls: `getState`, `start`, `listObjects`, `select` and `look`. Screenshots are taken by Chrome itself, so the app's own `capture` is optional.
+- To build another WebXR study, copy `webxr-app/` and expose `window.xrStudy` as described in [the window.xrStudy contract](../../docs/runtime-adapters.md#the-windowxrstudy-contract): `getState` and `start` always, plus the functions of the capabilities your app declares in `workspace.json` → `app.capabilities` (this app: `look`, `listObjects` and `select`; a pointing study would use `pointer-xy` instead of selecting by ID). Screenshots are taken by Chrome itself.
 
 To see the app yourself: `cd examples/graphics-quality/webxr-app && python3 -m http.server 8123 --bind 127.0.0.1`, then open http://127.0.0.1:8123/?quality=low (or `medium`, `high`).
 
@@ -74,18 +74,20 @@ Simulated runs test the whole pipeline. They do **not** measure prediction quali
 
 ## The WebXR runtime
 
-The executor gives app-using sessions these tools (MCP server `src/runtimes/webxr-mcp.ts`). They call the app's `window.xrStudy` in a headless Chrome:
+The executor gives app-using sessions these tools (MCP server `src/runtimes/webxr-mcp.ts`). They call the app's `window.xrStudy` in a headless Chrome. Which tools a session gets follows `workspace.json` → `app.capabilities`; this app declares `look`, `pointer-select`, `phase-events` and `quality-lock`, and `app.instructions` tells agents how its view works:
 
 | Tool | What it does |
 | --- | --- |
 | `open_design(design)` | Opens that design and starts its practice trial |
-| `look(azimuth, polar)` | Turns the viewpoint |
+| `look(azimuth, polar)` | Orbits the viewpoint around the table (the app limits polar to 5–89° and says so) |
 | `screenshot()` | Mono screenshot |
-| `list_objects()` | Neutral IDs with screen positions; no names or materials. The IDs are drawn afresh for every design. |
+| `list_objects()` | Neutral IDs with screen positions of the objects in view; no names or materials. The IDs are drawn afresh for every design. |
 | `select(object)` | Selects an object; wrong selections count |
-| `app_state()` | Task progress |
+| `app_state()` | The instruction and the progress shown in the task panel (found, wrong selections) |
 
-Every step is logged as an audit trace (the runtime's own report of what it provides, phases, cases, observations, actions), and the forecast arrives through the study server's `submit_forecast`. WebXR on a desktop page has no stereo pair, so stereo configurations are refused.
+Every step is logged as an audit trace (the runtime's own report of what it provides, phases, cases, observations, actions with the app's reply), the app's own log is saved in the job folder (`app-logs/`), and the forecast arrives through the study server's `submit_forecast`. WebXR on a desktop page has no stereo pair, so stereo configurations are refused.
+
+The configurations "Uses the app" and "Uses the app + participant data" also read the project folder, which holds `main.js`. The layout is shuffled from a seed (participant and level) at run time, which an agent could in principle reproduce from the code. In your own study, give app configurations no project files when the code holds the task's answers (see `docs/methodology.md`, audit).
 
 ## Use it as a template
 

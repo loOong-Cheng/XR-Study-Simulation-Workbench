@@ -94,7 +94,7 @@ When the researcher asks you to test an example suite (or "suite 1/2/3"), prepar
 private/studies/<name>/            (or examples/<name>/ for synthetic studies)
   study.json        designs (independent variable), measures (dependent variables), participants and orders, sources
   agents.json       agent configurations: level, model, runtime, runs, what they get, targets, inputs
-  workspace.json    title, where each source lives, and for WebXR apps: {"app": {"serve": "<folder>", "query": "?design={condition}&participant={participant}"}} ({participant} is "population" for population jobs)
+  workspace.json    title, where each source lives, and for WebXR apps: {"app": {"serve": "<folder>", "query": "?design={condition}&participant={participant}", "capabilities": [...]}} ({participant} is "population" for population jobs; capabilities and actions: docs/runtime-adapters.md)
   human.json        human reference (one record per participant × design × measure)
   comparisons.json  configurations to test against each other (chosen at analysis)
   campaigns/  runs/ written by the workbench
@@ -154,7 +154,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
    - Each job is a fresh headless `claude -p` session with `--tools ""`, a strict MCP config, a study MCP server (permitted files, `submit_forecast`) and the configuration's runtime MCP server.
    - The researcher confirms before real sessions start.
    - **Runtimes:**
-     - **WebXR** is built in. The app must expose `window.xrStudy`; see `examples/graphics-quality/webxr-app/main.js`.
+     - **WebXR** is built in. The app must expose `window.xrStudy` and declare what it provides in `workspace.json` → `app` (`capabilities`, `actions`, `instructions`); see [the window.xrStudy contract](docs/runtime-adapters.md#the-windowxrstudy-contract) and `examples/graphics-quality/webxr-app/main.js`. Do not give app configurations project files that hold the task's answers (target order, the right object).
      - **Unreal, Unity and visionOS** need a study bridge command in Settings (any language; see the bridge contract). Suite 2 ships one for its Unity app. If a runtime is missing, the executor names it ("Unity MCP runtime is not configured") and lets the other configurations run. Engine runtimes run one session at a time, each with a default time limit of at least 90 minutes (the global job time limit if that is higher; a runtime's own limit in Settings overrides both).
      - If no runtime exists, offer to write one with the same tool shape.
    - **Simulate** produces labelled, invented runs for trying the pipeline. They are never pooled with real runs of the same configuration.

@@ -34,7 +34,7 @@ The executor runs each agent session as headless Claude Code with exactly two ki
 
 | Runtime | Server | Notes |
 | --- | --- | --- |
-| `webxr` | Built in: `src/runtimes/webxr-mcp.ts` | Serves the app folder from `workspace.json`, drives it in headless Chrome over the DevTools protocol, calls `window.xrStudy` (`start`, `select`, `look`, `listObjects`, `getState`). Mono screenshots only. |
+| `webxr` | Built in: `src/runtimes/webxr-mcp.ts` | Serves the app folder from `workspace.json`, drives it in headless Chrome over the DevTools protocol and calls the app's `window.xrStudy` ([contract below](#the-windowxrstudy-contract)). The tools follow what the app declares. Mono screenshots only. |
 | `unreal` | Your Unreal MCP, wrapped in a study bridge (below) | Set in Settings on the machine that runs Unreal. |
 | `unity` | A study bridge (below), set in Settings → Runtimes → unity | Suite 2 ships one: `examples/selection/runtime/bridge.py` (Python, standard library) drives the included Unity project in Play mode; no third-party Unity MCP is needed (`examples/selection/UNITY_SETUP.md`). Until it is set: "Unity MCP runtime is not configured". |
 | `visionos` | A visionOS simulator MCP server | Not configured: Apple Vision Pro needs a visionOS simulator runtime. |
@@ -47,6 +47,72 @@ A runtime for another engine should offer participant-like tools:
 - task state.
 
 It should log the audit trace events `runtime`, `phase`, `case-start`, `observation`, `action` and `case-end` to `<job-dir>/trace.jsonl`, in the shape the WebXR server writes (see "What it logs" below).
+
+## The window.xrStudy contract
+
+The built-in WebXR runtime serves a study's app folder, opens it in headless Chrome (1280 × 720) and plays it through one JavaScript object, `window.xrStudy`. Any app works: a three.js scene, a canvas, plain HTML. `examples/graphics-quality/webxr-app/main.js` is a complete example.
+
+### Declare the app in workspace.json
+
+```json
+"app": {
+  "serve": "app",
+  "query": "?width={condition}&study=1&participant={participant}",
+  "capabilities": ["pointer-xy", "phase-events", "quality-lock"],
+  "actions": [{ "name": "teleport", "description": "Teleport to a marker", "params": { "to": "marker name" }, "scored": true }],
+  "instructions": "Targets are small circles on a ring; the blue one is active."
+}
+```
+
+- `serve`: the app folder (inside the study folder); `query`: the URL per design (`{condition}` is the design ID; `{participant}` the person of an individual job, `population` otherwise).
+- `capabilities`: what the app provides. The agent gets only the tools of declared capabilities, the runtime reports them in its `runtime` trace event, and the executor blocks configurations whose study requires a capability (`study.json` → `runtime.requiredCapabilities`) the app does not declare. Without `capabilities`, the app is taken to provide the basic contract: `look`, `pointer-select`, `phase-events`. `screenshot` is always provided (Chrome takes the screenshots).
+- `actions`: the app's own task actions (below). Declaring any adds the `actions` capability; an app that lists its actions only at run time (`actions()`) declares `actions` in `capabilities`.
+- `instructions`: how to use the app's controls, shown to agents with the tool descriptions (the WebXR runtime has no Settings entry for this).
+
+| Capability | The app implements | The agent gets |
+| --- | --- | --- |
+| `screenshot` | nothing (always provided) | `screenshot` |
+| `look` | `look(azimuth, polar)` | `look` |
+| `pointer-select` | `listObjects()`, `select(id)` | `list_objects`, `select(object)` by neutral ID |
+| `pointer-xy` | optionally `pointer(x, y, kind)`; otherwise its own mouse handlers | `point_at(x, y)`, `click(x, y)` |
+| `actions` | `act(name, args)`, optionally `actions()` | `act(name, args)` |
+| `phase-events` | `getState()` with `phase`, `trial`, `done` | (the practice and main tasks are told apart) |
+| `quality-lock` | the design is fixed by the URL; the participant cannot switch it | (a promise the runtime cannot check) |
+
+Every app gets `open_design`, `screenshot` and `app_state`. For a pointing study (target width as the design), declare `pointer-xy` and not `pointer-select`: selecting by ID would make the target width irrelevant and a miss impossible.
+
+### Functions
+
+Every function may return a value or a Promise (resolve it when the action is done, for example after an animated walk).
+
+- **`getState()`** (required). Fields the runtime reads:
+  - `phase` (string): the phase the participant is in, `"practice"` during practice.
+  - `trial` (number): the trial or block counter.
+  - `done` (boolean): this design's task is finished.
+  - `instruction` (string): the instruction shown to the participant.
+  - `timeMs` (number, optional): the app's own clock; observations record it (`clock: "app"`), otherwise wall time since the design opened (`clock: "wall"`).
+  - `public` (object, optional): anything else the participant sees (progress, hits and misses in a HUD), at most 4,000 characters as JSON.
+
+  **How tasks advance.** The practice task ends when `phase` leaves `"practice"` if the app reports `"practice"`; otherwise when `trial` increases. The main task ends when `done` becomes true. An app that counts `trial` per target (every click) must therefore report `phase: "practice"` during practice, or the practice task ends after the first click. The runtime reads the state at the start of every tool call and, after every action, until it has not changed for 400 ms (at most 2 s), so delayed transitions (a fade, an animated walk) land in the right task. Keep fast-changing values (clocks, animation progress) out of `public`, or each action waits the full 2 s.
+- **`start()`** (required): starts the design's first task. Called once after the page loads.
+- **`look(azimuth, polar)`** (`look`): azimuth in degrees around the vertical axis (0 = the starting direction), polar in degrees down from straight up (0 = up, 90 = level, 180 = down). The runtime passes the full range; the app limits it and may return the view it applied (`{azimuth, polar}`), which the agent is told.
+- **`listObjects()`** (`pointer-select`, optional otherwise): `[{id, x, y, onScreen, visible, public}]`, with `x`, `y` the screen position from 0 to 1 from the top-left corner. The app decides visibility: an object behind a wall should report `visible: false`, and then its position is not shown. The runtime calls it before `start()`, after it and whenever the agent lists objects. It draws neutral IDs (`obj-1 …`) afresh for every design, in a random order; objects that appear later get the next IDs, and existing IDs never change. The mapping is written to `object-ids.jsonl` in the job folder.
+- **`select(id)`** (`pointer-select`): selects an object by the app's own ID.
+- **`pointer(x, y, kind)`** (`pointer-xy`, optional): `kind` is `"move"`, `"down"` or `"up"`; `x`, `y` from 0 to 1 from the top-left corner. Reply to `"move"` with `{over: <the app's object ID or null>}` and to `"up"` with the outcome. Without `pointer`, the runtime sends real mouse events (move, press, release, click) at that point, which the app's own handlers for human participants receive; it then records no outcome, and counts the click as an answer when the app's state changed. Either way the runtime draws a crosshair at the pointer, so screenshots show it.
+- **`act(name, args)`** (`actions`): performs one of the app's actions. **`actions()`** (optional) lists more actions at run time, in the same shape as `workspace.json` → `app.actions`: `{name, description, params, scored}`. `scored: false` marks an action that is not a task answer (turning, walking); the default is true. Declare required actions in `workspace.json`, so `study-check` can check them before any session.
+- **`log()`** (optional): the app's own log. The runtime saves it to `app-logs/<n>-<design>.json` in the job folder when the main task ends, when the agent leaves a design and when the session ends. It never reaches the agent.
+
+**Replies.** `select`, `pointer`, `act` (and `look`, see above) may reply with `{accepted, correct, hit, reason, over, public}`. `accepted: false` means the app refused (no active trial, a wall in the way): the action is recorded as not completed and not an answer. `correct` / `hit` is the feedback the participant gets; return them only if the participant perceives them (a flash, a sound).
+
+### What reaches the agent
+
+Only the documented fields above, with object IDs replaced by neutral ones: from `getState` (`phase`, `trial`, `done`, `instruction`, `public`), `listObjects` (`id`, `x`, `y`, `onScreen`, `visible`, `public`) and the replies. Everything else an app returns (internal IDs, answers, materials, layouts, its clock) stays in the browser. The app's code itself is another matter: a configuration that reads the project folder can read the task logic. Give app configurations no project files, or keep the task order and answers in data the agent cannot read; see `docs/methodology.md` (audit).
+
+### What the runtime logs
+
+`trace.jsonl` gets the `runtime`, `phase`, `case-start`, `observation`, `action` and `case-end` events of the [bridge contract](#study-bridge-contract). Action names: `look-around` (`look`), `point` (`point_at`), `select-target` (`select`, `click`), the app's own action names (`act`), and `complete-task` when the app moves on. Each action carries `scored` (a task answer), `completed` (false when the app refused), `result` (the documented reply, or null) and `args` (the neutral object ID, the point or the action's arguments). A task the agent leaves before the app reports it done ends with `submitted: false`. Use these names in the cases' `requiredActions`; `study-check` warns about required actions the runtime never records for the declared app.
+
+**Freezing.** A campaign fingerprints the app folder (every file except dot files and OS clutter such as `Thumbs.db` and `desktop.ini`), the query and the declarations; the runtime serves only those files. If any of them changes after the freeze, app sessions are refused until you freeze a new campaign or continue.
 
 ## Study bridge contract
 
@@ -69,9 +135,11 @@ An engine MCP server (for example ue-mcp) usually offers editor tools: spawn act
   "trace": "<job-dir>/trace.jsonl",
   "screenshots": "<job-dir>/screenshots",
   "designs": [{ "id": "SP", "label": "Spheres", "practice": { "caseId": "SP-practice", "phaseId": "practice" }, "main": { "caseId": "SP-main", "phaseId": "main" } }],
-  "cases": [{ "caseId": "SP-practice", "conditionId": "SP", "phaseId": "practice", "requiredActions": ["complete-task"] }]
+  "cases": [{ "caseId": "SP-practice", "conditionId": "SP", "phaseId": "practice", "requiredActions": ["complete-task"], "minActions": 3 }]
 }
 ```
+
+A case may also carry `"observeBeforeEachAction": true` (see "What it logs").
 
 - **Designs** come in the participant's order for individual configurations, and in study order otherwise.
 - **The bridge must refuse designs in the wrong order**, and must refuse anything that would reveal results.
@@ -99,7 +167,8 @@ An engine MCP server (for example ue-mcp) usually offers editor tools: spawn act
 ```
 
 - **The `runtime` event** says what the bridge and the engine really provide: engine and its version (asked from the engine), backend, device profile, observation (`mono` or `stereo-pair`) and capabilities. Write it once per session, when the engine is connected. The audit compares it with the study's frozen runtime recipe (`study.json` → `runtime`; `custom` engine or backend there means "not specified"). A session without it, or with a different observation, device profile or missing required capability, is recorded as a protocol deviation. The executor records the report in the run's execution record instead of copying `study.json`.
-- **Action names** are the case's `requiredActions`; a missing one is a protocol deviation.
+- **Action names** are the case's `requiredActions`; a missing one is a protocol deviation. Log one action per answer and mark it `"scored": true` (looking, walking and `complete-task` `"scored": false`): the audit checks a case's `minActions` against the scored actions, and with `observeBeforeEachAction` it requires an observation in the case before each of them. A bridge that marks none has every completed action except `complete-task` counted. An action the app refused is `"completed": false`; the app's reply may go in `"result"`.
+- **`case-end`** is `"submitted": true` only when the task was finished; a task the agent left is `false` (a deviation).
 - **Screenshots** are saved under `screenshots/` so the executor page can show the latest one.
 
 **Settings.** Declare the bridge's real capabilities (for example `screenshot`, `phase-events`). The executor blocks configurations whose study requires a capability the runtime does not declare. A runtime supports stereo configurations only when it declares `stereo-capture`.
