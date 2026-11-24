@@ -19,7 +19,7 @@ import type { AgentProtocol, Comparison, Domain, Study } from "./core/types.js";
 import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
 import { briefOverview, saveBrief } from "./brief.js";
-import { closeExecutor, Executor, liveStatuses, receiptsChanged } from "./executor/runner.js";
+import { closeExecutor, Executor, liveStatuses, receiptsChanged, type ExecutorEvent } from "./executor/runner.js";
 import { exportRunsReport, importRuns, runRecordPath } from "./executor/archive.js";
 import { LOADING, loadingInto } from "./executor/loading.js";
 import { capabilityWarnings, runtimeFor, runtimeStatus } from "./executor/runtimes.js";
@@ -181,14 +181,54 @@ function comparisonsOf(body: Body): Comparison[] | undefined {
   );
   return list as unknown as Comparison[] | undefined;
 }
+/** How long the event stream gathers session changes before sending them in one "jobs" event. */
+export const SSE_BATCH_MS = 250;
+/**
+ * The executor's live events for the website. Session changes are sent at most every
+ * SSE_BATCH_MS as one "jobs" event with only the fields that changed since this stream last sent
+ * them (a simulated session changes at every step; thousands of sessions made tens of thousands of
+ * whole-session events). Log and state events go out at once, after the session changes before
+ * them; a state event carries the executor's state (counts, queue, mode), so the page need not
+ * fetch every session again.
+ */
 function sse(res: ServerResponse, ex: Executor) {
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-store", Connection: "keep-alive" });
-  res.write(`data: ${JSON.stringify({ type: "snapshot", snapshot: ex.snapshot() })}\n\n`);
-  const listener = (e: unknown) => res.write(`data: ${JSON.stringify(e)}\n\n`);
+  const snapshot = ex.snapshot();
+  res.write(`data: ${JSON.stringify({ type: "snapshot", snapshot })}\n\n`);
+  const sent = new Map<string, Record<string, unknown>>(snapshot.jobs.map((j) => [j.jobId, { ...j }]));
+  const changed = new Set<string>();
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  const flush = () => {
+    if (timer) clearTimeout(timer);
+    timer = null;
+    if (!changed.size) return;
+    const jobs: Record<string, unknown>[] = [];
+    for (const jobId of changed) {
+      const now = ex.jobs.get(jobId) as unknown as Record<string, unknown> | undefined;
+      if (!now) continue;
+      const before = sent.get(jobId) ?? {};
+      const fields: Record<string, unknown> = { jobId };
+      for (const [k, v] of Object.entries(now)) if (!Object.is(before[k], v)) fields[k] = v;
+      sent.set(jobId, { ...now });
+      if (Object.keys(fields).length > 1) jobs.push(fields);
+    }
+    changed.clear();
+    if (jobs.length) res.write(`data: ${JSON.stringify({ type: "jobs", t: Date.now(), jobs })}\n\n`);
+  };
+  const listener = (e: ExecutorEvent) => {
+    if (e.type === "job" && e.jobId) {
+      changed.add(e.jobId);
+      timer ??= setTimeout(flush, SSE_BATCH_MS);
+      return;
+    }
+    flush();
+    res.write(`data: ${JSON.stringify(e.type === "state" ? { ...e, state: ex.state() } : e)}\n\n`);
+  };
   ex.listeners.add(listener);
   const ping = setInterval(() => res.write(": ping\n\n"), 15_000);
   res.on("close", () => {
     clearInterval(ping);
+    if (timer) clearTimeout(timer);
     ex.listeners.delete(listener);
   });
 }
@@ -523,7 +563,22 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       );
       const totals = Object.values(simulated).reduce((s, x) => ({ reused: s.reused + x.reused, runAgain: s.runAgain + x.runAgain }), { reused: 0, runAgain: 0 });
       if (preview) {
-        json({ preview: true, campaign: next, keepSimulated, simulated: { ...totals, byCondition: simulated }, sourceChanges: sourceNotes });
+        // What the website shows: counts per configuration. The whole new campaign (megabytes for
+        // large studies) only when asked for with "full".
+        const llm = next.jobs.filter((j) => j.kind === "llm");
+        json({
+          preview: true,
+          keepSimulated,
+          simulated: { ...totals, byCondition: simulated },
+          sourceChanges: sourceNotes,
+          continuation: next.continuation ?? null,
+          sessions: { total: llm.length, new: llm.filter((j) => !j.inheritedFrom).length, reused: next.jobs.filter((j) => j.inheritedFrom).length },
+          conditions: next.suite.conditions.map((c) => {
+            const jobs = next.jobs.filter((j) => j.conditionId === c.id);
+            return { id: c.id, label: c.label, model: next.conditionModels?.[c.id] ?? next.model, sessions: jobs.length, reused: jobs.filter((j) => j.inheritedFrom).length };
+          }),
+          ...(flag(body, "full") ? { campaign: next } : {}),
+        });
         return true;
       }
       loading();

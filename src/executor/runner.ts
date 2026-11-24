@@ -572,9 +572,12 @@ export class Executor implements Schedulable {
     }
   }
   snapshot() {
-    const jobs = [...this.jobs.values()];
+    return { ...this.state(), jobs: [...this.jobs.values()] };
+  }
+  /** The snapshot without its sessions: what a state event carries to the website. */
+  state() {
     const counts: Record<string, number> = {};
-    jobs.forEach((j) => (counts[j.status] = (counts[j.status] ?? 0) + 1));
+    for (const j of this.jobs.values()) counts[j.status] = (counts[j.status] ?? 0) + 1;
     return {
       campaignId: this.campaign.id,
       mode: this.mode,
@@ -583,7 +586,6 @@ export class Executor implements Schedulable {
       queued: this.queue.length,
       waiting: this.waiting,
       counts,
-      jobs,
     };
   }
   private emit(e: Omit<ExecutorEvent, "t">) {

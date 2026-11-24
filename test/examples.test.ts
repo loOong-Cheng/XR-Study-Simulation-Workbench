@@ -1414,12 +1414,12 @@ test("continue (website): only sessions with an accepted forecast are reused; si
     const changes = { repetitions: { "text-only": 4 } };
     const reusedFrom = (next: { jobs: { inheritedFrom?: { jobId: string } }[] }) => next.jobs.flatMap((j) => (j.inheritedFrom ? [j.inheritedFrom.jobId] : [])).sort();
     // Called as T2 did, without useReceipts: still only the accepted real forecast is reused.
-    const preview = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes, preview: true });
+    const preview = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes, preview: true, full: true });
     assert.deepEqual(reusedFrom(preview.campaign), [text[0].id]);
     assert.deepEqual(preview.simulated.byCondition["text-only"], { reused: 0, runAgain: 1 });
     assert.equal(preview.keepSimulated, false);
     // "Keep simulated runs": the simulated one is reused too, and the preview says so.
-    const kept = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes, keepSimulated: true, preview: true });
+    const kept = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes, keepSimulated: true, preview: true, full: true });
     assert.deepEqual(reusedFrom(kept.campaign), [text[0].id, text[1].id].sort());
     assert.deepEqual(kept.simulated.byCondition["text-only"], { reused: 1, runAgain: 0 });
     assert.equal(kept.simulated.reused, 1);
@@ -1431,7 +1431,7 @@ test("continue (website): only sessions with an accepted forecast are reused; si
     const fresh = new Set(child.jobs.filter((j) => !j.inheritedFrom).map((j) => j.templateJobId));
     for (const j of [text[1], text[2], project[0]]) assert.ok(fresh.has(j.templateJobId), j.id);
     // Continuing again from the child still reuses that one run, from the campaign that made it.
-    const again = await post("/api/workspace/continue", { id: a.id, campaignId: child.id, changes: { repetitions: { "text-only": 5 } }, preview: true });
+    const again = await post("/api/workspace/continue", { id: a.id, campaignId: child.id, changes: { repetitions: { "text-only": 5 } }, preview: true, full: true });
     assert.deepEqual(reusedFrom(again.campaign), [text[0].id]);
   } finally {
     await removeDir(a.dir);

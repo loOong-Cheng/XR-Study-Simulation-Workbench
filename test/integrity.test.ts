@@ -546,7 +546,7 @@ test("executor: a WebXR app changed after freezing blocks app sessions; the app'
     // A continuation runs the app configurations again (their runs played the old app), not the others.
     const { handlePost } = await import("../src/routes.js");
     let preview: Record<string, any> = {};
-    await handlePost("/api/workspace/continue", { id: a.id, campaignId: c.id, changes: { note: "new app" }, preview: true }, (v) => (preview = v as Record<string, any>));
+    await handlePost("/api/workspace/continue", { id: a.id, campaignId: c.id, changes: { note: "new app" }, preview: true, full: true }, (v) => (preview = v as Record<string, any>));
     assert.deepEqual(preview.sourceChanges, [`The WebXR app changed since this campaign was frozen: ${usesApp} runs again (its finished runs played the old version).`]);
     assert.deepEqual(preview.campaign.continuation.rerunConditions, ["uses-app"]);
     await writeFile(main, original);

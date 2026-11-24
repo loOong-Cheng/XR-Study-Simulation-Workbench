@@ -155,7 +155,8 @@ test("one executor per campaign: concurrent opens, Starts and event streams shar
     for (const s of streams) {
       const events = s.events();
       assert.equal(events[0].type, "snapshot");
-      const done = new Set(events.filter((e) => e.type === "job" && e.job?.status === "done").map((e) => e.jobId));
+      // Session changes arrive batched ("jobs": the fields that changed since the last batch).
+      const done = new Set(events.flatMap((e) => (e.type === "jobs" ? e.jobs.filter((j: { status?: string }) => j.status === "done").map((j: { jobId: string }) => j.jobId) : [])));
       assert.equal(done.size, jobs.length, "every stream sees every session finish");
     }
     // events.jsonl: written one line after another, so in the order of their times.

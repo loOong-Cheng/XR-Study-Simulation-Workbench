@@ -24,7 +24,7 @@ The website at `http://127.0.0.1:<port>` (`XR_STUDY_PORT`, default 4317) uses th
 | `/api/settings` | | `private/settings.json` (or `XR_STUDY_SETTINGS`) |
 | `/api/runtimes` | `id` | each runtime: available, capabilities, message |
 | `/api/executor/state` | `id`, `campaign` | the executor's snapshot: mode, paused, counts, every session (status, tokens, cost, error) |
-| `/api/executor/events` | `id`, `campaign` | server-sent events: a snapshot, then `job`, `log` and `state` events |
+| `/api/executor/events` | `id`, `campaign` | server-sent events: a snapshot, then `jobs` (session changes gathered for at most a quarter second, each entry `{jobId, …}` with only the fields that changed), `log` and `state` events (`state` carries the executor's state: mode, paused, running, queued, waiting, counts) |
 | `/api/executor/attempts` | `id`, `campaign`, `job` | every attempt of one session |
 | `/api/workspace/file` | `id`, `campaign`, `path` | a screenshot `jobs/<job>/a<n>/screenshots/<name>.jpg|png`; 404 otherwise |
 | `/api/runs/export` | `id`, `campaign` | the runs zip (*Save runs as zip*) |
@@ -42,7 +42,7 @@ The website at `http://127.0.0.1:<port>` (`XR_STUDY_PORT`, default 4317) uses th
 | `/api/workspace/knowledge-save` | `{id, study, agents, write?: [{sourceId, path, text}], unmap?: [sourceId]}` | saves reviewed knowledge files and their sources |
 | `/api/workspace/campaign-label` | `{id, campaignId, label?}` | names a campaign (`campaign-labels.json`) |
 | `/api/workspace/campaign-delete` | `{id, campaignId}` | moves a campaign and its runs to `deleted/`; refused while its sessions run |
-| `/api/workspace/continue` | `{id, campaignId, changes, preview?, keepSimulated?}` | a continuation from the receipts: finished sessions are reused, failed, stopped and never-started ones run again (simulated ones too unless `keepSimulated`). `preview: true` returns the campaign without saving. `changes`: `model`, `conditionModels`, `cloneConditions`, `addConditions`, `repetitions`, `dropConditions`, `rerunConditions`, `retryJobs`, `labels`, `note` ([model reruns](model-reruns.md)) |
+| `/api/workspace/continue` | `{id, campaignId, changes, preview?, keepSimulated?}` | a continuation from the receipts: finished sessions are reused, failed, stopped and never-started ones run again (simulated ones too unless `keepSimulated`). `preview: true` saves nothing and returns what would happen: `sessions` (`total`, `new`, `reused`), `conditions` (`id`, `label`, `model`, `sessions`, `reused`), `continuation`, `simulated` and `sourceChanges`; with `full: true` also the whole `campaign`. `changes`: `model`, `conditionModels`, `cloneConditions`, `addConditions`, `repetitions`, `dropConditions`, `rerunConditions`, `retryJobs`, `labels`, `note` ([model reruns](model-reruns.md)) |
 | `/api/executor/start` | `{id, campaignId, mode?, jobIds?}` | queues sessions; `mode` `"simulate"` (default) or `"agent"`; without `jobIds`, every session not run yet |
 | `/api/executor/blockers` | `{id, campaignId, jobIds?}` | why sessions cannot run as agents (runtime, sources, Claude Code), per message with the configurations |
 | `/api/executor/estimate` | `{id, campaignId, jobIds}` | cost estimate from earlier sessions with the same model settings |

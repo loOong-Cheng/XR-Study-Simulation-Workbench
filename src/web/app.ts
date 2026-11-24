@@ -111,7 +111,7 @@ function reusedNote(s: { jobs: JobState[] } | null | undefined): string {
   return parts.length ? ` (${parts.join(", ")})` : "";
 }
 /** A per-configuration sum row: sessions, real usage and cost so far. */
-function configSum(list: JobState[]) {
+function configSum(list: JobState[], toggle = "") {
   const real = list.filter((j) => (j.status === "done" || j.status === "failed") && !j.simulated);
   // Reused sessions count with the run they reuse (simulated or real); one that never ran is not done.
   const sim = list.filter((j) => j.simulated && (j.status === "done" || j.status === "reused")).length;
@@ -120,7 +120,7 @@ function configSum(list: JobState[]) {
   const cost = real.some((j) => j.costUsd != null) ? sum((j) => j.costUsd) : null;
   // Reused runs were paid in the campaign they ran in: shown per row, not added to this campaign's cost.
   const reusedCost = list.filter((j) => j.status === "reused" && j.costUsd != null).reduce((s, j) => s + j.costUsd!, 0);
-  return `<tr class="config-sum"><td></td><td colspan="3"><strong>${esc(list[0].label)}</strong> · ${done} of ${list.length} done${sim ? ` (${sim} simulated)` : ""}</td><td></td><td></td><td>${real.length ? `${fmtTokens(sum((j) => j.tokensIn))} / ${fmtTokens(sum((j) => j.tokensOut))}` : ""}</td><td>${cost != null ? `<strong>${money(cost)}</strong>` : ""}${reusedCost ? `<br><span class="small">reused: ${money(reusedCost)}, paid earlier</span>` : ""}</td></tr>`;
+  return `<tr class="config-sum"><td></td><td colspan="3"><strong>${esc(list[0].label)}</strong> · ${done} of ${list.length} done${sim ? ` (${sim} simulated)` : ""}${toggle}</td><td></td><td></td><td>${real.length ? `${fmtTokens(sum((j) => j.tokensIn))} / ${fmtTokens(sum((j) => j.tokensOut))}` : ""}</td><td>${cost != null ? `<strong>${money(cost)}</strong>` : ""}${reusedCost ? `<br><span class="small">reused: ${money(reusedCost)}, paid earlier</span>` : ""}</td></tr>`;
 }
 /**
  * What the agents of the campaign shown get, as links the researcher can read while sessions run.
@@ -379,6 +379,8 @@ function showCampaign(id: string | null) {
   attemptsOf = null;
   selectedJob = null;
   watched = new Set();
+  openGroups = new Map();
+  groupPages = new Map();
   chosen = new Set();
   pickConfigs = new Set();
   contBase = null;
@@ -512,7 +514,7 @@ async function loadCampaignInputs() {
 function connect() {
   events?.close();
   events = null;
-  snapshot = null;
+  setSnapshot(null);
   campaignInputs = null;
   if (!ws || !campaignId) return;
   void loadCampaignInputs();
@@ -549,33 +551,56 @@ function openStream() {
   source.onmessage = (m) => {
     const e = JSON.parse(m.data);
     if (e.type === "snapshot") {
-      snapshot = e.snapshot;
+      setSnapshot(e.snapshot);
       if (!e.snapshot.paused) mode = e.snapshot.mode === "agent" ? "agent" : "simulate";
     }
-    else if (e.type === "job" && snapshot) {
-      const i = snapshot.jobs.findIndex((j) => j.jobId === e.jobId);
-      const before = i >= 0 ? snapshot.jobs[i].status : null;
-      if (i >= 0) snapshot.jobs[i] = e.job;
-      recount();
-      // A session started, ended or was stopped: the campaign's progress changes.
-      if (before !== e.job?.status && ["running", "done", "failed", "stopped", "not-started"].includes(e.job?.status)) scheduleSummaryRefresh();
-    } else if (e.type === "log" && e.jobId) logs.set(e.jobId, [...(logs.get(e.jobId) ?? []), e.text].slice(-60));
+    // The server sends what changed in sessions at most every quarter second ("jobs": changed
+    // fields only); "job" carries one whole session.
+    else if (e.type === "jobs" && snapshot) for (const changed of e.jobs as Partial<JobState>[]) updateJob(changed.jobId!, changed, false);
+    else if (e.type === "job" && snapshot) updateJob(e.jobId, e.job, true);
+    else if (e.type === "log" && e.jobId) logs.set(e.jobId, [...(logs.get(e.jobId) ?? []), e.text].slice(-60));
     else if (e.type === "state") {
       scheduleSummaryRefresh();
-      void api<Snapshot>(`executor/state?id=${encodeURIComponent(ws!.id)}&campaign=${encodeURIComponent(campaignId!)}`).then((s) => {
-        snapshot = s;
-        // "Queue finished.", "Paused", "Stopped." belong to Run agents; other pages do not pop them up.
+      // "Queue finished.", "Paused", "Stopped." belong to Run agents; other pages do not pop them up.
+      if (e.state && snapshot) {
+        // The executor's state comes with the event (the sessions arrived as job events before it).
+        Object.assign(snapshot, e.state);
         if (e.text && page === "executor") toast(e.text);
-        scheduleRender();
-      }).catch(() => undefined);
+      } else
+        void api<Snapshot>(`executor/state?id=${encodeURIComponent(ws!.id)}&campaign=${encodeURIComponent(campaignId!)}`).then((s) => {
+          setSnapshot(s);
+          if (e.text && page === "executor") toast(e.text);
+          scheduleRender();
+        }).catch(() => undefined);
     }
     scheduleRender();
   };
 }
-function recount() {
+/** Where each session is in snapshot.jobs, so a live update finds it at once (large campaigns have thousands). */
+let jobIndex = new Map<string, number>();
+function setSnapshot(s: Snapshot | null) {
+  snapshot = s;
+  jobIndex = new Map((s?.jobs ?? []).map((j, i) => [j.jobId, i]));
+  groupCache = null;
+}
+/** A session changed: its row and the counts follow (counts by the status it leaves and the one it gets). */
+function updateJob(jobId: string, changed: Partial<JobState>, whole: boolean) {
   if (!snapshot) return;
-  snapshot.counts = {};
-  snapshot.jobs.forEach((j) => (snapshot!.counts[j.status] = (snapshot!.counts[j.status] ?? 0) + 1));
+  const i = jobIndex.get(jobId);
+  if (i === undefined) return;
+  const job = snapshot.jobs[i];
+  const before = job.status;
+  if (whole) snapshot.jobs[i] = changed as JobState;
+  else Object.assign(job, changed);
+  const after = snapshot.jobs[i].status;
+  if (before !== after) {
+    snapshot.counts[before] = (snapshot.counts[before] ?? 1) - 1;
+    if (!snapshot.counts[before]) delete snapshot.counts[before];
+    snapshot.counts[after] = (snapshot.counts[after] ?? 0) + 1;
+    // A session started, ended or was stopped: the campaign's progress changes.
+    if (["running", "done", "failed", "stopped", "not-started"].includes(after)) scheduleSummaryRefresh();
+  }
+  if (whole) groupCache = null;
 }
 let pending = false;
 /**
@@ -1193,7 +1218,9 @@ function tokenNote(a: AgentProtocol) {
   return `<p class="caption warn">This budget allows about ${callsForTokens(a.maxTokens)} tool calls; the tasks need at least ${min} (about ${fmtTokensLong(Math.ceil(needed / 100_000) * 100_000)} tokens: every call re-reads the growing context). Raise it, or expect forecasts submitted without the required tasks.</p>`;
 }
 const isIndividual = (a: AgentProtocol) => (a.level ?? study!.predictionLevel) === "individual";
-const defaultRunsOf = (a: AgentProtocol) => (isIndividual(a) ? newRepetitions : Math.max(1, study!.participants.length) * newRepetitions);
+/** The most runs a population configuration may have (MAX_POPULATION_RUNS in core/planner.ts); the automatic count stops there. */
+const MAX_POPULATION_RUNS = 1000;
+const defaultRunsOf = (a: AgentProtocol) => (isIndividual(a) ? newRepetitions : Math.min(MAX_POPULATION_RUNS, Math.max(1, study!.participants.length) * newRepetitions));
 const runsOf = (a: AgentProtocol) => a.repetitions ?? defaultRunsOf(a);
 
 /** All campaigns of the study as a tree (continuations under their parent), with labels, progress and cost. */
@@ -1247,15 +1274,15 @@ function renderFreeze() {
   if (!ws || !study) return "";
   const n = study.participants.length;
   const jobs = agents.reduce((sum, a) => sum + runsOf(a) * (isIndividual(a) ? n : 1), 0);
-  const above = agents.filter((a) => !isIndividual(a) && a.repetitions && a.repetitions > n * newRepetitions).map((a) => a.label);
+  const above = agents.filter((a) => !isIndividual(a) && a.repetitions && a.repetitions > Math.min(MAX_POPULATION_RUNS, n * newRepetitions)).map((a) => a.label);
   const next = freezeNext();
   return (
     heading("3 · PLANNER", "Freeze a campaign.", "Freezing locks the study and configurations into a campaign with a fixed list of sessions. Later changes become a continuation that reuses finished runs.") +
-    `<div class="freeze-layout"><section><div class="card"><h2>New campaign</h2><div class="row"><label class="field">Runs per participant<input type="number" min="1" max="50" id="new-reps" value="${newRepetitions}"></label><label class="field">Label (optional)<input id="new-label" value="${esc(newLabel)}" placeholder="e.g. pilot A×2, main run"></label></div><p class="caption">For configurations without their own count: individual configurations run ${newRepetitions}× per participant; population configurations get ${n} participants × ${newRepetitions} = ${n * newRepetitions} runs, the same number of forecasts. To fix a configuration's runs (for example fewer, to save usage), type a number in its Runs box below; leave it empty to follow this setting.${above.length ? ` More than ${n * newRepetitions} population runs: ${esc(above.join(", "))}.` : ""}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Runs</th><th>Sessions</th></tr></thead><tbody>${agents
+    `<div class="freeze-layout"><section><div class="card"><h2>New campaign</h2><div class="row"><label class="field">Runs per participant<input type="number" min="1" max="50" id="new-reps" value="${newRepetitions}"></label><label class="field">Label (optional)<input id="new-label" value="${esc(newLabel)}" placeholder="e.g. pilot A×2, main run"></label></div><p class="caption">For configurations without their own count: individual configurations run ${newRepetitions}× per participant; population configurations get ${n} participants × ${newRepetitions} = ${n * newRepetitions} runs, the same number of forecasts${n * newRepetitions > MAX_POPULATION_RUNS ? `, but at most ${MAX_POPULATION_RUNS}: they get ${MAX_POPULATION_RUNS} runs (the most a population configuration may have)` : ""}. To fix a configuration's runs (for example fewer, to save usage), type a number in its Runs box below; leave it empty to follow this setting.${above.length ? ` More than ${Math.min(MAX_POPULATION_RUNS, n * newRepetitions)} population runs: ${esc(above.join(", "))}.` : ""}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Runs</th><th>Sessions</th></tr></thead><tbody>${agents
       .map((a) => {
         const r = runsOf(a);
         const d = defaultRunsOf(a);
-        const source = !a.repetitions ? `auto: follows runs per participant (${d})` : a.repetitions < d ? `fixed, fewer than the default ${d}` : a.repetitions > d ? `fixed, more than the default ${d}` : "fixed, equals the default";
+        const source = !a.repetitions ? `auto: follows runs per participant (${d}${!isIndividual(a) && n * newRepetitions > MAX_POPULATION_RUNS ? `, capped at ${MAX_POPULATION_RUNS}` : ""})` : a.repetitions < d ? `fixed, fewer than the default ${d}` : a.repetitions > d ? `fixed, more than the default ${d}` : "fixed, equals the default";
         return `<tr><td>${esc(a.label)}</td><td>${isIndividual(a) ? "individual" : "population"}</td><td><input class="runs-input" type="number" min="1" max="${isIndividual(a) ? 50 : 1000}" data-cfg="${esc(a.id)}" data-field="repetitions" value="${a.repetitions ?? ""}" placeholder="auto" aria-label="Runs for ${esc(a.label)}"> ${isIndividual(a) ? "per participant" : "in total"}<br><span class="small">${source}</span>${ws!.missingSources?.[a.id]?.length ? `<br><span class="small warn">Cannot run as an agent: no file on this machine for ${esc(ws!.missingSources[a.id].join(", "))}</span>` : ""}</td><td>${isIndividual(a) ? `${r} × ${n} participants = ${r * n}` : r}</td></tr>`;
       })
       .join("")}<tr><td colspan="3"><strong>Total</strong></td><td><strong>${jobs}</strong></td></tr></tbody></table></div>${
@@ -1322,7 +1349,44 @@ function chooser(byConfig: Map<string, JobState[]>) {
 let watched = new Set<string>();
 let watchRunning = false;
 function shownJobs(): JobState[] {
-  return (snapshot?.jobs ?? []).filter((j) => watched.has(j.jobId) || (watchRunning && j.status === "running"));
+  // In table order, found through the index (no pass over every session).
+  if (!watchRunning)
+    return [...watched]
+      .flatMap((id) => (jobIndex.has(id) ? [jobIndex.get(id)!] : []))
+      .sort((x, y) => x - y)
+      .map((i) => snapshot!.jobs[i]);
+  return (snapshot?.jobs ?? []).filter((j) => watched.has(j.jobId) || j.status === "running");
+}
+/**
+ * Large campaigns (more than LARGE_CAMPAIGN sessions) show each configuration as one summary line
+ * until you open it, and an open configuration GROUP_PAGE sessions at a time: redrawing thousands
+ * of rows twice a second made the page unusable.
+ */
+const LARGE_CAMPAIGN = 200;
+const GROUP_PAGE = 50;
+/** Configurations opened or closed by hand, and the page each one shows (for the campaign shown). */
+let openGroups = new Map<string, boolean>();
+let groupPages = new Map<string, number>();
+const groupOpen = (agentId: string, total: number) => openGroups.get(agentId) ?? total <= LARGE_CAMPAIGN;
+/** The campaign's sessions by configuration, in table order (the lists hold the snapshot's own rows). */
+let groupCache: Map<string, JobState[]> | null = null;
+function jobGroups(): Map<string, JobState[]> {
+  if (!groupCache) {
+    groupCache = new Map();
+    for (const j of snapshot?.jobs ?? []) {
+      const list = groupCache.get(j.agentId);
+      if (list) list.push(j);
+      else groupCache.set(j.agentId, [j]);
+    }
+  }
+  return groupCache;
+}
+/** What a configuration's sessions are doing, for its summary line: "3 running · 2 failed". */
+function groupStatusText(list: JobState[]) {
+  const n: Record<string, number> = {};
+  for (const j of list) n[j.status] = (n[j.status] ?? 0) + 1;
+  const words: [string, string][] = [["running", "running"], ["queued", "waiting"], ["failed", "failed"], ["stopped", "stopped"], ["not-started", "not started"]];
+  return words.filter(([k]) => n[k]).map(([k, w]) => `${n[k]} ${w}`).join(" · ");
 }
 function tokenCell(j: JobState) {
   if (j.tokensIn == null && j.tokensOut == null) return "";
@@ -1394,8 +1458,10 @@ function renderExecutor() {
   const s = snapshot;
   const counts = s?.counts ?? {};
   const total = s?.jobs.length ?? 0;
-  const byConfig = new Map<string, JobState[]>();
-  s?.jobs.forEach((j) => byConfig.set(j.agentId, [...(byConfig.get(j.agentId) ?? []), j]));
+  const byConfig = jobGroups();
+  // Computed once per redraw (each row asks whether it is previewed).
+  const shown = shownJobs();
+  const shownIds = new Set(shown.map((j) => j.jobId));
   // Pause and Stop act on sessions that run or wait; with none they are off (no "Paused" while idle).
   const active = !!(s && (s.running || s.queued || counts.running || counts.queued));
   // SVG, because the page's security policy blocks inline style attributes.
@@ -1425,19 +1491,35 @@ function renderExecutor() {
     ${chooser(byConfig)}
     <div class="actions">${startButton(s)}${active ? btn("exec-pause", "Pause") : btn("exec-pause", "Pause", false, 'disabled title="Nothing is running or waiting."')}${resumeButton(s)}${active ? btn("exec-stop", "Stop") : btn("exec-stop", "Stop", false, 'disabled title="Nothing is running or waiting."')}${(counts.failed ?? 0) + (counts.stopped ?? 0) ? btn("exec-rerun", "Rerun failed", executorNext(s) === "rerun") : btn("exec-rerun", "Rerun failed", false, 'disabled title="No session failed or was stopped."')}${btn("exec-export", "Save runs as zip")}${btn("exec-import", "Load runs zip")}${executorNext(s) === "analyze" ? btn("goto:compare", "Compare agents →", true) : ""}</div>
     <p class="caption">${study?.synthetic ? "Simulated runs are labelled, and never pooled with real runs of the same configuration." : "This is a research study: simulated runs only test the pipeline. They are labelled and never scored against the human data."} Agent runs use your Claude usage; the start button asks first.</p></div>
-    <div class="preview-bar"><label class="check"><input type="checkbox" id="watch-running" ${watchRunning ? "checked" : ""}> Preview all running sessions</label>${shownJobs().length ? btn("preview-none", "Close previews") : ""}<span class="small">Click a session (or focus it and press Enter or Space) to preview it; Ctrl/⌘ or Shift with it previews several; again closes it.</span></div>
-    <div class="exec-layout ${shownJobs().length ? (shownJobs().length > 1 ? "multi" : "") : "no-preview"}"><div class="card job-table"><div class="table-scroll"><table><thead><tr><th><span class="sr-only">Choose</span></th><th>Configuration</th><th>Job</th><th>Status</th><th title="Tool calls before the forecast; submitting the forecast is not counted">Tools</th><th>Last step</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${[...byConfig]
-      .map(([, list]) =>
-        configSum(list) +
-        list
-          .map(
-            (j, i) =>
-              `<tr class="${shownJobs().some((x) => x.jobId === j.jobId) ? "selected-row" : ""}" data-job="${esc(j.jobId)}" tabindex="0" aria-selected="${shownJobs().some((x) => x.jobId === j.jobId)}"><td>${canRun(j) ? `<input type="checkbox" data-pick-job="${esc(j.jobId)}" ${chosen.has(j.jobId) ? "checked" : ""} aria-label="Choose ${esc(j.label)} ${esc(j.jobId)}">` : ""}</td><td>${i === 0 ? esc(j.label) : ""}</td><td>${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition}${j.attempts > 1 ? ` (a${j.attempts})` : ""}</td><td><span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status === "queued" ? "waiting" : j.status}${j.simulated ? " · sim" : ""}</span></td><td>${j.toolCalls || ""}</td><td class="wrap small">${j.warning ? `<span class="warn">${esc(j.warning)}</span>${j.error || j.lastTool ? "<br>" : ""}` : ""}${esc(j.error ?? j.lastTool ?? "")}</td><td>${j.simulated ? '<span class="small">— (simulated)</span>' : tokenCell(j)}</td><td>${costCell(j)}</td></tr>`,
-          )
-          .join(""),
-      )
+    <div class="preview-bar"><label class="check"><input type="checkbox" id="watch-running" ${watchRunning ? "checked" : ""}> Preview all running sessions</label>${shown.length ? btn("preview-none", "Close previews") : ""}<span class="small">Click a session (or focus it and press Enter or Space) to preview it; Ctrl/⌘ or Shift with it previews several; again closes it.${total > LARGE_CAMPAIGN ? ` With more than ${LARGE_CAMPAIGN} sessions, each configuration's sessions are shown on request, ${GROUP_PAGE} at a time.` : ""}</span></div>
+    <div class="exec-layout ${shown.length ? (shown.length > 1 ? "multi" : "") : "no-preview"}"><div class="card job-table"><div class="table-scroll"><table><thead><tr><th><span class="sr-only">Choose</span></th><th>Configuration</th><th>Job</th><th>Status</th><th title="Tool calls before the forecast; submitting the forecast is not counted">Tools</th><th>Last step</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${[...byConfig]
+      .map(([agentId, list]) => {
+        // Large campaigns: a configuration's sessions on request, a page at a time.
+        const open = groupOpen(agentId, total);
+        const pages = Math.ceil(list.length / GROUP_PAGE);
+        const at = Math.max(0, Math.min(groupPages.get(agentId) ?? 0, pages - 1));
+        const rows = !open ? [] : pages > 1 ? list.slice(at * GROUP_PAGE, (at + 1) * GROUP_PAGE) : list;
+        const toggle =
+          total > LARGE_CAMPAIGN || !open
+            ? ` · ${groupStatusText(list)} ${btn(`group-toggle:${agentId}`, open ? "Hide sessions" : `Show sessions`, false, `aria-expanded="${open}" aria-label="${open ? "Hide" : "Show"} the sessions of ${esc(list[0].label)}"`)}`
+            : "";
+        const pager =
+          open && pages > 1
+            ? `<tr class="group-pager"><td></td><td colspan="7"><span class="small">Sessions ${at * GROUP_PAGE + 1}–${Math.min(list.length, (at + 1) * GROUP_PAGE)} of ${list.length}</span> ${btn(`group-prev:${agentId}`, "Previous", false, at === 0 ? "disabled" : "")}${btn(`group-next:${agentId}`, "Next", false, at >= pages - 1 ? "disabled" : "")}</td></tr>`
+            : "";
+        return (
+          configSum(list, toggle) +
+          rows
+            .map(
+              (j, i) =>
+                `<tr class="${shownIds.has(j.jobId) ? "selected-row" : ""}" data-job="${esc(j.jobId)}" tabindex="0" aria-selected="${shownIds.has(j.jobId)}"><td>${canRun(j) ? `<input type="checkbox" data-pick-job="${esc(j.jobId)}" ${chosen.has(j.jobId) ? "checked" : ""} aria-label="Choose ${esc(j.label)} ${esc(j.jobId)}">` : ""}</td><td>${i === 0 ? esc(j.label) : ""}</td><td>${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition}${j.attempts > 1 ? ` (a${j.attempts})` : ""}</td><td><span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status === "queued" ? "waiting" : j.status}${j.simulated ? " · sim" : ""}</span></td><td>${j.toolCalls || ""}</td><td class="wrap small">${j.warning ? `<span class="warn">${esc(j.warning)}</span>${j.error || j.lastTool ? "<br>" : ""}` : ""}${esc(j.error ?? j.lastTool ?? "")}</td><td>${j.simulated ? '<span class="small">— (simulated)</span>' : tokenCell(j)}</td><td>${costCell(j)}</td></tr>`,
+            )
+            .join("") +
+          pager
+        );
+      })
       .join("")}</tbody></table></div></div>
-    ${shownJobs().length ? `<div class="job-detail ${shownJobs().length > 1 ? "tiles" : ""}">${shownJobs().map((x) => previewTile(x, shownJobs().length === 1)).join("")}</div>` : ""}</div>`
+    ${shown.length ? `<div class="job-detail ${shown.length > 1 ? "tiles" : ""}">${shown.map((x) => previewTile(x, shown.length === 1)).join("")}</div>` : ""}</div>`
   );
 }
 
@@ -1688,16 +1770,15 @@ function renderContinue() {
       p
         ? (() => {
             const sim = contPreviewSim;
-            const reused = p.jobs.filter((j: any) => j.inheritedFrom).length;
+            const reused = p.sessions.reused;
             const simLine = sim?.reused
               ? ` ${sim.reused} of the reused runs ${sim.reused === 1 ? "is" : "are"} simulated (invented); they test the pipeline, not prediction quality.`
               : "";
             const againLine = sim?.runAgain ? ` ${sim.runAgain} session${sim.runAgain === 1 ? " was" : "s were"} only simulated and run${sim.runAgain === 1 ? "s" : ""} again.` : "";
-            return `<div class="divider"></div>${contPreviewSources.map((n) => `<div class="notice">${esc(n)}</div>`).join("")}<p class="caption">${plural(p.jobs.filter((j: any) => j.kind === "llm" && !j.inheritedFrom).length, "new session")}, ${reused} reused (only sessions with an accepted forecast are reused).${simLine}${againLine}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Model</th><th>Sessions</th><th>Reused</th></tr></thead><tbody>${p.suite.conditions
+            return `<div class="divider"></div>${contPreviewSources.map((n) => `<div class="notice">${esc(n)}</div>`).join("")}<p class="caption">${plural(p.sessions.new, "new session")}, ${reused} reused (only sessions with an accepted forecast are reused).${simLine}${againLine}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Model</th><th>Sessions</th><th>Reused</th></tr></thead><tbody>${p.conditions
               .map((c: any) => {
-                const jobs = p.jobs.filter((j: any) => j.conditionId === c.id);
                 const s = sim?.byCondition[c.id];
-                return `<tr><td>${esc(c.label)}</td><td>${esc(modelText(p.conditionModels?.[c.id] ?? p.model))}</td><td>${jobs.length}</td><td>${jobs.filter((j: any) => j.inheritedFrom).length}${s?.reused ? `<br><span class="small warn">${s.reused} simulated</span>` : ""}${s?.runAgain ? `<br><span class="small">${s.runAgain} simulated run again</span>` : ""}</td></tr>`;
+                return `<tr><td>${esc(c.label)}</td><td>${esc(modelText(c.model))}</td><td>${c.sessions}</td><td>${c.reused}${s?.reused ? `<br><span class="small warn">${s.reused} simulated</span>` : ""}${s?.runAgain ? `<br><span class="small">${s.runAgain} simulated run again</span>` : ""}</td></tr>`;
               })
               .join("")}</tbody></table></div>`;
           })()
@@ -2074,6 +2155,13 @@ async function action(name: string) {
       chosen = new Set();
       pickConfigs = new Set();
       break;
+    case "group-toggle":
+      openGroups.set(arg, !groupOpen(arg, snapshot?.jobs.length ?? 0));
+      break;
+    case "group-prev":
+    case "group-next":
+      groupPages.set(arg, Math.max(0, (groupPages.get(arg) ?? 0) + (verb === "group-next" ? 1 : -1)));
+      break;
     case "exec-one": {
       // One session first: the cautious way to try a new runtime or model before starting all.
       if (mode === "agent") {
@@ -2302,7 +2390,7 @@ async function action(name: string) {
       break;
     case "cont-preview": {
       const r = await continueCampaign(true);
-      contPreview = r.campaign;
+      contPreview = r;
       contPreviewSim = r.simulated ?? null;
       contPreviewSources = r.sourceChanges ?? [];
       break;

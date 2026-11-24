@@ -323,7 +323,7 @@ test("continue: configurations whose sources changed run again; added or changed
     const csv = join(a.dir, ws.manifest.sources!.demographics);
     await writeFile(csv, (await readFile(csv, "utf8")) + "\n");
     let preview: Record<string, any> = {};
-    await handlePost("/api/workspace/continue", { id: a.id, campaignId: c1.id, changes: { note: "more", repetitions: { "text-only": 2 } }, keepSimulated: true, preview: true }, (v) => (preview = v as Record<string, any>));
+    await handlePost("/api/workspace/continue", { id: a.id, campaignId: c1.id, changes: { note: "more", repetitions: { "text-only": 2 } }, keepSimulated: true, preview: true, full: true }, (v) => (preview = v as Record<string, any>));
     const label = pick.find((p) => p.id === "knows-participant")!.label;
     assert.deepEqual(preview.sourceChanges, [`Participant demographics changed since this campaign was frozen: ${label} runs again (its finished runs used the old version).`]);
     const next = preview.campaign as Campaign;
