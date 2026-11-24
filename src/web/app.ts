@@ -41,7 +41,7 @@ let saved = "";
 let settings: Settings | null = null;
 let runtimes: RuntimeStatus[] = [];
 let showAllRuntimes = false;
-interface EvidenceItem { id: string; label: string; description: string; path: string | null; exists: boolean; bytes: number; sha256: string | null; preview: string; truncated: boolean; configs: string[]; check: { participantIds: number; humanMeanMatches: number; checkedAgainstHuman: boolean } | null }
+interface EvidenceItem { id: string; label: string; description: string; path: string | null; problem: string | null; exists: boolean; bytes: number; sha256: string | null; preview: string; truncated: boolean; configs: string[]; check: { participantIds: number; humanMeanMatches: number; checkedAgainstHuman: boolean } | null }
 let evidence: EvidenceItem[] | null = null;
 interface ParticipantItem { id: string; label: string; kind: string; description: string; fields: string[]; path: string | null; exists: boolean; sha256: string | null; participants: number; problems: string[]; columns: { name: string; missing: string[] }[]; population: string | null; individual: { participantId: string; text: string } | null; configs: string[] }
 let participantKnowledge: ParticipantItem[] = [];
@@ -389,7 +389,7 @@ function generalSection() {
         : "";
       const editing = knowledgeEdit?.id === e.id && knowledgeEdit.mode === "text";
       return `<div class="card"><div class="card-heading"><div><h3>${esc(e.label)}</h3><p class="caption">${esc(e.description)}</p></div><span class="tag">general</span></div>
-        <p class="caption">${e.exists ? `${esc(e.path)} · ${(e.bytes / 1024).toFixed(1)} KB · sha256 ${esc(e.sha256!.slice(0, 16))}… · <a href="/api/workspace/source?id=${encodeURIComponent(ws!.id)}&source=${encodeURIComponent(e.id)}" target="_blank" rel="noopener">open full text</a>` : `<span class="warn">No file on this machine${e.path ? ` (${esc(e.path)} is missing)` : ""}.</span>`} · ${usedText(e.id)}</p>
+        <p class="caption">${e.exists ? `${esc(e.path)} · ${(e.bytes / 1024).toFixed(1)} KB · sha256 ${esc(e.sha256!.slice(0, 16))}… · <a href="/api/workspace/source?id=${encodeURIComponent(ws!.id)}&source=${encodeURIComponent(e.id)}" target="_blank" rel="noopener">open full text</a>` : `<span class="warn">${e.problem && e.path ? `Not usable: this source ${esc(e.problem)}` : `No file on this machine${e.path ? ` (${esc(e.path)} is missing)` : ""}`}.</span>`} · ${usedText(e.id)}</p>
         ${knowledgeActions(e.id, "general")}${renameForm(e.id, e.label, e.description)}
         ${editing ? `<label class="field">Text (Markdown)<textarea id="k-text" rows="18">${esc(knowledgeEdit!.text ?? "")}</textarea></label><div class="actions">${btn(`k-text-save:${e.id}`, "Save text", true)}${btn("k-cancel", "Cancel")}</div>` : `${check}${e.exists ? `<pre class="preview">${esc(e.preview)}${e.truncated ? "\n…" : ""}</pre>` : ""}`}</div>`;
     })

@@ -2,7 +2,7 @@
 // attempt of a session. Labels live beside the frozen campaigns (campaign-labels.json), so frozen
 // files are never edited.
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, writeFile } from "node:fs/promises";
+import { mkdir, readFile, readdir, rename, rmdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { conditionModel, type Campaign, type CampaignModel } from "./core/campaign.js";
 import { hash } from "./core/planner.js";
@@ -143,21 +143,42 @@ export async function sessionAttempts(id: string, campaign: Campaign, jobId: str
  * nothing is lost by mistake (remove that folder to free the space). Refused for a campaign that
  * another campaign continues from (its runs are reused there).
  */
+const deleting = new Set<string>();
+const ALREADY_DELETED = "This campaign was already deleted.";
 export async function deleteCampaign(id: string, campaignId: string) {
-  const campaigns = await listCampaigns(id);
-  const c = campaigns.find((x) => x.id === campaignId);
-  requireThat(c, "Unknown campaign.");
-  const children = campaigns.filter((x) => x.id !== campaignId && (x.parentDigest === c!.digest || (x.lineage ?? []).includes(c!.digest)));
-  requireThat(!children.length, `Other campaigns continue from this one and reuse its runs (${children.map((x) => x.id.slice(9, 17)).join(", ")}). Delete those first.`);
-  const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..*/, "").replace("T", "-");
-  const target = join(workspaceDir(id), "deleted", `${stamp}-${campaignId}`);
-  await mkdir(target, { recursive: true });
-  await rename(join(workspaceDir(id), "campaigns", campaignId), join(target, "campaign"));
-  if (existsSync(runDir(id, campaignId))) await rename(runDir(id, campaignId), join(target, "runs"));
-  const labels = await readLabels(id);
-  if (labels[campaignId]) {
-    delete labels[campaignId];
-    await writeFile(labelsPath(id), JSON.stringify(labels, null, 2) + "\n");
+  const key = `${workspaceDir(id)}::${campaignId}`;
+  // Two delete requests at once: the second one is told, instead of failing halfway.
+  requireThat(!deleting.has(key), ALREADY_DELETED);
+  deleting.add(key);
+  try {
+    const campaigns = await listCampaigns(id);
+    const c = campaigns.find((x) => x.id === campaignId);
+    if (!c) {
+      const gone = existsSync(join(workspaceDir(id), "deleted")) && (await readdir(join(workspaceDir(id), "deleted"))).some((f) => f.endsWith(`-${campaignId}`));
+      throw new Error(gone ? ALREADY_DELETED : "Unknown campaign.");
+    }
+    const children = campaigns.filter((x) => x.id !== campaignId && (x.parentDigest === c.digest || (x.lineage ?? []).includes(c.digest)));
+    requireThat(!children.length, `Other campaigns continue from this one and reuse its runs (${children.map((x) => x.id.slice(9, 17)).join(", ")}). Delete those first.`);
+    const stamp = new Date().toISOString().replace(/[-:]/g, "").replace(/\..*/, "").replace("T", "-");
+    // Shown to the researcher: always with "/" (also on Windows).
+    const movedTo = `deleted/${stamp}-${campaignId}`;
+    const target = join(workspaceDir(id), "deleted", `${stamp}-${campaignId}`);
+    await mkdir(target, { recursive: true });
+    try {
+      await rename(join(workspaceDir(id), "campaigns", campaignId), join(target, "campaign"));
+    } catch (e) {
+      await rmdir(target).catch(() => undefined); // only if still empty
+      if ((e as NodeJS.ErrnoException).code === "ENOENT") throw new Error(ALREADY_DELETED);
+      throw e;
+    }
+    if (existsSync(runDir(id, campaignId))) await rename(runDir(id, campaignId), join(target, "runs"));
+    const labels = await readLabels(id);
+    if (labels[campaignId]) {
+      delete labels[campaignId];
+      await writeFile(labelsPath(id), JSON.stringify(labels, null, 2) + "\n");
+    }
+    return { deleted: campaignId, movedTo };
+  } finally {
+    deleting.delete(key);
   }
-  return { deleted: campaignId, movedTo: target.slice(workspaceDir(id).length + 1) };
 }

@@ -7,10 +7,11 @@
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash, randomInt } from "node:crypto";
 import { createServer, type Server } from "node:http";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { extname, join, resolve, sep } from "node:path";
+import { extname, join, resolve } from "node:path";
+import { agentPath } from "./guard.js";
 import { serveMcp, text, ToolError, type Tool } from "./mcp.js";
 
 interface WebXRSpec {
@@ -46,17 +47,29 @@ async function countCall(tool: string) {
 
 // ---------- static app server ----------
 const types: Record<string, string> = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".png": "image/png", ".jpg": "image/jpeg", ".json": "application/json", ".glb": "model/gltf-binary", ".wasm": "application/wasm" };
-const appRoot = resolve(spec.app.dir);
+const appRoot = (() => {
+  try {
+    return realpathSync(resolve(spec.app.dir));
+  } catch {
+    return resolve(spec.app.dir);
+  }
+})();
 let appPort = 0;
 const server: Server = createServer(async (req, res) => {
-  const path = resolve(appRoot, "." + decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname));
-  const file = path.endsWith(sep) || path === appRoot ? join(path, "index.html") : path;
-  if ((file !== appRoot && !file.startsWith(appRoot + sep)) || !existsSync(file)) {
-    res.writeHead(404).end();
-    return;
+  try {
+    const path = resolve(appRoot, "." + decodeURIComponent(new URL(req.url ?? "/", "http://x").pathname));
+    // Only files of the app folder (symlinks resolved); never human results or run records.
+    const real = agentPath(appRoot, path === appRoot || (existsSync(path) && statSync(path).isDirectory()) ? join(path, "index.html") : path);
+    if (!real || !statSync(real).isFile()) {
+      res.writeHead(404).end();
+      return;
+    }
+    res.writeHead(200, { "Content-Type": types[extname(real)] ?? "application/octet-stream" });
+    res.end(await readFile(real));
+  } catch {
+    if (!res.headersSent) res.writeHead(404);
+    res.end();
   }
-  res.writeHead(200, { "Content-Type": types[extname(file)] ?? "application/octet-stream" });
-  res.end(await readFile(file));
 });
 await new Promise<void>((ok) => server.listen(0, "127.0.0.1", () => ok()));
 appPort = (server.address() as { port: number }).port;

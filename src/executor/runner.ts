@@ -14,7 +14,7 @@ import { agentLevel, agentTargets, hash, jobPacket, protocolForJob } from "../co
 import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent } from "../core/types.js";
 import { requireThat } from "../core/validation.js";
 import { claudeCommand, readSettings, runtimeLimits, type Settings } from "../settings.js";
-import { listCampaigns, missingSources, readCampaign, readHuman, readReceipts, readWorkspace, repoRoot, runDir, type WorkspaceManifest } from "../workspace.js";
+import { listCampaigns, missingSources, readCampaign, readHuman, readReceipts, readWorkspace, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
 import { runtimeFor, runtimeStatus } from "./runtimes.js";
 import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
@@ -59,6 +59,7 @@ const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const registry = new Map<string, Executor>();
 /** Drop the executor of a campaign before it is deleted; refused while its sessions run. */
 export function closeExecutor(workspaceId: string, campaignId: string) {
+  workspaceDir(workspaceId); // only the canonical study ID, so the key below is the one open() used
   const ex = registry.get(`${workspaceId}::${campaignId}`);
   requireThat(!ex || ex.running.size === 0, "Sessions of this campaign are running. Stop them first.");
   registry.delete(`${workspaceId}::${campaignId}`);
@@ -104,6 +105,7 @@ export class Executor {
   ) {}
 
   static async open(workspaceId: string, campaignId: string): Promise<Executor> {
+    workspaceDir(workspaceId); // one executor per study: refuse any non-canonical spelling of its ID
     const key = `${workspaceId}::${campaignId}`;
     if (registry.has(key)) return registry.get(key)!;
     const campaign = await readCampaign(workspaceId, campaignId);
@@ -417,7 +419,8 @@ export class Executor {
     const packet = jobPacket(this.plan, job) as { task: Record<string, unknown> };
     const protocol = protocolForJob(this.plan, job);
     const targets = agentTargets(study, a);
-    const src = (id: string) => (this.manifest.sources?.[id] ? resolve(wsDir, this.manifest.sources[id]) : null);
+    // The real path under the one source rule (inside the study; a project may be an absolute path elsewhere).
+    const src = (id: string) => sourceLocation(wsDir, kindOf(id) ?? "", this.manifest.sources?.[id]).path ?? null;
     // Each injected source is titled with its own name, so an agent with several can tell them apart.
     const labelOf = (id: string) => study.sources.find((s) => s.id === id)?.label ?? id;
     const kindOf = (id: string) => study.sources.find((s) => s.id === id)?.kind;

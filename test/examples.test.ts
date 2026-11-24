@@ -1088,7 +1088,8 @@ test("campaign delete: moves the campaign and its runs to deleted/, never one an
     // With its child gone, the parent can be deleted too.
     await deleteCampaign(a.id, parent.id);
     assert.equal((await listCampaigns(a.id)).length, 0);
-    await assert.rejects(deleteCampaign(a.id, parent.id), /Unknown campaign/);
+    await assert.rejects(deleteCampaign(a.id, parent.id), /This campaign was already deleted/);
+    await assert.rejects(deleteCampaign(a.id, "campaign-never-made"), /Unknown campaign/);
   } finally {
     await removeDir(a.dir);
   }

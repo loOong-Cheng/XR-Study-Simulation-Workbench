@@ -3,9 +3,10 @@
 // Tools: list_files/read_file (only the permitted project folder), submit_forecast.
 // Every call is appended to <job-dir>/trace.jsonl and counted against the budget.
 import { createHash } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync } from "node:fs";
 import { appendFile, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
+import { agentPath, hiddenFromAgents, within } from "./guard.js";
 import { serveMcp, text, ToolError, type Tool } from "./mcp.js";
 
 export interface JobSpec {
@@ -48,12 +49,25 @@ async function countCall(tool: string): Promise<void> {
   if (tool !== "submit_forecast" && used > spec.budget)
     throw new ToolError(`Tool budget of ${spec.budget} calls is used up. Submit your forecast now with submit_forecast.`);
 }
-function inside(path: string): string {
+// The permitted folder with symlinks resolved; every path is checked against it after resolving its own symlinks.
+const projectRoot = (() => {
+  try {
+    return spec.projectDir ? realpathSync(spec.projectDir) : null;
+  } catch {
+    return null;
+  }
+})();
+/** Project-relative path for the trace, with "/" on every system. */
+const shown = (p: string) => relative(projectRoot!, p).split(sep).join("/") || ".";
+function inside(path: string, what: "file" | "folder"): string {
   if (!spec.projectDir) throw new ToolError("This configuration has no access to project files.");
-  const target = resolve(spec.projectDir, path || ".");
-  if (target !== spec.projectDir && !target.startsWith(spec.projectDir + sep))
-    throw new ToolError("Only the approved project folder can be read.");
-  return target;
+  if (!projectRoot) throw new ToolError("The project folder is not available on this machine.");
+  const target = resolve(projectRoot, path || ".");
+  if (!within(projectRoot, target)) throw new ToolError("Only the approved project folder can be read.");
+  // Symlinks may not lead out of the folder, and human results or run records are never given out.
+  const real = agentPath(projectRoot, target);
+  if (!real) throw new ToolError(existsSync(target) && within(projectRoot, target) ? "This path is not available to agents." : `No such ${what}.`);
+  return real;
 }
 const tools: Tool[] = [];
 if (spec.projectDir) {
@@ -64,12 +78,13 @@ if (spec.projectDir) {
       inputSchema: { type: "object", properties: { path: { type: "string", description: "Subfolder, default the project root" } } },
       async handler(args) {
         await countCall("list_files");
-        const dir = inside(String(args.path ?? "."));
+        const dir = inside(String(args.path ?? "."), "folder");
+        if (!(await stat(dir)).isDirectory()) throw new ToolError("No such folder.");
         const entries = await readdir(dir, { withFileTypes: true });
-        await log({ tool: "list_files", path: relative(spec.projectDir!, dir) || "." });
+        await log({ tool: "list_files", path: shown(dir) });
         return text(
           entries
-            .filter((e) => !e.name.startsWith("."))
+            .filter((e) => !e.name.startsWith(".") && !hiddenFromAgents(join(dir, e.name)))
             .map((e) => (e.isDirectory() ? e.name + "/" : e.name))
             .join("\n") || "(empty)",
         );
@@ -81,12 +96,12 @@ if (spec.projectDir) {
       inputSchema: { type: "object", properties: { path: { type: "string" } }, required: ["path"] },
       async handler(args) {
         await countCall("read_file");
-        const file = inside(String(args.path ?? ""));
-        if (!existsSync(file) || !(await stat(file)).isFile()) throw new ToolError("No such file.");
+        const file = inside(String(args.path ?? ""), "file");
+        if (!(await stat(file)).isFile()) throw new ToolError("No such file.");
         const data = await readFile(file);
         await log({
           tool: "read_file",
-          path: relative(spec.projectDir!, file),
+          path: shown(file),
           event: { type: "source", sourceId: "project", delivery: "read", sha256: sha(data) },
         });
         return text(data.toString("utf8").slice(0, 100_000));

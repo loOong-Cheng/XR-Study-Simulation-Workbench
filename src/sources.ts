@@ -4,10 +4,10 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
-import { basename, dirname, join, resolve, sep } from "node:path";
+import { basename, dirname, join } from "node:path";
 import type { Study } from "./core/types.js";
 import { measurementValue, requireThat } from "./core/validation.js";
-import { readHuman, readWorkspace, repoRoot, type WorkspaceManifest } from "./workspace.js";
+import { readHuman, readWorkspace, sourceLocation, studyWriteTarget, type WorkspaceManifest } from "./workspace.js";
 import { backgroundText, columnGaps, idColumn, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS } from "./participant-knowledge.js";
 import { draftKnowledge } from "./assistant.js";
 import { extractProposal } from "./core/proposal.js";
@@ -17,16 +17,14 @@ import { validateAgents, validateStudy } from "./core/validation.js";
 const READABLE = ["brief", "project", "evidence"];
 const sha = (x: string | Buffer) => createHash("sha256").update(x).digest("hex");
 
-/** Where a source lives, only if it is a readable kind, mapped, exists and is inside the repository. */
+/** Where a source lives, only if it is a readable kind, mapped, and allowed by sourceLocation (the agents' rule). */
 async function sourcePath(id: string, sourceId: string) {
   const ws = await readWorkspace(id);
   const src = ws.study.sources.find((s) => s.id === sourceId);
   requireThat(src && READABLE.includes(src.kind), "Only the brief, project and evidence sources can be shown here.");
-  const rel = ws.manifest.sources?.[sourceId];
-  requireThat(rel, `Source '${sourceId}' has no file on this machine (workspace.json → sources).`);
-  const path = resolve(ws.dir, rel!);
-  requireThat(path.startsWith(repoRoot + sep) && existsSync(path) && !/human\.json$/i.test(path), `Source '${sourceId}' was not found.`);
-  return { ws, src: src!, path, rel: rel! };
+  const where = sourceLocation(ws.dir, src!.kind, ws.manifest.sources?.[sourceId]);
+  requireThat(where.path, `Source '${sourceId}' ${where.problem}.`);
+  return { ws, src: src!, path: where.path!, rel: ws.manifest.sources![sourceId] };
 }
 async function tree(root: string, prefix = "", out: string[] = []): Promise<string[]> {
   for (const e of await readdir(join(root, prefix), { withFileTypes: true })) {
@@ -79,14 +77,17 @@ export async function evidenceOverview(id: string, agents: { id: string; label: 
   const out = [];
   for (const src of ws.study.sources.filter((s) => s.kind === "evidence")) {
     const rel = ws.manifest.sources?.[src.id] ?? null;
-    const path = rel ? resolve(ws.dir, rel) : null;
-    const file = path && existsSync(path) && !(await stat(path)).isDirectory() ? await readFile(path) : null;
+    // The same rule as for agents: only a file inside the study folder is previewed.
+    const where = rel ? sourceLocation(ws.dir, src.kind, rel) : null;
+    const path = where?.path ?? null;
+    const file = path && !(await stat(path)).isDirectory() ? await readFile(path) : null;
     const text = file?.toString("utf8") ?? "";
     out.push({
       id: src.id,
       label: src.label,
       description: src.description,
       path: rel,
+      problem: where?.problem ?? null,
       exists: !!file,
       bytes: file?.length ?? 0,
       sha256: file ? sha(file) : null,
@@ -114,7 +115,7 @@ export async function participantKnowledgeOverview(id: string, agents: { id: str
   const out = [];
   for (const src of ws.study.sources.filter((s) => (PARTICIPANT_KINDS as readonly string[]).includes(s.kind))) {
     const rel = ws.manifest.sources?.[src.id] ?? null;
-    const path = rel ? resolve(ws.dir, rel) : null;
+    const path = rel ? (sourceLocation(ws.dir, src.kind, rel).path ?? null) : null;
     const exists = !!path && existsSync(path);
     const problems = exists ? participantProblems(ws.study, src.kind, path!, src.fields ?? []) : [];
     const isFile = exists && !(await stat(path!)).isDirectory();
@@ -265,8 +266,8 @@ export async function saveKnowledge(
     const mapped = ws.manifest.sources?.[w.sourceId];
     const fresh = /^(evidence|data)\/[a-z0-9][a-z0-9._-]*\.(md|txt|csv)$/.test(w.path);
     requireThat(fresh || mapped === w.path, `Knowledge is written to evidence/ or data/ in the study folder, not to ${w.path}.`);
-    const target = resolve(ws.dir, w.path);
-    requireThat(target.startsWith(ws.dir + sep) && !/human\.json$/i.test(target), "Not inside the study folder.");
+    // Symlinks on the way (e.g. a linked evidence/ folder) must not lead out of the study folder.
+    studyWriteTarget(ws.dir, w.path);
     requireThat(typeof w.text === "string" && w.text.length <= 2_000_000, "Knowledge text must be at most 2 MB.");
     if (src!.kind !== "evidence") {
       const problems = participantProblemsText(study, src!.kind, w.text, src!.fields ?? []);
@@ -274,7 +275,7 @@ export async function saveKnowledge(
     }
   }
   for (const w of writes) {
-    const target = resolve(ws.dir, w.path);
+    const target = studyWriteTarget(ws.dir, w.path);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, w.text);
   }
