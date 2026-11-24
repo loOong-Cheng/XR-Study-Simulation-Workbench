@@ -11,7 +11,7 @@ It does not claim that an agent experiences VR like a person, or that simulation
 | Step | Where | What happens |
 | --- | --- | --- |
 | **Planner** | 1 Study, E Evidence, 2 Agent configurations, 3 Freeze | Understand the study from your protocol or manuscript: designs (independent variable), measures (dependent variables), participants and orders, and participant information agents may get. Read and manage the evidence agents may get, with an outcome-blind check. Configure agents: level (population or individual), model, runtime, runs, what each gets, which measures it predicts and which measured ones it may use as inputs. Freeze a campaign; every campaign is listed with its label, parent, progress and cost. |
-| **Executor** | 4 Run agents | Each session is a fresh headless Claude Code agent with only its configuration's information and an MCP runtime for the XR app (WebXR built in; Unreal, Unity and visionOS configurable). Live progress, a next-step line, pilot runs of chosen sessions with a cost estimate, every attempt of a session, real token use and cost per configuration, pause, resume, rerun failed, save runs as a zip. |
+| **Executor** | 4 Run agents | Each session is a fresh headless Claude Code agent with only its configuration's information and an MCP runtime for the XR app (WebXR built in; Unreal, Unity and visionOS through a study bridge you configure). Live progress, a next-step line, pilot runs of chosen sessions with a cost estimate, every attempt of a session, real token use and cost per configuration, pause, resume, rerun failed, save runs as a zip. |
 | **Analyzer** | 5 Compare agents, 6 Compare with humans | **Compare agents** (no human data): run-to-run agreement, agreement between configurations, tool calls, time, cost, deviations. **Compare with humans:** the human data alone (per design, with the design's test), agreement with the human design differences per run and participant, agent vs human values per measure, correlation, population vs individual, participant lines. Box, violin and line plots with Holm-corrected rank-test brackets; save figures as SVG or PNG. |
 | **Planner** | 7 Continue / rerun | New models or setups as a continuation that reuses finished runs. |
 
@@ -24,9 +24,11 @@ It does not claim that an agent experiences VR like a person, or that simulation
 **Try the three example suites:**
 
 ```bash
-npm ci
-npm start          # http://127.0.0.1:4317 → Open study
+node scripts/setup.mjs   # installs, builds, finds Claude Code, Chrome and Python, writes private/settings.json
+npm start                # http://127.0.0.1:4317 → Open study (XR_STUDY_PORT=<port> for another port)
 ```
+
+Setup prints any `PROBLEM` to fix and the address the website will use. Ctrl+C stops the website and any agent sessions it runs.
 
 | Suite | Study | What you can do here |
 | --- | --- | --- |
@@ -41,9 +43,9 @@ npm start          # http://127.0.0.1:4317 → Open study
 - Node.js 22.13+ and npm.
 - For real agent runs: [Claude Code](https://claude.com/claude-code), logged in. No API key is stored anywhere.
 - For WebXR runs: Google Chrome.
-- Unreal, Unity or Apple Vision Pro runs need a study bridge (a stdio MCP server, see [runtime adapters](docs/runtime-adapters.md#study-bridge-contract)) on the machine that runs the engine, set in **Settings**. Suite 2 includes one for its Unity app.
+- Unreal, Unity or Apple Vision Pro runs need a study bridge (a stdio MCP server that offers participant tools, see [runtime adapters](docs/runtime-adapters.md#study-bridge-contract)) on the machine that runs the engine, set in **Settings**. An engine's own MCP server (editor tools) is not enough on its own; a bridge can drive it. Suite 2 includes a bridge for its Unity app (Python 3).
 
-The website runs locally on the loopback address and is not a hosted service. Settings live in `private/settings.json`; real studies in `private/studies/`. Both are git-ignored.
+The website runs locally on the loopback address (port 4317, or `XR_STUDY_PORT`) and is not a hosted service. Settings live in `private/settings.json` (or the file `XR_STUDY_SETTINGS` names); real studies in `private/studies/`. Both are git-ignored. Coding agents can call the same [local API](docs/api.md) as the website.
 
 ## Analysis scope
 
@@ -75,6 +77,6 @@ Every step also works from the command line, which is what coding agents use. Ru
 
 MIT licensed. The source, tests and synthetic example can be shared independently of any study's private data. No files from the temperature study were copied into this project. The license covers this source, not vendor SDKs or researchers' datasets. Model/provider terms and runtime licenses remain separate.
 
-The freeze digest is an integrity mechanism, not proof of prospective registration. Preserve an independently timestamped registration or archive when that matters. Report actual versions, deviations, repetition policy, failures, uncertainty and limitations with a paper. The manuscript in the parent workspace has not been modified or linked to a nonexistent public repository.
+The freeze digest is an integrity mechanism, not proof of prospective registration. Preserve an independently timestamped registration or archive when that matters. Report actual versions, deviations, repetition policy, failures, uncertainty and limitations with a paper.
 
-See `CITATION.cff`. Add the public repository URL, immutable release/archive and paper DOI when they exist; none is invented here.
+To cite the workbench, use [`CITATION.cff`](CITATION.cff) (GitHub shows it as "Cite this repository"). Add the public repository URL, an immutable release or archive and the paper's DOI to it when they exist; none is invented here.

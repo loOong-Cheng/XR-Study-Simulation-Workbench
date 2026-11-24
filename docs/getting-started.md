@@ -7,9 +7,9 @@ You need:
 - the study data;
 - the XR app.
 
-**On a new machine:** copy the folder, open Claude Code in it and say "set this up on this machine". It installs and checks everything (`node scripts/setup.mjs`), connects your engine's MCP runtime and starts the website. You only review, run and analyze.
+**On a new machine:** copy the folder, open Claude Code in it and say "set this up on this machine". It installs and checks everything (`node scripts/setup.mjs`) and starts the website. For an engine study (Unreal, Unity, visionOS) it also sets up a study bridge: a small MCP server that lets an agent play your app like a participant, which it writes (or reuses, as Suite 2's) on top of your engine's own MCP server or project; an engine's editor MCP server alone is not enough. You only review, run and analyze.
 
-**The easy way:** open this repository in Claude Code or Codex and describe your study. The agent follows [AGENTS.md](../AGENTS.md) and does the steps below with you. This page explains what happens, so you can also do it yourself in the website (`npm start`, then http://127.0.0.1:4317).
+**The easy way:** open this repository in Claude Code or Codex and describe your study. The agent follows [AGENTS.md](../AGENTS.md) and does the steps below with you. This page explains what happens, so you can also do it yourself in the website (`node scripts/setup.mjs`, then `npm start` and http://127.0.0.1:4317, or the port in `XR_STUDY_PORT`).
 
 **Try it first** with the three example suites under **Open study**. [Graphics quality](../examples/graphics-quality/README.md) is a complete, runnable WebXR study with invented data. [Synthetic Ecolar](../examples/ecolar/README.md) shows a larger Unreal study with population and individual configurations, measured inputs and movement data. [Selection](../examples/selection/README.md) is a Unity study with participant background, with its Unity app and study bridge included.
 
@@ -21,7 +21,9 @@ You need:
 | About **what helps an agent predict** | "Does using the app beat reading its files?" | Agent configurations, compared in the analyzer |
 | About **models** | "Is model B better than model A?" | Each configuration's model, or a model arm added later |
 
-## 1 · Study and variables (planner)
+The sections below follow the website's sidebar and carry its marks: **1–7** are the steps in order, and **E** (Evidence & knowledge, between 1 and 2) holds the study brief every configuration needs and the optional knowledge some configurations get, which you can add or change at any time before freezing.
+
+## 1 · Study & variables (planner)
 
 1. Create the study under **Open study** (real data lives in `private/studies/`, which git ignores).
 2. Choose your document and, if you have it, a participants file with IDs and design orders (`participant,order`).
@@ -49,7 +51,7 @@ Unsaved changes are kept only in the page: reloading or closing it, or opening a
 
 Throughout planning, **reference answers stay withheld**: the website never shows human results.
 
-## E · Evidence and knowledge (planner)
+## E · Evidence & knowledge (planner)
 
 **Study brief** (the card at the top): what every configuration gets. Understand study drafts it; **Edit text** changes it, and a study without one shows **Write the brief**, so a study without a document can get one too. Without a brief no configuration can run as an agent. It has the same outcome-blind check as general knowledge.
 
@@ -89,7 +91,7 @@ Each card is one configuration:
 
 **Add from template** adds a ready-made configuration. A template whose requirements are missing is greyed out and says what it needs, for example the project files on this machine, a WebXR app declared in `workspace.json`, or complete participant-specific knowledge. **Add custom configuration** starts from the brief only, and **Duplicate** copies a configuration, for example to give the copy a second evidence source instead of the first. Save, then **Approve study and configurations**, then **Freeze →**. Approval records exactly what you checked.
 
-## 3 · Freeze (planner)
+## 3 · Freeze & campaigns (planner)
 
 **Freeze campaign** turns the study and configurations into a fixed list of sessions. Nothing frozen is ever edited. Changes become a continuation (step 7).
 
@@ -147,7 +149,7 @@ When nothing can be scored for the selected configurations (for example a betwee
 5. Optionally, **Explain with assistant** sends only the scores (never raw human data) to the configured assistant, with each configuration's name, level, model, effort and what it gets; the answer refers to configurations by name.
 6. Comparisons between configurations are chosen here, saved in `comparisons.json`, and marked as chosen at analysis.
 
-## 7 · Continue or rerun (planner)
+## 7 · Continue / rerun (planner)
 
 - **Continue from** is the campaign shown in the executor and analyzer (marked "shown"), unless you pick another one on this page; the list names campaigns by their labels.
 - **Configurations listed** are those of the campaign continued from, with their model and runs there, including model copies that earlier continuations added (these are not in `agents.json`), so their runs can be raised and they can be rerun, dropped or given another model in turn.
@@ -159,4 +161,4 @@ When nothing can be scored for the selected configurations (for example a betwee
 ## What you still build yourself
 
 - **A converter from your raw data to `human.json`:** one record per participant × design × measure. See `examples/graphics-quality/data/convert_to_human.py`. Your coding agent can write it.
-- **An MCP runtime, if your engine has none.** For WebXR, expose `window.xrStudy` in the app. See [runtime adapters](runtime-adapters.md).
+- **A study bridge for an engine app** (Unreal, Unity, visionOS), even if your engine has an MCP server: that server offers editor tools, the bridge offers participant tools and records what the agent did. Your coding agent can write it (Suite 2 includes one for its Unity app). For WebXR, expose `window.xrStudy` in the app instead. See [runtime adapters](runtime-adapters.md#study-bridge-contract).

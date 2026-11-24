@@ -37,12 +37,13 @@ The researcher copies this folder to a machine and asks you to set it up. Do the
    Then open a new shell so PATH updates.
 2. **Run `node scripts/setup.mjs --test`.** It does the following:
    - installs dependencies and builds;
-   - finds Claude Code (the native `claude.exe` on Windows) and Chrome;
-   - writes them into `private/settings.json`;
-   - lists the MCP servers Claude Code already knows, and the studies;
+   - finds Claude Code (the native `claude.exe` on Windows; npm's `claude.cmd` cannot start sessions), Chrome and a real Python 3 (never the Windows Store stub);
+   - writes them into `private/settings.json` (a bridge command `python`/`py` becomes this machine's interpreter);
+   - lists the local (stdio) MCP servers Claude Code already knows (not claude.ai connectors or remote servers), and the studies;
+   - on Windows, says when long paths are off or the folder's path is long (engine run files reach about 240 characters);
    - runs the tests.
 
-   Fix every `PROBLEM` line and rerun until it says **Setup complete**. Do not copy `private/settings.json` from another machine; setup writes this machine's paths.
+   Fix every `PROBLEM` line and rerun until it says **Setup complete**. Read the `Note:` lines to the researcher. Do not copy `private/settings.json` from another machine; setup writes this machine's paths.
 3. **Engine runtime** (Unreal, Unity, visionOS), only if a study's configurations use the app:
    - **What exists.** An engine MCP the researcher configured may appear in the setup list (`claude mcp get <name>` shows its command), or only in the engine project's own `.mcp.json`. On its own it offers editor tools, not a participant session.
    - **Write a study bridge.** This is a stdio MCP server, in any language, that drives the engine (through its MCP or an endpoint in the project) and offers participant-like tools, following the [bridge contract](docs/runtime-adapters.md#study-bridge-contract). It reports itself with a `runtime` trace event, draws fresh neutral object IDs per design, and answers `tools/list` before connecting to the engine. Start from the tested template `examples/bridge-template/` (Node) and replace its stand-in engine. Put it in the study folder, for example `private/studies/<name>/runtime/`.
@@ -56,12 +57,19 @@ The researcher copies this folder to a machine and asks you to set it up. Do the
 
      Use the website's Settings page, or `private/settings.json`.
 4. **Study sources.** Every source in `workspace.json` that a configuration reads (`brief`, `project`, `evidence`, `demographics`) must point at a file or folder on this machine. Participant-specific knowledge (`demographics`, `trajectory`) must also be complete: a row for every participant and no empty allowed field; otherwise the configurations that get it are blocked. Ask the researcher where anything is that you cannot find. Never point a source at human results.
-5. **Start the website** with `npm start`. In the Claude desktop app, preview `xr-workbench` from `.claude/launch.json`. Give the researcher the link and the next steps:
+5. **Start the website** with `npm start`. In the Claude desktop app, preview `xr-workbench` from `.claude/launch.json` (it runs `node --run start`). It listens on `http://127.0.0.1:4317`, or on the port in the environment variable `XR_STUDY_PORT` (for example when 4317 is taken or a second checkout runs; setup prints the port it will use). `XR_STUDY_SETTINGS` points at another settings file than `private/settings.json` (several machines sharing one checkout, tests). Give the researcher the link and the next steps:
    1. **Study & variables**, **Agent configurations**: review, then **Approve study and configurations**.
    2. **Freeze & campaigns**.
    3. **Run agents**. For a new runtime or model, select one session and press **Run this session only** before **Start all not run yet**. For a pilot, **Choose sessions to run** selects the first *k* sessions of chosen configurations; only those start.
    4. **Compare agents**, then **Compare with humans** (two analyzer pages; human data alone is shown there too).
 6. **Never start real agent sessions yourself** without the researcher's explicit OK. They use the researcher's Claude usage. The website asks before starting.
+
+### Find and stop this workbench's processes
+
+Several workbenches (checkouts, ports) may run on one machine, and every one is a `node` process. **Never stop processes by name** (`node`, `claude`, `chrome`, `python`): that ends other servers and other people's sessions.
+- **The server** writes `server.pid` beside its settings file (`private/server.pid`): `{"pid", "port", "url", "root", "startedAt"}` of the server started last in this checkout; it is removed when the server ends. Its process title is `xr-study-sim :<port> <folder>`, as `ps` shows it (cut to the length of the original command line, so the folder may be missing; the file has it). To find the server on a port: `lsof -iTCP:<port> -sTCP:LISTEN` (macOS, Linux) or `netstat -ano | findstr :<port>` (Windows).
+- **Stop the server** with Ctrl+C in its terminal, or `kill <pid>` (macOS, Linux): its running sessions are stopped and recorded as interrupted. On Windows, `taskkill /PID <pid> /T /F` ends it with the whole tree; the next start records those sessions.
+- **Sessions** are stopped in the website (**Stop**), which ends each session's whole process tree: Claude Code, its MCP servers, Chrome and engine bridges. Each attempt folder's `attempt.json` names the claude process (`pid`) and the workbench that runs it (`server.pid`, `server.instance`); the claude command line names the attempt folder (`--mcp-config <attempt>/mcp.json`), so after a crash the next start stops exactly those processes. Every process of a session also carries the environment variable `XR_STUDY_JOB=<job id>`, and the WebXR runtime's Chrome profile folder is named `xr-webxr-<job id>-…` in the temporary folder. Chrome profiles left by sessions that were ended by force are removed when the server next starts (after a day).
 
 ## "Test this suite and set it up"
 
@@ -78,7 +86,7 @@ When the researcher asks you to test an example suite (or "suite 1/2/3"), prepar
 
    If an engine part is not ready, say which configurations can run now and which cannot. Do not fake a runtime.
 3. **Check:** `node dist/cli.js study-check <folder>/study.json --agents <folder>/agents.json --human <folder>/human.json`.
-4. **Start the website** (`npm start`, or preview `xr-workbench`) and give the researcher the link to the study, for example `http://127.0.0.1:4317/?study=examples%2Fgraphics-quality`.
+4. **Start the website** (`npm start`, or preview `xr-workbench`) and give the researcher the link to the study, for example `http://127.0.0.1:4317/?study=examples%2Fgraphics-quality` (with the port of `XR_STUDY_PORT` if it is set).
 5. **Hand over** with the clicks they make:
    1. **Agent configurations:** review, then **Approve study and configurations**.
    2. **Freeze & campaigns:** check the session table, then **Freeze campaign**.
@@ -170,7 +178,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
 
 | Step | Command |
 | --- | --- |
-| Website | `npm start` → http://127.0.0.1:4317, or `review <study-folder>` |
+| Website | `npm start` → http://127.0.0.1:4317 (or `XR_STUDY_PORT`), or `review <study-folder> [--port n]`; its routes for scripts: [local API](docs/api.md) |
 | Proposal reading | `proposal <doc> <dir>`, `proposal-check <doc> <reading.json>` |
 | Draft and check | `agents-draft <study.json> <agents.json>`, `study-check <study.json> [--agents a.json] [--human h.json]`, `explain <file>` (a study, agents, human, comparisons, plan, campaign or suite file; agents and human files need `study.json` beside them) |
 | Freeze | `plan <study.json> <dir> [--agents a.json]`, `campaign-from-plan <plan.json> <dir>` |
@@ -197,6 +205,6 @@ The code lives in these places:
 - `src/executor/`: runner, runtimes, zip;
 - `src/runtimes/`: MCP servers;
 - `src/web/`: website, SVG plots;
-- `src/routes.ts`, `src/server.ts`: API.
+- `src/routes.ts`, `src/server.ts`: API (every route and body: [docs/api.md](docs/api.md); keep it current when a route changes).
 
 Run `npm test` before and after changes. Do not change the analyzer's statistics or the campaign hashing without new tests and a note in `docs/methodology.md`.
