@@ -121,8 +121,12 @@ process.on("exit", () => {
 // Ctrl+C or a stop signal: running sessions are stopped (their whole process trees; they lead their
 // own process groups, so the terminal's Ctrl+C does not reach them) and recorded as interrupted
 // before the workbench exits. A second signal exits at once; "exit" ends any tree still running.
+// Windows has no stop signals between programs: Ctrl+C, Ctrl+Break (SIGBREAK) and closing the
+// console window (SIGHUP) stop it this way; taskkill /F or Task Manager end it at once, with its
+// claude processes, and the next start records those sessions as interrupted.
 let closing = false;
-for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const)
+const stopSignals: NodeJS.Signals[] = ["SIGINT", "SIGTERM", "SIGHUP", ...(process.platform === "win32" ? (["SIGBREAK"] as const) : [])];
+for (const signal of stopSignals)
   process.on(signal, () => {
     if (closing) process.exit(1);
     closing = true;

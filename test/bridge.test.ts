@@ -430,7 +430,20 @@ test("bridge.py: refused calls are not counted, it resumes after a crash, and a 
     const before = unity.st.stops;
     b.child.kill("SIGTERM");
     await b.exited;
-    assert.equal(unity.st.stops, before + 1);
+    if (process.platform !== "win32") assert.equal(unity.st.stops, before + 1);
+    else {
+      // Windows has no SIGTERM between programs: kill() ends the bridge at once, without its handler,
+      // so Play mode stays on. The next bridge (a restart or the next session) leaves it first and
+      // enters a fresh one; closing stdin, as Claude Code does, still stops it.
+      assert.deepEqual([unity.st.stops, unity.st.playing], [before, true]);
+      const plays = unity.st.plays;
+      b = start();
+      await b.call("screenshot");
+      assert.deepEqual([unity.st.stops, unity.st.plays, unity.st.playing], [before + 1, plays + 1, true], "a fresh Play mode");
+      b.child.stdin!.end();
+      await b.exited;
+      assert.deepEqual([unity.st.stops, unity.st.playing], [before + 2, false], "Play mode stopped when stdin closed");
+    }
   } finally {
     unity.close();
     await removeDir(dir);

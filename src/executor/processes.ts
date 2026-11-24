@@ -68,7 +68,9 @@ function readHelp(command: string, prefix: string[]): Promise<ClaudeFeatures> {
 const live = new Set<ChildProcess>();
 /**
  * Start a process whose whole tree can be ended later (killTree), without a console window.
- * On macOS and Linux it leads its own process group; Windows ends trees by process ID.
+ * On macOS and Linux it leads its own process group; Windows ends trees by process ID. On Windows
+ * Node also keeps it in a job object that closes with the workbench, so it ends with a killed
+ * workbench too (what it started, such as Claude Code's MCP servers, may not: see stopLeftovers).
  */
 export function spawnTree(command: string, args: string[], options: SpawnOptions): ChildProcess {
   const p = spawn(command, args, { ...options, windowsHide: true, detached: !win });

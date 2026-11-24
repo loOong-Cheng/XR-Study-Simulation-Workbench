@@ -568,11 +568,16 @@ const tools: Tool[] = [
       }
       await browser();
       const query = spec.app.query.replace("{condition}", encodeURIComponent(d.id)).replace("{participant}", encodeURIComponent(spec.participant ?? "population"));
-      await cdp("Page.navigate", { url: `http://127.0.0.1:${appPort}/${query}` }, 90_000);
-      for (let i = 0; i < 150; i++) {
-        await wait(200);
-        if (await evaluate("typeof window.xrStudy === 'object' && window.xrStudy !== null").catch(() => false)) break;
-        if (i === 149) throw new ToolError("The app did not become ready (window.xrStudy missing).");
+      // Ready once the page has set window.xrStudy. A navigation that failed (errorText) or a page that
+      // is not ready after 30 s is loaded once more (a busy Windows CI runner once never got there).
+      const ready = () => evaluate("typeof window.xrStudy === 'object' && window.xrStudy !== null").catch(() => false);
+      for (let attempt = 1; ; attempt++) {
+        const nav = await cdp("Page.navigate", { url: `http://127.0.0.1:${appPort}/${query}` }, 90_000);
+        const failed = typeof nav?.errorText === "string" && nav.errorText ? nav.errorText : "";
+        let ok = false;
+        for (const by = Date.now() + 30_000; !failed && !(ok = await ready()) && Date.now() < by; ) await wait(200);
+        if (ok) break;
+        if (attempt === 2) throw new ToolError(`The app did not become ready (${failed ? `its page did not load: ${failed}` : "window.xrStudy missing"}).`);
       }
       design = d;
       stage = "done";

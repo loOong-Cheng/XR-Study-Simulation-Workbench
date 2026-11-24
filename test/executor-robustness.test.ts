@@ -218,6 +218,7 @@ test("crash: after a killed workbench, an accepted forecast is finished, the res
   process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
   const decoy = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" });
   let server: ReturnType<typeof spawn> | null = null;
+  let orphan: ReturnType<typeof spawn> | null = null;
   try {
     const c = await campaign(a.id, textOnly(3), "crash");
     const [finished, cut, untouched] = c.jobs.filter((j) => j.kind === "llm").map((j) => j.id);
@@ -267,14 +268,20 @@ setInterval(() => {}, 1 << 30);`,
     const noted = JSON.parse(await readFile(join(attemptDir(finished), "usage.json"), "utf8")).tokensAtSubmit;
     server.kill("SIGKILL");
     await until(() => server!.exitCode !== null || server!.signalCode !== null);
-    assert.ok(pids.every(alive), "the sessions outlive the killed workbench");
+    if (process.platform !== "win32") assert.ok(pids.every(alive), "the sessions outlive the killed workbench");
+    // Windows: Node keeps the processes it starts in a job object that closes with it, so the claude
+    // processes end with the killed workbench. What they started may not (Claude Code's MCP servers).
+    else assert.ok(await until(() => !pids.some(alive), 5000), "the sessions end with the killed workbench");
+    // A process of the interrupted session that outlived it (an MCP server): its command line names the attempt folder.
+    orphan = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)", attemptDir(cut)], { stdio: "ignore" });
+    assert.ok(await until(() => alive(orphan!.pid)));
     // A third attempt folder whose marker names a PID that is not a session of it: never stopped.
     await mkdir(attemptDir(untouched), { recursive: true });
     await writeMarker(attemptDir(untouched), { jobId: untouched, attempt: 1, mode: "agent", startedAt: new Date().toISOString(), pid: decoy.pid! });
 
     // The restarted workbench opens the campaign.
     const ex = await Executor.open(a.id, c.id);
-    assert.ok(await until(() => !pids.some(alive), 5000), "left-over sessions are stopped");
+    assert.ok(await until(() => !pids.some(alive) && !alive(orphan!.pid), 5000), "left-over processes are stopped");
     assert.ok(alive(decoy.pid), "a process that is not the attempt's is left alone");
     const receipts = await receiptsOf(dir);
     assert.equal(receipts.length, 3);
@@ -306,6 +313,7 @@ setInterval(() => {}, 1 << 30);`,
   } finally {
     server?.kill("SIGKILL");
     decoy.kill("SIGKILL");
+    orphan?.kill("SIGKILL");
     delete process.env.XR_STUDY_SETTINGS;
     await removeDir(a.dir);
     await removeDir(bin);
@@ -369,7 +377,9 @@ test("one scheduler for all campaigns: parallel sessions and a runtime's limit h
     const { most, events } = await mostAtOnce(timeline);
     assert.equal(most, 2, "Parallel sessions (2) holds for both campaigns together");
     // Fair: the second campaign gets a slot as soon as one is free, not after the first campaign's queue.
-    const starts = (cid: string) => events.filter((e) => e.what === "start" && e.dir.includes(`/runs/${cid}/`)).map((e) => e.t);
+    // Attempt folders are native paths (backslashes on Windows).
+    const starts = (cid: string) => events.filter((e) => e.what === "start" && e.dir.replace(/\\/g, "/").includes(`/runs/${cid}/`)).map((e) => e.t);
+    assert.deepEqual([starts(ca.id).length, starts(cb.id).length], [4, 2]);
     assert.ok(starts(cb.id)[0] < starts(ca.id)[3], "a free slot goes to the campaign with fewer sessions running");
 
     // A runtime's own limit (here 1 for app-free sessions) holds across campaigns too.
@@ -507,12 +517,16 @@ test("server: at start it closes sessions a killed workbench left; on SIGTERM it
     );
     const port = 45_000 + Math.floor(Math.random() * 4_000);
     let log = "";
-    server = spawn(process.execPath, [fileURLToPath(new URL("../src/server.js", import.meta.url))], {
-      env: { ...process.env, XR_STUDY_PORT: String(port), XR_STUDY_SETTINGS: join(bin, "settings.json"), FAKE_HANG_JOBS: running },
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    server.stdout!.on("data", (d) => (log += d));
-    server.stderr!.on("data", (d) => (log += d));
+    const startServer = (port: number) => {
+      const p = spawn(process.execPath, [fileURLToPath(new URL("../src/server.js", import.meta.url))], {
+        env: { ...process.env, XR_STUDY_PORT: String(port), XR_STUDY_SETTINGS: join(bin, "settings.json"), FAKE_HANG_JOBS: running },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      p.stdout!.on("data", (d) => (log += d));
+      p.stderr!.on("data", (d) => (log += d));
+      return p;
+    };
+    server = startServer(port);
     assert.ok(await until(async () => (await receiptsOf(dir)).some((r) => r.jobId === left)), `the left attempt is closed at start: ${log}`);
     assert.equal((await receiptsOf(dir)).find((r) => r.jobId === left)!.error, INTERRUPTED);
     const res = await fetch(`http://127.0.0.1:${port}/api/executor/start`, {
@@ -526,8 +540,19 @@ test("server: at start it closes sessions a killed workbench left; on SIGTERM it
     const pid = JSON.parse(await readFile(join(a1, "attempt.json"), "utf8")).pid;
     const exited = new Promise((r) => server!.on("exit", r));
     server.kill("SIGTERM");
-    assert.equal(await exited, 0, log);
-    assert.ok(!alive(pid), "the session's process ended with the workbench");
+    if (process.platform !== "win32") {
+      assert.equal(await exited, 0, log);
+      assert.ok(!alive(pid), "the session's process ended with the workbench");
+    } else {
+      // Windows has no stop signal between programs: kill() ends the server at once, like
+      // taskkill /F, without its handlers (Ctrl+C in its console is the graceful stop there). The
+      // session's process ends with it (Node's job object); the next start records it as interrupted.
+      await exited;
+      assert.ok(await until(() => !alive(pid), 5000), "the session's process ended with the workbench");
+      assert.ok(!(await receiptsOf(dir)).some((x) => x.jobId === running), "no receipt from the killed server");
+      server = startServer(port + 1);
+      assert.ok(await until(async () => (await receiptsOf(dir)).some((x) => x.jobId === running)), `the session is closed at the next start: ${log}`);
+    }
     const r = (await receiptsOf(dir)).find((x) => x.jobId === running)!;
     assert.deepEqual([r.status, r.error, r.interrupted], ["failed", INTERRUPTED, true]);
   } finally {
