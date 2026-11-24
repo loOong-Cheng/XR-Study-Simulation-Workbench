@@ -164,7 +164,13 @@ async function regularFiles(root: string, skipped: ExportSkipped, rel = ""): Pro
   const out: string[] = [];
   for (const name of (await readdir(join(root, rel))).sort()) {
     const r = rel ? `${rel}/${name}` : name;
-    const st = await lstat(join(root, r));
+    // A file of a running session may be gone a moment after it was listed (an attempt marker's
+    // temporary file, renamed into place): it is not part of this moment's runs.
+    const st = await lstat(join(root, r)).catch((e: NodeJS.ErrnoException) => {
+      if (e.code === "ENOENT") return null;
+      throw e;
+    });
+    if (!st) continue;
     if (st.isDirectory()) {
       if (foldName(name) !== "session") out.push(...(await regularFiles(root, skipped, r)));
     } else if (st.isFile()) out.push(r);
