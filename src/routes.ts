@@ -95,7 +95,8 @@ async function analysis(id: string, campaignId: string, comparisons?: Comparison
   const present = new Set(campaign.suite.conditions.map((c) => c.id));
   const usable = comparisons?.filter((c) => present.has(c?.candidate) && present.has(c?.baseline));
   const skipped = (comparisons ?? []).filter((c) => !usable?.includes(c));
-  const result = analyzeCampaign(campaign, human!, bundles, usable);
+  // Receipts name why a session failed (report exclusions and audits).
+  const result = analyzeCampaign(campaign, human!, bundles, usable, receipts);
   if (skipped.length)
     result.report.notes.push(
       `Skipped ${skipped.length} saved comparison(s) whose configurations are not in this campaign: ${skipped.map((c) => `${c.candidate} − ${c.baseline} (${c.domain})`).join("; ")}. The Holm family covers the remaining ${usable!.length}.`,
@@ -526,7 +527,6 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       // an early continuation marked as reused without one never ran, like a session never started.
       const llmJobs = campaign.jobs.filter((j) => j.kind === "llm");
       const mine = receipts.filter((r) => r.campaignDigest === campaign.digest);
-      const completed = new Set(mine.filter((r) => r.status === "completed").map((r) => r.jobId));
       const tried = new Set(mine.map((r) => r.jobId));
       const completedWhereRan = new Set(receipts.filter((r) => r.status === "completed").map((r) => `${r.campaignDigest}/${r.jobId}`));
       const returned = new Set(a.report.audits.filter((x) => x.completed).map((x) => x.jobId));
@@ -557,14 +557,9 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
         humanPairs: a.report.humanPairs ?? [],
         absoluteFit: a.report.absoluteFit ?? [],
         significantOnly: a.report.significantOnly ?? null,
-        // Sessions never run are counted in progress, not listed as lost runs; a failed one says why it failed.
-        audits: a.report.audits
-          .filter((x) => (!x.compliant || !x.scoreable) && !notStarted.has(x.jobId))
-          .slice(0, 200)
-          .map((x) => {
-            const failed = mine.filter((r) => r.jobId === x.jobId && r.status === "failed" && r.error).at(-1);
-            return failed && !completed.has(x.jobId) ? { ...x, issues: x.issues.map((i) => (i === "Scheduled job was not returned." ? `Failed (attempt ${failed.attempt}): ${failed.error}` : i)) } : x;
-          }),
+        // Sessions never run are counted in progress, not listed as lost runs; a failed one says why
+        // it failed (analyzeCampaign reads the receipts).
+        audits: a.report.audits.filter((x) => (!x.compliant || !x.scoreable) && !notStarted.has(x.jobId)).slice(0, 200),
         progress,
         assigned: a.report.audits.length,
         notes: a.report.notes,

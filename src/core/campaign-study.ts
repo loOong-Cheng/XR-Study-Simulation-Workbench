@@ -114,16 +114,45 @@ export interface CampaignAnalysis {
   report: AnalysisReport;
   scorecard: CampaignScorecard;
 }
+/**
+ * Why sessions of this campaign have no accepted forecast, from the executor's receipts: each one
+ * whose last attempt failed is named with its error in the report's exclusions, and its audit says
+ * "Failed (attempt n): <error>" instead of only that the run was not returned. Text only: no score,
+ * denominator or digest changes. Sessions never started have no receipt and are not listed.
+ */
+export function addFailureReasons(c: Campaign, report: AnalysisReport, receipts: CampaignReceipt[]): void {
+  const mine = receipts.filter((r) => r.campaignDigest === c.digest);
+  const completed = new Set(mine.filter((r) => r.status === "completed").map((r) => r.jobId));
+  const label = new Map(c.suite.conditions.map((x) => [x.id, x.label]));
+  const failed = c.jobs.flatMap((job) => {
+    if (job.kind !== "llm" || job.inheritedFrom || completed.has(job.id)) return [];
+    const last = mine.filter((r) => r.jobId === job.id && r.status === "failed" && r.error).at(-1);
+    return last ? [{ job, last }] : [];
+  });
+  if (!failed.length) return;
+  const byJob = new Map(failed.map((f) => [f.job.id, f.last]));
+  for (const a of report.audits) {
+    const f = byJob.get(a.jobId);
+    if (f && !a.completed) a.issues = [`Failed (attempt ${f.attempt}): ${f.error}`, ...a.issues.filter((i) => !/was not returned/i.test(i))];
+  }
+  const shown = failed.slice(0, 100);
+  report.exclusions.push(
+    ...shown.map(({ job, last }) => `${label.get(job.conditionId) ?? job.conditionId}, session ${job.id}: no accepted forecast, so it is not scored (failed, attempt ${last.attempt}: ${last.error})`),
+  );
+  if (failed.length > shown.length) report.exclusions.push(`${failed.length - shown.length} more failed session(s) are not scored; each one's audit names its error.`);
+}
 /** Planner → campaign → worker → analyzer, across a whole lineage of continuations. */
 export function analyzeCampaign(
   c: Campaign,
   human: HumanData,
   bundles: ResultBundle[],
   comparisons?: Comparison[],
+  receipts?: CampaignReceipt[],
 ): CampaignAnalysis {
   const plan = campaignPlan(c);
   const merged = mergeCampaignResults(c, bundles);
   const report = analyzeVerifiedPlan(plan, human, merged.bundle, comparisons);
+  if (receipts) addFailureReasons(c, report, receipts);
   if (merged.reused.length)
     report.notes.push(
       `${merged.reused.length} forecast run(s) were reused from earlier campaigns with an identical setup and model; their original session and output are scored once, not regenerated.`,

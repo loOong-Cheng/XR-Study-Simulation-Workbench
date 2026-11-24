@@ -412,6 +412,11 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     await handlePost("/api/workspace/analyze", { id: a.id, campaignId: c2.id }, (v) => (analysis = v as Record<string, any>));
     const audit = analysis.audits.find((x: { jobId: string }) => x.jobId === job);
     assert.match(audit.issues.join(" "), /Failed \(attempt 1\): Claude Code does not know the model "claude-sonet-5-5"/);
+    // The report itself (also the CLI's campaign-analyze) names the failed session and its error.
+    assert.ok(
+      analysis.exclusions.some((e: string) => e.includes(`session ${job}: no accepted forecast, so it is not scored (failed, attempt 1: Claude Code does not know the model "claude-sonet-5-5"`)),
+      JSON.stringify(analysis.exclusions),
+    );
   } finally {
     delete process.env.XR_STUDY_SETTINGS;
     delete process.env.FAKE_HANG;

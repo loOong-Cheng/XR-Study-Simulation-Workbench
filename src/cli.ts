@@ -938,7 +938,10 @@ async function main(): Promise<void> {
     const bundles = await loadResults(args.slice(3), plan.study.id);
     const comparisonsFile = values.get("--comparisons");
     const comparisons = comparisonsFile ? await loadComparisons(comparisonsFile, plan.study, plan.agents) : undefined;
-    const analysis = analyzeCampaign(campaign, human, bundles, comparisons);
+    // The executor's receipts beside each results folder (runs/<campaign>/receipts.jsonl) name why sessions failed.
+    const runFolders = args.slice(3).filter(isFolder).map((p) => (isFolder(join(p, "results")) ? p : dirname(resolve(p))));
+    const receipts = await loadReceipts(runFolders.filter((d) => existsSync(join(d, "receipts.jsonl"))));
+    const analysis = analyzeCampaign(campaign, human, bundles, comparisons, receipts);
     const out = await freshDirectory(args[2]);
     await writeFiles(out, {
       "report.json": pretty(analysis.report),
