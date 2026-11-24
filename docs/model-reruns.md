@@ -12,9 +12,14 @@ Open a study, then go to **7 · Continue / rerun**:
   - **Add model**: append a model; the configuration stays as it is (finished runs reused) and a copy with the added model joins it, to compare both models with the method held fixed;
   - **Rerun**: fresh sessions with the same setup;
   - **Drop** it.
-- **Preview** shows new and reused sessions. **Create continuation** freezes it and opens the executor.
+- **Keep simulated runs** (off by default): whether sessions that were only simulated are reused. Off, they run again like sessions that never ran; leave it off before running real agents.
+- **Preview** shows new and reused sessions, and how many reused runs are simulated. **Create continuation** freezes it and opens the executor.
 
-Failed and never-started sessions are retried automatically. To retry only failed sessions within the same campaign, use **Rerun failed** in the executor.
+The website always continues from what actually happened: only sessions with an accepted forecast are reused. Failed, stopped and never-started sessions run again. A campaign made by an earlier version may list never-run sessions as reused; continuing from it runs them. To retry only failed sessions within the same campaign, use **Rerun failed** in the executor.
+
+**Names of added models.** A copy made by **Add model** is named after its model and effort ("Text only — claude-sonnet-5-5, effort high"; a default effort is not named) and gets "(2)", "(3)" … if that name is taken. A name you type must be unique. When a continuation changes the model of a configuration whose name ends with " — <old model>", the name follows the new model; other names stay. Names are not part of the setup, so a new name never stops runs from being reused.
+
+The API (`POST /api/workspace/continue`) takes `{ id, campaignId, changes, keepSimulated?, preview? }`. `useReceipts` is no longer needed: receipts and results are always read.
 
 ## Continue a campaign with new models or setups
 
@@ -47,9 +52,10 @@ Every field is optional; at least one change is required.
 | `rerunConditions` | Force fresh sessions even where nothing changed. |
 | `addContrasts` | New planned contrasts (planner-derived suites only). |
 | `retryJobs` | Parent template jobs to run again. Normally filled automatically from receipts. |
+| `labels` | New names for conditions (must be unique). Filled automatically when a model change updates a generated name; generated names of `cloneConditions` are recorded there too, so the change set replays exactly. |
 
 **When a job is reused:**
-- A job is reused only if all of these are identical: its condition recipe, job template, input-asset bytes, effective model and, for planner suites, the study outcomes.
+- A job is reused only if all of these are identical: its condition recipe (its name aside), job template, input-asset bytes, effective model and, for planner suites, the study outcomes.
 - A reused job records `inheritedFrom`: the campaign that actually executed it, never an intermediate one. It is left out of `run-queue.jsonl` and the job packets.
 - A derived reference is reused only together with its source.
 - Rule-based conditions are reused even after a model change, because they make no model calls.
@@ -66,6 +72,10 @@ node dist/cli.js campaign-continue old/campaign.json changes.json artifacts/next
 - Completions held for audit are reused, not retried automatically, to keep the first-valid-output rule.
 - The command refuses if a reused job's receipts from an earlier campaign are missing.
 
+Without `--receipts`, `campaign-continue` cannot tell finished jobs from unfinished ones and reuses every unchanged job. Pass the receipts unless nothing has run yet.
+
+In code, `continueFromStatus(previous, receipts, changes, id, createdAt, options)` also takes `simulatedJobIds` (previous jobs whose output is simulated; they run again unless `keepSimulated`) and `receiptsComplete` (the receipts of the whole lineage are given, so a reused job without one never ran and runs again instead of refusing). The website uses both.
+
 **Verifying a continuation.** The change set is stored in the new campaign. `campaign-verify new/campaign.json old/campaign.json` recomputes it from the parent, which catches forged or edited reuse claims.
 
 Status and analysis read the whole lineage. Concatenate or list every campaign's receipts and result bundles:
@@ -80,9 +90,13 @@ node dist/cli.js campaign-analyze next/campaign.json human.json artifacts/next-r
 - Receipts or results from ancestors that the new campaign does not reuse, such as superseded failures or old-model runs, are counted and ignored.
 - Records from unrelated campaigns are rejected.
 
-**Comparing campaigns.** `campaign-compare` accepts campaigns from the same lineage with different setups:
-- It reports every condition as `comparable`, `added`, `removed` or `setup-changed`, and records the model on each side.
-- It computes deltas only for comparable rows; a fully reused condition shows a zero change by construction.
+**Comparing campaigns.** `campaign-compare` (and **Compare two campaigns** on Freeze & campaigns) accepts campaigns from the same lineage with different setups:
+- It reports every condition as `comparable`, `added`, `removed`, `setup-changed` or `real-vs-simulated`, with a `note` saying why when that matters.
+- Each side names its model with its effort (`beforeModel`, `afterModel`: "claude-sonnet-5-5, effort high"; exact settings in `beforeSettings`, `afterSettings`) and the kind of runs its score rests on (`beforeRunKind`, `afterRunKind`: `real`, `simulated`, `none`, or `unknown` for an external scorecard that does not say).
+- `modelChanged` is true only when provider, model or effort differ; `modelChanges` says which ("high" and "effort=high" are the same effort).
+- Real runs are never set against simulated ones: such a row is `real-vs-simulated` and has no change. Rows with simulated runs on both sides keep their change and say that it tests the pipeline only.
+- It computes changes only for comparable rows; a fully reused condition shows a zero change by construction.
+- The top-level `beforeModel`/`afterModel` name the one model of a campaign, or are null when its configurations use different models.
 
 ## From the planner to analysis on the command line
 
@@ -148,7 +162,7 @@ node dist/cli.js campaign-status artifacts/my-new-model/campaign.json receipts.j
 - Failed attempts remain visible, and a complete output with deviations is never replaced by a more favorable attempt.
 - The status report's `runnable` list contains pending and failed worker tasks. It excludes derived references and audit-held completions.
 
-**External scoring.** An external scoring adapter can return a `CampaignScorecard`. It holds the campaign digest, frozen scoring hash, human-reference hash, coverage hash and per-condition objective and subjective directional scores. Compare matching campaigns with:
+**External scoring.** An external scoring adapter can return a `CampaignScorecard`. It holds the campaign digest, frozen scoring hash, human-reference hash, coverage hash and per-condition objective and subjective directional scores, optionally with the number of real and simulated runs behind each score (`real`, `simulated`; the built-in analyzer fills them). Compare matching campaigns with:
 
 ```bash
 node dist/cli.js campaign-compare old/campaign.json old/scores.json \

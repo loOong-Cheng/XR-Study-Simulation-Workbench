@@ -83,6 +83,7 @@ Each card is one configuration:
 - Give a campaign a **label** (for example "pilot A×2" or "main run"). Labels can be changed later; they are stored beside the campaign, not in it.
 - **Campaigns** lists every campaign as a tree: continuations under their parent, with sessions, done, failed, not run, real and simulated results, and cost. **Show** picks the campaign the executor and analyzer use; both pages name it and have a switcher.
 - Freezing exactly the same configurations, models and sessions again asks first and offers to open the existing campaign.
+- **Compare two campaigns** (below the list, needs human data) sets each configuration's agreement with humans in one campaign beside another, with the model and effort and the kind of runs (real or simulated) on each side. A change is shown only where the setup is the same and both sides rest on the same kind of runs; real runs are never set against simulated ones.
 - **Delete** removes a campaign you no longer need (a summary asks first). Its campaign file and runs move to the study's `deleted/` folder, so nothing is lost by mistake; remove that folder to free the space. A campaign that another one continues from cannot be deleted (its runs are reused there): delete the continuation first.
 
 ## 4 · Run agents (executor)
@@ -102,7 +103,7 @@ Each card is one configuration:
 
 ## 5 · Compare agents (analyzer)
 
-Needs no human data, so it is useful while piloting. For each configuration: real and simulated runs (described by the real ones when both exist), protocol deviations, **run-to-run agreement** (how consistently repeated runs order the designs), tool calls, minutes and cost. A matrix shows how far configurations agree with each other on the design pattern.
+Needs no human data, so it is useful while piloting. For each configuration: real and simulated runs (described by the real ones when both exist), protocol deviations, **run-to-run agreement** (how consistently repeated runs order the designs), tool calls, minutes and cost. Runs a continuation reuses count with their tool calls, minutes and cost. A matrix shows how far configurations agree with each other on the design pattern.
 
 ## 6 · Compare with humans (analyzer)
 
@@ -129,7 +130,9 @@ Needs no human data, so it is useful while piloting. For each configuration: rea
 ## 7 · Continue or rerun (planner)
 
 - **Per configuration:** add **Runs**; **Add model** (append a model: the configuration and its finished runs stay, and a copy with the added model joins it, to compare both); **Rerun** (fresh sessions, same setup); **Drop**. To change a configuration's model, change it on **Agent configurations**; Continue lists the change and runs that configuration again with the new model. **Preview** shows new vs reused sessions; **Create continuation** freezes it and opens the executor.
-- **Retries:** failed and never-started sessions are retried, and finished ones are reused.
+- **What is reused:** only sessions with an accepted forecast. Failed, stopped and never-started sessions run again.
+- **Keep simulated runs:** off by default, so sessions that were only simulated run again like sessions that never ran; leave it off before running real agents. Turn it on to reuse simulated runs while trying the pipeline. The preview says how many reused runs are simulated. (**Rerun the checked configurations** in the executor keeps simulated runs only while its mode is *Simulate*.)
+- **Names of added models:** a copy is named after its model and effort, for example "Text only — claude-sonnet-5-5, effort high", and gets "(2)" if that name is taken. When a later continuation changes the model of such a copy, its name follows; a name you typed stays.
 
 ## What you still build yourself
 

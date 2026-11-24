@@ -4,8 +4,8 @@ import { existsSync, realpathSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join, sep } from "node:path";
 import { choice, flag, int, object, objects, text, texts, type Body } from "./request.js";
-import { campaignFromPlan, campaignPlan, continueCampaign, continueFromStatus, type Campaign, type CampaignContinuation } from "./core/campaign.js";
-import { analyzeCampaign, mergeCampaignResults, type CampaignAnalysis } from "./core/campaign-study.js";
+import { campaignFromPlan, campaignPlan, continueFromStatus, lineageJobIndex, type Campaign, type CampaignContinuation } from "./core/campaign.js";
+import { analyzeCampaign, mergeCampaignResults, simulatedJobIds, type CampaignAnalysis } from "./core/campaign-study.js";
 import { compareAgents } from "./core/agent-comparison.js";
 import { compareCampaignScores } from "./core/campaign-comparison.js";
 import { agentVsHumanFigure, agreementFigure, correlationFigure, humanFigure, populationVsIndividualFigure, trajectoryFigure } from "./core/figures.js";
@@ -266,16 +266,21 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       const merged = mergeCampaignResults(campaign, bundles).bundle;
       const receipts = await readReceipts(id, chain.map((c) => c.id));
       const dirOf = new Map(chain.map((c) => [c.digest, runDir(id, c.id)]));
+      // Receipts name the job of the campaign that ran it; reused runs get this campaign's job ID,
+      // as in the merged results. The first completed attempt is the one that counts.
+      const index = lineageJobIndex(campaign);
       const extras: Record<string, { costUsd: number | null }> = {};
-      for (const r of receipts)
-        if (r.status === "completed" && r.executionManifest && !extras[r.jobId]) {
-          try {
-            const m = JSON.parse(await readFile(join(dirOf.get(r.campaignDigest) ?? "", r.executionManifest.path), "utf8")) as { costUsd?: number | null };
-            extras[r.jobId] = { costUsd: typeof m.costUsd === "number" ? m.costUsd : null };
-          } catch {
-            // manifest not here (e.g. a partial zip)
-          }
+      for (const r of receipts) {
+        const jobId = index.get(`${r.campaignDigest}/${r.jobId}`);
+        if (!jobId || r.status !== "completed" || !r.executionManifest || extras[jobId]) continue;
+        extras[jobId] = { costUsd: null };
+        try {
+          const m = JSON.parse(await readFile(join(dirOf.get(r.campaignDigest) ?? "", r.executionManifest.path), "utf8")) as { costUsd?: number | null };
+          extras[jobId] = { costUsd: typeof m.costUsd === "number" ? m.costUsd : null };
+        } catch {
+          // manifest not here (e.g. a partial zip)
         }
+      }
       json({ campaignId: campaign.id, ...compareAgents(campaignPlan(campaign), merged.runs, extras) });
       return true;
     }
@@ -311,18 +316,44 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       return true;
     case "/api/workspace/continue": {
       const changes = object(body, "changes") as unknown as CampaignContinuation;
-      const useReceipts = flag(body, "useReceipts"),
-        preview = flag(body, "preview");
+      const preview = flag(body, "preview"),
+        keepSimulated = flag(body, "keepSimulated");
       const previous = await readCampaign(id, campaignId());
       const chain = await lineage(id, previous);
+      // Always from what actually happened: only sessions with an accepted forecast are reused.
+      // Failed, stopped and never-started sessions run again, and so do simulated ones unless
+      // body.keepSimulated. (body.useReceipts is no longer needed; receipts are always read.)
       const receipts = await readReceipts(id, chain.map((c) => c.id));
-      const next = useReceipts && receipts.length ? continueFromStatus(previous, receipts, changes) : continueCampaign(previous, changes);
+      const bundles = previous.suite.study ? await readResults(id, previous.suite.study, chain.map((c) => c.id)) : [];
+      const simulatedBefore = simulatedJobIds(previous, bundles);
+      const next = continueFromStatus(previous, receipts, changes, undefined, undefined, {
+        simulatedJobIds: simulatedBefore,
+        keepSimulated,
+        receiptsComplete: true,
+      });
+      const reused = next.jobs.filter((j) => j.inheritedFrom).length;
+      // Simulated runs the continuation reuses (keepSimulated), and ones it runs again.
+      const simulatedNow = simulatedJobIds(next, bundles);
+      const templateOf = new Map(previous.jobs.map((j) => [j.templateJobId, j.id]));
+      const simulated = Object.fromEntries(
+        next.suite.conditions.map((c) => {
+          const jobs = next.jobs.filter((j) => j.conditionId === c.id);
+          return [
+            c.id,
+            {
+              reused: jobs.filter((j) => simulatedNow.has(j.id)).length,
+              runAgain: jobs.filter((j) => !j.inheritedFrom && simulatedBefore.has(templateOf.get(j.templateJobId) ?? "")).length,
+            },
+          ];
+        }),
+      );
+      const totals = Object.values(simulated).reduce((s, x) => ({ reused: s.reused + x.reused, runAgain: s.runAgain + x.runAgain }), { reused: 0, runAgain: 0 });
       if (preview) {
-        json({ preview: true, campaign: next });
+        json({ preview: true, campaign: next, keepSimulated, simulated: { ...totals, byCondition: simulated } });
         return true;
       }
       await saveCampaign(id, next);
-      json({ campaignId: next.id, reused: next.jobs.filter((j) => j.inheritedFrom).length, jobs: next.jobs.length });
+      json({ campaignId: next.id, reused, jobs: next.jobs.length, reusedSimulated: totals.reused, simulatedRunAgain: totals.runAgain });
       return true;
     }
     case "/api/executor/start": {

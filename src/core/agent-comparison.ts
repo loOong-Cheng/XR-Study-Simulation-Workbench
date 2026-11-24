@@ -6,6 +6,7 @@
 // same order? Same order = 1, one tie = 0.5, opposite = 0, both tied = 1; averaged over design
 // pairs, then over the outcomes both forecasts cover, separately per domain. Real and simulated
 // runs are never pooled: a configuration with real runs is described by those only.
+import { describeModel } from "./campaign.js";
 import { agentLevel, agentTargets } from "./planner.js";
 import { auditRun } from "./protocol.js";
 import type { Domain, Plan, RunResult } from "./types.js";
@@ -134,7 +135,8 @@ export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<stri
       id: a.id,
       label: a.label,
       level,
-      model: a.model.model,
+      /** With its effort: "claude-sonnet-5-5, effort high". */
+      model: describeModel(a.model),
       assigned: plan.jobs.filter((j) => j.agentId === a.id).length,
       real: real.length,
       simulated: sim.length,

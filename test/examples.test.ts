@@ -1147,3 +1147,142 @@ test("two eyes: simulated stereo sessions pass the audit; the built-in WebXR run
     await removeDir(cfg);
   }
 });
+
+// ---------- found by the second test round (T2, Nov 2026) ----------
+test("audit: a token-budget overrun is one deviation among the others; only tokens up to the forecast count", async () => {
+  const { auditRun } = await import("../src/core/protocol.js");
+  const { campaignPlan } = await import("../src/core/campaign.js");
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json")).map((a) => (a.id === "uses-app" ? { ...a, maxTokens: 60_000 } : a));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "audit-all", new Date(Date.now() - 1000).toISOString());
+  const plan = campaignPlan(c);
+  const run = syntheticCampaignExecution(c).results.runs.find((r) => c.jobs.find((j) => j.id === r.jobId)!.conditionId === "uses-app")!;
+  const job = plan.jobs.find((j) => j.id === run.jobId)!;
+  Object.assign(run.execution, { synthetic: false, inputTokens: 20_000, cacheReadTokens: 70_000, cacheWriteTokens: 0, outputTokens: 7_712 });
+  // The session took no screenshots: that must be reported next to the budget, not hidden by it.
+  run.trace = run.trace.filter((e) => e.type !== "observation");
+  const over = auditRun(plan, job, run);
+  assert.ok(over.issues.includes("Token budget exceeded: 97712 of 60000 tokens."), JSON.stringify(over.issues));
+  const required = plan.study.cases.filter((x) => plan.agents.find((a) => a.id === "uses-app")!.requiredCaseIds.includes(x.id));
+  for (const x of required) assert.ok(over.issues.includes(`No valid observation for required case ${x.id}.`), x.id);
+  assert.equal(over.scoreable, true, "deviations do not drop a usable forecast");
+  assert.equal(over.compliant, false);
+  // With the tokens counted when the forecast was accepted, the closing turn does not count …
+  const within = structuredClone(run);
+  Object.assign(within.execution, { tokensAtSubmit: 55_000 });
+  const ok = auditRun(plan, job, within);
+  assert.ok(!ok.issues.some((i) => /Token budget/.test(i)), JSON.stringify(ok.issues));
+  assert.ok(ok.issues.some((i) => /No valid observation/.test(i)));
+  // … and an overrun before the forecast names the closing turn separately.
+  Object.assign(within.execution, { tokensAtSubmit: 72_000 });
+  assert.ok(
+    auditRun(plan, job, within).issues.includes(
+      "Token budget exceeded: 72000 of 60000 tokens before the forecast was accepted (the closing turn after it used 25712 more, which the budget does not count).",
+    ),
+  );
+  // A run without an execution record is listed, not thrown.
+  const bare = structuredClone(run) as unknown as Record<string, unknown>;
+  delete bare.execution;
+  const missing = auditRun(plan, job, bare as never);
+  assert.equal(missing.scoreable, false);
+  assert.ok(missing.issues.some((i) => /Missing execution record/.test(i)));
+  assert.ok(missing.issues.some((i) => /No valid observation/.test(i)));
+});
+
+/**
+ * Writes what the executor leaves behind for some jobs of a saved campaign: results, receipts and
+ * execution manifests. "real" and "simulated" sessions finished; "failed" ones have only a receipt.
+ */
+async function writeRuns(wsId: string, c: import("../src/core/campaign.js").Campaign, jobs: Record<string, { kind: "real" | "simulated" | "failed"; costUsd?: number }>) {
+  const { runDir } = await import("../src/workspace.js");
+  const dir = runDir(wsId, c.id);
+  const made = syntheticCampaignExecution(c);
+  await mkdir(join(dir, "results"), { recursive: true });
+  const lines: string[] = [];
+  for (const [jobId, { kind, costUsd }] of Object.entries(jobs)) {
+    const run = structuredClone(made.results.runs.find((r) => r.jobId === jobId)!);
+    const receipt = structuredClone(made.receipts.find((r) => r.jobId === jobId)!);
+    if (kind === "failed") {
+      lines.push(JSON.stringify({ ...receipt, status: "failed", output: null, error: "Session ended: error." }));
+      continue;
+    }
+    run.execution.synthetic = kind === "simulated";
+    await writeFile(join(dir, "results", `${jobId}.json`), JSON.stringify(run));
+    const manifest = `jobs/${jobId}/a1/execution-manifest.json`;
+    await mkdir(join(dir, "jobs", jobId, "a1"), { recursive: true });
+    await writeFile(join(dir, manifest), JSON.stringify({ costUsd: costUsd ?? null }));
+    lines.push(JSON.stringify({ ...receipt, executionManifest: { path: manifest, sha256: "0".repeat(64) } }));
+  }
+  await writeFile(join(dir, "receipts.jsonl"), lines.join("\n") + "\n");
+}
+const post = async (path: string, body: Record<string, unknown>) => {
+  const { handlePost } = await import("../src/routes.js");
+  let out: any;
+  assert.ok(await handlePost(path, body, (v) => (out = v)), path);
+  return out;
+};
+
+test("continue (website): only sessions with an accepted forecast are reused; simulated ones run again unless kept", async () => {
+  const { readWorkspace, saveCampaign, readCampaign, runDir } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, withDefaultRuns(ws.study, ws.agents!, 1), 1), undefined, "cont-web", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const text = c.jobs.filter((j) => j.conditionId === "text-only");
+    const project = c.jobs.filter((j) => j.conditionId === "reads-project");
+    // text-only: r1 real, r2 simulated, r3 failed; reads-project r1 stopped (a folder, no receipt); the rest never started.
+    await writeRuns(a.id, c, { [text[0].id]: { kind: "real" }, [text[1].id]: { kind: "simulated" }, [text[2].id]: { kind: "failed" } });
+    await mkdir(join(runDir(a.id, c.id), "jobs", project[0].id, "a1"), { recursive: true });
+    const changes = { repetitions: { "text-only": 4 } };
+    const reusedFrom = (next: { jobs: { inheritedFrom?: { jobId: string } }[] }) => next.jobs.flatMap((j) => (j.inheritedFrom ? [j.inheritedFrom.jobId] : [])).sort();
+    // Called as T2 did, without useReceipts: still only the accepted real forecast is reused.
+    const preview = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes, preview: true });
+    assert.deepEqual(reusedFrom(preview.campaign), [text[0].id]);
+    assert.deepEqual(preview.simulated.byCondition["text-only"], { reused: 0, runAgain: 1 });
+    assert.equal(preview.keepSimulated, false);
+    // "Keep simulated runs": the simulated one is reused too, and the preview says so.
+    const kept = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes, keepSimulated: true, preview: true });
+    assert.deepEqual(reusedFrom(kept.campaign), [text[0].id, text[1].id].sort());
+    assert.deepEqual(kept.simulated.byCondition["text-only"], { reused: 1, runAgain: 0 });
+    assert.equal(kept.simulated.reused, 1);
+    // Created: the new campaign runs the failed, stopped, never-started and simulated sessions.
+    const made = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes });
+    assert.equal(made.reused, 1);
+    assert.equal(made.reusedSimulated, 0);
+    const child = await readCampaign(a.id, made.campaignId);
+    const fresh = new Set(child.jobs.filter((j) => !j.inheritedFrom).map((j) => j.templateJobId));
+    for (const j of [text[1], text[2], project[0]]) assert.ok(fresh.has(j.templateJobId), j.id);
+    // Continuing again from the child still reuses that one run, from the campaign that made it.
+    const again = await post("/api/workspace/continue", { id: a.id, campaignId: child.id, changes: { repetitions: { "text-only": 5 } }, preview: true });
+    assert.deepEqual(reusedFrom(again.campaign), [text[0].id]);
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+test("compare agents: cost, tool calls and minutes include the runs a continuation reuses", async () => {
+  const { readWorkspace, saveCampaign, readCampaign } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, withDefaultRuns(ws.study, ws.agents!, 1), 1), undefined, "cost-web", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const text = c.jobs.filter((j) => j.conditionId === "text-only");
+    await writeRuns(a.id, c, { [text[0].id]: { kind: "real", costUsd: 0.04 }, [text[1].id]: { kind: "real", costUsd: 0.0449 } });
+    const made = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes: { repetitions: { "text-only": 4 } } });
+    const child = await readCampaign(a.id, made.campaignId);
+    const own = child.jobs.find((j) => j.conditionId === "text-only" && j.repetition === 4)!;
+    await writeRuns(a.id, child, { [own.id]: { kind: "real", costUsd: 0.0308 } });
+    const cmp = await post("/api/workspace/compare-agents", { id: a.id, campaignId: child.id });
+    const row = cmp.configs.find((x: { id: string }) => x.id === "text-only");
+    assert.equal(row.real, 3);
+    assert.ok(Math.abs(row.totalCostUsd - (0.04 + 0.0449 + 0.0308)) < 1e-9, String(row.totalCostUsd));
+    assert.ok(Math.abs(row.meanCostUsd - (0.04 + 0.0449 + 0.0308) / 3) < 1e-9);
+    assert.notEqual(row.meanToolCalls, null);
+    assert.notEqual(row.meanWallMinutes, null);
+    assert.match(row.model, /^claude-/);
+  } finally {
+    await removeDir(a.dir);
+  }
+});
