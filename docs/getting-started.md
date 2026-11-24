@@ -80,7 +80,7 @@ Each card is one configuration:
 | The agent gets | Tick the sources (the brief, project, each evidence source, participant information) and "the running app". The permissions follow from what is ticked. Movement recordings can be ticked for individual configurations only; switching a configuration to population removes them. The summary also lists measured inputs ("measured X of this person" or "as the cohort means"). |
 | Predicts / inputs | Which measures it forecasts, and which measured ones it receives. A measure is never both. |
 
-**Add from template** adds a ready-made configuration; the list offers only templates the study can support. **Add custom configuration** starts from the brief only, and **Duplicate** copies a configuration, for example to give the copy a second evidence source instead of the first. Save, then **Approve**. Approval records exactly what you checked.
+**Add from template** adds a ready-made configuration; the list offers only templates the study can support. **Add custom configuration** starts from the brief only, and **Duplicate** copies a configuration, for example to give the copy a second evidence source instead of the first. Save, then **Approve study and configurations**. Approval records exactly what you checked.
 
 ## 3 · Freeze (planner)
 
@@ -96,7 +96,7 @@ Each card is one configuration:
 ## 4 · Run agents (executor)
 
 - **Next step:** a line says what to do next: start, rerun failed, continue after a configuration changed, or analyze.
-- **Runtimes:** cards show the runtimes this campaign uses and whether they are ready (**Show all runtimes** lists the others). WebXR needs Chrome and an app that exposes `window.xrStudy`. Unreal, Unity and Apple Vision Pro need that engine's MCP server command in **Settings**, on the machine that runs the engine.
+- **Runtimes:** cards show the runtimes this campaign uses and whether they are ready (**Show all runtimes** lists the others). WebXR needs Chrome and an app that exposes `window.xrStudy`. Unreal, Unity and Apple Vision Pro need a study bridge (a stdio MCP server that drives the engine; see [runtime adapters](runtime-adapters.md#study-bridge-contract)) set as the runtime's command in **Settings → Runtimes**, on the machine that runs the engine. Suite 2 includes one for its Unity app.
 - **Starting:** the executor tells you which configurations cannot run here and lets you run the rest. A configuration that reads a source without a file on this machine (`workspace.json` → `sources`) cannot run as an agent; the freeze page warns about it too. The same holds for a source that leaves the study folder or reaches human results: the study folder itself, `human.json`, `campaigns/`, `runs/`. Only a project folder elsewhere on the machine is allowed, given as an absolute path.
 - **A pilot or small test:** open **Choose sessions to run**, check configurations and select the first *k* sessions of each, or tick sessions in the table. Only those start; the others stay *not started* and can run later in the same campaign. Start shows the exact number of sessions and, from earlier real runs, an estimate of the cost.
 - **Run agents:** set **Mode** to *Run agents*, then press **Start all not run yet (n)** (or **Start selected (n)**). It starts fresh, locked-down Claude Code sessions with your login, and asks before using your Claude usage.

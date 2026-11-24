@@ -409,7 +409,7 @@ export function handoffFiles(plan: Plan): Record<string, string> {
     [
       "XR Study Sim — external execution contract",
       `Frozen plan digest: ${plan.digest}`,
-      "The launcher is not implemented by this package. Implement the RuntimeAdapter contract on your XR machine.",
+      "In the workbench, the executor (website: Run agents) runs a campaign's jobs through the built-in WebXR runtime or a study bridge set in Settings (docs/runtime-adapters.md); freeze a campaign from this plan with campaign-from-plan. An external worker that runs these packets elsewhere should give agents the same participant tools and audit trace (the bridge contract); RuntimeAdapter in src/core/protocol.ts is an optional library contract for such a worker.",
       "Preflight engine/runtime versions, model settings, source content hashes, capabilities, per-eye observations and study-specific controls before forecasting.",
       "Give each forecaster only its job packet and approved sources, never the global plan, other forecasts, analysis reports or target human answers.",
       "Missing sources or required capabilities are explicit failures. Never silently replace stereo with mono.",

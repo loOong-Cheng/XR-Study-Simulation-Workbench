@@ -131,7 +131,7 @@ node dist/cli.js campaign-rerun artifacts/my-new-model/campaign.json artifacts/n
 **Output packages:**
 - Every output directory must be new.
 - Each package includes `campaign.json`, `queue.jsonl`, all condition recipes, checksums, a workload summary and worker instructions.
-- To unpack a downloaded package container, run `node dist/cli.js unpack package.json artifacts/unpacked-campaign`. It verifies checksums and campaign integrity before writing files.
+- The `campaign-…` commands write these files into the new folder; `campaign-verify <folder>` checks `campaign.json` and every file listed in `manifest.json`. The website has no package download. A single-file package container `{"files": {…}}` (as the local API's `/api/campaign/handoff` returns it) is unpacked with `node dist/cli.js unpack package.json artifacts/unpacked-campaign`, which verifies checksums and campaign integrity before writing files.
 
 Check integrity before execution and inspect returned progress:
 
@@ -139,6 +139,8 @@ Check integrity before execution and inspect returned progress:
 node dist/cli.js campaign-preflight artifacts/my-new-model/campaign.json bindings.local.json
 node dist/cli.js campaign-status artifacts/my-new-model/campaign.json receipts.jsonl
 ```
+
+`campaign-status` needs no receipts file before anything has run. The bindings format is in [the data contract](data-contract.md#campaign-asset-bindings) and in `node dist/cli.js help`.
 
 **Preflight** checks asset integrity:
 - It returns a nonzero exit code for missing or changed files, or for unresolved external attestations.
@@ -170,7 +172,7 @@ node dist/cli.js campaign-compare old/campaign.json old/scores.json \
 ```
 
 **Output of the comparison:**
-- It produces descriptive JSON and CSV changes.
+- It produces descriptive JSON and CSV changes. `comparison.csv` gives agreement in percent and its change in percentage points (`before_agreement_pct`, `after_agreement_pct`, `change_pp`), then `n_humans`, the run counts, `status`, both models, `model_changed`, both run kinds and the `note`.
 - It rejects mismatched protocols, references, coverage or human denominators.
 - Missing outcomes remain missing.
 - It does not invent p-values from aggregate scores. Calculate paired uncertainty from the original participant and run data with the frozen scoring adapter.
