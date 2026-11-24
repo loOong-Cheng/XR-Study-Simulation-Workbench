@@ -1,10 +1,11 @@
 // Machine-local workbench settings (private/settings.json, git-ignored): which
 // agent answers workbench buttons, the default forecasting model, MCP runtimes.
 import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { repoRoot } from "./workspace.js";
 import { requireThat } from "./core/validation.js";
+import { readJsonFile, unquotePath } from "./files.js";
 
 export interface RuntimeSetting {
   /** Command that starts the runtime's MCP server (stdio). Empty = not configured. */
@@ -68,13 +69,29 @@ export function claudeCommand(settings: Pick<Settings, "claudePath">): { command
 }
 /** XR_STUDY_SETTINGS points at another settings file (tests, several machines sharing one checkout). */
 const path = () => process.env.XR_STUDY_SETTINGS || join(repoRoot, "private", "settings.json");
+/**
+ * Program paths without the quotes a pasted path brings along ("Copy as path" in Windows Explorer,
+ * or a path copied from a shortcut): Chrome, Claude Code and each runtime's command.
+ */
+function unquotedPaths<T extends Partial<Settings>>(s: T): T {
+  const out = { ...s };
+  if (typeof out.chromePath === "string") out.chromePath = unquotePath(out.chromePath);
+  if (typeof out.claudePath === "string") out.claudePath = unquotePath(out.claudePath);
+  if (out.runtimes && typeof out.runtimes === "object")
+    out.runtimes = Object.fromEntries(
+      Object.entries(out.runtimes).map(([id, r]) => [id, r && typeof r === "object" && typeof r.command === "string" ? { ...r, command: unquotePath(r.command) } : r]),
+    );
+  return out;
+}
 export async function readSettings(): Promise<Settings> {
   if (!existsSync(path())) return defaultSettings();
-  const saved = JSON.parse(await readFile(path(), "utf8")) as Partial<Settings>;
+  // Also a file saved by PowerShell 5.1 or Notepad (byte-order mark, UTF-16).
+  const saved = unquotedPaths(await readJsonFile<Partial<Settings>>(path()));
   const d = defaultSettings();
   return { ...d, ...saved, runtimes: { ...d.runtimes, ...(saved.runtimes ?? {}) } };
 }
-export async function writeSettings(value: Settings): Promise<Settings> {
+export async function writeSettings(input: Settings): Promise<Settings> {
+  const value = input && typeof input === "object" ? unquotedPaths(input) : input;
   requireThat(["claude-code", "codex", "api"].includes(value?.assistant?.kind), "Choose the assistant agent.");
   requireThat(
     [value.forecasting?.provider, value.forecasting?.model, value.forecasting?.reasoning].every(

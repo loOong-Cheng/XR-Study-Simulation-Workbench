@@ -20,6 +20,7 @@ import { runtimeFor, runtimeStatus } from "./runtimes.js";
 import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
 import { agentFileList } from "../runtimes/guard.js";
+import { readText } from "../files.js";
 
 /** not-started: never asked to run; queued: asked to run and waiting for a free slot. */
 export type JobStatus = "not-started" | "queued" | "running" | "done" | "failed" | "stopped" | "reused";
@@ -1000,7 +1001,8 @@ function totalInput(e: { inputTokens: number | null; cacheReadTokens: number | n
 /** Allowed demographic fields: the person's row, or a cohort summary for population configs. */
 async function demographics(path: string | null, fields: string[], participantId: string | undefined, people: string[]): Promise<string> {
   if (!path || !existsSync(path)) return "(no participant background file declared)";
-  return backgroundText(await readFile(path, "utf8"), fields, participantId, people);
+  // Also a table Excel saved as Windows-1252 or UTF-16.
+  return backgroundText(await readText(path), fields, participantId, people);
 }
 /**
  * A participant's movement recordings, only the ID column and the declared fields: from a CSV with

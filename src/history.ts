@@ -9,10 +9,11 @@ import { hash } from "./core/planner.js";
 import type { RunResult } from "./core/types.js";
 import { requireThat } from "./core/validation.js";
 import { listCampaigns, readReceipts, runDir, workspaceDir } from "./workspace.js";
+import { readJsonFile } from "./files.js";
 
 const labelsPath = (id: string) => join(workspaceDir(id), "campaign-labels.json");
 export async function readLabels(id: string): Promise<Record<string, string>> {
-  return existsSync(labelsPath(id)) ? JSON.parse(await readFile(labelsPath(id), "utf8")) : {};
+  return existsSync(labelsPath(id)) ? readJsonFile<Record<string, string>>(labelsPath(id)) : {};
 }
 export async function writeLabel(id: string, campaignId: string, label: string) {
   requireThat((await listCampaigns(id)).some((c) => c.id === campaignId), "Unknown campaign.");
@@ -36,7 +37,7 @@ export function sameDesignKey(c: Campaign): string {
 
 async function json<T>(path: string): Promise<T | null> {
   try {
-    return JSON.parse(await readFile(path, "utf8")) as T;
+    return await readJsonFile<T>(path);
   } catch {
     return null;
   }

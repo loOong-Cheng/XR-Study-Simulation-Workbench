@@ -16,6 +16,7 @@ import type { Campaign, CampaignReceipt } from "./core/campaign.js";
 import { checkNewConfigurations, requireThat, validateAgents, validateComparisons, validateStudy } from "./core/validation.js";
 import { PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
 import { agentRefusal, inside, nameKey, realPath, windowsAliasProblem, within } from "./runtimes/guard.js";
+import { readJsonFile, unquotePath, windowsUnusableName } from "./files.js";
 
 // dist/workspace.js or .test-build/src/workspace.js: walk up to the folder holding package.json.
 export const repoRoot = (() => {
@@ -52,8 +53,9 @@ const PROTECTED = new Set(["human.json", "campaigns", "runs", "deleted"]);
  * case-insensitive volumes. Protected folders count in every study folder on the way (a study kept
  * inside another one), and a hard link is refused (its other name may be human.json).
  */
-export function sourceLocation(dir: string, kind: string, declared: unknown): { path: string; problem?: undefined } | { problem: string; path?: undefined } {
-  if (typeof declared !== "string" || !declared.trim()) return { problem: "has no file on this machine (workspace.json → sources)" };
+export function sourceLocation(dir: string, kind: string, declaredValue: unknown): { path: string; problem?: undefined } | { problem: string; path?: undefined } {
+  const declared = typeof declaredValue === "string" ? unquotePath(declaredValue) : declaredValue;
+  if (typeof declared !== "string" || !declared) return { problem: "has no file on this machine (workspace.json → sources)" };
   const shown = isAbsolute(declared) ? `…/${basename(declared)}` : declared;
   const alias = windowsAliasProblem(declared);
   if (alias) return { problem: `points at ${shown}, which ${alias}. Write the name as it is on disk (workspace.json → sources)` };
@@ -191,7 +193,7 @@ export async function changedSources(id: string, campaign: Campaign, manifest: W
   const file = fingerprintFile(id, campaign.id);
   const study = campaign.suite.study;
   if (!existsSync(file) || !study) return [];
-  const frozen = JSON.parse(await readFile(file, "utf8")) as { sources: Record<string, SourceFingerprint> };
+  const frozen = await load<{ sources: Record<string, SourceFingerprint> }>(file);
   const now = sourceFingerprints(workspaceDir(id), study, manifest, Object.keys(frozen.sources));
   return Object.entries(frozen.sources).flatMap(([sid, f]) => {
     const current = now[sid];
@@ -212,7 +214,20 @@ export interface WorkspaceInfo {
   hasHuman: boolean;
   campaigns: number;
 }
-const load = async <T>(path: string) => JSON.parse(await readFile(path, "utf8")) as T;
+// Also files a Windows program saved with a byte-order mark (PowerShell 5.1) or as UTF-16.
+const load = <T>(path: string) => readJsonFile<T>(path);
+/**
+ * workspace.json, with every path as written but without surrounding quotes, which a path pasted
+ * from Windows Explorer ("Copy as path") brings along.
+ */
+async function loadManifest(dir: string): Promise<WorkspaceManifest> {
+  if (!existsSync(join(dir, "workspace.json"))) return {};
+  const m = await load<WorkspaceManifest>(join(dir, "workspace.json"));
+  if (!m || typeof m !== "object") return m;
+  const sources = m.sources && typeof m.sources === "object" ? Object.fromEntries(Object.entries(m.sources).map(([k, v]) => [k, typeof v === "string" ? unquotePath(v) : v])) : m.sources;
+  const app = m.app && typeof m.app === "object" && typeof m.app.serve === "string" ? { ...m.app, serve: unquotePath(m.app.serve) } : m.app;
+  return { ...m, ...(sources ? { sources } : {}), ...(app ? { app } : {}) };
+}
 const pretty = (x: unknown) => JSON.stringify(x, null, 2) + "\n";
 
 /**
@@ -241,7 +256,7 @@ export async function listWorkspaces(): Promise<WorkspaceInfo[]> {
       if (!entry.isDirectory() || !existsSync(join(dir, "study.json"))) continue;
       try {
         const study = await load<Study>(join(dir, "study.json"));
-        const manifest = existsSync(join(dir, "workspace.json")) ? await load<WorkspaceManifest>(join(dir, "workspace.json")) : {};
+        const manifest = await loadManifest(dir);
         out.push({
           id: `${r.split(sep).join("/")}/${entry.name}`,
           // Bounded, so one oversized file cannot bloat the study list for everyone.
@@ -266,7 +281,7 @@ export async function readStudyFolder(id: string) {
   const dir = workspaceDir(id);
   const study = validateStudy(await load(join(dir, "study.json")));
   const comparisons = existsSync(join(dir, "comparisons.json")) ? await load<Comparison[]>(join(dir, "comparisons.json")) : [];
-  const manifest = existsSync(join(dir, "workspace.json")) ? await load<WorkspaceManifest>(join(dir, "workspace.json")) : {};
+  const manifest = await loadManifest(dir);
   return { dir, study, comparisons, manifest };
 }
 export async function readWorkspace(id: string) {
@@ -395,6 +410,7 @@ export async function readResults(id: string, study: Study, campaignIds: string[
 export async function createStudy(rawName: string) {
   const name = rawName.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   requireThat(name.length >= 2, "Give the study folder a name (letters, digits, dashes).");
+  requireThat(!windowsUnusableName(name), `"${name}" is a name Windows keeps for devices (CON, PRN, AUX, NUL, COM1–9, LPT1–9), so the study folder could not be opened there. Choose another name.`);
   const dir = join(repoRoot, "private", "studies", name);
   requireThat(!existsSync(dir), "A study with this name already exists.");
   const placeholder: Study = {

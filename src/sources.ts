@@ -9,8 +9,9 @@ import type { Study } from "./core/types.js";
 import { measurementValue, requireThat } from "./core/validation.js";
 // The study and its sources only: knowledge stays readable while saved configurations disagree with the study.
 import { readHuman, readStudyFolder as readWorkspace, sourceLocation, studyWriteTarget, type WorkspaceManifest } from "./workspace.js";
-import { backgroundText, columnGaps, idColumn, outcomeNamed, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS, plural, strangerNote, strangers, toCsv } from "./participant-knowledge.js";
+import { backgroundText, columnGaps, idColumn, outcomeNamed, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS, plural, strangerNote, strangers, tableEncodingNotes, toCsv } from "./participant-knowledge.js";
 import { agentFileList } from "./runtimes/guard.js";
+import { decodeText, encodingNote, windowsUnusableName } from "./files.js";
 import { draftKnowledge } from "./assistant.js";
 import { extractProposal } from "./core/proposal.js";
 import type { AgentProtocol } from "./core/types.js";
@@ -112,7 +113,9 @@ export async function participantKnowledgeOverview(id: string, agents: { id: str
     const exists = !!path && existsSync(path);
     const problems = exists ? participantProblems(ws.study, src.kind, path!, src.fields ?? []) : [];
     const isFile = exists && !(await stat(path!)).isDirectory();
-    const text = isFile ? await readFile(path!, "utf8") : "";
+    // Read as agents get it: also a table Excel saved as Windows-1252 or UTF-16 (the notes say so).
+    const bytes = isFile ? await readFile(path!) : null;
+    const text = bytes ? decodeText(bytes).text : "";
     const example = ws.study.participants[0]?.id ?? null;
     const people = ws.study.participants.map((p) => p.id);
     out.push({
@@ -123,26 +126,28 @@ export async function participantKnowledgeOverview(id: string, agents: { id: str
       fields: src.fields ?? [],
       path: rel,
       exists,
-      sha256: isFile ? sha(text) : null,
+      sha256: bytes ? sha(bytes) : null,
       participants: ws.study.participants.length,
       problems,
       columns: src.kind === "demographics" && isFile ? participantColumns(ws.study, text).columns : [],
       population: src.kind === "demographics" && isFile && !problems.length ? backgroundText(text, src.fields ?? [], undefined, people) : null,
       individual: src.kind === "demographics" && isFile && !problems.length && example ? { participantId: example, text: backgroundText(text, src.fields ?? [], example) } : null,
       // Rows of people outside the study are never delivered or counted; say which.
-      notes: isFile ? strangerNote(strangers(ws.study, text)) : "",
+      notes: [exists ? tableEncodingNotes(path!) : "", isFile ? strangerNote(strangers(ws.study, text)) : ""].filter(Boolean).join(" "),
       configs: agents.filter((a) => a.sourceIds.includes(src.id)).map((a) => a.id),
     });
   }
   return out;
 }
 
-/** A short ID from a name, cut at a word boundary (at most 40 characters). */
+/**
+ * A short ID from a name, cut at a word boundary (at most 40 characters). It names files too
+ * (data/<id>.csv), so a name Windows keeps for devices (con, aux, nul, com1 …) gets a suffix.
+ */
 const slug = (text: string) => {
   const full = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
-  if (full.length <= 40) return full || "knowledge";
-  const cut = full.slice(0, 41).replace(/-[^-]*$/, "");
-  return cut || full.slice(0, 40);
+  const id = full.length <= 40 ? full || "knowledge" : full.slice(0, 41).replace(/-[^-]*$/, "") || full.slice(0, 40);
+  return windowsUnusableName(id) ? `${id}-source` : id;
 };
 /** Files a write must never replace: every mapped source's file, and any file already in the study folder. */
 const taken = (ws: { dir: string; manifest: WorkspaceManifest }, rel: string) =>
@@ -155,12 +160,15 @@ function freshId(ws: { dir: string; study: { sources: { id: string }[] }; manife
   while (ws.study.sources.some((x) => x.id === id) || ws.manifest.sources?.[id] || taken(ws, `data/${id}.csv`) || taken(ws, `evidence/${id}.md`)) id = `${first}-${n++}`;
   return id;
 }
-/** The path itself if it is free, else the same name with -2, -3 … (a kept file of a deleted source is never overwritten). */
+/**
+ * The path itself if it is free, else the same name with -2, -3 … (a kept file of a deleted source
+ * is never overwritten; a name Windows cannot use, such as data/con.csv, is never chosen).
+ */
 function freePath(ws: { dir: string; manifest: WorkspaceManifest }, rel: string, also: Set<string>) {
   const m = /^(.*?)(\.[a-z0-9]+)$/i.exec(rel) ?? [rel, rel, ""];
   let path = rel,
     n = 2;
-  while (taken(ws, path) || also.has(path)) path = `${m[1]}-${n++}${m[2]}`;
+  while (taken(ws, path) || also.has(path) || windowsUnusableName(basename(path))) path = `${m[1]}-${n++}${m[2]}`;
   return path;
 }
 
@@ -192,7 +200,10 @@ export async function knowledgeDraft(id: string, name: string, data: Buffer) {
   const people = new Set(ws.study.participants.map((p) => p.id));
   const base = basename(name).replace(/\.[a-z0-9]+$/i, "");
   if (/\.(csv|tsv)$/i.test(name)) {
-    const text = data.toString("utf8").replace(/^\uFEFF/, "");
+    // Excel on Windows saves "CSV" as Windows-1252 and "Unicode text" as UTF-16; the draft is saved as UTF-8.
+    const decoded = decodeText(data);
+    const text = decoded.text;
+    const readAs = encodingNote(basename(name), decoded.encoding);
     // Semicolon- and tab-separated files (as spreadsheet programs often save them) are read and kept comma-separated.
     const table = parseCsv(text, /\.tsv$/i.test(name) ? "\t" : undefined);
     const { head, rows } = table;
@@ -216,7 +227,7 @@ export async function knowledgeDraft(id: string, name: string, data: Buffer) {
         description: `${basename(name)}: information about each participant.`,
         path: `data/${sourceId}.csv`,
         text: withoutOutcomeColumns(ws.study, csv).trim() + "\n",
-        ...participantColumns(ws.study, csv),
+        ...participantColumns(ws.study, csv, readAs),
         problems: participantProblemsText(ws.study, "demographics", csv, []),
         check: null,
       };
