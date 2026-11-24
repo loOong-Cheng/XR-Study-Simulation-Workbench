@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { readFile, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, join, relative } from "node:path";
+import { dirname, join, relative, sep } from "node:path";
 import { analyze } from "./core/analyzer.js";
 import {
   exampleStudy,
@@ -18,15 +18,16 @@ import { validateAgents, validateStudy } from "./core/validation.js";
 import { hash } from "./core/planner.js";
 import { approvalState, approve, readReviewFiles } from "./review.js";
 import { handleGet, handlePost } from "./routes.js";
+import { hostAllowed, originAllowed, publicError } from "./http-guard.js";
 
 // Review mode: `cli review <study.json> [--agents agents.json]` sets these. The
 // server only ever writes to these two files (and the study's approval record).
 const reviewStudy = process.env.XR_REVIEW_STUDY;
 let reviewAgents = process.env.XR_REVIEW_AGENTS;
-// Paths inside the working directory are shown relative to it; others in full.
+// Paths inside the working directory are shown relative to it (with "/" on every system); others in full.
 const display = (p: string) => {
   const r = relative(process.cwd(), p);
-  return r.startsWith("..") ? p : r;
+  return r.startsWith("..") ? p : r.split(sep).join("/");
 };
 async function reviewState() {
   if (!reviewStudy) return { active: false };
@@ -94,6 +95,12 @@ const server = createServer(async (req, res) => {
     });
     res.end(JSON.stringify(value));
   };
+  // Every request (pages, API, event stream) must name this machine as its host: a page of
+  // another site that resolves its own name to 127.0.0.1 (DNS rebinding) is refused here.
+  if (!hostAllowed(req.headers.host)) {
+    json({ error: `Open the workbench at http://127.0.0.1:${port}.` }, 403);
+    return;
+  }
   try {
     const path = new URL(req.url ?? "/", `http://127.0.0.1:${port}`).pathname;
     if (req.method === "GET") {
@@ -143,13 +150,7 @@ const server = createServer(async (req, res) => {
       json({ error: "Method not allowed" }, 405);
       return;
     }
-    const origin = req.headers.origin;
-    if (
-      origin &&
-      !new Set([`http://127.0.0.1:${port}`, `http://localhost:${port}`]).has(
-        origin,
-      )
-    ) {
+    if (!originAllowed(req.headers.origin, port)) {
       json({ error: "Use the local workbench origin." }, 403);
       return;
     }
@@ -166,7 +167,17 @@ const server = createServer(async (req, res) => {
       chunks.push(chunk as Buffer);
     }
     const raw = Buffer.concat(chunks).toString("utf8");
-    const body = JSON.parse(raw) as Record<string, unknown>;
+    let body: Record<string, unknown>;
+    try {
+      body = JSON.parse(raw);
+    } catch {
+      json({ error: "The request is not valid JSON." }, 400);
+      return;
+    }
+    if (!body || typeof body !== "object" || Array.isArray(body)) {
+      json({ error: "The request must be a JSON object." }, 400);
+      return;
+    }
     if (path.startsWith("/api/") && (await handlePost(path, body, json))) return;
     if (path === "/api/review/save" || path === "/api/review/approve") {
       if (!reviewStudy) throw new Error("Start the workbench with `node dist/cli.js review <study.json>` to save a reviewed study.");
@@ -350,7 +361,12 @@ const server = createServer(async (req, res) => {
     }
     json({ error: "Not found" }, 404);
   } catch (error) {
-    json({ error: (error as Error).message }, 400);
+    // Expected problems go back as written; anything else as "Something went wrong: …", never
+    // with this machine's absolute paths. The full error stays on the server console.
+    const e = publicError(error);
+    if (e.unexpected) console.error(`${req.method} ${req.url?.split("?")[0]}:`, error);
+    if (!res.headersSent) json({ error: e.message }, e.status);
+    else res.end();
   }
 });
 server.on("error", (error) => {

@@ -16,7 +16,11 @@ function keys(value: object, allowed: string[], label: string): void {
 function uniqueIds(rows: { id: string }[], label: string): void {
   requireThat(Array.isArray(rows), `${label} must be an array.`);
   requireThat(
-    rows.every((r) => identifier.test(r.id)),
+    rows.every((r) => r && typeof r === "object" && !Array.isArray(r)),
+    `Each entry of ${label} must be an object.`,
+  );
+  requireThat(
+    rows.every((r) => typeof r.id === "string" && identifier.test(r.id)),
     `${label} need unique, simple identifiers.`,
   );
   requireThat(
@@ -24,8 +28,24 @@ function uniqueIds(rows: { id: string }[], label: string): void {
     `Duplicate ${label} identifier.`,
   );
 }
+/**
+ * Length limits for a study's texts, so one oversized field cannot bloat every page and file that
+ * shows the study: titles and labels 500 characters, the research question and descriptions 5,000,
+ * short words (units, families, strata, fields, actions, capabilities) 200.
+ */
+export const STUDY_TEXT_LIMITS = { label: 500, long: 5000, word: 200 };
+function textField(value: unknown, max: number, what: string, optional = false): void {
+  if (optional && value === undefined) return;
+  requireThat(typeof value === "string", `${what} must be text.`);
+  requireThat(value.length <= max, `${what} is too long: keep it to ${max.toLocaleString("en")} characters.`);
+}
+const words = (value: unknown, what: string, optional = false) => {
+  if (optional && value === undefined) return;
+  requireThat(Array.isArray(value), `${what} must be a list.`);
+  value.forEach((x) => textField(x, STUDY_TEXT_LIMITS.word, `Each entry of ${what}`));
+};
 export function validateStudy(value: unknown): Study {
-  requireThat(value && typeof value === "object", "Provide a study object.");
+  requireThat(value && typeof value === "object" && !Array.isArray(value), "Provide a study object.");
   const s = value as Study;
   requireThat(
     Object.keys(s).every((k) =>
@@ -58,11 +78,13 @@ export function validateStudy(value: unknown): Study {
     typeof s.title === "string" && s.title.trim().length > 0,
     "A study title is required.",
   );
+  textField(s.title, STUDY_TEXT_LIMITS.label, "The study title");
   requireThat(
     typeof s.researchQuestion === "string" &&
       s.researchQuestion.trim().length > 0,
     "State the research question.",
   );
+  textField(s.researchQuestion, STUDY_TEXT_LIMITS.long, "The research question");
   requireThat(
     typeof s.synthetic === "boolean",
     "Declare whether the study is synthetic.",
@@ -92,6 +114,43 @@ export function validateStudy(value: unknown): Study {
     outcomes: s.outcomes,
   }))
     uniqueIds(rows, key);
+  requireThat(
+    s.runtime && typeof s.runtime === "object" && !Array.isArray(s.runtime),
+    "Declare the runtime (engine, backend, observation, device profile, capabilities).",
+  );
+  requireThat(
+    s.analysis &&
+      typeof s.analysis === "object" &&
+      s.analysis.familyWeights &&
+      typeof s.analysis.familyWeights === "object" &&
+      Array.isArray(s.analysis.contrasts) &&
+      s.analysis.contrasts.every((x) => x && typeof x === "object"),
+    "Declare the analysis (mode, family weights, bootstrap draws, seed, tie tolerance, contrasts).",
+  );
+  // Texts: of the right type and bounded (STUDY_TEXT_LIMITS).
+  const { label, long } = STUDY_TEXT_LIMITS;
+  s.conditions.forEach((x) => textField(x.label, label, `The label of design ${x.id}`));
+  s.phases.forEach((x) => textField(x.label, label, `The label of phase ${x.id}`));
+  s.cases.forEach((x) => {
+    textField(x.label, label, `The label of task ${x.id}`, true);
+    words(x.requiredActions, `the required actions of task ${x.id}`);
+  });
+  s.participants.forEach((x) => textField(x.stratum, STUDY_TEXT_LIMITS.word, `The stratum of participant ${x.id}`, true));
+  s.sources.forEach((x) => {
+    textField(x.label, label, `The label of source ${x.id}`);
+    textField(x.description, long, `The description of source ${x.id}`, true);
+    words(x.fields, `the fields of source ${x.id}`, true);
+  });
+  s.outcomes.forEach((x) => {
+    textField(x.label, label, `The label of measure ${x.id}`);
+    textField(x.description, long, `The description of measure ${x.id}`, true);
+    textField(x.unit, STUDY_TEXT_LIMITS.word, `The unit of measure ${x.id}`);
+    textField(x.family, STUDY_TEXT_LIMITS.word, `The family of measure ${x.id}`);
+    words(x.phaseIds, `the measurement phases of ${x.id}`);
+    words(x.components, `the items of ${x.id}`, true);
+  });
+  textField(s.runtime.deviceProfile, STUDY_TEXT_LIMITS.word, "The device profile", true);
+  words(s.runtime.requiredCapabilities, "the required capabilities", true);
   s.conditions.forEach((x) => keys(x, ["id", "label"], "condition"));
   s.phases.forEach((x) => keys(x, ["id", "label", "kind"], "phase"));
   s.cases.forEach((x) =>

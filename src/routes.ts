@@ -1,8 +1,9 @@
 // Workbench API for study workspaces: planner, executor, analyzer, assistant.
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { existsSync } from "node:fs";
+import { existsSync, realpathSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
-import { join, resolve, sep } from "node:path";
+import { join, sep } from "node:path";
+import { choice, flag, int, object, objects, text, texts, type Body } from "./request.js";
 import { campaignFromPlan, campaignPlan, continueCampaign, continueFromStatus, type Campaign, type CampaignContinuation } from "./core/campaign.js";
 import { analyzeCampaign, mergeCampaignResults, type CampaignAnalysis } from "./core/campaign-study.js";
 import { compareAgents } from "./core/agent-comparison.js";
@@ -28,7 +29,6 @@ import {
   readWorkspace,
   saveCampaign,
   saveWorkspace,
-  workspaceDir,
   missingSources,
   runDir,
   createStudy,
@@ -73,6 +73,43 @@ async function analysis(id: string, campaignId: string, comparisons?: Comparison
     );
   analysisCache.set(key, result);
   return { campaign, analysis: result, receipts };
+}
+/**
+ * A screenshot of a session in this campaign's run folder (jobs/<job>/a<n>/screenshots/<name>.jpg|png).
+ * The study and campaign IDs are checked like everywhere else, and the file, with symlinks resolved,
+ * must stay inside the campaign's run folder.
+ */
+export function screenshotFile(id: string, campaignId: string, rel: string): string {
+  const base = runDir(id, campaignId);
+  requireThat(
+    /^jobs\/[A-Za-z0-9_.-]{1,300}\/a\d{1,6}\/screenshots\/[^/\\:\0-\x1f]{1,200}\.(jpg|png)$/.test(rel) && !rel.split("/").some((s) => s === "." || s === ".."),
+    "Not found.",
+  );
+  let root: string, real: string;
+  try {
+    root = realpathSync(base);
+    real = realpathSync(join(base, ...rel.split("/")));
+  } catch {
+    throw new Error("Not found.");
+  }
+  requireThat(real.startsWith(root + sep) && statSync(real).isFile(), "Not found.");
+  return real;
+}
+/** Session IDs of a request, each a session of this campaign. */
+function jobIdsOf(body: Body, ex: Executor): string[] | undefined {
+  const ids = texts(body, "jobIds", { optional: true, maxItems: 100_000, max: 300 });
+  const unknown = ids?.find((j) => !ex.jobs.has(j));
+  requireThat(unknown === undefined, `Unknown session: ${String(unknown).slice(0, 120)}. Reload the page.`);
+  return ids;
+}
+/** Comparisons chosen at analysis: a list of { candidate, baseline, domain }. */
+function comparisonsOf(body: Body): Comparison[] | undefined {
+  const list = objects(body, "comparisons", { optional: true, maxItems: 1000 });
+  requireThat(
+    !list || list.every((c) => typeof c.candidate === "string" && typeof c.baseline === "string" && (c.domain === "objective" || c.domain === "subjective")),
+    'Invalid request: each comparison needs "candidate", "baseline" and "domain" (objective or subjective).',
+  );
+  return list as unknown as Comparison[] | undefined;
 }
 function sse(res: ServerResponse, ex: Executor) {
   res.writeHead(200, { "Content-Type": "text/event-stream", "Cache-Control": "no-store", Connection: "keep-alive" });
@@ -145,10 +182,7 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
       return true;
     case "/api/workspace/file": {
       // Only run screenshots are served (for the executor's live view).
-      const rel = url.searchParams.get("path") ?? "";
-      const base = join(workspaceDir(id), "runs", campaignId);
-      const file = resolve(base, rel);
-      requireThat(file.startsWith(base + sep) && /[\\/]screenshots[\\/][^\\/]+\.(jpg|png)$/.test(file) && existsSync(file), "Not found.");
+      const file = screenshotFile(id, campaignId, url.searchParams.get("path") ?? "");
       res.writeHead(200, { "Content-Type": file.endsWith(".png") ? "image/png" : "image/jpeg" });
       res.end(await readFile(file));
       return true;
@@ -166,58 +200,67 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
   return false;
 }
 
-export async function handlePost(path: string, body: Record<string, any>, json: Json): Promise<boolean> {
-  const id = String(body.id ?? "");
+export async function handlePost(path: string, body: Body, json: Json): Promise<boolean> {
+  // Typed fields only (src/request.ts): a wrong type is refused with a plain message, never converted.
+  const id = text(body, "id", { optional: true, max: 300 });
+  const campaignId = (key = "campaignId") => text(body, key, { max: 200 });
   switch (path) {
     case "/api/settings":
-      json(await writeSettings(body.settings as Settings));
+      json(await writeSettings(object(body, "settings") as unknown as Settings));
       return true;
     case "/api/workspace/create":
-      json(await createStudy(String(body.name ?? "")));
+      json(await createStudy(text(body, "name", { optional: true, max: 200 })));
       return true;
     case "/api/workspace/save":
-      await saveWorkspace(id, { study: body.study, agents: body.agents, comparisons: body.comparisons });
+      await saveWorkspace(id, {
+        study: object(body, "study", { optional: true }) as unknown as Study | undefined,
+        agents: objects(body, "agents", { optional: true, maxItems: 1000 }) as unknown as AgentProtocol[] | undefined,
+        comparisons: comparisonsOf(body),
+      });
       json({ saved: true });
       return true;
     case "/api/workspace/approve": {
       const ws = await readWorkspace(id);
       requireThat(ws.agents, "Save the agent configurations before approving.");
-      const a = await approve(join(ws.dir, "study.json"), ws.study, ws.agents!, typeof body.note === "string" ? body.note.slice(0, 2000) : "");
+      const a = await approve(join(ws.dir, "study.json"), ws.study, ws.agents!, text(body, "note", { optional: true, max: 100_000 }).slice(0, 2000));
       json(a);
       return true;
     }
     case "/api/workspace/freeze": {
+      // repetitions = runs per participant; configurations without their own count get it resolved here.
+      const perParticipant = int(body, "repetitions", { min: 1, max: 50, fallback: 1 });
+      const check = flag(body, "check");
+      const label = text(body, "label", { optional: true, max: 1000 });
       const ws = await readWorkspace(id);
       const settings = await readSettings();
       const agents = await configs(ws.study, ws.agents, settings);
-      // body.repetitions = runs per participant; configurations without their own count get it resolved here.
-      const perParticipant = Number(body.repetitions ?? 1);
       const plan = freezePlan(ws.study, withDefaultRuns(ws.study, agents, perParticipant), perParticipant);
       const campaign = campaignFromPlan(plan);
-      if (body.check) {
+      if (check) {
         // Warn before repeating a campaign: same configurations, models and sessions.
         const key = sameDesignKey(campaign);
         json({ duplicates: (await campaignSummaries(id)).filter((c) => c.designKey === key).map((c) => ({ id: c.id, label: c.label, createdAt: c.createdAt })), jobs: campaign.jobs.filter((j) => j.kind === "llm").length });
         return true;
       }
       await saveCampaign(id, campaign);
-      if (typeof body.label === "string" && body.label.trim()) await writeLabel(id, campaign.id, body.label);
+      if (label.trim()) await writeLabel(id, campaign.id, label);
       json({ campaignId: campaign.id, jobs: campaign.jobs.length });
       return true;
     }
     case "/api/workspace/human-figure": {
       // Human data only (no agent runs needed). Only once a campaign is frozen, so human results
       // stay hidden while the study and configurations are planned.
-      const campaign = await readCampaign(id, String(body.campaignId));
+      const outcomeId = text(body, "outcomeId", { optional: true, max: 200 });
+      const campaign = await readCampaign(id, campaignId());
       const human = await readHuman(id);
       requireThat(human, "This study has no human reference (human.json) yet.");
       const study = campaign.suite.study!;
-      json(humanFigure(study, human!, String(body.outcomeId || study.outcomes[0].id)));
+      json(humanFigure(study, human!, outcomeId || study.outcomes[0].id));
       return true;
     }
     case "/api/workspace/compare-agents": {
       // Configurations against each other: needs no human data.
-      const campaign = await readCampaign(id, String(body.campaignId));
+      const campaign = await readCampaign(id, campaignId());
       const chain = await lineage(id, campaign);
       const bundles = await readResults(id, campaign.suite.study!, chain.map((c) => c.id));
       const merged = mergeCampaignResults(campaign, bundles).bundle;
@@ -238,27 +281,43 @@ export async function handlePost(path: string, body: Record<string, any>, json: 
     }
     case "/api/workspace/knowledge-draft":
       requireThat(typeof body.base64 === "string" && typeof body.name === "string", "Choose a file.");
-      json(await knowledgeDraft(id, body.name, Buffer.from(body.base64, "base64")));
+      json(await knowledgeDraft(id, text(body, "name", { max: 300 }), Buffer.from(text(body, "base64", { max: 400 * 1024 * 1024 }), "base64")));
       return true;
-    case "/api/workspace/knowledge-save":
-      json(await saveKnowledge(id, { study: body.study, agents: body.agents, write: body.write, unmap: body.unmap }));
+    case "/api/workspace/knowledge-save": {
+      const write = objects(body, "write", { optional: true, maxItems: 200 });
+      requireThat(
+        !write || write.every((w) => typeof w.sourceId === "string" && typeof w.path === "string" && w.path.length <= 300 && typeof w.text === "string"),
+        'Invalid request: each file to write needs "sourceId", "path" and "text" as texts.',
+      );
+      json(
+        await saveKnowledge(id, {
+          study: object(body, "study"),
+          agents: objects(body, "agents", { maxItems: 1000 }),
+          write: write as { sourceId: string; path: string; text: string }[] | undefined,
+          unmap: texts(body, "unmap", { optional: true, maxItems: 1000 }),
+        }),
+      );
       return true;
-    case "/api/workspace/campaign-delete":
-      closeExecutor(id, String(body.campaignId));
-      json(await deleteCampaign(id, String(body.campaignId)));
+    }
+    case "/api/workspace/campaign-delete": {
+      const c = campaignId();
+      // The study ID is canonical (workspaceDir), so this finds the executor that runs its sessions.
+      closeExecutor(id, c);
+      json(await deleteCampaign(id, c));
       return true;
+    }
     case "/api/workspace/campaign-label":
-      json(await writeLabel(id, String(body.campaignId), String(body.label ?? "")));
+      json(await writeLabel(id, campaignId(), text(body, "label", { optional: true, max: 1000 })));
       return true;
     case "/api/workspace/continue": {
-      const ws = await readWorkspace(id);
-      void ws;
-      const previous = await readCampaign(id, String(body.campaignId));
+      const changes = object(body, "changes") as unknown as CampaignContinuation;
+      const useReceipts = flag(body, "useReceipts"),
+        preview = flag(body, "preview");
+      const previous = await readCampaign(id, campaignId());
       const chain = await lineage(id, previous);
       const receipts = await readReceipts(id, chain.map((c) => c.id));
-      const changes = body.changes as CampaignContinuation;
-      const next = body.useReceipts && receipts.length ? continueFromStatus(previous, receipts, changes) : continueCampaign(previous, changes);
-      if (body.preview) {
+      const next = useReceipts && receipts.length ? continueFromStatus(previous, receipts, changes) : continueCampaign(previous, changes);
+      if (preview) {
         json({ preview: true, campaign: next });
         return true;
       }
@@ -267,36 +326,38 @@ export async function handlePost(path: string, body: Record<string, any>, json: 
       return true;
     }
     case "/api/executor/start": {
-      const ex = await Executor.open(id, String(body.campaignId));
-      json(await ex.start(body.mode === "agent" ? "agent" : "simulate", body.jobIds));
+      const mode = choice(body, "mode", ["agent", "simulate"] as const, "simulate");
+      const ex = await Executor.open(id, campaignId());
+      json(await ex.start(mode, jobIdsOf(body, ex)));
       return true;
     }
     case "/api/executor/blockers": {
-      const ex = await Executor.open(id, String(body.campaignId));
-      json(await ex.blockers(body.jobIds ?? [...ex.jobs.keys()]));
+      const ex = await Executor.open(id, campaignId());
+      json(await ex.blockers(jobIdsOf(body, ex) ?? [...ex.jobs.keys()]));
       return true;
     }
     case "/api/executor/estimate": {
-      const ex = await Executor.open(id, String(body.campaignId));
-      json(await ex.estimate(body.jobIds ?? []));
+      const ex = await Executor.open(id, campaignId());
+      json(await ex.estimate(jobIdsOf(body, ex) ?? []));
       return true;
     }
     case "/api/executor/pause":
-      json((await Executor.open(id, String(body.campaignId))).pause());
+      json((await Executor.open(id, campaignId())).pause());
       return true;
     case "/api/executor/resume":
-      json((await Executor.open(id, String(body.campaignId))).resume());
+      json((await Executor.open(id, campaignId())).resume());
       return true;
     case "/api/executor/stop":
-      json((await Executor.open(id, String(body.campaignId))).stop());
+      json((await Executor.open(id, campaignId())).stop());
       return true;
     case "/api/runs/import": {
       requireThat(typeof body.base64 === "string", "Choose a runs zip.");
-      json(await importRuns(id, Buffer.from(body.base64, "base64")));
+      // Loading into a campaign whose sessions are running is refused; otherwise its executor reloads from disk.
+      json(await importRuns(id, Buffer.from(body.base64, "base64"), (campaignIds) => campaignIds.forEach((c) => closeExecutor(id, c))));
       return true;
     }
     case "/api/workspace/analyze": {
-      const { campaign, analysis: a, receipts } = await analysis(id, String(body.campaignId), body.comparisons);
+      const { campaign, analysis: a, receipts } = await analysis(id, campaignId(), comparisonsOf(body));
       const study = campaign.suite.study!;
       // Interim or final: a session with no receipt in this campaign (and not reused) was never run.
       const llmJobs = campaign.jobs.filter((j) => j.kind === "llm");
@@ -340,18 +401,19 @@ export async function handlePost(path: string, body: Record<string, any>, json: 
       return true;
     }
     case "/api/workspace/figure": {
-      const { campaign, analysis: a } = await analysis(id, String(body.campaignId), body.comparisons);
+      const ids = texts(body, "agentIds", { optional: true, maxItems: 1000 }) ?? [];
+      requireThat(ids.length, "Select at least one agent configuration.");
+      const domain: Domain = choice(body, "domain", ["objective", "subjective"] as const, "subjective");
+      const kind = text(body, "kind", { max: 100 });
+      const outcomeId = text(body, "outcomeId", { optional: true, max: 200 });
+      const { campaign, analysis: a } = await analysis(id, campaignId(), comparisonsOf(body));
       const study = campaign.suite.study!;
       const labels = Object.fromEntries(campaign.suite.conditions.map((c) => [c.id, c.label]));
-      const ids = (body.agentIds as string[]) ?? [];
-      requireThat(ids.length, "Select at least one agent configuration.");
-      const domain = (body.domain ?? "subjective") as Domain;
-      const kind = String(body.kind);
       json(
         kind === "agreement"
           ? agreementFigure(a.report, ids, domain, labels)
           : kind === "agent-vs-human"
-          ? agentVsHumanFigure(study, a.report, ids, String(body.outcomeId), labels)
+          ? agentVsHumanFigure(study, a.report, ids, outcomeId, labels)
           : kind === "correlation"
           ? correlationFigure(study, a.report, ids, labels)
           : kind === "population-vs-individual"
@@ -365,20 +427,23 @@ export async function handlePost(path: string, body: Record<string, any>, json: 
       return true;
     }
     case "/api/workspace/compare": {
-      const before = await analysis(id, String(body.before), body.comparisons);
-      const after = await analysis(id, String(body.after), body.comparisons);
+      const comparisons = comparisonsOf(body);
+      const before = await analysis(id, campaignId("before"), comparisons);
+      const after = await analysis(id, campaignId("after"), comparisons);
       json(compareCampaignScores(before.campaign, before.analysis.scorecard, after.campaign, after.analysis.scorecard));
       return true;
     }
     case "/api/assistant/understand": {
       requireThat(typeof body.name === "string" && typeof body.base64 === "string", "Choose a document.");
-      const document = await extractProposal(body.name, Buffer.from(body.base64, "base64"));
+      const name = text(body, "name", { max: 300 });
+      const participantsCsv = text(body, "participantsCsv", { optional: true, max: 20_000_000 }) || null;
+      const document = await extractProposal(name, Buffer.from(text(body, "base64", { max: 400 * 1024 * 1024 }), "base64"));
       const current = id ? (await readWorkspace(id)).study : null;
-      json(await understandStudy(document, typeof body.participantsCsv === "string" ? body.participantsCsv : null, current));
+      json(await understandStudy(document, participantsCsv, current));
       return true;
     }
     case "/api/assistant/explain": {
-      const { analysis: a } = await analysis(id, String(body.campaignId), body.comparisons);
+      const { analysis: a } = await analysis(id, campaignId(), comparisonsOf(body));
       json({
         text: await explainResults({
           summaries: a.report.summaries,
