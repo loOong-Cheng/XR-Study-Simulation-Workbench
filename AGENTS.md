@@ -100,6 +100,19 @@ private/studies/<name>/            (or examples/<name>/ for synthetic studies)
   campaigns/  runs/ written by the workbench
 ```
 
+**Where sources may point (enforced; configurations that break it are blocked):**
+- Every source in `workspace.json` resolves (symlinks followed) **inside the study folder**. It may not be the study folder itself (`"project": "."`), a folder around it, `human.json`, `campaigns/`, `runs/` or `deleted/`.
+- Only a **project** folder may live elsewhere on the machine (an engine project). Write it as an **absolute path** outside this repository, and not a folder that holds a `study.json` or `human.json`. A relative path that leaves the study folder is refused.
+- As a second guard, the study MCP server never hands an agent a file named `human.json`, nor anything in a study's `campaigns/`, `runs/` or `deleted/`. A symlink that leads out of the permitted folder is refused too.
+
+**Study IDs** are exactly `examples/<name>` or `private/studies/<name>`, with the folder's own letter case. Other spellings (`./`, `//`, a trailing `/`) are refused.
+
+**The website** answers only requests addressed to `localhost`, `127.0.0.1` or `[::1]`. It accepts changes (POST) only from its own page. Runs zips are checked completely before anything is written:
+- Sizes: at most 2 GB unpacked in total and 500 MB per file.
+- Names: no `..`, backslashes, drive letters or absolute names.
+- Contents: only the files *Save runs as zip* writes. Each campaign must be in the folder named after its ID and belong to this study.
+- Merging: `receipts.jsonl` and `events.jsonl` gain the lines they lack. A different record for the same session attempt refuses the zip.
+
 Templates: `examples/graphics-quality/` (WebXR, runnable), `examples/ecolar/` (Unreal; mixed levels, measured inputs, movement data), `examples/selection/` (Unity app and bridge; participant background). Contracts: `src/core/types.ts`, `docs/data-contract.md`.
 
 ## Workflow for a new study

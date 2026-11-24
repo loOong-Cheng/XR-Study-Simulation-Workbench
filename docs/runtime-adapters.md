@@ -29,7 +29,7 @@ These links document vendor facilities, not successful integration tests perform
 
 The executor runs each agent session as headless Claude Code with exactly two kinds of MCP server:
 
-- **study** (`src/runtimes/study-mcp.ts`, always): `list_files` / `read_file` limited to the permitted project folder, and `submit_forecast`, which checks the full design × measure grid and ends the session. It enforces the tool budget and writes the audit trace.
+- **study** (`src/runtimes/study-mcp.ts`, always): `list_files` / `read_file` limited to the permitted project folder, and `submit_forecast`, which checks the full design × measure grid and ends the session. It enforces the tool budget and writes the audit trace. Paths are checked after resolving symlinks, so a link cannot lead out of the folder. Files named `human.json`, and the `campaigns/`, `runs/` and `deleted/` folders of any study folder, are never listed or read (`src/runtimes/guard.ts`). The built-in WebXR runtime serves its app folder under the same rule. A study bridge that reads files for the agent should do the same.
 - **the configuration's runtime**:
 
 | Runtime | Server | Notes |
