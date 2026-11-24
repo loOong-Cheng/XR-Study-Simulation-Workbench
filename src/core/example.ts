@@ -321,6 +321,10 @@ function inventedResults(plan: Plan, includeViolation: boolean, seed: number): R
       delivery: "injected",
       sha256: hash({ sourceId, synthetic: true }),
     }));
+    // A configuration that reads the project opens one of its files (only its list is injected).
+    if (agent.tools.includes("read-files"))
+      for (const sourceId of agent.sourceIds.filter((id) => plan.study.sources.find((s) => s.id === id)?.kind === "project"))
+        trace.push({ type: "source", sourceId, delivery: "read", sha256: hash({ sourceId, synthetic: true, read: true }) });
     // A simulated runtime reports the frozen recipe as its identity (it is invented, like the run).
     if (agent.tools.includes("xr-interact") && agent.observation !== "none")
       trace.push({
@@ -338,7 +342,8 @@ function inventedResults(plan: Plan, includeViolation: boolean, seed: number): R
         { type: "phase", phaseId: c.phaseId },
         { type: "case-start", caseId, phaseId: c.phaseId },
       );
-      trace.push({
+      // One view (a mono image or a stereo pair); `i` tells repeated views of a task apart.
+      const view = (i: number): TraceEvent => ({
         type: "observation",
         caseId,
         phaseId: c.phaseId,
@@ -346,9 +351,9 @@ function inventedResults(plan: Plan, includeViolation: boolean, seed: number): R
           agent.observation === "stereo-pair"
             ? ["left", "right"].map((eye) => ({
                 eye: eye as "left" | "right",
-                sha256: hash({ job: job.id, caseId, eye }),
-                frameId: `${job.id}-${caseId}`,
-                simulationTimeMs: 1000,
+                sha256: hash(i ? { job: job.id, caseId, eye, i } : { job: job.id, caseId, eye }),
+                frameId: i ? `${job.id}-${caseId}-${i}` : `${job.id}-${caseId}`,
+                simulationTimeMs: 1000 + i,
                 eyeSeparationM: 0.064,
                 viewMatrix: [
                   1,
@@ -375,20 +380,30 @@ function inventedResults(plan: Plan, includeViolation: boolean, seed: number): R
             : [
                 {
                   eye: "mono",
-                  sha256: hash({ job: job.id, caseId }),
-                  frameId: `${job.id}-${caseId}`,
-                  simulationTimeMs: 1000,
+                  sha256: hash(i ? { job: job.id, caseId, i } : { job: job.id, caseId }),
+                  frameId: i ? `${job.id}-${caseId}-${i}` : `${job.id}-${caseId}`,
+                  simulationTimeMs: 1000 + i,
                 },
               ],
       });
-      for (const action of c.requiredActions)
+      trace.push(view(0));
+      // Invented actions: the required ones, then answers up to minActions (each after a view when
+      // the task asks for one). Marked unchecked: no runtime confirmed the app offers them.
+      const answers = c.requiredActions.filter((a) => a !== "complete-task");
+      const extra = Math.max(0, (c.minActions ?? 0) - answers.length);
+      const steps = [...answers, ...Array.from({ length: extra }, () => answers.at(-1) ?? "act"), ...c.requiredActions.filter((a) => a === "complete-task")];
+      steps.forEach((action, i) => {
+        if (c.observeBeforeEachAction && i > 0 && action !== "complete-task")
+          trace.push(view(i));
         trace.push({
           type: "action",
           caseId,
           phaseId: c.phaseId,
           action,
           completed: true,
+          checked: false,
         });
+      });
       trace.push({
         type: "case-end",
         caseId,

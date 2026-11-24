@@ -10,6 +10,8 @@
   },
   "app": {
     "serve": "webxr-app",
-    "query": "?quality={condition}&study=1&participant={participant}"
+    "query": "?quality={condition}&study=1&participant={participant}",
+    "capabilities": ["look", "pointer-select", "phase-events", "quality-lock"],
+    "instructions": "look orbits the viewpoint around the table: polar about 60 looks down at the table, 89 is almost level with its top. Objects off screen are listed without a position; turn towards them to see them."
   }
 }

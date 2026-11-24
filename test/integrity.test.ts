@@ -413,3 +413,110 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     await removeDir(bin);
   }
 });
+
+test("audit: too few actions, actions without a fresh view, and a project never opened are deviations", async () => {
+  const { exposureIssues } = await import("../src/core/protocol.js");
+  const { protocolForJob } = await import("../src/core/planner.js");
+  const { simulatedResults } = await import("../src/core/example.js");
+  const study = validateStudy(await readJson(join(gq, "study.json")));
+  study.cases.find((c) => c.id === "low-main")!.observeBeforeEachAction = true;
+  const agents = validateAgents(study, await readJson(join(gq, "agents.json")));
+  const plan = freezePlan(study, agents.filter((x) => x.id === "uses-app").map((x) => ({ ...x, repetitions: 1 })), 1);
+  const agent = protocolForJob(plan, plan.jobs[0]);
+  type E = Record<string, any>;
+  const trace = simulatedResults(plan).runs[0].trace as E[];
+  const issues = (t: E[]) => exposureIssues(plan, agent, t as never);
+  assert.deepEqual(issues(trace), [], "simulated runs follow the protocol: least actions, views before actions, a project file read");
+  assert.ok(trace.filter((e) => e.type === "action").every((e) => e.checked === false), "simulated actions are marked as not checked by a runtime");
+  // low-main needs 12 actions (minActions): one fewer is a deviation.
+  const lastAnswer = trace.map((e) => e.type === "action" && e.caseId === "low-main" && e.action === "select-target").lastIndexOf(true);
+  const fewer = trace.filter((_, i) => i !== lastAnswer);
+  assert.ok(issues(fewer).includes("Too few actions in low-main: 11 scored actions, at least 12 required."), issues(fewer).join(" "));
+  // Clicking from memory: only the first view of low-main is kept.
+  const blind = trace.filter((e, i) => !(e.type === "observation" && e.caseId === "low-main" && trace[i - 1]?.type === "action"));
+  assert.ok(issues(blind).includes("11 of 12 scored actions in low-main came without an observation since the previous one (the task requires one before each action)."), issues(blind).join(" "));
+  // A runtime that marks its scored actions: only those count (looking around is not an answer).
+  const marked = trace.map((e) => (e.type === "action" ? { ...e, scored: e.caseId !== "low-main" || e.action === "look-around" } : e));
+  assert.ok(issues(marked).includes("Too few actions in low-main: 1 scored action, at least 12 required."), issues(marked).join(" "));
+  // Reading the project means opening one of its files, not only getting the list injected.
+  const unread = trace.filter((e) => !(e.type === "source" && e.delivery === "read"));
+  assert.ok(issues(unread).includes("Did not open any project file (no read_file call), although this configuration reads the project."));
+});
+
+test("folder fingerprints: paths become / before sorting (same on Windows and POSIX); OS clutter is left out", async () => {
+  const { portableOrder, sourceHash } = await import("../src/workspace.js");
+  const { ignoredName } = await import("../src/runtimes/guard.js");
+  const { win32 } = await import("node:path");
+  const { createHash } = await import("node:crypto");
+  // With "\" (0x5C > "0") Windows would sort p10\a.csv before p1\a.csv; mapped first, both systems agree.
+  assert.deepEqual(portableOrder(["p10\\a.csv", "p1\\b.csv", "p1\\a.csv"], win32.sep), ["p1/a.csv", "p1/b.csv", "p10/a.csv"]);
+  assert.deepEqual(portableOrder(["p10/a.csv", "p1/b.csv", "p1/a.csv"], "/"), ["p1/a.csv", "p1/b.csv", "p10/a.csv"]);
+  assert.deepEqual(["desktop.ini", "THUMBS.DB", "~$notes.docx", ".DS_Store", ".git", "a.csv", "data~$.csv"].map(ignoredName), [true, true, true, true, true, false, false]);
+  const dir = await mkdtemp(join(tmpdir(), "xr-hash-"));
+  try {
+    await mkdir(join(dir, "p1"));
+    await mkdir(join(dir, "p10"));
+    await writeFile(join(dir, "p1", "a.csv"), "1");
+    await writeFile(join(dir, "p10", "a.csv"), "10");
+    const h = (x: string) => createHash("sha256").update(x).digest("hex");
+    const expected = createHash("sha256").update("p1/a.csv").update("\0").update(h("1")).update("\n").update("p10/a.csv").update("\0").update(h("10")).update("\n").digest("hex");
+    assert.equal(sourceHash(dir), expected, "relative path with /, content hash, in byte order");
+    for (const junk of ["desktop.ini", "Thumbs.db", ".DS_Store", "~$notes.docx", join("p1", "._a.csv")]) await writeFile(join(dir, junk), "x");
+    assert.equal(sourceHash(dir), expected, "OS clutter does not change the fingerprint");
+    await writeFile(join(dir, "p1", "b.csv"), "2");
+    assert.notEqual(sourceHash(dir), expected);
+  } finally {
+    await removeDir(dir);
+  }
+});
+
+test("executor: a WebXR app changed after freezing blocks app sessions; the app's capabilities come from workspace.json", async () => {
+  const { Executor, closeExecutor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign, saveSourceFingerprints } = await import("../src/workspace.js");
+  const a = await tempWorkspace(gq);
+  const bin = await mkdtemp(join(tmpdir(), "fake-settings-"));
+  // Any existing file stands in for Chrome: blockers() only checks that it is there.
+  await writeFile(join(bin, "settings.json"), JSON.stringify({ chromePath: process.execPath }));
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  try {
+    const ws = await readWorkspace(a.id);
+    const pick = ws.agents!.filter((x) => ["uses-app", "text-only"].includes(x.id)).map((x) => ({ ...x, repetitions: 1 }));
+    const c = campaignFromPlan(freezePlan(ws.study, pick, 1), undefined, "app-freeze", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    await saveSourceFingerprints(a.id, c);
+    const jobs = ["uses-app", "text-only"].map((id) => c.jobs.find((j) => j.conditionId === id)!.id);
+    const usesApp = pick.find((x) => x.id === "uses-app")!.label;
+    // Reopened each time: the executor reads workspace.json when it opens.
+    const blocked = async () => {
+      closeExecutor(a.id, c.id);
+      return (await (await Executor.open(a.id, c.id)).blockers(jobs)).map((b) => (assert.deepEqual(b.configs, [usesApp]), b.message));
+    };
+    assert.deepEqual(await blocked(), []);
+    const main = join(a.dir, "webxr-app", "main.js");
+    const original = await readFile(main, "utf8");
+    // Files the app never serves do not count: OS clutter in the app folder.
+    await writeFile(join(a.dir, "webxr-app", "Thumbs.db"), "x");
+    await writeFile(join(a.dir, "webxr-app", ".DS_Store"), "x");
+    assert.deepEqual(await blocked(), []);
+    const frozenAs = "changed after this campaign was frozen. Freeze a new campaign, or Continue / rerun to use the new version.";
+    await writeFile(main, original + "\n// changed\n");
+    assert.deepEqual(await blocked(), [`The WebXR app (webxr-app) ${frozenAs}`]);
+    await writeFile(main, original);
+    assert.deepEqual(await blocked(), []);
+    // The query and what workspace.json declares about the app are frozen too.
+    const wsFile = join(a.dir, "workspace.json");
+    const manifest = JSON.parse(await readFile(wsFile, "utf8"));
+    await writeFile(wsFile, JSON.stringify({ ...manifest, app: { ...manifest.app, query: "?quality={condition}" } }));
+    assert.deepEqual(await blocked(), [`The WebXR app's query (?quality={condition}&study=1&participant={participant}, now ?quality={condition}) ${frozenAs}`]);
+    // Without quality-lock the app no longer provides what the study requires.
+    await writeFile(wsFile, JSON.stringify({ ...manifest, app: { ...manifest.app, capabilities: ["look", "pointer-select", "phase-events"] } }));
+    const messages = await blocked();
+    assert.ok(messages.includes(`The WebXR app's capabilities, actions or instructions (workspace.json → app) ${frozenAs}`), messages.join("\n"));
+    assert.ok(messages.some((m) => /^The WebXR app does not declare the capabilities this study requires: quality-lock\. Declare them in workspace\.json → app\.capabilities/.test(m)), messages.join("\n"));
+    closeExecutor(a.id, c.id);
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});

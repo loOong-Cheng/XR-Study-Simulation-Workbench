@@ -254,6 +254,9 @@ rl.on("line", (line) => {
       log({ type: "case-start", caseId: c.caseId, phaseId: c.phaseId });
       log({ type: "observation", caseId: c.caseId, phaseId: c.phaseId, captures: [{ eye: "mono", sha256: "0".repeat(64), frameId: c.caseId, simulationTimeMs: 0 }] });
       for (const action of c.requiredActions) log({ type: "action", caseId: c.caseId, phaseId: c.phaseId, action, completed: true });
+      // One answer per trial, up to the task's minActions (job.json carries it for bridges).
+      const answers = c.requiredActions.filter((x) => x !== "complete-task");
+      for (let n = answers.length; n < (c.minActions || 0); n++) log({ type: "action", caseId: c.caseId, phaseId: c.phaseId, action: answers[answers.length - 1] || "answer", completed: true });
       log({ type: "case-end", caseId: c.caseId, phaseId: c.phaseId, submitted: true });
     }
     return reply({ content: [{ type: "text", text: "played " + app.cases.length + " cases" }] });
@@ -274,6 +277,13 @@ const start = (s) => { const p = spawn(s.command, s.args, { env: { ...process.en
   const tl = (what) => process.env.FAKE_TIMELINE && fs.appendFileSync(process.env.FAKE_TIMELINE, JSON.stringify({ what, unreal: !!ue, t: Date.now() }) + "\\n");
   tl("start");
   await study.call("initialize", {});
+  // FAKE_READ: open the first project file, as a configuration that reads the project must.
+  const spec0 = JSON.parse(fs.readFileSync(cfg.mcpServers.study.args[1] + "/job.json", "utf8"));
+  if (process.env.FAKE_READ && spec0.projectDir) {
+    const listed = await study.call("tools/call", { name: "list_files", arguments: {} });
+    const first = listed.result.content[0].text.split("\\n").find((n) => !n.endsWith("/"));
+    if (first) await study.call("tools/call", { name: "read_file", arguments: { path: first } });
+  }
   if (ue) {
     await ue.call("initialize", {});
     console.log(JSON.stringify({ type: "assistant", message: { id: "msg-1", usage: { input_tokens: 100, cache_creation_input_tokens: 200, cache_read_input_tokens: 700, output_tokens: 50 }, content: [{ type: "tool_use", name: "mcp__unreal__play", input: {} }] } }));
@@ -303,6 +313,7 @@ test("executor: an external runtime gets the job folder, writes the audit trace,
     JSON.stringify({ claudePath: join(bin, "claude.cjs"), runtimes: { unreal: { command: process.execPath, args: [join(bin, "bridge.cjs"), "{jobFile}"], instructions: "Call play.", capabilities: ["screenshot", "pointer-select", "phase-events", "quality-lock"] } } }),
   );
   process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  process.env.FAKE_READ = "1";
   try {
     const ws = await readWorkspace(a.id);
     const agents = ws.agents!
@@ -331,6 +342,7 @@ test("executor: an external runtime gets the job folder, writes the audit trace,
     assert.equal(run.execution.versions.engine, "unreal 5.7-fake");
   } finally {
     delete process.env.XR_STUDY_SETTINGS;
+    delete process.env.FAKE_READ;
     if (!process.env.KEEP_TEST_STUDY) await removeDir(a.dir);
     await removeDir(bin);
   }

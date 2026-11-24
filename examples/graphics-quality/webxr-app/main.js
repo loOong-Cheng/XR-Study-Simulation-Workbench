@@ -424,33 +424,36 @@ if (!studyMode)
 // ---------- automation API for an agent worker (e.g. Playwright) ----------
 // Exposes only what a participant could perceive or do: screen positions of
 // neutral object IDs, camera control, selection, screenshots and the event log.
+// Only the documented getState fields and `public` reach the agent (docs/runtime-adapters.md);
+// `public` holds what the participant sees in the task panel.
 window.xrStudy = {
-  quality,
   getState: () => ({
     phase: state.done ? "questionnaire" : state.phase,
     trial: state.trial,
     instruction: $("task-text").textContent,
-    found: state.trial >= 0 ? TRIALS[state.trial].targets.length - state.remaining.length : 0,
-    errors: state.errors,
     done: state.done,
+    public: {
+      found: state.trial >= 0 ? TRIALS[state.trial].targets.length - state.remaining.length : 0,
+      targets: state.trial >= 0 ? TRIALS[state.trial].targets.length : 0,
+      wrongSelections: state.errors,
+    },
   }),
   start: () => startTrial(0),
   listObjects: () =>
     selectable.map((o) => {
       const p = o.getWorldPosition(new THREE.Vector3()).project(camera);
-      return { id: o.userData.id, x: (p.x + 1) / 2, y: (1 - p.y) / 2, onScreen: Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 && p.z < 1 };
+      const onScreen = Math.abs(p.x) <= 1 && Math.abs(p.y) <= 1 && p.z < 1;
+      return { id: o.userData.id, x: (p.x + 1) / 2, y: (1 - p.y) / 2, onScreen, visible: onScreen };
     }),
   select,
+  // The camera orbits the table: polar 5–89° (89 is almost level with the table top). Replies with the view applied.
   look: (azimuthDeg, polarDeg, distance = 1.35) => {
-    const s = new THREE.Spherical(distance, THREE.MathUtils.degToRad(polarDeg), THREE.MathUtils.degToRad(azimuthDeg));
+    const polar = Math.min(89, Math.max(5, Number(polarDeg)));
+    const s = new THREE.Spherical(distance, THREE.MathUtils.degToRad(polar), THREE.MathUtils.degToRad(azimuthDeg));
     camera.position.copy(new THREE.Vector3().setFromSpherical(s).add(controls.target));
     controls.update();
     renderer.render(scene, camera);
-  },
-  capture: () => {
-    panel.visible = false;
-    renderer.render(scene, camera);
-    return renderer.domElement.toDataURL("image/png");
+    return { azimuth: azimuthDeg, polar };
   },
   log: () => structuredClone(log),
 };

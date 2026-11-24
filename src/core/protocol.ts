@@ -9,6 +9,14 @@ import type {
 import { measurementKey, measurementValue, requireThat } from "./validation.js";
 import { agentTargets, protocolForJob, verifyPlan } from "./planner.js";
 
+/**
+ * Whether an action event is a scored action (a task answer): marked `scored: true` when the
+ * runtime marks any action in the trace (the WebXR runtime does), otherwise every completed action
+ * except the runtime's own complete-task.
+ */
+export function scoredAction(e: Extract<TraceEvent, { type: "action" }>, marked: boolean): boolean {
+  return marked ? e.scored === true : e.completed && e.action !== "complete-task";
+}
 export function exposureIssues(
   plan: Plan,
   agent: AgentProtocol,
@@ -20,6 +28,13 @@ export function exposureIssues(
   const observed = new Set<string>(),
     submitted = new Set<string>();
   const actions = new Map<string, Set<string>>();
+  // Scored actions per case, those without an observation since the previous one, and the cases
+  // with an observation since their last scored action.
+  const marked = trace.some((e) => e?.type === "action" && typeof e.scored === "boolean");
+  const scored = new Map<string, number>(),
+    blind = new Map<string, number>(),
+    fresh = new Set<string>();
+  const readSources = new Set<string>();
   const firstVisits: string[] = [];
   let currentPhase: string | undefined,
     currentCase: string | undefined,
@@ -39,6 +54,7 @@ export function exposureIssues(
       if (!/^[a-f0-9]{64}$/i.test(e.sha256))
         issues.push(`Missing content hash for source ${e.sourceId}.`);
       seenSources.add(e.sourceId);
+      if (e.delivery === "read") readSources.add(e.sourceId);
       continue;
     }
     if (e.type === "runtime") {
@@ -74,6 +90,12 @@ export function exposureIssues(
         const set = actions.get(e.caseId) ?? new Set<string>();
         set.add(e.action);
         actions.set(e.caseId, set);
+      }
+      if (scoredAction(e, marked)) {
+        scored.set(e.caseId, (scored.get(e.caseId) ?? 0) + 1);
+        if (c?.observeBeforeEachAction && !fresh.has(e.caseId))
+          blind.set(e.caseId, (blind.get(e.caseId) ?? 0) + 1);
+        fresh.delete(e.caseId);
       }
     } else if (e.type === "case-end") {
       if (e.submitted) submitted.add(e.caseId);
@@ -115,7 +137,10 @@ export function exposureIssues(
       } else valid = false;
       if (!valid)
         issues.push(`Invalid or downgraded observation in ${e.caseId}.`);
-      else observed.add(e.caseId);
+      else {
+        observed.add(e.caseId);
+        fresh.add(e.caseId);
+      }
     }
   }
   if (
@@ -131,10 +156,20 @@ export function exposureIssues(
       issues.push(`No valid observation for required case ${id}.`);
     if (!submitted.has(id))
       issues.push(`No submission for required case ${id}.`);
-    for (const action of cases.get(id)!.requiredActions)
+    const c = cases.get(id)!;
+    for (const action of c.requiredActions)
       if (!actions.get(id)?.has(action))
         issues.push(`Missing completed ${action} in ${id}.`);
+    const n = scored.get(id) ?? 0;
+    if (c.minActions && n < c.minActions)
+      issues.push(`Too few actions in ${id}: ${n} scored action${n === 1 ? "" : "s"}, at least ${c.minActions} required.`);
+    if (blind.get(id))
+      issues.push(`${blind.get(id)} of ${n} scored actions in ${id} came without an observation since the previous one (the task requires one before each action).`);
   }
+  // A configuration that reads the project gets only its file list injected: it must open a file.
+  const projects = agent.sourceIds.filter((id) => plan.study.sources.find((s) => s.id === id)?.kind === "project");
+  if (agent.tools.includes("read-files") && projects.length && !projects.some((id) => readSources.has(id)))
+    issues.push("Did not open any project file (no read_file call), although this configuration reads the project.");
   return [...new Set(issues)];
 }
 

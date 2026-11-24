@@ -47,8 +47,16 @@ export interface Study {
     phaseId: string;
     label: string;
     requiredActions: string[];
-    /** Least number of runtime actions a participant-like run needs in this task (e.g. one answer per trial). */
+    /**
+     * Least number of scored actions a participant-like run needs in this task (e.g. one answer
+     * per trial). The audit checks it (see scoredAction in protocol.ts).
+     */
     minActions?: number;
+    /**
+     * Protocol rule: every scored action needs an observation (screenshot) in this task since the
+     * previous scored action. Breaking it is a protocol deviation (no clicking from memory).
+     */
+    observeBeforeEachAction?: boolean;
   }[];
   participants: { id: string; stratum: string; conditionOrder: string[] }[];
   sources: {
@@ -148,6 +156,8 @@ export interface Capture {
   sha256: string;
   frameId: string;
   simulationTimeMs: number;
+  /** Which clock simulationTimeMs is on: the app's own (getState().timeMs) or wall time since the design opened. */
+  clock?: "app" | "wall";
   eyeSeparationM?: number;
   viewMatrix?: number[];
   projectionMatrix?: number[];
@@ -186,7 +196,20 @@ export type TraceEvent =
       caseId: string;
       phaseId: string;
       action: string;
+      /** False when the app refused the action (e.g. a move into a wall, a click with no active trial). */
       completed: boolean;
+      /**
+       * A task answer (a selection, a click, an app action) rather than looking or pointing. When
+       * a runtime marks it on any action, only scored actions count for minActions and
+       * observeBeforeEachAction; otherwise every completed action except complete-task counts.
+       */
+      scored?: boolean;
+      /** The app's reply, as far as documented (accepted, correct, hit, reason); null when the app gave none. */
+      result?: Record<string, unknown> | null;
+      /** Arguments that are not secret: the neutral object ID, the screen point (0–1) or the app action's arguments. */
+      args?: Record<string, unknown>;
+      /** Simulated runs: invented, not checked against a runtime. */
+      checked?: boolean;
     }
   | { type: "case-end"; caseId: string; phaseId: string; submitted: boolean }
   | { type: "forecast" };

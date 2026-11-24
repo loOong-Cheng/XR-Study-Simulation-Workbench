@@ -33,6 +33,7 @@ import {
   explainStudy,
 } from "./core/explain.js";
 import { approvalState } from "./review.js";
+import { webxrActionWarnings } from "./executor/runtimes.js";
 import {
   extractProposal,
   checkedReading,
@@ -610,6 +611,11 @@ async function main(): Promise<void> {
       } catch (e) {
         problems.push((e as Error).message);
       }
+    // WebXR tasks whose required actions the runtime would never record with this app (workspace.json → app).
+    const workspaceFile = join(dirname(resolve(args[0])), "workspace.json");
+    const workspace = existsSync(workspaceFile) ? await readFile(workspaceFile, "utf8").then((t) => JSON.parse(t), () => ({})).catch(() => ({})) : {};
+    const warnings = agents ? webxrActionWarnings(study, agents, workspace) : [];
+    if (warnings.length) console.log("## Warnings\n\n" + warnings.map((w) => `- ${w}`).join("\n") + "\n");
     const approval = await approvalState(args[0], study, agents);
     const folder = reviewFolder(args[0]);
     const folderPath = dirname(resolve(args[0]));
@@ -635,7 +641,7 @@ async function main(): Promise<void> {
     if (problems.length) {
       console.log("## Problems\n\n" + problems.map((p) => `- ${p}`).join("\n"));
       process.exitCode = 2;
-    } else console.log("Study is valid.");
+    } else console.log(warnings.length ? "Study is valid, with the warnings above." : "Study is valid.");
     return;
   }
   if (command === "explain") {

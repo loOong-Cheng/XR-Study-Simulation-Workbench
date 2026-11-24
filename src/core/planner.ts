@@ -460,8 +460,10 @@ export function minToolCalls(study: Study, a: AgentProtocol): { min: number; par
     const cases = a.requiredCaseIds.map((id) => study.cases.find((c) => c.id === id)!).filter(Boolean);
     const designs = new Set(cases.map((c) => c.conditionId)).size;
     const actions = cases.reduce((n, c) => n + Math.max(c.minActions ?? 0, c.requiredActions.length), 0);
-    min += designs + actions + cases.length;
-    parts.push(`${designs} design${designs === 1 ? "" : "s"} to open`, `${actions} task action${actions === 1 ? "" : "s"}`, `${cases.length} view${cases.length === 1 ? "" : "s"}`);
+    // One view per task, or one before each action where the task requires it.
+    const views = cases.reduce((n, c) => n + (c.observeBeforeEachAction ? Math.max(1, c.minActions ?? 0, c.requiredActions.length) : 1), 0);
+    min += designs + actions + views;
+    parts.push(`${designs} design${designs === 1 ? "" : "s"} to open`, `${actions} task action${actions === 1 ? "" : "s"}`, `${views} view${views === 1 ? "" : "s"}`);
   }
   return { min, parts };
 }

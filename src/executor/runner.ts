@@ -15,8 +15,8 @@ import { agentLevel, agentTargets, hash, jobPacket, protocolForJob } from "../co
 import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent } from "../core/types.js";
 import { claudeEffort, effortProblem, requireThat } from "../core/validation.js";
 import { claudeCommand, readSettings, runtimeLimits, type Settings } from "../settings.js";
-import { changedSources, listCampaigns, missingSources, readCampaign, readHuman, readReceipts, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
-import { runtimeFor, runtimeStatus } from "./runtimes.js";
+import { changedApp, changedSources, listCampaigns, missingSources, readCampaign, readHuman, readReceipts, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
+import { appActions, runtimeFor, runtimeStatus, webxrCapabilities } from "./runtimes.js";
 import { runRecordPath } from "./archive.js";
 import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
@@ -178,15 +178,44 @@ export const submitNow = (budget: number | null | undefined, total: number, last
 /** Submissions a session may make once its tools were refused for the budget; it is stopped after the last one is refused. */
 export const SUBMIT_ATTEMPTS = 3;
 
-/** How the agent should play the app, in the words of its runtime's tools. */
-export function playInstructions(runtime: string, order: string[], study: Study, caseIds: string[], extra?: string): string {
-  const actions = [...new Set(caseIds.flatMap((id) => study.cases.find((c) => c.id === id)?.requiredActions ?? []))];
+/**
+ * How the agent should play the app: the study's tasks (phases, labels, required actions, least
+ * actions, views before actions), in the words of its runtime's tools. `capabilities` are what the
+ * runtime provides (for WebXR: what workspace.json → app declares), so only offered tools are named.
+ */
+export function playInstructions(runtime: string, order: string[], study: Study, caseIds: string[], extra?: string, capabilities: string[] = []): string {
+  const cases = caseIds.map((id) => study.cases.find((c) => c.id === id)).filter((c): c is Study["cases"][number] => !!c);
+  const actions = [...new Set(cases.flatMap((c) => c.requiredActions))];
   const required = actions.length ? ` The study protocol requires these actions in each task: ${actions.join(", ")}; a skipped one is recorded as a protocol deviation.` : "";
+  const phase = (id: string) => study.phases.find((p) => p.id === id)?.label ?? id;
+  const lines = [
+    ...new Set(
+      cases.map(
+        (c) =>
+          `${phase(c.phaseId)}${c.label ? ` (${c.label})` : ""}${c.minActions ? `, at least ${c.minActions} action${c.minActions === 1 ? "" : "s"}` : ""}${c.observeBeforeEachAction ? ", with a fresh screenshot before each action (acting from memory is a protocol deviation)" : ""}`,
+      ),
+    ),
+  ];
+  const perDesign = lines.length === new Set(cases.map((c) => c.phaseId)).size;
+  const tasks = !lines.length ? "" : lines.length <= 8 ? ` ${perDesign ? "In each design the tasks are" : "The tasks are"}: ${lines.join("; ")}.` : ` Each design has these phases: ${[...new Set(cases.map((c) => phase(c.phaseId)))].join(", ")}.`;
+  const caps = new Set(capabilities);
+  const tools = [
+    "open_design opens a design and starts its first task",
+    "screenshot shows what a participant sees",
+    caps.has("look") && "look turns the viewpoint (recorded as look-around)",
+    caps.has("pointer-select") && "list_objects and select(object) pick an object by its neutral ID (select-target)",
+    caps.has("pointer-xy") && "point_at(x, y) moves the pointer and click(x, y) clicks, x and y from 0 to 1 from the top-left corner of the screen (select-target)",
+    caps.has("actions") && "act(name, args) performs one of the app's own actions (open_design lists them; recorded under the action's name)",
+    "app_state shows the instruction and progress",
+  ].filter((x): x is string => !!x);
   const how =
     runtime === "webxr"
-      ? "For each design: open_design, then in EVERY task (the practice task and the main task alike) call look to look around, take a screenshot, and select the requested objects."
+      ? `For each design: call open_design, then do every task (the practice task and the main task alike) as a participant would: take at least one screenshot, then act on what you see. A task ends when the app moves on (recorded as complete-task). Tools: ${tools.join("; ")}.`
       : `Use the ${runtime} tools you have. For each design: load it, then in EVERY task (the practice task and the main task alike) look around, take at least one screenshot, and complete the task as a participant would.`;
-  return [`Experience the app like a participant first. Visit the designs in this order: ${order.join(", ")}. ${how}${required}`, ...(extra?.trim() ? [`How to use the ${runtime} tools: ${extra.trim()}`] : [])].join("\n");
+  return [
+    `Experience the app like a participant first, following the instructions the app shows and the study brief. Visit the designs in this order: ${order.join(", ")}. ${how}${tasks}${required}`,
+    ...(extra?.trim() ? [`How to use the ${runtime} tools: ${extra.trim()}`] : []),
+  ].join("\n");
 }
 
 export class Executor {
@@ -395,6 +424,8 @@ export class Executor {
     // The study as frozen (its sources and fields), never the one being edited now.
     const study = this.plan.study;
     const changed = await changedSources(this.workspaceId, this.campaign, this.manifest);
+    // The WebXR app (its files, query and declarations) as the campaign froze it.
+    const appChanged = await changedApp(this.workspaceId, this.campaign, this.manifest);
     const byRuntime = new Map<string, Set<string>>();
     for (const id of jobIds) {
       const j = this.jobs.get(id);
@@ -405,6 +436,8 @@ export class Executor {
       // A source that changed since the freeze would give the agent other knowledge than the campaign froze.
       for (const m of changed.filter((x) => this.agent(j.agentId).sourceIds.includes(x.id)))
         byRuntime.set(m.message, (byRuntime.get(m.message) ?? new Set()).add(this.agent(j.agentId).label));
+      if (appChanged && j.runtime === "webxr" && this.agent(j.agentId).tools.includes("xr-interact"))
+        byRuntime.set(appChanged, (byRuntime.get(appChanged) ?? new Set()).add(this.agent(j.agentId).label));
       const status = runtimeStatus(j.runtime, settings, this.manifest);
       const agent = this.agent(j.agentId);
       const stereo = agent.observation === "stereo-pair" && !status.observations.includes("stereo-pair") && agent.tools.includes("xr-interact");
@@ -424,6 +457,8 @@ export class Executor {
             ? status.builtIn
               ? `${status.label} provides mono screenshots only, but this study's agent observation is a stereo pair (two eyes), which ${agent.label} needs. Set Agent observation to Single image (mono) on Study & variables and freeze a new campaign, or simulate these sessions.`
               : `${status.label} provides mono screenshots only; ${agent.label} requires a stereo pair. Declare the stereo-capture capability in Settings if the runtime captures a stereo pair.`
+            : j.runtime === "webxr"
+            ? `The WebXR app does not declare the capabilities this study requires: ${lacking.join(", ")}. Declare them in workspace.json → app.capabilities once the app provides them (docs/runtime-adapters.md lists the names), or change the study's required capabilities.`
             : `${status.label} does not declare the capabilities this study requires: ${lacking.join(", ")}. Add them to the runtime in Settings once it provides them.`);
         byRuntime.set(msg, (byRuntime.get(msg) ?? new Set()).add(agent.label));
       }
@@ -643,6 +678,10 @@ export class Executor {
     const study = this.plan.study;
     const changed = (await changedSources(this.workspaceId, this.campaign, this.manifest)).filter((x) => a.sourceIds.includes(x.id));
     requireThat(changed.length === 0, changed.map((x) => x.message).join(" "));
+    if (runtimeFor(this.plan.study, a) === "webxr" && a.tools.includes("xr-interact")) {
+      const appChanged = await changedApp(this.workspaceId, this.campaign, this.manifest);
+      requireThat(!appChanged, appChanged ?? "");
+    }
     const packet = jobPacket(this.plan, job) as { task: Record<string, unknown> };
     const protocol = protocolForJob(this.plan, job);
     const targets = agentTargets(study, a);
@@ -696,6 +735,8 @@ export class Executor {
           tokenBudget: a.maxTokens ?? null,
           submitAttempts: SUBMIT_ATTEMPTS,
           projectDir: a.tools.includes("read-files") ? a.sourceIds.map(src).find((p, i) => kindOf(a.sourceIds[i]) === "project" && p) ?? null : null,
+          // The study's ID of that project source, for the read events of the audit trace.
+          projectSourceId: a.tools.includes("read-files") ? a.sourceIds.find((id) => kindOf(id) === "project" && src(id)) ?? null : null,
           participantId: job.participantId ?? null,
           designs,
           targets: study.outcomes
@@ -711,7 +752,14 @@ export class Executor {
                 designs: ordered.map((id) => ({ id, label: study.conditions.find((c) => c.id === id)!.label, practice: caseOf(id, "practice"), main: caseOf(id, "main") })),
                 cases: protocol.requiredCaseIds.map((id) => {
                   const c = study.cases.find((x) => x.id === id)!;
-                  return { caseId: c.id, conditionId: c.conditionId, phaseId: c.phaseId, requiredActions: c.requiredActions };
+                  return {
+                    caseId: c.id,
+                    conditionId: c.conditionId,
+                    phaseId: c.phaseId,
+                    requiredActions: c.requiredActions,
+                    ...(c.minActions !== undefined ? { minActions: c.minActions } : {}),
+                    ...(c.observeBeforeEachAction ? { observeBeforeEachAction: true } : {}),
+                  };
                 }),
               }
             : undefined,
@@ -723,6 +771,9 @@ export class Executor {
                   tokenBudget: a.maxTokens ?? null,
                   chromePath: settings.chromePath,
                   app: { dir: resolve(wsDir, this.manifest.app!.serve), query: this.manifest.app!.query },
+                  // What the app declares (workspace.json → app): which tools the agent gets and what the runtime reports.
+                  capabilities: webxrCapabilities(this.manifest),
+                  actions: appActions(this.manifest),
                   // {participant} in the app query: that person's trial layouts for individual jobs.
                   participant: job.participantId ?? null,
                   designs: ordered.map((id) => ({ id, label: study.conditions.find((c) => c.id === id)!.label, practice: caseOf(id, "practice"), main: caseOf(id, "main") })),
@@ -753,7 +804,13 @@ export class Executor {
       "You are an AI agent forecasting the results of a completed XR user study. You have not seen any participant's answers and must not try to obtain them.",
       "Use only the tools provided. Your elapsed time, clicks and errors are not the participants' times or errors; predict what the participants did and reported.",
       "Finish by calling submit_forecast exactly once with one row per design × outcome listed, each as its \"answer\" says (the named items for measures with items, not a value), plus your uncertainty and a short reasoning. Then stop.",
-      ...(a.tools.includes("xr-interact") ? [playInstructions(runtime, ordered, study, protocol.requiredCaseIds, settings.runtimes[runtime]?.instructions)] : []),
+      ...(a.tools.includes("xr-interact")
+        ? [
+            runtime === "webxr"
+              ? playInstructions(runtime, ordered, study, protocol.requiredCaseIds, typeof this.manifest.app?.instructions === "string" ? this.manifest.app.instructions : undefined, webxrCapabilities(this.manifest))
+              : playInstructions(runtime, ordered, study, protocol.requiredCaseIds, settings.runtimes[runtime]?.instructions, settings.runtimes[runtime]?.capabilities ?? []),
+          ]
+        : []),
     ].join("\n");
     const prompt = [
       `# Task\n${JSON.stringify(
@@ -1010,7 +1067,7 @@ export class Executor {
           provider: `Claude Code ${cliVersion || "CLI"}`,
         },
         startedAt: startedAt.toISOString(),
-        capabilities: reported?.capabilities ?? (runtime === "webxr" ? ["screenshot", "pointer-select", "phase-events", "quality-lock"] : runtime === "none" ? [] : settings.runtimes[runtime]?.capabilities ?? []),
+        capabilities: reported?.capabilities ?? (runtime === "webxr" ? webxrCapabilities(this.manifest) : runtime === "none" ? [] : settings.runtimes[runtime]?.capabilities ?? []),
         toolCalls: calls,
         outputTokens: Number(usage.output_tokens ?? 0),
         inputTokens: usage.input_tokens ?? null,

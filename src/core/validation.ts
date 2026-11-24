@@ -156,7 +156,7 @@ export function validateStudy(value: unknown): Study {
   s.cases.forEach((x) =>
     keys(
       x,
-      ["id", "conditionId", "phaseId", "label", "requiredActions", "minActions"],
+      ["id", "conditionId", "phaseId", "label", "requiredActions", "minActions", "observeBeforeEachAction"],
       "case",
     ),
   );
@@ -269,7 +269,8 @@ export function validateStudy(value: unknown): Study {
         phases.has(c.phaseId) &&
         Array.isArray(c.requiredActions) &&
         c.requiredActions.every((a) => typeof a === "string") &&
-        (c.minActions === undefined || (Number.isInteger(c.minActions) && c.minActions >= 0)),
+        (c.minActions === undefined || (Number.isInteger(c.minActions) && c.minActions >= 0)) &&
+        (c.observeBeforeEachAction === undefined || typeof c.observeBeforeEachAction === "boolean"),
       `Invalid case ${c.id}.`,
     );
   const sourceKinds = [

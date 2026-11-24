@@ -824,8 +824,9 @@ function budgetNote(a: AgentProtocol) {
     const cases = a.requiredCaseIds.map((id) => st.cases.find((c) => c.id === id)).filter((c): c is Study["cases"][number] => !!c);
     const designs = new Set(cases.map((c) => c.conditionId)).size;
     const actions = cases.reduce((n, c) => n + Math.max(c.minActions ?? 0, c.requiredActions.length), 0);
-    min += designs + actions + cases.length;
-    parts.push(`${designs} designs to open`, `${actions} task actions`, `${cases.length} views`);
+    const views = cases.reduce((n, c) => n + (c.observeBeforeEachAction ? Math.max(1, c.minActions ?? 0, c.requiredActions.length) : 1), 0);
+    min += designs + actions + views;
+    parts.push(`${designs} designs to open`, `${actions} task actions`, `${views} views`);
   }
   const short = a.maxToolCalls < min;
   const tight = !short && a.maxToolCalls < min * 1.5;
