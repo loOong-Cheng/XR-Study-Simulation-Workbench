@@ -14,7 +14,8 @@ import { fileURLToPath } from "node:url";
 import type { AgentProtocol, Comparison, HumanData, ResultBundle, RunResult, Study } from "./core/types.js";
 import type { Campaign, CampaignReceipt } from "./core/campaign.js";
 import { checkNewConfigurations, requireThat, validateAgents, validateComparisons, validateStudy } from "./core/validation.js";
-import { PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
+import { explainComparisons } from "./core/explain.js";
+import { measureNamedFieldProblem, PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
 import { agentRefusal, inside, nameKey, realPath, windowsAliasProblem, within } from "./runtimes/guard.js";
 import { readJsonFile, unquotePath, windowsUnusableName } from "./files.js";
 
@@ -323,6 +324,9 @@ export async function saveWorkspace(
 ) {
   const dir = workspaceDir(id);
   const study = validateStudy(update.study ?? (await load(join(dir, "study.json"))));
+  // A participant field named like a measure is refused here as when knowledge is saved.
+  const measureField = update.study ? measureNamedFieldProblem(study) : null;
+  requireThat(!measureField, measureField ?? "");
   const savedAgents = !update.agents && existsSync(join(dir, "agents.json")) ? await load<AgentProtocol[]>(join(dir, "agents.json")) : null;
   let agents: AgentProtocol[] | null = null;
   if (update.agents) {
@@ -335,6 +339,15 @@ export async function saveWorkspace(
       throw new Error(`This change does not fit the saved agent configurations: ${(e as Error).message} Change those configurations on Agent configurations and save the study and configurations together.`);
     }
   const comparisons = update.comparisons === undefined ? null : validateComparisons(update.comparisons);
+  if (comparisons) {
+    // Comparisons name configurations: those of agents.json and those of the study's campaigns
+    // (a continuation can add a model arm that agents.json does not have).
+    const known = new Map<string, AgentProtocol>((agents ?? []).map((a) => [a.id, a]));
+    for (const c of await listCampaigns(id))
+      for (const cond of c.suite.conditions) if (!known.has(cond.id) && cond.recipe.protocol) known.set(cond.id, { ...cond.recipe.protocol, model: c.model } as AgentProtocol);
+    const { problems } = explainComparisons(comparisons, undefined, [...known.values()]);
+    requireThat(!problems.length, problems.join(" "));
+  }
   if (update.study) await writeFile(join(dir, "study.json"), pretty(study));
   if (update.agents) await writeFile(join(dir, "agents.json"), pretty(agents));
   if (comparisons) await writeFile(join(dir, "comparisons.json"), pretty(comparisons));

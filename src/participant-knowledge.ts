@@ -84,6 +84,18 @@ export function outcomeNamed(study: Pick<Study, "outcomes">, names: string[]): s
   const outcome = new Set(study.outcomes.flatMap((o) => [o.id.toLowerCase(), o.label.toLowerCase()]));
   return names.filter((n) => outcome.has(n.trim().toLowerCase()));
 }
+/**
+ * The refusal for a participant source (background, movement) with a field named like a measure,
+ * or null: results are never participant knowledge. The same words for every way of saving a study.
+ */
+export function measureNamedFieldProblem(study: Pick<Study, "outcomes" | "sources">): string | null {
+  for (const src of study.sources.filter((x) => (PARTICIPANT_KINDS as readonly string[]).includes(x.kind))) {
+    const results = outcomeNamed(study, src.fields ?? []);
+    if (results.length)
+      return `${results.join(", ")} ${plural(results.length, "is named like a measure", "are named like measures")}, so ${plural(results.length, "it", "they")} cannot be a field of ${src.label}: results are never participant knowledge.`;
+  }
+  return null;
+}
 /** Column names that appear more than once (only the first would count). */
 function duplicateNames(head: string[]): string[] {
   const seen = new Set<string>();

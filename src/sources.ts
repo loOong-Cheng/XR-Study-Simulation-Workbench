@@ -9,7 +9,7 @@ import type { Study } from "./core/types.js";
 import { measurementValue, requireThat } from "./core/validation.js";
 // The study and its sources only: knowledge stays readable while saved configurations disagree with the study.
 import { readHuman, readStudyFolder as readWorkspace, sourceLocation, studyWriteTarget, type WorkspaceManifest } from "./workspace.js";
-import { backgroundText, columnGaps, idColumn, outcomeNamed, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS, plural, strangerNote, strangers, tableEncodingNotes, toCsv } from "./participant-knowledge.js";
+import { backgroundText, columnGaps, idColumn, measureNamedFieldProblem, outcomeNamed, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS, plural, strangerNote, strangers, tableEncodingNotes, toCsv } from "./participant-knowledge.js";
 import { agentFileList } from "./runtimes/guard.js";
 import { decodeText, encodingNote, windowsUnusableName } from "./files.js";
 import { draftKnowledge } from "./assistant.js";
@@ -286,13 +286,8 @@ export async function saveKnowledge(
   const agents = validateAgents(study, change.agents as AgentProtocol[]);
   checkNewConfigurations(study, agents);
   const writes = change.write ?? [];
-  for (const src of study.sources.filter((x) => (PARTICIPANT_KINDS as readonly string[]).includes(x.kind))) {
-    const results = outcomeNamed(study, src.fields ?? []);
-    requireThat(
-      !results.length,
-      `${results.join(", ")} ${plural(results.length, "is named like a measure", "are named like measures")}, so ${plural(results.length, "it", "they")} cannot be a field of ${src.label}: results are never participant knowledge.`,
-    );
-  }
+  const measureField = measureNamedFieldProblem(study);
+  requireThat(!measureField, measureField ?? "");
   // Where each write goes: its own mapped file, or a free name (never another source's file, nor a file kept from a deleted source).
   const used = new Set<string>();
   const targets: string[] = [];
