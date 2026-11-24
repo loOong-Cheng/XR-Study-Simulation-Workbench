@@ -162,7 +162,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
    - Each job is a fresh headless `claude -p` session with `--tools ""`, a strict MCP config, a study MCP server (permitted files, `submit_forecast`) and the configuration's runtime MCP server.
    - The researcher confirms before real sessions start.
    - **Runtimes:**
-     - **WebXR** is built in. The app must expose `window.xrStudy` and declare what it provides in `workspace.json` → `app` (`capabilities`, `actions`, `instructions`); see [the window.xrStudy contract](docs/runtime-adapters.md#the-windowxrstudy-contract) and `examples/graphics-quality/webxr-app/main.js`. Do not give app configurations project files that hold the task's answers (target order, the right object).
+     - **WebXR** is built in. The app must expose `window.xrStudy` and declare what it provides in `workspace.json` → `app` (`capabilities`, `actions`, `instructions`); see [the window.xrStudy contract](docs/runtime-adapters.md#the-windowxrstudy-contract) and `examples/graphics-quality/webxr-app/main.js`. Do not give app configurations project files that hold the task's answers (target order, the right object). Before the first real session, run `app-check <study folder>`: it opens each design through the runtime without an agent and reports what would break sessions.
      - **Unreal, Unity and visionOS** need a study bridge command in Settings (any language; see the bridge contract). Suite 2 ships one for its Unity app. If a runtime is missing, the executor names it ("Unity MCP runtime is not configured") and lets the other configurations run. Engine runtimes run one session at a time, each with a default time limit of at least 90 minutes (the global job time limit if that is higher; a runtime's own limit in Settings overrides both).
      - If no runtime exists, offer to write one with the same tool shape.
    - **Simulate** produces labelled, invented runs for trying the pipeline. They are never pooled with real runs of the same configuration.
@@ -180,7 +180,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
 | --- | --- |
 | Website | `npm start` → http://127.0.0.1:4317 (or `XR_STUDY_PORT`), or `review <study-folder> [--port n]`; its routes for scripts: [local API](docs/api.md) |
 | Proposal reading | `proposal <doc> <dir>`, `proposal-check <doc> <reading.json>` |
-| Draft and check | `agents-draft <study.json> <agents.json>`, `study-check <study.json> [--agents a.json] [--human h.json]`, `explain <file>` (a study, agents, human, comparisons, plan, campaign or suite file; agents and human files need `study.json` beside them) |
+| Draft and check | `agents-draft <study.json> <agents.json>`, `study-check <study.json> [--agents a.json] [--human h.json]`, `app-check <study-folder> [--design d]` (a WebXR app, without an agent), `explain <file>` (a study, agents, human, comparisons, plan, campaign or suite file; agents and human files need `study.json` beside them) |
 | Freeze | `plan <study.json> <dir> [--agents a.json]`, `campaign-from-plan <plan.json> <dir>` |
 | Score and compare | `campaign-status <campaign.json> [receipts…]`, `campaign-analyze … [--comparisons c.json]`, `campaign-compare` |
 | Continue | `campaign-continue <campaign.json> <changes.json> <dir> --receipts …`, `campaign-rerun` |
