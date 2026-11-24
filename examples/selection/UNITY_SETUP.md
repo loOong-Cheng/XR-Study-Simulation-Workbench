@@ -30,7 +30,7 @@ How to run suite 2's *Uses the app* configurations for real: the Unity study app
 
 ## 3 · The bridge and Settings
 
-`runtime/bridge.py` (Python 3, standard library only) is a stdio MCP server following the [bridge contract](../../docs/runtime-adapters.md#study-bridge-contract). Tools: `open_design`, `look`, `look_at`, `walk`, `teleport`, `list_objects`, `select`, `place`, `screenshot`, `task_state`; every action returns both eyes. It reports itself with a `runtime` event, opens designs only in the job's order, and logs `select` and `place` as completed only when the app confirms.
+`runtime/bridge.py` (Python 3, standard library only) is a stdio MCP server following the [bridge contract](../../docs/runtime-adapters.md#study-bridge-contract). Tools: `open_design`, `look`, `look_at`, `walk`, `teleport`, `list_objects`, `select`, `place`, `screenshot`, `task_state`; every action returns both eyes. It reports itself with a `runtime` event, opens designs only in the job's order, and logs `select` and `place` as completed only when the app confirms. It keeps the session's progress in `<job>/bridge-state.json`: if Claude Code starts it again after a crash, it enters a fresh Play mode and starts the current task again (the audit records the restart). It stops Play mode when the session ends.
 
 In **Settings → Runtimes → unity**:
 - **command:** `python` (or the full path to `python.exe`);

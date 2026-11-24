@@ -16,6 +16,11 @@ the first tool call; a fresh Play mode per session; designs only in the order of
 phase / case-start / observation (both eyes, with eyeSeparationM, viewMatrix, projectionMatrix) / action (select and
 place, completed when the app confirms) / case-end; screenshots in <job>/screenshots; never returns which object is the
 target, correctness beyond what the participant sees, or other participants' data. Standard library only.
+
+Tool calls count against the shared cap in <job>/calls.log only when accepted. The session's progress (designs used,
+the current task, frame counter) is kept in <job>/bridge-state.json: if Claude Code starts the bridge again after a
+crash, it resumes there (a fresh Play mode, the current task started again) instead of losing the design order. Frame
+IDs and screenshot names are unique within the job. Play mode is stopped when stdin closes or on SIGTERM/SIGINT.
 """
 import argparse
 import base64
@@ -23,6 +28,7 @@ import hashlib
 import io
 import json
 import os
+import signal
 import sys
 import time
 import traceback
@@ -74,6 +80,27 @@ class Session:
         self.design = None
         self.stage = None                # "practice" | "main" | "done"
         self.frames = 0
+        self.resume_note = ""
+        self.state_path = self.job_dir / "bridge-state.json"
+        self.load_state()
+
+    # ------------------------------------------------------------------ state kept in the job folder
+    def load_state(self):
+        """A bridge started again within the session (after a crash) continues where the last one was."""
+        try:
+            st = json.loads(self.state_path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return
+        self.opened = [d for d in st.get("opened", []) if d in self.designs]
+        self.design = self.designs.get(st.get("design"))
+        self.stage = st.get("stage") if self.design else None
+        self.frames = int(st.get("frames") or 0)
+
+    def save_state(self):
+        tmp = self.state_path.with_suffix(".tmp")
+        tmp.write_text(json.dumps({"opened": self.opened, "design": self.design["id"] if self.design else None,
+                                   "stage": self.stage, "frames": self.frames, "pid": os.getpid()}), encoding="utf-8")
+        os.replace(tmp, self.state_path)
 
     # ------------------------------------------------------------------ logging
     def log(self, entry):
@@ -95,18 +122,47 @@ class Session:
             used_tokens = int(usage.get("tokens") or 0)
             if usage.get("submitNow") or used_tokens >= 0.9 * token_budget:
                 raise ToolError(f"Token budget of {token_budget} tokens is nearly used up. Submit your forecast now.")
-        calls = self.job_dir / "calls.log"
-        with open(calls, "a", encoding="utf-8") as fh:
-            fh.write(tool + "\n")
-        used = len([ln for ln in calls.read_text(encoding="utf-8").splitlines() if ln.strip()])
-        if self.budget and used > self.budget:
-            raise ToolError(f"Tool budget of {self.budget} calls is used up. Submit your forecast now.")
+        # Tool-call cap shared with the study server: <job>/calls.log holds one line per accepted call. Checked
+        # first and written only when accepted, under the lock folder calls.lock (mkdir is atomic).
+        lock, held = self.job_dir / "calls.lock", False
+        for _ in range(400):
+            try:
+                os.mkdir(lock)
+                held = True
+                break
+            except FileExistsError:
+                try:
+                    if time.time() - lock.stat().st_mtime > 2:      # left by a crashed holder
+                        os.rmdir(lock)
+                except OSError:
+                    pass
+                time.sleep(0.01)
+            except OSError:
+                break
+        try:
+            calls = self.job_dir / "calls.log"
+            try:
+                lines = calls.read_text(encoding="utf-8").splitlines()
+            except OSError:
+                lines = []
+            used = len([ln for ln in lines if ln.strip() and ln.strip() != "submit_forecast"])
+            if self.budget and used >= self.budget:
+                raise ToolError(f"Tool budget of {self.budget} calls is used up. Submit your forecast now.")
+            with open(calls, "a", encoding="utf-8") as fh:
+                fh.write(tool + "\n")
+        finally:
+            if held:
+                try:
+                    os.rmdir(lock)
+                except OSError:
+                    pass
 
     def case(self):
         return self.design.get(self.stage) if self.design and self.stage in ("practice", "main") else None
 
     def begin_case(self, stage):
         self.stage = stage
+        self.save_state()
         c = self.case()
         if c:
             self.event({"type": "phase", "phaseId": c["phaseId"]})
@@ -174,21 +230,32 @@ class Session:
         self.log({"bridge": "connected", "project": st.get("project"), "unity": st.get("unity")})
         # The runtime's own identity for the audit (docs/runtime-adapters.md, "runtime" event): what this
         # bridge and app really provide, compared there with study.json's frozen runtime recipe.
+        # A bridge started again within the session reports itself again: the audit counts the restart.
         self.event({"type": "runtime", "engine": "unity", "engineVersion": str(st.get("unity") or "unknown"),
                     "backend": "editor", "deviceProfile": "quest-3", "observation": "stereo-pair",
-                    "capabilities": ["head-pose", "hand-poses", "controller-input", "stereo-capture", "phase-events"]})
+                    "capabilities": ["head-pose", "hand-poses", "controller-input", "stereo-capture", "phase-events"],
+                    "pid": os.getpid()})
+        if self.design and self.stage in ("practice", "main"):
+            # Resumed after a crash: the fresh Play mode starts the task the participant was on again.
+            self.api("/start", {"design": self.design["id"], "phase": self.stage, "logDir": str(self.job_dir / "app_logs")})
+            self.begin_case(self.stage)
+            part = "practice task starts" if self.stage == "practice" else "scored tasks start"
+            self.resume_note = f"The app was restarted: the {part} again with {self.design['label']}. "
 
     def view(self):
         """Capture the stereo pair, save both eyes, log one observation, return both images."""
         cap = self.api("/capture")
+        # The frame counter lives in bridge-state.json, so frame IDs and file names stay unique within the job
+        # even when the bridge (and the app's own frame counter) starts again.
         self.frames += 1
+        self.save_state()
         self.shots.mkdir(parents=True, exist_ok=True)
         content, captures = [], []
         for eye in cap["eyes"]:
             data = base64.b64decode(eye["jpegBase64"])
             (self.shots / f"{self.frames:03d}-{self.design['id'] if self.design else 'none'}-{eye['eye']}.jpg").write_bytes(data)
             captures.append({"eye": eye["eye"], "sha256": hashlib.sha256(data).hexdigest(),
-                             "frameId": f"{self.job_id}-{cap['frameId']}", "simulationTimeMs": round(cap["simulationTimeMs"]),
+                             "frameId": f"{self.job_id}-{self.frames}", "simulationTimeMs": round(cap["simulationTimeMs"]),
                              "eyeSeparationM": eye["eyeSeparationM"], "viewMatrix": eye["viewMatrix"],
                              "projectionMatrix": eye["projectionMatrix"]})
             content.append({"type": "text", "text": f"{eye['eye'].capitalize()} eye:"})
@@ -199,6 +266,8 @@ class Session:
         return content
 
     def need_task(self):
+        if not self.connected and self.design is not None and self.stage in ("practice", "main"):
+            self.connect()               # started again after a crash: resume the current task
         if not self.connected or self.design is None:
             raise ToolError(f"Use a technique first: open_design with {self.next_design()}.")
         if self.stage == "done":
@@ -230,6 +299,7 @@ class Session:
         d = self.designs[design]
         self.opened.append(design)
         self.design = d
+        self.resume_note = ""
         stage = "practice" if d.get("practice") else "main"
         st = self.api("/start", {"design": design, "phase": stage, "logDir": str(self.job_dir / "app_logs")})
         self.begin_case(stage)
@@ -303,6 +373,7 @@ class Session:
             return [{"type": "text", "text": "Placed. Practice is over; the scored tasks start now. " + self.describe(st)
                      + " Your view:"}] + self.view()
         self.stage = "done"
+        self.save_state()
         nxt = self.next_design()
         return [{"type": "text", "text": f"Placed. That was the last task with {self.design['label']}. "
                  + (f"Open the next technique: {nxt}." if nxt else "You have used every technique: submit your forecast.")}]
@@ -325,6 +396,8 @@ class Session:
         if not self.connected:
             return
         try:
+            # The forecast was usually accepted by now: only the case still open is closed (submitted false),
+            # which the audit allows after the forecast boundary. Nothing else is written.
             if self.case():
                 self.end_case(False)
             self.editor("/stop")
@@ -369,6 +442,10 @@ def main():
         PROTOCOL_OUT.write((json.dumps(msg) + "\n").encode("utf-8"))
         PROTOCOL_OUT.flush()
 
+    def stop(signum, frame):
+        raise SystemExit(0)              # runs close() below: Play mode does not outlive the session
+
+    signal.signal(signal.SIGTERM, stop)
     try:
         for line in sys.stdin:
             line = line.strip()
@@ -400,6 +477,9 @@ def main():
                 try:
                     s.count_call(name)
                     content = handlers[name](a)
+                    if s.resume_note and content and content[0].get("type") == "text":
+                        content[0]["text"] = s.resume_note + content[0]["text"]
+                        s.resume_note = ""
                     s.log({"tool": name, "ok": True})
                     send({"jsonrpc": "2.0", "id": mid, "result": {"content": content}})
                 except ToolError as e:

@@ -1,6 +1,6 @@
 # External XR execution
 
-The executor runs real agent sessions through the built-in **WebXR** runtime or through a **study bridge** set for an engine runtime in **Settings**, on the machine that runs the engine (see [MCP runtimes used by the executor](#mcp-runtimes-used-by-the-executor)). Suite 2 ships a Unity bridge; no Unreal or visionOS bridge is included, and no headset, OpenXR or Meta runtime connection has been verified. A runtime that is not configured fails explicitly and names itself. **Simulate** produces invented runs (`syntheticResults`), always marked synthetic. `RuntimeAdapter` and `ProtocolGate` in `src/core/protocol.ts` are an optional library contract for a controller of your own; the executor does not use them.
+The executor runs real agent sessions through the built-in **WebXR** runtime or through a **study bridge** set for an engine runtime in **Settings**, on the machine that runs the engine (see [MCP runtimes used by the executor](#mcp-runtimes-used-by-the-executor)). Suite 2 ships a Unity bridge; no Unreal or visionOS bridge is included, and no headset, OpenXR or Meta runtime connection has been verified. A runtime that is not configured fails explicitly and names itself. **Simulate** produces invented runs (`syntheticResults`), always marked synthetic. `RuntimeAdapter` and `ProtocolGate` in `src/core/protocol.ts` are an optional library contract for a controller of your own; the executor does not use them (the study server applies the same rule, no forecast before the required cases, to the trace).
 
 ## Engine, runtime and observation are separate
 
@@ -39,14 +39,7 @@ The executor runs each agent session as headless Claude Code with exactly two ki
 | `unity` | A study bridge (below), set in Settings → Runtimes → unity | Suite 2 ships one: `examples/selection/runtime/bridge.py` (Python, standard library) drives the included Unity project in Play mode; no third-party Unity MCP is needed (`examples/selection/UNITY_SETUP.md`). Until it is set: "Unity MCP runtime is not configured". |
 | `visionos` | A visionOS simulator MCP server | Not configured: Apple Vision Pro needs a visionOS simulator runtime. |
 
-A runtime for another engine should offer participant-like tools:
-- open a design (and start its practice task);
-- look or move;
-- screenshot (mono, or a synchronized left/right pair with per-eye geometry);
-- act or select;
-- task state.
-
-It should log the audit trace events `runtime`, `phase`, `case-start`, `observation`, `action` and `case-end` to `<job-dir>/trace.jsonl`, in the shape the WebXR server writes (see "What it logs" below).
+A runtime for another engine is a **study bridge** (below). It offers participant-like tools (open a design, look or move, screenshot, act, task state) and logs the audit trace events listed under [What it logs](#what-it-logs-the-audit-trace).
 
 ## The window.xrStudy contract
 
@@ -116,34 +109,77 @@ Only the documented fields above, with object IDs replaced by neutral ones: from
 
 ## Study bridge contract
 
-An engine MCP server (for example ue-mcp) usually offers editor tools: spawn actors, run console commands, take screenshots. A forecasting agent needs a **participant session** instead. A **study bridge** turns one into the other. It is a small stdio MCP server that:
-- connects to the engine MCP as a client;
+An engine MCP server (for example ue-mcp) usually offers editor tools: spawn actors, run console commands, take screenshots. A forecasting agent needs a **participant session** instead. A **study bridge** turns one into the other. It is a small stdio MCP server, in any language, that:
+- connects to the engine (its MCP server, or an endpoint inside the engine project);
 - knows how this study's designs are loaded;
-- logs what the agent did.
+- logs what the agent did, in the shapes the audit checks.
 
-**How the executor starts it.** The bridge is the runtime's command in Settings: any program, for example `node` with arguments `private/studies/my-study/runtime/bridge.mjs {jobFile}`, or `python` with `examples/selection/runtime/bridge.py {jobFile} …`. A relative path is resolved against the repository. The bridge may talk to an engine MCP server or directly to an endpoint inside the engine project. For every session:
+Everything the audit checks is in this section; a bridge written from it passes. **Start from the tested template** [`examples/bridge-template/`](../examples/bridge-template/): `bridge.mjs` is a complete bridge (Node 22, standard library) and `engine.mjs` a stand-in engine you replace with the connection to yours; `test/bridge.test.ts` runs it through the executor and the audit, mono and stereo. Suite 2's [`examples/selection/runtime/bridge.py`](../examples/selection/runtime/bridge.py) is a Python bridge for a real Unity project.
+
+### How the executor starts it
+
+The bridge is the runtime's command in Settings, for example `node` with arguments `private/studies/my-study/runtime/bridge.mjs {jobFile}`, or `python` with `examples/selection/runtime/bridge.py {jobFile} --project <Unity project>`. A relative path is resolved against the repository. For every session:
 - `{jobDir}`, `{jobFile}` and `{trace}` in the arguments are replaced with that session's paths;
 - the same paths arrive as the environment variables `XR_STUDY_JOB_DIR`, `XR_STUDY_JOB_FILE` and `XR_STUDY_TRACE`;
-- the agent can call only the bridge's tools, as `mcp__<runtime>__<tool>`, besides the study server's.
+- the agent can call only the bridge's tools, as `mcp__<runtime>__<tool>`, besides the study server's;
+- Claude Code starts the bridge through the executor's wrapper (`dist/runtimes/bridge-proxy.js`). It passes every byte through unchanged and records in `<job>/bridge.jsonl` each start of the bridge (`{"type": "start", "pid"}`), its first answer to `tools/list` (`{"type": "ready"}`) and its end (`{"type": "exit", "code", "signal"}`). The bridge's stderr is kept in `<job>/bridge-stderr.log`.
 
-**What it reads.** `job.json` → `app` describes the session to play:
+**stdout is the MCP channel.** Write only JSON-RPC messages there, one per line. Log everything else to stderr; a stray `print` on stdout breaks the session.
+
+**Answer `initialize` and `tools/list` at once**, and connect to the engine on the first tool call. Claude Code starts MCP servers in the background; a server that has not answered when the model's first turn begins shows as "pending". A bridge that has not answered `tools/list` within the startup time (`startupSeconds`, default 60) fails the session: "The Unity bridge did not start (no answer to tools/list within 60 s)", with its last stderr lines.
+
+### Settings
+
+`private/settings.json` → `runtimes.<unreal|unity|visionos>` (also on the website's Settings page):
+
+| Key | Meaning |
+| --- | --- |
+| `command` | Program that starts the bridge (`node`, `python`, a path). Empty: the runtime is not configured. |
+| `args` | Arguments; `{jobDir}`, `{jobFile}` and `{trace}` are replaced per session. |
+| `capabilities` | What the bridge really provides, e.g. `["screenshot", "phase-events", "stereo-capture"]`. The executor blocks configurations whose study requires a capability the runtime does not declare; stereo configurations need `stereo-capture`. The audit compares the bridge's own `runtime` event, not this list. |
+| `instructions` | One or two sentences for the agent on how to use the bridge's tools (added to the session's instructions). |
+| `timeoutMinutes` | Time limit per session (default 90 for Unreal, Unity and visionOS, or the global limit if higher). |
+| `maxParallel` | Sessions on this runtime at once (default 1: one editor hosts one Play session; app-free sessions keep running alongside). |
+| `startupSeconds` | Seconds the bridge has to answer `tools/list` (default 60). |
+| `note` | Free text for you. |
+
+```json
+{ "runtimes": { "unity": {
+  "command": "node",
+  "args": ["private/studies/my-study/runtime/bridge.mjs", "{jobFile}"],
+  "capabilities": ["screenshot", "head-pose", "controller-input", "stereo-capture", "phase-events"],
+  "instructions": "Open each design with open_design; act performs the task's actions.",
+  "timeoutMinutes": 90, "maxParallel": 1, "startupSeconds": 60 } } }
+```
+
+### What it reads: `job.json`
 
 ```json
 {
-  "runtime": "unreal",
-  "observation": "mono",
-  "trace": "<job-dir>/trace.jsonl",
-  "screenshots": "<job-dir>/screenshots",
-  "designs": [{ "id": "SP", "label": "Spheres", "practice": { "caseId": "SP-practice", "phaseId": "practice" }, "main": { "caseId": "SP-main", "phaseId": "main" } }],
-  "cases": [{ "caseId": "SP-practice", "conditionId": "SP", "phaseId": "practice", "requiredActions": ["complete-task"], "minActions": 3 }]
+  "jobId": "<job ID>",
+  "budget": 150,
+  "tokenBudget": 400000,
+  "app": {
+    "runtime": "unity",
+    "observation": "stereo-pair",
+    "trace": "<job-dir>/trace.jsonl",
+    "screenshots": "<job-dir>/screenshots",
+    "designs": [{ "id": "ray", "label": "Ray", "practice": { "caseId": "ray-practice", "phaseId": "practice" }, "main": { "caseId": "ray-main", "phaseId": "main" } }],
+    "cases": [{ "caseId": "ray-practice", "conditionId": "ray", "phaseId": "practice", "requiredActions": ["select", "place"], "minActions": 2, "observeBeforeEachAction": true }]
+  }
 }
 ```
 
-A case may also carry `"observeBeforeEachAction": true` (see "What it logs").
+- `budget` is the tool-call cap and `tokenBudget` the token budget (or null); see [Budgets](#budgets).
+- `app.observation` is `mono` or `stereo-pair`.
+- `app.designs` come in the participant's order for individual configurations, and in study order otherwise. `practice` or `main` is null when the design has no such case.
+- `app.cases` are the cases the protocol requires, each with the action names it requires, and optionally `minActions` (the fewest scored actions, for example one answer per trial) and `observeBeforeEachAction` (an observation is needed in the case before each scored action: no answering from memory).
 
-- **Designs** come in the participant's order for individual configurations, and in study order otherwise.
-- **The bridge must refuse designs in the wrong order**, and must refuse anything that would reveal results.
-- **Object IDs shown to the agent are neutral and drawn afresh for every design** (for example `obj-1 … obj-N` in a random order). With the same IDs in every design, the agent selects from memory after the first one and its later task experience says nothing about the design. Log the mapping in the job folder for the audit (the built-in WebXR runtime writes `object-ids.jsonl`).
+### Session rules
+
+- **Designs only in the job's order**, each once; refuse any other with a short reason. Refuse anything that would reveal results (which object is the target, correctness beyond what a participant sees, other participants' data).
+- **Object IDs shown to the agent are neutral and drawn afresh for every design** (for example `obj-1 … obj-N` in a random order). With the same IDs in every design, the agent selects from memory after the first one and its later task experience says nothing about the design. Log the mapping in the job folder for the audit (`object-ids.jsonl`, one line per design).
+- **The forecast comes after the app.** For a configuration that uses the app, `submit_forecast` refuses until every case in `app.cases` has a `case-start` and a `case-end` in the trace, and names the missing ones. Only when the token budget is nearly used up, or less than 10% of the tool budget is left, is a forecast accepted without them; the audit then lists the missing exposure and the executor's row says "submitted without required exposure".
 
 **Tools to offer.** Use participant words, not editor words:
 
@@ -155,36 +191,85 @@ A case may also carry `"observeBeforeEachAction": true` (see "What it logs").
 | `act` / `select` | Performs the task's actions; wrong actions count as errors |
 | `task_state` | Returns the instruction and progress shown to the participant |
 
-**What it logs.** It appends one JSON line per event to `XR_STUDY_TRACE`, in the form `{"t": <ms>, "server": "<runtime>", "event": {…}}`:
+### What it logs: the audit trace
+
+Append one JSON line per event to `XR_STUDY_TRACE`: `{"t": <ms since 1970>, "server": "<runtime>", "event": {…}}`. Lines without `event` (your own notes) are allowed and ignored. The study server writes its own lines (`source` events for files read, and the `forecast` event) to the same file.
 
 ```json
-{"type": "runtime", "engine": "unreal", "engineVersion": "5.7.1", "backend": "editor", "deviceProfile": "desktop PIE screenshots", "observation": "mono", "capabilities": ["screenshot", "phase-events"]}
+{"type": "runtime", "engine": "unity", "engineVersion": "6000.0.32f1", "backend": "editor", "deviceProfile": "quest-3", "observation": "stereo-pair", "capabilities": ["head-pose", "stereo-capture", "phase-events"], "pid": 4242}
 {"type": "phase", "phaseId": "practice"}
-{"type": "case-start", "caseId": "SP-practice", "phaseId": "practice"}
-{"type": "observation", "caseId": "SP-practice", "phaseId": "practice", "captures": [{"eye": "mono", "sha256": "<hash of the image>", "frameId": "<id>", "simulationTimeMs": 1234}]}
-{"type": "action", "caseId": "SP-practice", "phaseId": "practice", "action": "complete-task", "completed": true}
-{"type": "case-end", "caseId": "SP-practice", "phaseId": "practice", "submitted": true}
+{"type": "case-start", "caseId": "ray-practice", "phaseId": "practice"}
+{"type": "observation", "caseId": "ray-practice", "phaseId": "practice", "captures": [
+  {"eye": "left",  "sha256": "<64 hex>", "frameId": "<jobId>-f7", "simulationTimeMs": 51234, "eyeSeparationM": 0.063,
+   "viewMatrix": [1,0,0,0, 0,1,0,0, 0,0,1,0, 0.0315,-1.6,0,1], "projectionMatrix": [1.2,0,0,0, 0,1.2,0,0, 0,0,-1.0002,-1, 0,0,-0.02,0]},
+  {"eye": "right", "sha256": "<64 hex>", "frameId": "<jobId>-f7", "simulationTimeMs": 51234, "eyeSeparationM": 0.063,
+   "viewMatrix": [1,0,0,0, 0,1,0,0, 0,0,1,0, -0.0315,-1.6,0,1], "projectionMatrix": [1.2,0,0,0, 0,1.2,0,0, 0,0,-1.0002,-1, 0,0,-0.02,0]}]}
+{"type": "action", "caseId": "ray-practice", "phaseId": "practice", "action": "select", "completed": true, "scored": true}
+{"type": "case-end", "caseId": "ray-practice", "phaseId": "practice", "submitted": true}
 ```
 
-- **The `runtime` event** says what the bridge and the engine really provide: engine and its version (asked from the engine), backend, device profile, observation (`mono` or `stereo-pair`) and capabilities. Write it once per session, when the engine is connected. The audit compares it with the study's frozen runtime recipe (`study.json` → `runtime`; `custom` engine or backend there means "not specified"). A session without it, or with a different observation, device profile or missing required capability, is recorded as a protocol deviation. The executor records the report in the run's execution record instead of copying `study.json`.
-- **Action names** are the case's `requiredActions`; a missing one is a protocol deviation. Log one action per answer and mark it `"scored": true` (looking, walking and `complete-task` `"scored": false`): the audit checks a case's `minActions` against the scored actions, and with `observeBeforeEachAction` it requires an observation in the case before each of them. A bridge that marks none has every completed action except `complete-task` counted. An action the app refused is `"completed": false`; the app's reply may go in `"result"`.
-- **`case-end`** is `"submitted": true` only when the task was finished; a task the agent left is `false` (a deviation).
-- **Screenshots** are saved under `screenshots/` so the executor page can show the latest one.
+| Event | Fields and rules |
+| --- | --- |
+| `runtime` | `engine`, `engineVersion` (asked from the engine), `backend`, `deviceProfile`, `observation` (`mono` or `stereo-pair`), `capabilities` (list); optional `pid` and other extra fields. Write it **once per start of the bridge process**, when the engine is connected. The audit compares it with the study's frozen runtime recipe (`study.json` → `runtime`; `custom` engine or backend there means "not specified"): no report, another engine, backend, device profile or observation, a missing required capability, or `stereo-capture` missing for a stereo configuration is a deviation. A second report in one session means the bridge was started again (see [Restarts](#restarts-and-the-end-of-the-session)). The executor records this report in the run's execution record; without one it records "not reported" and copies nothing from `study.json` or Settings. |
+| `phase` | `phaseId` of the case that starts next. Write it right before each `case-start`. |
+| `case-start` | `caseId`, `phaseId`, from `app.designs[].practice` / `.main`. The phase must be the last `phase` event's. Visit required cases in the job's order. |
+| `observation` | `caseId`, `phaseId`, `captures`. Only inside the active case (after its `case-start`, before its `case-end`). See the capture shape below. |
+| `action` | `caseId`, `phaseId`, `action`, `completed`, and `scored`; optional `result` (the app's reply as the participant perceives it) and `args` (the neutral object ID, a point). Use the case's `requiredActions` names; `completed: true` only when the engine confirms it, `false` when the app refused. Each required action needs at least one completed event in its case. Log one action per answer and mark it `"scored": true` (looking, walking and `complete-task`: `"scored": false`): the audit checks `minActions` against the scored actions and, with `observeBeforeEachAction`, an observation in the case before each of them. A bridge that marks none has every completed action except `complete-task` counted. |
+| `case-end` | `caseId`, `phaseId`, `submitted`: true only when the participant finished the task, false when it was left unfinished (a deviation). Every required case needs a `case-end` with `submitted: true`. |
 
-**Settings.** Declare the bridge's real capabilities (for example `screenshot`, `phase-events`). The executor blocks configurations whose study requires a capability the runtime does not declare. A runtime supports stereo configurations only when it declares `stereo-capture`.
+**Captures.** Every capture has `eye`, `sha256` (64 hex characters: the SHA-256 of the image bytes the agent got), `frameId` (string) and `simulationTimeMs` (a finite number ≥ 0: the engine's simulation clock at the capture; optional `clock`: `"app"` or `"wall"`). The executor records the simulated time these clocks report as the session's `simulationTimeMs`.
+- **Mono** (`observation: "mono"`): exactly one capture, `"eye": "mono"`.
+- **Stereo** (`observation: "stereo-pair"`): exactly two captures, `"eye": "left"` and `"eye": "right"`, with
+  - the **same `frameId` and the same `simulationTimeMs`** for both eyes;
+  - `eyeSeparationM`: the eye separation **in metres**, greater than 0 and less than 0.2, **identical for both eyes** (0.063, not `ipdMm: 63`);
+  - `viewMatrix` and `projectionMatrix`: each a **flat array of 16 finite numbers** (the 4×4 matrix flattened, column-major as OpenGL and Unity write it; not a nested `[[…],[…],[…],[…]]`);
+  - **different view matrices** for the two eyes.
+- Anything else is "Invalid or downgraded observation in <case>", and the case counts as not observed.
+- **`frameId` must be unique across every job and case** of the campaign: prefix it with the job ID (`<jobId>-f<counter>`) and keep the counter in the job folder, so a restarted bridge does not count from 1 again. A reused frame ID is "Capture frame identity reused across jobs or cases" in every run that has it.
+- **Screenshots** go to `app.screenshots` (`<job>/screenshots/`) so the executor page can show the latest one. Name them uniquely within the job (counter from the job folder, design, eye): a restarted bridge must not overwrite earlier ones.
 
-- **Time limit per session:** by default 90 minutes for Unreal, Unity and visionOS, or the global limit if that is higher (a full engine session with dozens of answers takes long); otherwise the global limit.
-- **Sessions at the same time:** default 1 for Unreal, Unity and visionOS, because one editor hosts one Play session. The queue enforces it whatever the overall number of parallel sessions is; app-free sessions keep running alongside.
+**The forecast boundary.** The study server writes `{"type": "forecast"}` when it accepts the forecast. After it, the only event allowed is the closing `case-end` (`submitted: false`) of the case still open when stdin closes; the audit then records that case as not submitted. Any other event after the forecast is a deviation.
 
-**Robustness.**
-- Answer `initialize` and `tools/list` at once and connect to the engine on the first tool call. Claude Code starts MCP servers in the background; a server that is still starting shows as "pending" when the model's first turn begins.
-- The agent may call tools in parallel, so serialize calls.
-- Time out engine calls and say so in the reply instead of hanging.
-- Close what you started when stdin closes.
+**What the audit lists as a deviation**, and where the rule is:
+
+| Deviation | Rule |
+| --- | --- |
+| The runtime did not report itself / reported engine, backend, device profile, observation … | `runtime` event |
+| The runtime restarted during the session | one `runtime` event per session; one start in `bridge.jsonl` |
+| Case/phase mismatch; Event outside its active case | `phase`, `case-start`, `case-end` order |
+| Invalid or downgraded observation; No valid observation for required case | capture shape |
+| Capture frame identity reused across jobs or cases | unique `frameId` |
+| Missing completed `<action>` in `<case>`; No submission for required case | `action`, `case-end` |
+| Too few actions in `<case>`; scored actions without an observation since the previous one | `minActions`, `observeBeforeEachAction`, `scored` |
+| Did not open any project file | a configuration that reads the project calls `read_file` at least once |
+| Required cases were visited outside their assigned order | design order |
+| Environment/source events occurred after the forecast boundary | forecast boundary |
+| Tool budget exceeded or not recorded | `calls.log` |
+
+### Budgets
+
+**Tool-call limit.** `budget` in `job.json` is a cap shared by every call of the session, on every server, including reading files. `<job>/calls.log` holds **one line per accepted call** (the tool's name); the study server, the WebXR runtime and a bridge all keep it. For each tool call, before doing anything:
+1. take the lock: create the folder `<job>/calls.lock` (creating a folder is atomic; if it exists, wait a few milliseconds and try again; remove one older than 2 s, left by a crashed holder);
+2. count the lines of `calls.log` other than `submit_forecast`;
+3. if that count is already `budget` or more, refuse the call with "Tool budget of N calls is used up. Submit your forecast now." and **write nothing**;
+4. otherwise append the tool's name as one line;
+5. remove the lock folder, then run the call.
+
+A refused call is never written, so `calls.log` never holds more than `budget` counted lines; the executor reports that count as the session's tool calls and the audit compares it with the budget. Calls the tool itself rejects (a design out of order, an unknown object) were accepted and count. The agent configuration page shows the fewest calls the protocol needs: each project file to read, each design to open, each required task's actions and one view per task; submitting the forecast is not counted. A task's `minActions` in `study.json` declares how many actions it needs at least (for example one answer per trial).
 
 **Token budget.** `job.json` → `tokenBudget` is the session's token budget (all tokens: input including cache, plus output), or null. The executor keeps `<job dir>/usage.json` (`{"tokens": …, "submitNow": …}`) current from the session's stream. Once `submitNow` is true (what is left of the budget is smaller than 10% of it, or than 3.5 × the last turn's input, since the submission, a possibly rejected second one and the closing turn each re-read the context) or `tokens` reaches 90% of the budget, a bridge refuses every further tool call with "Token budget … is nearly used up. Submit your forecast now." (the study server and the WebXR runtime do this too), so the agent submits. A session that is submitting is never stopped for its budget: it has `job.json` → `submitAttempts` (3) submissions and is stopped after the last one is refused. The executor stops a session above 150% only while it still calls other tools, and never once its forecast was accepted (`usage.json` → `tokensAtSubmit`).
 
-**Tool-call limit.** A configuration's tool-call limit (`budget` in `job.json`) is a safety cap shared by every call, including reading files. The agent configuration page shows the fewest calls the protocol needs: each project file to read, each design to open, each required task's actions and one view per task; submitting the forecast is not counted. A task's `minActions` in `study.json` declares how many actions it needs at least (for example one answer per trial).
+### Restarts and the end of the session
+
+- **Serialize calls.** The agent may call tools in parallel; run them one at a time.
+- **Time out engine calls** and say so in the reply instead of hanging.
+- **Claude Code may start a crashed bridge again** within the session, without a new `tools/list`; the call that was running returns "Connection closed" to the agent. Keep the session's state in the job folder (the template and `bridge.py` use `<job>/bridge-state.json`: designs done, the current design and task, the frame counter, the object-ID mapping) and resume from it: never lose the design order, and start the task that was running again in the fresh engine state. Report the `runtime` event again on reconnecting: the audit records the restart as a deviation and the executor's row says "the Unity bridge restarted during the session".
+- **Nothing outlives the session.** When the bridge ends, normally or not, the executor's wrapper ends its process group (POSIX) or process tree (Windows), so an engine process the bridge started ends with it. Do not detach engine children you want ended; start a long-lived editor outside the bridge.
+- **When stdin closes** (or on SIGTERM), close the case still open with `case-end` and `submitted: false`, close what the bridge started in the engine (stop Play or PIE), and exit. Write no other event then: the forecast was usually accepted before.
+
+### Before the first real session
+
+Test the bridge with the template's test pattern: a stand-in `claude -p` that starts the servers from `--mcp-config`, opens each design, takes a screenshot, completes each task and submits (`test/bridge.test.ts`). Then open each design yourself once and check that `trace.jsonl` has the `runtime`, `phase`, `case-start`, `observation`, `action` and `case-end` lines above. In the website, run one session (**Run this session only**) before all others.
 
 ## Optional library contract: `RuntimeAdapter`
 
