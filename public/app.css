@@ -25,6 +25,12 @@ textarea,
 select {
   font: inherit;
 }
+/* A select is as wide as its longest option; on a phone it must shrink to the card instead. */
+select,
+input,
+textarea {
+  max-width: 100%;
+}
 button,
 a,
 input,
@@ -298,10 +304,16 @@ p {
 }
 .card-heading {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   gap: 15px;
   align-items: center;
   margin-bottom: 20px;
+}
+/* The title side shrinks (a configuration's name field too), so the buttons wrap instead of widening the page. */
+.card-heading > div:first-child {
+  min-width: 0;
+  flex: 1 1 220px;
 }
 .card-heading p,
 .caption {
@@ -980,8 +992,8 @@ td.quote { color: #6b7d70; font-style: italic; }
 /* campaigns, next step, attempts */
 .freeze-layout { display: block; }
 .campaign-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: end; margin: 0 0 12px; }
-.campaign-bar .field { min-width: 260px; max-width: 420px; flex: 1; }
-.campaign-bar .caption { flex: 2; min-width: 240px; margin: 0; }
+.campaign-bar .field { min-width: min(260px, 100%); max-width: 420px; flex: 1; }
+.campaign-bar .caption { flex: 2; min-width: min(240px, 100%); margin: 0; }
 .next-step { background: #eef4f0; border: 1px solid #cfe0d5; border-radius: 10px; padding: 10px 14px; margin: 0 0 14px; }
 .next-step .tag { margin-right: 6px; }
 table.attempts { margin: 8px 0; font-size: 13px; }
@@ -1015,3 +1027,9 @@ details > summary { cursor: pointer; margin: 6px 0; }
 label.check.disabled { color: #9aa39b; }
 .card.draft { border: 2px solid #9cc5ad; }
 .cont-help p { margin: 3px 0; }
+/* executor mode: Run agents or Simulate, side by side (stacked on a phone) */
+.mode-choice { border: 0; padding: 0; margin: 18px 0 0; display: flex; flex-wrap: wrap; gap: 10px; }
+.mode-choice legend { font-size: 11px; font-weight: 600; color: #577061; padding: 0; margin-bottom: 6px; }
+.mode-option { flex: 1 1 240px; min-width: 0; display: flex; gap: 8px; align-items: flex-start; border: 1px solid #d6e0d6; border-radius: 8px; padding: 10px 12px; background: #fbfcfa; cursor: pointer; font-size: 13px; }
+.mode-option.chosen { border-color: #285e4b; box-shadow: inset 3px 0 0 #285e4b; background: #f3f7f1; }
+.mode-option input { margin-top: 3px; accent-color: #285e4b; }
