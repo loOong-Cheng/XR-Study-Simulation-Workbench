@@ -269,3 +269,32 @@ test("receipts satisfy the effective per-condition model, not only the campaign 
   const s = campaignStatus(c2, [wrong]);
   assert.equal(s.jobs.find((j) => j.jobId === wrong.jobId)!.state, "audit-required");
 });
+
+test("continuing from receipts: only accepted forecasts are reused; simulated runs run again unless kept", async () => {
+  const base = campaignFromPlan(await planned(), modelA, "base", t0);
+  const llm = base.jobs.filter((j) => j.kind === "llm");
+  const [failed, neverRun, simulated] = [llm[0].id, llm[1].id, llm[2].id];
+  const run = syntheticCampaignExecution(base, { failJobIds: [failed] });
+  const receipts = run.receipts.filter((r) => r.jobId !== neverRun);
+  const template = (jobId: string) => base.jobs.find((j) => j.id === jobId)!.templateJobId;
+  const fresh = (c: Campaign) => c.jobs.filter((j) => !j.inheritedFrom).map((j) => j.templateJobId).sort();
+  const changes = { repetitions: { "text-only": 3 } };
+  const extra = (c: Campaign) => c.jobs.filter((j) => j.conditionId === "text-only" && j.repetition === 3).map((j) => j.templateJobId);
+  const plain = continueFromStatus(base, receipts, changes, "c2", t1);
+  assert.deepEqual(fresh(plain), [template(failed), template(neverRun), ...extra(plain)].sort());
+  // Simulated runs are treated like sessions that never ran, unless they are kept.
+  const replaced = continueFromStatus(base, receipts, changes, "c2", t1, { simulatedJobIds: [simulated] });
+  assert.deepEqual(fresh(replaced), [template(failed), template(neverRun), template(simulated), ...extra(replaced)].sort());
+  verifyContinuation(base, replaced);
+  const kept = continueFromStatus(base, receipts, changes, "c2", t1, { simulatedJobIds: [simulated], keepSimulated: true });
+  assert.deepEqual(fresh(kept), fresh(plain));
+  // A continuation that reused never-run jobs (no receipt anywhere): with the whole lineage's
+  // receipts in hand they run again instead of refusing.
+  const blind = continueCampaign(base, changes, "blind", t1);
+  assert.ok(blind.jobs.find((j) => j.templateJobId === template(neverRun))!.inheritedFrom);
+  assert.throws(() => continueFromStatus(blind, receipts, { repetitions: { "text-only": 4 } }), /Supply the receipts/);
+  const repaired = continueFromStatus(blind, receipts, { repetitions: { "text-only": 4 } }, "c3", t2, { receiptsComplete: true });
+  assert.equal(repaired.jobs.find((j) => j.templateJobId === template(neverRun))!.inheritedFrom, undefined);
+  assert.equal(repaired.jobs.find((j) => j.templateJobId === template(failed))!.inheritedFrom, undefined);
+  assert.ok(repaired.jobs.find((j) => j.templateJobId === template(simulated))!.inheritedFrom, "a completed run is still reused");
+});

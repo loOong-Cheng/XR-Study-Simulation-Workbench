@@ -182,10 +182,15 @@ function effortSelect(attrs: string, value: string) {
   if (!(EFFORTS as readonly string[]).includes(current)) options.push(`<option value="${esc(value)}" selected>${esc(value)} (not understood by Claude Code)</option>`);
   return `<select ${attrs}>${options.join("")}</select>`;
 }
+/** A model for people: "claude-sonnet-5-5, effort high" (no effort shown when it is the default). */
+const modelText = (m: { model: string; reasoning: string }) => `${m.model}${effortLevel(m.reasoning) === "default" ? "" : `, effort ${effortLevel(m.reasoning)}`}`;
 let contArmModel = { provider: "claude-code", model: "", reasoning: "default" };
 let contSuffix = "";
 let contNote = "";
 let contPreview: any = null;
+/** Reuse finished simulated runs in a continuation (default: run those sessions again). */
+let contKeepSimulated = false;
+let contPreviewSim: { reused: number; runAgain: number; byCondition: Record<string, { reused: number; runAgain: number }> } | null = null;
 let busy = false;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -722,7 +727,7 @@ function chooser(byConfig: Map<string, JobState[]>) {
     <div class="row"><label class="field">Sessions per checked configuration<input type="number" id="pick-k" min="1" max="1000" value="${pickK}"></label></div>
     <div class="actions">${btn("pick-first", `Select the first ${pickK} of each checked configuration`)}${btn("pick-clear", "Clear selection")}${btn("rerun-configs", "Rerun the checked configurations")}</div>
     <p class="caption">Only selected sessions start; the others stay "not started" and can run later in the same campaign. You can also tick single sessions in the table. Start shows the exact number and an estimate of the cost first.</p>
-    <p class="caption"><strong>Rerun</strong> runs the checked configurations again from scratch, also their finished sessions. Finished runs are never overwritten, so a rerun makes a new campaign that continues this one: the checked configurations get fresh sessions, all others reuse their finished runs, and this campaign stays as it is. Nothing starts until you press Start.</p></details>`;
+    <p class="caption"><strong>Rerun</strong> runs the checked configurations again from scratch, also their finished sessions. Finished runs are never overwritten, so a rerun makes a new campaign that continues this one: the checked configurations get fresh sessions, all others reuse their finished runs, and this campaign stays as it is. Simulated runs are reused only while the mode is Simulate. Nothing starts until you press Start.</p></details>`;
 }
 
 /** Sessions shown in the preview: the ones you picked, plus every running one if you ask for that. */
@@ -998,14 +1003,25 @@ function renderContinue() {
     <label class="field">Name of the added copy: suffix<input id="cont-suffix" value="${esc(contSuffix)}" placeholder="from the model ID, e.g. uses-app-fable-5-2"></label>
     <p class="caption">Effort is how much the model thinks before answering (Claude Code's --effort); "default" leaves it to Claude Code.</p>
     <label class="field">Note<input id="cont-note" value="${esc(contNote)}" placeholder="why this continuation"></label>
+    <label class="check"><input type="checkbox" id="cont-keep-sim" ${contKeepSimulated ? "checked" : ""}> Keep simulated runs</label>
+    <p class="caption">Off: sessions that were only simulated run again, like sessions that never ran (choose this before running real agents). On: finished simulated runs are reused, for trying the pipeline.</p>
     <div class="actions">${btn("cont-preview", "Preview", true)}${p ? btn("cont-adopt", "Create continuation") : ""}</div>${
       p
-        ? `<div class="divider"></div><p class="caption">${p.jobs.filter((j: any) => j.kind === "llm" && !j.inheritedFrom).length} new sessions, ${p.jobs.filter((j: any) => j.inheritedFrom).length} reused.</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Model</th><th>Sessions</th><th>Reused</th></tr></thead><tbody>${p.suite.conditions
-            .map((c: any) => {
-              const jobs = p.jobs.filter((j: any) => j.conditionId === c.id);
-              return `<tr><td>${esc(c.label)}</td><td>${esc((p.conditionModels?.[c.id] ?? p.model).model)}</td><td>${jobs.length}</td><td>${jobs.filter((j: any) => j.inheritedFrom).length}</td></tr>`;
-            })
-            .join("")}</tbody></table></div>`
+        ? (() => {
+            const sim = contPreviewSim;
+            const reused = p.jobs.filter((j: any) => j.inheritedFrom).length;
+            const simLine = sim?.reused
+              ? ` ${sim.reused} of the reused runs ${sim.reused === 1 ? "is" : "are"} simulated (invented); they test the pipeline, not prediction quality.`
+              : "";
+            const againLine = sim?.runAgain ? ` ${sim.runAgain} session${sim.runAgain === 1 ? " was" : "s were"} only simulated and run${sim.runAgain === 1 ? "s" : ""} again.` : "";
+            return `<div class="divider"></div><p class="caption">${p.jobs.filter((j: any) => j.kind === "llm" && !j.inheritedFrom).length} new sessions, ${reused} reused (only sessions with an accepted forecast are reused).${simLine}${againLine}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Model</th><th>Sessions</th><th>Reused</th></tr></thead><tbody>${p.suite.conditions
+              .map((c: any) => {
+                const jobs = p.jobs.filter((j: any) => j.conditionId === c.id);
+                const s = sim?.byCondition[c.id];
+                return `<tr><td>${esc(c.label)}</td><td>${esc(modelText(p.conditionModels?.[c.id] ?? p.model))}</td><td>${jobs.length}</td><td>${jobs.filter((j: any) => j.inheritedFrom).length}${s?.reused ? `<br><span class="small warn">${s.reused} simulated</span>` : ""}${s?.runAgain ? `<br><span class="small">${s.runAgain} simulated run again</span>` : ""}</td></tr>`;
+              })
+              .join("")}</tbody></table></div>`;
+          })()
         : ""
     }</div>`
   );
@@ -1014,11 +1030,11 @@ function renderContinue() {
 function modelChanges(baseId: string | null) {
   const c = campaignOf(baseId);
   if (!c) return [];
-  const show = (m: { model: string; reasoning: string }) => `${m.model}${effortLevel(m.reasoning) === "default" ? "" : `, effort ${effortLevel(m.reasoning)}`}`;
   return agents.flatMap((a) => {
     const old = c.models[a.id];
-    if (!old || (old.provider === a.model.provider && old.model === a.model.model && old.reasoning === a.model.reasoning)) return [];
-    return [{ id: a.id, label: a.label, from: show(old), to: show(a.model) }];
+    // "high" and "effort=high" are the same effort.
+    if (!old || (old.provider === a.model.provider && old.model === a.model.model && effortLevel(old.reasoning) === effortLevel(a.model.reasoning))) return [];
+    return [{ id: a.id, label: a.label, from: modelText(old), to: modelText(a.model) }];
   });
 }
 function continuationChanges() {
@@ -1312,8 +1328,11 @@ async function action(name: string) {
       const ids = [...pickConfigs];
       const labels = ids.map((id) => snapshot?.jobs.find((j) => j.agentId === id)?.label ?? id);
       const fresh = (snapshot?.jobs ?? []).filter((j) => pickConfigs.has(j.agentId)).length;
-      if (!confirm(`Rerun ${labels.join(", ")} (${fresh} sessions) from scratch?\n\nFinished runs are never overwritten: this makes a new campaign that continues this one. The checked configurations get fresh sessions; every other configuration reuses its finished runs. This campaign stays as it is.\n\nNothing starts until you press Start.`)) break;
-      const r = await api<{ campaignId: string; reused: number; jobs: number }>("workspace/continue", { id: ws!.id, campaignId, changes: { rerunConditions: ids, note: `Rerun of ${labels.join(", ")}` }, useReceipts: true });
+      mode = $<HTMLSelectElement>("exec-mode")?.value === "agent" ? "agent" : "simulate";
+      // Simulated runs are reused only while you are simulating; before real agents they run again.
+      const keepSimulated = mode === "simulate";
+      if (!confirm(`Rerun ${labels.join(", ")} (${fresh} sessions) from scratch?\n\nFinished runs are never overwritten: this makes a new campaign that continues this one. The checked configurations get fresh sessions; every other configuration reuses its finished runs${keepSimulated ? "" : " (sessions that were only simulated run again, because the mode is Run agents)"}. Sessions that failed, stopped or never ran are run again. This campaign stays as it is.\n\nNothing starts until you press Start.`)) break;
+      const r = await api<{ campaignId: string; reused: number; jobs: number }>("workspace/continue", { id: ws!.id, campaignId, changes: { rerunConditions: ids, note: `Rerun of ${labels.join(", ")}` }, keepSimulated });
       await refreshWorkspace();
       campaignId = r.campaignId;
       analysis = null;
@@ -1525,19 +1544,21 @@ async function action(name: string) {
       toast("Comparisons saved to comparisons.json.");
       break;
     case "cont-preview": {
-      const r = await api("workspace/continue", { id: ws!.id, campaignId: contBase ?? campaignId, changes: continuationChanges(), useReceipts: true, preview: true });
+      const r = await api("workspace/continue", { id: ws!.id, campaignId: contBase ?? campaignId, changes: continuationChanges(), keepSimulated: contKeepSimulated, preview: true });
       contPreview = r.campaign;
+      contPreviewSim = r.simulated ?? null;
       break;
     }
     case "cont-adopt": {
-      const r = await api("workspace/continue", { id: ws!.id, campaignId: contBase ?? campaignId, changes: continuationChanges(), useReceipts: true });
+      const r = await api("workspace/continue", { id: ws!.id, campaignId: contBase ?? campaignId, changes: continuationChanges(), keepSimulated: contKeepSimulated });
       await refreshWorkspace();
       campaignId = r.campaignId;
       contPreview = null;
+      contPreviewSim = null;
       contRows = {};
       connect();
       page = "executor";
-      toast(`Continuation created: ${r.reused} of ${r.jobs} sessions reused. The executor now shows the new campaign.`);
+      toast(`Continuation created: ${r.reused} of ${r.jobs} sessions reused${r.reusedSimulated ? ` (${r.reusedSimulated} simulated)` : ""}. The executor now shows the new campaign.`);
       break;
     }
     case "save-settings": {
@@ -1793,6 +1814,12 @@ document.addEventListener("change", (e) => {
     if (f === "repetitions") r.repetitions = Number(el.value);
     else (r as any)[f] = el.checked;
     contPreview = null;
+  }
+  if (el.id === "cont-keep-sim") {
+    contKeepSimulated = el.checked;
+    contPreview = null;
+    render();
+    return;
   }
 });
 

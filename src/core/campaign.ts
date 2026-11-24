@@ -305,6 +305,20 @@ export function validModel(model: CampaignModel, label = "model"): void {
 export function conditionModel(c: Campaign, conditionId: string): CampaignModel {
   return c.conditionModels?.[conditionId] ?? c.model;
 }
+/** Where a job's output comes from: this campaign's session, or the one it was reused from. */
+export function executedKey(c: Campaign, j: CampaignJob): string {
+  return j.inheritedFrom
+    ? `${j.inheritedFrom.campaignDigest}/${j.inheritedFrom.jobId}`
+    : `${c.digest}/${j.id}`;
+}
+/**
+ * Receipts and results carry the job ID of the campaign that executed them. This maps
+ * "campaignDigest/jobId" of every session the campaign uses (its own and reused ones) to the
+ * campaign's own job ID. Records of superseded ancestor sessions are not in the map.
+ */
+export function lineageJobIndex(c: Campaign): Map<string, string> {
+  return new Map(c.jobs.map((j) => [executedKey(c, j), j.id]));
+}
 interface BuildOptions {
   parentDigest: string | null;
   id: string;
@@ -709,6 +723,20 @@ export function continueCampaign(
     continuation: ch,
   });
 }
+export interface StatusContinuationOptions {
+  /**
+   * Jobs of the previous campaign whose selected output is a simulated (invented) run. They are
+   * treated like jobs that never ran, so the continuation runs them again, unless keepSimulated.
+   */
+  simulatedJobIds?: Iterable<string>;
+  /** Reuse simulated runs like real ones (for trying the pipeline). */
+  keepSimulated?: boolean;
+  /**
+   * The receipts of the whole lineage are given (the workbench reads them itself), so a reused job
+   * without a receipt never ran: it is run again instead of refusing the continuation.
+   */
+  receiptsComplete?: boolean;
+}
 /**
  * Continue from the parent's receipts: failed and never-started jobs are
  * executed again; completed jobs (including audit-held ones, which are never
@@ -720,18 +748,26 @@ export function continueFromStatus(
   changes: CampaignContinuation = {},
   id?: string,
   createdAt?: string,
+  options: StatusContinuationOptions = {},
 ): Campaign {
   const status = campaignStatus(previous, receipts);
   const missing = status.jobs.filter(
     (j) => j.state === "inherited-missing-receipt",
   );
   requireThat(
-    missing.length === 0,
+    options.receiptsComplete || missing.length === 0,
     `Supply the receipts of every campaign in the lineage (${missing.length} reused job(s) have no receipt).`,
   );
   const template = new Map(previous.jobs.map((j) => [j.id, j.templateJobId]));
+  const notRun = [
+    "pending",
+    "failed",
+    "inherited-failed",
+    ...(options.receiptsComplete ? ["inherited-missing-receipt"] : []),
+  ];
+  const simulated = new Set(options.keepSimulated ? [] : options.simulatedJobIds ?? []);
   const retry = status.jobs
-    .filter((j) => ["pending", "failed", "inherited-failed"].includes(j.state))
+    .filter((j) => notRun.includes(j.state) || simulated.has(j.jobId))
     .map((j) => template.get(j.jobId)!);
   return continueCampaign(
     previous,

@@ -102,7 +102,7 @@ Each card is one configuration:
 
 ## 5 · Compare agents (analyzer)
 
-Needs no human data, so it is useful while piloting. For each configuration: real and simulated runs (described by the real ones when both exist), protocol deviations, **run-to-run agreement** (how consistently repeated runs order the designs), tool calls, minutes and cost. A matrix shows how far configurations agree with each other on the design pattern.
+Needs no human data, so it is useful while piloting. For each configuration: real and simulated runs (described by the real ones when both exist), protocol deviations, **run-to-run agreement** (how consistently repeated runs order the designs), tool calls, minutes and cost. Runs a continuation reuses count with their tool calls, minutes and cost. A matrix shows how far configurations agree with each other on the design pattern.
 
 ## 6 · Compare with humans (analyzer)
 
@@ -129,8 +129,8 @@ Needs no human data, so it is useful while piloting. For each configuration: rea
 ## 7 · Continue or rerun (planner)
 
 - **Per configuration:** add **Runs**; **Add model** (append a model: the configuration and its finished runs stay, and a copy with the added model joins it, to compare both); **Rerun** (fresh sessions, same setup); **Drop**. To change a configuration's model, change it on **Agent configurations**; Continue lists the change and runs that configuration again with the new model. **Preview** shows new vs reused sessions; **Create continuation** freezes it and opens the executor.
-- **Retries:** failed and never-started sessions are retried, and finished ones are reused.
-
+- **What is reused:** only sessions with an accepted forecast. Failed, stopped and never-started sessions run again.
+- **Keep simulated runs:** off by default, so sessions that were only simulated run again like sessions that never ran; leave it off before running real agents. Turn it on to reuse simulated runs while trying the pipeline. The preview says how many reused runs are simulated. (**Rerun the checked configurations** in the executor keeps simulated runs only while its mode is *Simulate*.)
 ## What you still build yourself
 
 - **A converter from your raw data to `human.json`:** one record per participant × design × measure. See `examples/graphics-quality/data/convert_to_human.py`. Your coding agent can write it.

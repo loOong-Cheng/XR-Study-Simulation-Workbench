@@ -2,6 +2,7 @@ import { analyzeVerifiedPlan } from "./analyzer.js";
 import {
   campaignPlan,
   conditionModel,
+  lineageJobIndex,
   scoringDigest,
   type Campaign,
   type CampaignModel,
@@ -89,6 +90,21 @@ export function mergeCampaignResults(
     reused,
     ignoredRuns: byKey.size - used.size,
   };
+}
+/**
+ * Jobs of this campaign whose output is a simulated (invented) run, their own or reused, looked up
+ * in the result bundles of the lineage. Unknown or superseded records are ignored.
+ */
+export function simulatedJobIds(c: Campaign, bundles: ResultBundle[]): Set<string> {
+  const index = lineageJobIndex(c);
+  const out = new Set<string>();
+  for (const b of bundles)
+    for (const r of Array.isArray(b?.runs) ? b.runs : []) {
+      const jobId = index.get(`${r?.planDigest}/${r?.jobId}`);
+      if (jobId && r.status === "completed" && (r.execution as { synthetic?: unknown } | undefined)?.synthetic === true)
+        out.add(jobId);
+    }
+  return out;
 }
 export interface CampaignAnalysis {
   campaignDigest: string;

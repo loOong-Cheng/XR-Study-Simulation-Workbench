@@ -12,9 +12,12 @@ Open a study, then go to **7 · Continue / rerun**:
   - **Add model**: append a model; the configuration stays as it is (finished runs reused) and a copy with the added model joins it, to compare both models with the method held fixed;
   - **Rerun**: fresh sessions with the same setup;
   - **Drop** it.
-- **Preview** shows new and reused sessions. **Create continuation** freezes it and opens the executor.
+- **Keep simulated runs** (off by default): whether sessions that were only simulated are reused. Off, they run again like sessions that never ran; leave it off before running real agents.
+- **Preview** shows new and reused sessions, and how many reused runs are simulated. **Create continuation** freezes it and opens the executor.
 
-Failed and never-started sessions are retried automatically. To retry only failed sessions within the same campaign, use **Rerun failed** in the executor.
+The website always continues from what actually happened: only sessions with an accepted forecast are reused. Failed, stopped and never-started sessions run again. A campaign made by an earlier version may list never-run sessions as reused; continuing from it runs them. To retry only failed sessions within the same campaign, use **Rerun failed** in the executor.
+
+The API (`POST /api/workspace/continue`) takes `{ id, campaignId, changes, keepSimulated?, preview? }`. `useReceipts` is no longer needed: receipts and results are always read.
 
 ## Continue a campaign with new models or setups
 
@@ -65,6 +68,10 @@ node dist/cli.js campaign-continue old/campaign.json changes.json artifacts/next
 - Failed and never-started parent jobs get fresh jobs.
 - Completions held for audit are reused, not retried automatically, to keep the first-valid-output rule.
 - The command refuses if a reused job's receipts from an earlier campaign are missing.
+
+Without `--receipts`, `campaign-continue` cannot tell finished jobs from unfinished ones and reuses every unchanged job. Pass the receipts unless nothing has run yet.
+
+In code, `continueFromStatus(previous, receipts, changes, id, createdAt, options)` also takes `simulatedJobIds` (previous jobs whose output is simulated; they run again unless `keepSimulated`) and `receiptsComplete` (the receipts of the whole lineage are given, so a reused job without one never ran and runs again instead of refusing). The website uses both.
 
 **Verifying a continuation.** The change set is stored in the new campaign. `campaign-verify new/campaign.json old/campaign.json` recomputes it from the parent, which catches forged or edited reuse claims.
 
