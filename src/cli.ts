@@ -84,6 +84,7 @@ import {
 } from "./core/campaign-comparison.js";
 import { readSettings } from "./settings.js";
 import { repoRoot, workspaceDir } from "./workspace.js";
+import { decodeText } from "./files.js";
 
 // ---------- commands, usage and help ----------
 
@@ -250,7 +251,8 @@ const isFolder = (path: string) => existsSync(path) && statSync(path).isDirector
 async function readText(path: string): Promise<string> {
   requireThat(existsSync(path), `Cannot find ${path}.`);
   requireThat(!isFolder(path), `${path} is a folder; give a file.`);
-  return readFile(path, "utf8");
+  // Also files a Windows program saved with a byte-order mark, as UTF-16 or as Windows-1252.
+  return decodeText(await readFile(path)).text;
 }
 async function readJson<T = unknown>(path: string): Promise<T> {
   const text = await readText(path);

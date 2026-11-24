@@ -9,6 +9,7 @@ import { dirname, join, resolve, sep } from "node:path";
 import { verifyCampaign, type Campaign, type CampaignReceipt } from "../core/campaign.js";
 import { requireThat } from "../core/validation.js";
 import { listCampaigns, readCampaign, runDir, studyWriteTarget, workspaceDir } from "../workspace.js";
+import { readJsonFile } from "../files.js";
 
 const JSZip = createRequire(import.meta.url)("jszip") as typeof import("jszip");
 const sha = (x: Buffer | string) => createHash("sha256").update(x).digest("hex");
@@ -537,7 +538,7 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
   }
 
   // 4. Campaigns: verified, in their own folder, of this study, and the same as any campaign here with that ID.
-  const studyId = (JSON.parse(await readFile(join(root, "study.json"), "utf8")) as { id: string }).id;
+  const studyId = (await readJsonFile<{ id: string }>(join(root, "study.json"))).id;
   const here = new Map((await listCampaigns(workspaceId)).map((c) => [c.id, c]));
   const inZip = new Map<string, Campaign>();
   for (const e of planned.filter((x) => x.kind === "campaign")) {

@@ -4,8 +4,9 @@
 // builds what agents receive, so the Evidence page preview is exactly what they get: only the
 // ID column and the declared fields, and only rows of this study's participants.
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import type { Study } from "./core/types.js";
+import { decodeText, encodingNote, readTextSync, type TextEncoding } from "./files.js";
 
 export const PARTICIPANT_KINDS = ["demographics", "trajectory"] as const;
 /** Values that count as missing (after trimming). "none" is a real answer (e.g. no XR experience). */
@@ -134,7 +135,7 @@ export function participantProblems(study: Study, kind: string, path: string, fi
           notTables.push(f);
           continue;
         }
-        const table = parseCsv(readFileSync(join(path, f), "utf8"));
+        const table = parseCsv(readTextSync(join(path, f)));
         // A 0-byte or header-only file is no recording.
         if (!table.rows.length) empty.push(f);
         problems.push(...shapeProblems(table, false).map((x) => `${f} ${x}`));
@@ -150,7 +151,7 @@ export function participantProblems(study: Study, kind: string, path: string, fi
     if (blanks.length) problems.push(`has empty values for ${list(blanks)}`);
     return problems;
   }
-  return participantProblemsText(study, kind, readFileSync(path, "utf8"), fields);
+  return participantProblemsText(study, kind, readTextSync(path), fields);
 }
 /** The same check on the text of a table that is not written yet. */
 export function participantProblemsText(study: Study, kind: string, text: string, fields: string[]): string[] {
@@ -262,13 +263,30 @@ export function trajectoryText(path: string, participantId: string, fields: stri
   if (statSync(path).isDirectory()) {
     const mine = filesOf(readdirSync(path), participantId).filter((f) => isTable(f) && statSync(join(path, f)).isFile());
     const parts = mine.flatMap((f) => {
-      const part = onlyFields(parseCsv(readFileSync(join(path, f), "utf8")), fields, () => true);
+      const part = onlyFields(parseCsv(readTextSync(join(path, f))), fields, () => true);
       return part.rows ? [`## ${f}\n${part.text}`] : [];
     });
     return parts.length ? parts.join("\n\n") : none;
   }
-  const table = parseCsv(readFileSync(path, "utf8"));
+  const table = parseCsv(readTextSync(path));
   const idCol = idColumn(table.head);
   const part = onlyFields(table, fields, (r) => r[idCol]?.trim() === participantId);
   return idCol >= 0 && part.rows ? part.text : none;
+}
+
+/**
+ * How the tables of a participant source were read, for the knowledge overview: "" when every one
+ * is UTF-8, else which were read as Windows-1252 or UTF-16 (see decodeText). Tables are read the
+ * same way everywhere, so agents get what the overview shows.
+ */
+export function tableEncodingNotes(path: string): string {
+  if (!existsSync(path)) return "";
+  if (!statSync(path).isDirectory()) return encodingNote(basename(path), decodeText(readFileSync(path)).encoding);
+  const byEncoding = new Map<string, string[]>();
+  for (const f of readdirSync(path).filter((f) => isTable(f) && !f.startsWith(".")).sort()) {
+    if (!statSync(join(path, f)).isFile()) continue;
+    const { encoding } = decodeText(readFileSync(join(path, f)));
+    if (encoding !== "utf-8") byEncoding.set(encoding, [...(byEncoding.get(encoding) ?? []), f]);
+  }
+  return [...byEncoding].map(([encoding, files]) => encodingNote(list(files), encoding as TextEncoding)).join(" ");
 }

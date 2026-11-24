@@ -1,8 +1,9 @@
 // Workbench API for study workspaces: planner, executor, analyzer, assistant.
 import type { IncomingMessage, ServerResponse } from "node:http";
-import { existsSync, realpathSync, statSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join, sep } from "node:path";
+import { realPath } from "./runtimes/guard.js";
 import { choice, flag, int, object, objects, text, texts, type Body } from "./request.js";
 import { campaignFromPlan, campaignPlan, conditionModel, continueFromStatus, lineageJobIndex, type Campaign, type CampaignContinuation } from "./core/campaign.js";
 import { analyzeCampaign, mergeCampaignResults, simulatedJobIds, type CampaignAnalysis } from "./core/campaign-study.js";
@@ -81,7 +82,8 @@ async function analysis(id: string, campaignId: string, comparisons?: Comparison
 /**
  * A screenshot of a session in this campaign's run folder (jobs/<job>/a<n>/screenshots/<name>.jpg|png).
  * The study and campaign IDs are checked like everywhere else, and the file, with symlinks resolved,
- * must stay inside the campaign's run folder.
+ * must stay inside the campaign's run folder and have no other name on disk (a hard link could be
+ * human.json).
  */
 export function screenshotFile(id: string, campaignId: string, rel: string): string {
   const base = runDir(id, campaignId);
@@ -91,12 +93,13 @@ export function screenshotFile(id: string, campaignId: string, rel: string): str
   );
   let root: string, real: string;
   try {
-    root = realpathSync(base);
-    real = realpathSync(join(base, ...rel.split("/")));
+    root = realPath(base);
+    real = realPath(join(base, ...rel.split("/")));
   } catch {
     throw new Error("Not found.");
   }
-  requireThat(real.startsWith(root + sep) && statSync(real).isFile(), "Not found.");
+  const st = statSync(real);
+  requireThat(real.startsWith(root + sep) && st.isFile() && st.nlink === 1, "Not found.");
   return real;
 }
 /** Session IDs of a request, each a session of this campaign. */

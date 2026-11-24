@@ -1,11 +1,12 @@
 // Review state for an agent-drafted study: which files are under review and
 // whether the researcher approved exactly their current contents.
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { hash } from "./core/planner.js";
 import { validateAgents, validateStudy } from "./core/validation.js";
 import type { AgentProtocol, Study } from "./core/types.js";
+import { readJsonFile } from "./files.js";
 
 export interface Approval {
   schemaVersion: "xr-study-approval/1";
@@ -18,16 +19,16 @@ export const approvalPath = (studyPath: string) =>
   resolve(studyPath).replace(/\.json$/i, "") + ".approval.json";
 
 export async function readReviewFiles(studyPath: string, agentsPath?: string) {
-  const study = validateStudy(JSON.parse(await readFile(studyPath, "utf8")));
+  const study = validateStudy(await readJsonFile(studyPath));
   const agents = agentsPath && existsSync(agentsPath)
-    ? validateAgents(study, JSON.parse(await readFile(agentsPath, "utf8")) as AgentProtocol[])
+    ? validateAgents(study, await readJsonFile<AgentProtocol[]>(agentsPath))
     : undefined;
   return { study, agents };
 }
 export async function approvalState(studyPath: string, study: Study, agents?: AgentProtocol[]) {
   const path = approvalPath(studyPath);
   if (!existsSync(path)) return { approved: false, current: false, approval: null as Approval | null };
-  const approval = JSON.parse(await readFile(path, "utf8")) as Approval;
+  const approval = await readJsonFile<Approval>(path);
   const current =
     approval.studyDigest === hash(study) &&
     approval.agentsDigest === (agents ? hash(agents) : null);

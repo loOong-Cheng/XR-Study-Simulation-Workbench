@@ -7,7 +7,7 @@
 //   campaigns/<campaign-id>/sources.json   (fingerprints of the source files at freeze; beside, never inside, campaign.json)
 //   runs/<campaign-id>/{receipts.jsonl, events.jsonl, results/<job>.json, jobs/<job>/…}
 import { createHash } from "node:crypto";
-import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
+import { existsSync, lstatSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,6 +15,8 @@ import type { AgentProtocol, Comparison, HumanData, ResultBundle, RunResult, Stu
 import type { Campaign, CampaignReceipt } from "./core/campaign.js";
 import { checkNewConfigurations, requireThat, validateAgents, validateComparisons, validateStudy } from "./core/validation.js";
 import { PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
+import { agentRefusal, inside, nameKey, realPath, windowsAliasProblem, within } from "./runtimes/guard.js";
+import { readJsonFile, unquotePath, windowsUnusableName } from "./files.js";
 
 // dist/workspace.js or .test-build/src/workspace.js: walk up to the folder holding package.json.
 export const repoRoot = (() => {
@@ -37,7 +39,6 @@ export interface WorkspaceManifest {
 
 /** Study folders and files that hold human results or runs. No source may be, contain or reach them. */
 const PROTECTED = new Set(["human.json", "campaigns", "runs", "deleted"]);
-const within = (root: string, p: string) => p === root || p.startsWith(root.endsWith(sep) ? root : root + sep);
 /**
  * Where a study source really is (symlinks resolved), or why it may not be used. One rule for the
  * website, the executor and knowledge saving:
@@ -46,58 +47,77 @@ const within = (root: string, p: string) => p === root || p.startsWith(root.ends
  * - only a project folder may live elsewhere on this machine (an engine project), and only when
  *   workspace.json gives it as an absolute path outside the workbench folder, holding no study.
  * The problem completes "Source '<id>' (<label>) …" and names no absolute path.
+ *
+ * Paths are compared by the names they have on disk (realPath), never as written: "HUMAN.JSON",
+ * "human.jſon", "runſ/…" or, on Windows, "human.json." and short names open the protected files on
+ * case-insensitive volumes. Protected folders count in every study folder on the way (a study kept
+ * inside another one), and a hard link is refused (its other name may be human.json).
  */
-export function sourceLocation(dir: string, kind: string, declared: unknown): { path: string; problem?: undefined } | { problem: string; path?: undefined } {
-  if (typeof declared !== "string" || !declared.trim()) return { problem: "has no file on this machine (workspace.json → sources)" };
+export function sourceLocation(dir: string, kind: string, declaredValue: unknown): { path: string; problem?: undefined } | { problem: string; path?: undefined } {
+  const declared = typeof declaredValue === "string" ? unquotePath(declaredValue) : declaredValue;
+  if (typeof declared !== "string" || !declared) return { problem: "has no file on this machine (workspace.json → sources)" };
   const shown = isAbsolute(declared) ? `…/${basename(declared)}` : declared;
+  const alias = windowsAliasProblem(declared);
+  if (alias) return { problem: `points at ${shown}, which ${alias}. Write the name as it is on disk (workspace.json → sources)` };
   let real: string, study: string;
   try {
-    study = realpathSync(dir);
-    real = realpathSync(resolve(dir, declared));
+    study = realPath(dir);
+    real = realPath(resolve(dir, declared));
   } catch {
     return { problem: `points at ${shown}, which does not exist` };
   }
   if (within(real, study))
     return { problem: "points at the study folder or a folder around it, which holds the human results. Point it at a file or subfolder inside the study folder (workspace.json → sources)" };
-  if (within(study, real)) {
-    const first = relative(study, real).split(sep)[0].toLowerCase();
-    if (PROTECTED.has(first) || basename(real).toLowerCase() === "human.json")
-      return { problem: "points at human results or run records (human.json, campaigns/, runs/, deleted/), which agents must never get. Point it elsewhere (workspace.json → sources)" };
-    return { path: real };
-  }
+  const refusal = agentRefusal(real);
+  if (refusal === "hardlink")
+    return { problem: "points at a file with more than one name on disk (a hard link), which may be human results or run records. Copy the file instead of linking it (workspace.json → sources)" };
+  if (refusal === "alias") return { problem: `points at ${shown}, a Windows short name (~1) that could not be resolved. Write the full name (workspace.json → sources)` };
+  if (refusal || (inside(study, real) && PROTECTED.has(nameKey(relative(study, real).split(sep)[0]))))
+    return { problem: "points at human results or run records (human.json, campaigns/, runs/, deleted/), which agents must never get. Point it elsewhere (workspace.json → sources)" };
+  if (inside(study, real)) return { path: real };
   if (kind !== "project")
     return { problem: `points outside the study folder (${shown}). Copy the file into the study folder, for example evidence/ or data/, and point workspace.json → sources there` };
   if (!isAbsolute(declared))
     return { problem: `points outside the study folder (${shown}). A project folder elsewhere on this machine must be given as an absolute path in workspace.json → sources` };
-  const repo = realpathSync(repoRoot);
+  // Real paths on both sides, letter case ignored on macOS and Windows: "/XR-STUDY-SIM/…" is the workbench too.
+  const repo = realPath(repoRoot);
   if (within(repo, real) || within(real, repo))
     return { problem: "points into the workbench folder but outside this study. Keep the project inside the study folder, or give a folder outside the workbench" };
-  if (basename(real).toLowerCase() === "human.json" || existsSync(join(real, "study.json")) || existsSync(join(real, "human.json")))
+  if (existsSync(join(real, "study.json")) || existsSync(join(real, "human.json")))
     return { problem: `points at a study folder or human results (${shown}). Point it at the engine project itself` };
   return { path: real };
 }
 /**
  * A file the workbench may write in a study folder: inside the folder after resolving symlinks on
- * the way, never a link itself, never human.json, and (unless `records`, for loading runs) never
- * in campaigns/, runs/ or deleted/.
+ * the way, never a link itself (symbolic or hard), never human.json, and (unless `records`, for
+ * loading runs) never in campaigns/, runs/ or deleted/ of this or a nested study. Names are
+ * compared as the volume does (see sourceLocation).
  */
 export function studyWriteTarget(dir: string, rel: string, opts: { records?: boolean } = {}): string {
+  const alias = windowsAliasProblem(rel);
+  requireThat(!alias, `Not a usable file name: it ${alias}.`);
   const target = resolve(dir, rel);
   requireThat(within(resolve(dir), target) && target !== resolve(dir), "Not inside the study folder.");
-  const study = realpathSync(dir);
+  const study = realPath(dir);
   // The nearest part of the path that exists, with symlinks resolved, must still be in the study.
   let existing = target;
   while (!lstatSync(existing, { throwIfNoEntry: false })) existing = dirname(existing);
   requireThat(existing !== target || !lstatSync(target).isSymbolicLink(), "This file is a link; the workbench writes only plain files in the study folder.");
   let real: string;
   try {
-    real = join(realpathSync(existing), relative(existing, target));
+    real = join(realPath(existing), relative(existing, target));
   } catch {
     throw new Error("Not inside the study folder (a folder on the way is a broken link).");
   }
-  requireThat(within(study, real) && real !== study, "Not inside the study folder (a folder on the way links elsewhere).");
-  const first = relative(study, real).split(sep)[0].toLowerCase();
-  requireThat(basename(real).toLowerCase() !== "human.json" && (opts.records || !PROTECTED.has(first)), "Knowledge is never written to human.json, campaigns/, runs/ or deleted/.");
+  requireThat(inside(study, real) && !within(real, study), "Not inside the study folder (a folder on the way links elsewhere).");
+  const first = nameKey(relative(study, real).split(sep)[0]);
+  const refusal = agentRefusal(real);
+  requireThat(
+    refusal !== "human" && first !== "human.json" && (opts.records || (refusal !== "records" && !PROTECTED.has(first))),
+    "Knowledge is never written to human.json, campaigns/, runs/ or deleted/.",
+  );
+  requireThat(refusal !== "hardlink", "This file has more than one name on disk (a hard link), so writing it would change another file too. Remove the link first.");
+  requireThat(refusal !== "alias", "Not a usable file name: it is a Windows short name (~1) that could not be resolved.");
   return real;
 }
 
@@ -173,7 +193,7 @@ export async function changedSources(id: string, campaign: Campaign, manifest: W
   const file = fingerprintFile(id, campaign.id);
   const study = campaign.suite.study;
   if (!existsSync(file) || !study) return [];
-  const frozen = JSON.parse(await readFile(file, "utf8")) as { sources: Record<string, SourceFingerprint> };
+  const frozen = await load<{ sources: Record<string, SourceFingerprint> }>(file);
   const now = sourceFingerprints(workspaceDir(id), study, manifest, Object.keys(frozen.sources));
   return Object.entries(frozen.sources).flatMap(([sid, f]) => {
     const current = now[sid];
@@ -194,7 +214,20 @@ export interface WorkspaceInfo {
   hasHuman: boolean;
   campaigns: number;
 }
-const load = async <T>(path: string) => JSON.parse(await readFile(path, "utf8")) as T;
+// Also files a Windows program saved with a byte-order mark (PowerShell 5.1) or as UTF-16.
+const load = <T>(path: string) => readJsonFile<T>(path);
+/**
+ * workspace.json, with every path as written but without surrounding quotes, which a path pasted
+ * from Windows Explorer ("Copy as path") brings along.
+ */
+async function loadManifest(dir: string): Promise<WorkspaceManifest> {
+  if (!existsSync(join(dir, "workspace.json"))) return {};
+  const m = await load<WorkspaceManifest>(join(dir, "workspace.json"));
+  if (!m || typeof m !== "object") return m;
+  const sources = m.sources && typeof m.sources === "object" ? Object.fromEntries(Object.entries(m.sources).map(([k, v]) => [k, typeof v === "string" ? unquotePath(v) : v])) : m.sources;
+  const app = m.app && typeof m.app === "object" && typeof m.app.serve === "string" ? { ...m.app, serve: unquotePath(m.app.serve) } : m.app;
+  return { ...m, ...(sources ? { sources } : {}), ...(app ? { app } : {}) };
+}
 const pretty = (x: unknown) => JSON.stringify(x, null, 2) + "\n";
 
 /**
@@ -223,7 +256,7 @@ export async function listWorkspaces(): Promise<WorkspaceInfo[]> {
       if (!entry.isDirectory() || !existsSync(join(dir, "study.json"))) continue;
       try {
         const study = await load<Study>(join(dir, "study.json"));
-        const manifest = existsSync(join(dir, "workspace.json")) ? await load<WorkspaceManifest>(join(dir, "workspace.json")) : {};
+        const manifest = await loadManifest(dir);
         out.push({
           id: `${r.split(sep).join("/")}/${entry.name}`,
           // Bounded, so one oversized file cannot bloat the study list for everyone.
@@ -248,7 +281,7 @@ export async function readStudyFolder(id: string) {
   const dir = workspaceDir(id);
   const study = validateStudy(await load(join(dir, "study.json")));
   const comparisons = existsSync(join(dir, "comparisons.json")) ? await load<Comparison[]>(join(dir, "comparisons.json")) : [];
-  const manifest = existsSync(join(dir, "workspace.json")) ? await load<WorkspaceManifest>(join(dir, "workspace.json")) : {};
+  const manifest = await loadManifest(dir);
   return { dir, study, comparisons, manifest };
 }
 export async function readWorkspace(id: string) {
@@ -377,6 +410,7 @@ export async function readResults(id: string, study: Study, campaignIds: string[
 export async function createStudy(rawName: string) {
   const name = rawName.toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 60);
   requireThat(name.length >= 2, "Give the study folder a name (letters, digits, dashes).");
+  requireThat(!windowsUnusableName(name), `"${name}" is a name Windows keeps for devices (CON, PRN, AUX, NUL, COM1–9, LPT1–9), so the study folder could not be opened there. Choose another name.`);
   const dir = join(repoRoot, "private", "studies", name);
   requireThat(!existsSync(dir), "A study with this name already exists.");
   const placeholder: Study = {
