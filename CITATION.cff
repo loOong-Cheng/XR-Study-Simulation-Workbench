@@ -4,6 +4,6 @@ type: software
 title: "XR Study Sim: A Workbench for HCI Simulation Protocols and Human–Agent Comparison"
 authors:
   - name: "XR Study Sim contributors"
-version: 0.3.0
-date-released: 2026-11-23
+version: 0.4.0
+# date-released: add when 0.4.0 is tagged as an immutable release (0.3.0 was released 2026-11-23).
 license: MIT

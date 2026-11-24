@@ -47,7 +47,7 @@ The researcher copies this folder to a machine and asks you to set it up. Do the
    - **What exists.** An engine MCP the researcher configured may appear in the setup list (`claude mcp get <name>` shows its command), or only in the engine project's own `.mcp.json`. On its own it offers editor tools, not a participant session.
    - **Write a study bridge.** This is a stdio MCP server, in any language, that drives the engine (through its MCP or an endpoint in the project) and offers participant-like tools, following the [bridge contract](docs/runtime-adapters.md#study-bridge-contract). It reports itself with a `runtime` trace event, draws fresh neutral object IDs per design, and answers `tools/list` before connecting to the engine. Put it in the study folder, for example `private/studies/<name>/runtime/`.
    - **Learn how designs load.** Read the study's project: levels, console commands or Blueprint switches.
-   - **Test it yourself first.** Open each design, take one screenshot and complete one task. Check that `trace.jsonl` gets `runtime`, `case-start`, `observation`, `action` and `case-end` lines.
+   - **Test it yourself first.** Open each design, take one screenshot and complete one task. Check that `trace.jsonl` gets `runtime`, `phase`, `case-start`, `observation`, `action` and `case-end` lines.
    - **Configure it in Settings.** Set:
      - the command (`node`, `python`, …);
      - arguments `<bridge path> {jobFile}`;
@@ -57,9 +57,9 @@ The researcher copies this folder to a machine and asks you to set it up. Do the
      Use the website's Settings page, or `private/settings.json`.
 4. **Study sources.** Every source in `workspace.json` that a configuration reads (`brief`, `project`, `evidence`, `demographics`) must point at a file or folder on this machine. Participant-specific knowledge (`demographics`, `trajectory`) must also be complete: a row for every participant and no empty allowed field; otherwise the configurations that get it are blocked. Ask the researcher where anything is that you cannot find. Never point a source at human results.
 5. **Start the website** with `npm start`. In the Claude desktop app, preview `xr-workbench` from `.claude/launch.json`. Give the researcher the link and the next steps:
-   1. **Study & variables**, **Agent configurations**: review, then **Approve**.
+   1. **Study & variables**, **Agent configurations**: review, then **Approve study and configurations**.
    2. **Freeze & campaigns**.
-   3. **Run agents**. For a new runtime or model, select one session and press **Run this session only** before **Start**. For a pilot, **Choose sessions to run** selects the first *k* sessions of chosen configurations; only those start.
+   3. **Run agents**. For a new runtime or model, select one session and press **Run this session only** before **Start all not run yet**. For a pilot, **Choose sessions to run** selects the first *k* sessions of chosen configurations; only those start.
    4. **Compare agents**, then **Compare with humans** (two analyzer pages; human data alone is shown there too).
 6. **Never start real agent sessions yourself** without the researcher's explicit OK. They use the researcher's Claude usage. The website asks before starting.
 
@@ -72,7 +72,7 @@ When the researcher asks you to test an example suite (or "suite 1/2/3"), prepar
 
    | Suite | Folder | What to prepare |
    | --- | --- | --- |
-   | 1 | `examples/ecolar` | Unreal configurations (C, D, U-series) need a study bridge over the Unreal project (`UNREAL_SETUP.md`). A bridge built for a specific lab project is kept under `private/studies/<name>/runtime/`; use it if one exists there. A, B, F and the -Dem configurations need nothing. |
+   | 1 | `examples/ecolar` | Unreal configurations (C, C-Dem, D, D-Dem and the U-series) need a study bridge over the Unreal project (`UNREAL_SETUP.md`). A bridge built for a specific lab project is kept under `private/studies/<name>/runtime/`; use it if one exists there. A, B, F, A-Dem, B-Dem and F-Dem need nothing. |
    | 2 | `examples/selection` | "Uses the app" needs the Unity project and the bridge `examples/selection/runtime/bridge.py` (Python, standard library). The other configurations need nothing. |
    | 3 | `examples/graphics-quality` | Nothing beyond Chrome; the WebXR runtime is built in. |
 
@@ -80,9 +80,9 @@ When the researcher asks you to test an example suite (or "suite 1/2/3"), prepar
 3. **Check:** `node dist/cli.js study-check <folder>/study.json --agents <folder>/agents.json --human <folder>/human.json`.
 4. **Start the website** (`npm start`, or preview `xr-workbench`) and give the researcher the link to the study, for example `http://127.0.0.1:4317/?study=examples%2Fgraphics-quality`.
 5. **Hand over** with the clicks they make:
-   1. **Agent configurations:** review, then **Approve**.
+   1. **Agent configurations:** review, then **Approve study and configurations**.
    2. **Freeze & campaigns:** check the session table, then **Freeze campaign**.
-   3. **Run agents:** choose *Run agents*. Select one session, press **Run this session only** and watch it; for a small pilot use **Choose sessions to run**; then **Start** the rest (or *Simulate* to try the pipeline at no cost). Real and simulated runs of one configuration are never pooled in the analysis.
+   3. **Run agents:** set **Mode** to *Run agents*. Select one session, press **Run this session only** and watch it; for a small pilot use **Choose sessions to run** (**Start selected**); then **Start all not run yet** (or Mode *Simulate* to try the pipeline at no cost). Real and simulated runs of one configuration are never pooled in the analysis.
    4. **Compare agents** (no human data), then **Compare with humans**: **Show human data** for the participants alone, or **Analyze campaign**, choose configurations and views, and save figures.
 
    Do not freeze or start real sessions yourself.
@@ -128,7 +128,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
 2. **Understand the study.**
    1. Create `private/studies/<name>/`.
    2. Run `proposal <doc> <dir>` to extract the text locally.
-   3. Write `reading.json` with facts and exact quotes, then run `proposal-check <doc> reading.json`.
+   3. Complete `reading.json`: eight facts (`title`, `researchQuestion`, `design`, `participantCount`, `conditions`, `task`, `objectiveOutcomes`, `subjectiveOutcomes`), each `{"value", "quote"}` with the quote copied exactly from the document (both empty if it does not say). Then run `proposal-check <doc> reading.json`, which lists every quote it cannot find.
    4. Draft `study.json`. RQs about designs become conditions and measures; RQs about agents become configurations.
 
    Alternatively, the researcher can press **Understand study** in the website, which uses the configured assistant.
@@ -137,23 +137,23 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
    2. For each configuration, set:
       - `level` (`population` or `individual`);
       - `repetitions`: individual = runs per person; population = runs in total. Leave it out to use the default: *runs per participant* chosen at freeze (default 1), and participants × that for population configurations. Set fewer population runs only when the researcher wants to save usage;
-      - `model` (default: Claude Code, `claude-opus-5-5`);
+      - `model`: `agents-draft` writes the Settings forecasting model (by default provider `claude-code`, model `claude-opus-5-5`, reasoning `default`); change it where the researcher wants another;
       - `runtime` (`none`, `webxr`, `unreal`, `unity` or `visionos`);
       - `targets`;
       - `inputs`, for measured outcomes used as predictors (needs `predictionTiming: "after-experience"`).
    3. Write `workspace.json` with source locations.
-4. **Human data.** Write a converter from the raw data to `human.json` (see `examples/graphics-quality/data/convert_to_human.py`). Then run `study-check study.json --agents agents.json --human human.json` until there are no problems.
+4. **Human data.** Write a converter from the raw data to `human.json` (see `examples/graphics-quality/data/convert_to_human.py`). Then run `study-check study.json --agents agents.json --human human.json` until there are no problems (it exits with 2 while there are). Missing records are listed as a problem; if values were really never measured, tell the researcher (the analyzer leaves them out, never counts them as zero).
 5. **Review.** Run `review private/studies/<name>` and give the researcher the link. They check the tables, tune them, save and approve. Afterwards, `study-check` must report **Approved**. Re-read the files, because the researcher may have changed them.
-6. **Freeze** in the website (**Freeze & campaigns**), or run `plan` + `campaign-from-plan`. Summarise the campaign with `explain <campaign.json>`.
+6. **Freeze** in the website (**Freeze & campaigns**), or run `plan` (it uses the `agents.json` next to `study.json` unless `--agents` names another file) + `campaign-from-plan`. Summarise the campaign with `explain <campaign.json>`.
 7. **Execute** in the website (**Run agents**):
    - Each job is a fresh headless `claude -p` session with `--tools ""`, a strict MCP config, a study MCP server (permitted files, `submit_forecast`) and the configuration's runtime MCP server.
    - The researcher confirms before real sessions start.
    - **Runtimes:**
      - **WebXR** is built in. The app must expose `window.xrStudy`; see `examples/graphics-quality/webxr-app/main.js`.
-     - **Unreal, Unity and visionOS** need a study bridge command in Settings (any language; see the bridge contract). Suite 2 ships one for its Unity app. If a runtime is missing, the executor names it ("Unity MCP runtime is not configured") and lets the other configurations run. Engine runtimes run one session at a time and up to 90 minutes each by default.
+     - **Unreal, Unity and visionOS** need a study bridge command in Settings (any language; see the bridge contract). Suite 2 ships one for its Unity app. If a runtime is missing, the executor names it ("Unity MCP runtime is not configured") and lets the other configurations run. Engine runtimes run one session at a time, each with a default time limit of at least 90 minutes (the global job time limit if that is higher; a runtime's own limit in Settings overrides both).
      - If no runtime exists, offer to write one with the same tool shape.
    - **Simulate** produces labelled, invented runs for trying the pipeline. They are never pooled with real runs of the same configuration.
-8. **Analyze** in the website (**Compare with humans**, which also shows the human data alone; **Compare agents** needs no human data), or with `campaign-analyze <campaign.json> human.json <dir> <results…> --comparisons comparisons.json`. The website draws the following, with Holm-adjusted rank-test brackets, and saves them as SVG or PNG:
+8. **Analyze** in the website (**Compare with humans**, which also shows the human data alone; **Compare agents** needs no human data), or with `campaign-analyze <campaign.json> human.json <dir> <results…> --comparisons comparisons.json`. `<results…>` are the website's per-job folders `runs/<campaign>/results` (or result-bundle files), one for this campaign and one for each earlier campaign whose runs it reuses; it warns when one is missing. The website draws the following, with Holm-adjusted rank-test brackets, and saves them as SVG or PNG:
    - agreement distributions;
    - agent vs human per measure;
    - correlation;
@@ -167,11 +167,13 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
 | --- | --- |
 | Website | `npm start` → http://127.0.0.1:4317, or `review <study-folder>` |
 | Proposal reading | `proposal <doc> <dir>`, `proposal-check <doc> <reading.json>` |
-| Draft and check | `agents-draft <study.json> <agents.json>`, `study-check <study.json> [--agents a.json] [--human h.json]`, `explain <file>` |
-| Freeze | `plan <study.json> <dir> --agents a.json`, `campaign-from-plan <plan.json> <dir>` |
-| Score and compare | `campaign-status`, `campaign-analyze … [--comparisons c.json]`, `campaign-compare` |
-| Continue | `campaign-continue <campaign.json> <changes.json> <dir> --receipts …` |
-| Verify | `campaign-verify`, `npm test` |
+| Draft and check | `agents-draft <study.json> <agents.json>`, `study-check <study.json> [--agents a.json] [--human h.json]`, `explain <file>` (a study, agents, human, comparisons, plan, campaign or suite file; agents and human files need `study.json` beside them) |
+| Freeze | `plan <study.json> <dir> [--agents a.json]`, `campaign-from-plan <plan.json> <dir>` |
+| Score and compare | `campaign-status <campaign.json> [receipts…]`, `campaign-analyze … [--comparisons c.json]`, `campaign-compare` |
+| Continue | `campaign-continue <campaign.json> <changes.json> <dir> --receipts …`, `campaign-rerun` |
+| Verify | `campaign-verify <campaign.json or folder> [parent.json]` (digest, every file in `manifest.json`, lineage), `npm test` |
+
+`node dist/cli.js` (or `help`) lists every command. Options may come anywhere after the command; output folders and files must be new.
 
 ## Example suites
 

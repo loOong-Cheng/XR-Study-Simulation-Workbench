@@ -14,7 +14,7 @@ This is what an Unreal project needs so that agents can play suite 1 like partic
 | Measures: place/zone accuracy and time, confidence, workload, BeauVis, SSQ, five rankings | Logged for real participants. Agents never fill in questionnaires; they forecast them |
 | Runtime: `unreal`, `editor`, observation `mono` | Agents see single desktop screenshots from PIE (no headset, no stereo) |
 | Required capabilities: none | Declare what the bridge really provides, for example `screenshot, phase-events` |
-| Configurations C, D and the U-series use the app | A, B, F and the -Dem variants need no Unreal at all |
+| Configurations C, C-Dem, D, D-Dem and the U-series use the app | A, B, F, A-Dem, B-Dem and F-Dem need no Unreal at all |
 
 ## 1 · Editor and plugins
 
@@ -92,7 +92,7 @@ Then, in **Settings → Runtimes → unreal**:
 - **command:** the interpreter, for example `python` or `node`;
 - **arguments:** `<bridge path> {jobFile}` plus what your bridge needs (project path, port, device profile). Relative paths are resolved against the repository;
 - **capabilities:** what the bridge provides, for example `screenshot, phase-events`;
-- **time limit** and **sessions at the same time:** the Unreal defaults (90 minutes, 1) fit. A full session answers 60 questions (4 × (3 practice + 12 main)); the configuration page shows the fewest tool calls this needs (74) against the budget (200);
+- **time limit** and **sessions at the same time:** the Unreal defaults (90 minutes, 1) fit. A full session answers 60 questions (4 × (3 practice + 12 main)); the configuration page shows the fewest tool calls this needs (73: 1 file read, 4 designs to open, 60 answers and 8 views; submitting the forecast is not counted) against the budget (200);
 - **guidance:** for example "Open the designs in the order given; each has 3 practice questions with feedback and 12 main questions, and every question needs an answer. Every action returns your new view. Your tool budget is shared by all calls: about two actions per question leave room to finish all four designs."
 
 Also check `workspace.json` → `sources.project`. For real runs it may point at a read-only snapshot of the project's study code instead of `project-snapshot/`. Never point it at logs.
@@ -101,6 +101,6 @@ Also check `workspace.json` → `sources.project`. For real runs it may point at
 
 1. Test the bridge yourself (a scripted client is enough): open each design, take one capture, finish one practice and one main block, and check `trace.jsonl` (`runtime`, `phase`, `case-start`, `observation`, `action`, `case-end`).
 2. In the workbench: **Freeze**, then **Run agents**. Select one session of configuration **C** and press **Run this session only**.
-3. Then start the rest. A, B, F and the -Dem configurations can run at any time, since they need no Unreal.
+3. Then start the rest. A, B, F, A-Dem, B-Dem and F-Dem can run at any time, since they need no Unreal.
 
 The humans in `examples/ecolar` are invented, so real runs there test the pipeline and agent behaviour. For prediction accuracy, run the same configurations against a private study with real data.

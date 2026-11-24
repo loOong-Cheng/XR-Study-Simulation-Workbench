@@ -46,8 +46,8 @@ To regenerate the data: `python3 data/generate_synthetic.py && python3 data/conv
 
 - **Simulate (no setup):** Freeze, then **Run agents** in Simulate mode, then **Compare with humans**. This tests the whole pipeline with invented forecasts.
 - **Real agents:**
-  - A, B, F and their -Dem variants need no app and run with Claude Code right away.
-  - C, D and the U-series use the Unreal app. They need an Unreal MCP runtime with a study bridge: see [runtime adapters](../../docs/runtime-adapters.md#study-bridge-contract). Without one, the executor says "Unreal MCP runtime is not configured" and runs the rest.
+  - A, B, F, A-Dem, B-Dem and F-Dem need no app and run with Claude Code right away.
+  - C, C-Dem, D, D-Dem and the U-series use the Unreal app. They need an Unreal MCP runtime with a study bridge: see [runtime adapters](../../docs/runtime-adapters.md#study-bridge-contract). Without one, the executor says "Unreal MCP runtime is not configured" and runs the rest.
   - [UNREAL_SETUP.md](UNREAL_SETUP.md) describes what the Unreal project, its study API, the Editor control and the bridge need. A real Unreal project for this example is not included.
 
 Simulated runs and invented participants show how the method behaves, not how good agents are.

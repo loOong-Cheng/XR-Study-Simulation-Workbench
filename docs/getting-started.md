@@ -11,7 +11,7 @@ You need:
 
 **The easy way:** open this repository in Claude Code or Codex and describe your study. The agent follows [AGENTS.md](../AGENTS.md) and does the steps below with you. This page explains what happens, so you can also do it yourself in the website (`npm start`, then http://127.0.0.1:4317).
 
-**Try it first** with the three example suites under **Open study**. [Graphics quality](../examples/graphics-quality/README.md) is a complete, runnable WebXR study with invented data. [Synthetic Ecolar](../examples/ecolar/README.md) shows a larger Unreal study with population and individual configurations, measured inputs and movement data.
+**Try it first** with the three example suites under **Open study**. [Graphics quality](../examples/graphics-quality/README.md) is a complete, runnable WebXR study with invented data. [Synthetic Ecolar](../examples/ecolar/README.md) shows a larger Unreal study with population and individual configurations, measured inputs and movement data. [Selection](../examples/selection/README.md) is a Unity study with participant background, with its Unity app and study bridge included.
 
 ## Your research questions, in three kinds
 
@@ -46,7 +46,7 @@ Throughout planning, **reference answers stay withheld**: the website never show
 
 ## E · Evidence and knowledge (planner)
 
-Knowledge a configuration may get besides the study description. It is optional: the workbench runs without any. Both population and individual configurations can use every kind; which configuration gets what is chosen on **Agent configurations** (for example two otherwise identical configurations with different knowledge, compared in the analyzer).
+Knowledge a configuration may get besides the study description. It is optional: the workbench runs without any. Population and individual configurations can use every kind except movement recordings, which reach individual configurations only (population jobs get none); which configuration gets what is chosen on **Agent configurations** (for example two otherwise identical configurations with different knowledge, compared in the analyzer).
 
 **General knowledge** (the same for everyone): findings from papers, computational models, expert heuristics. Each source shows a preview, its file, size and hash, which configurations use it, and an **outcome-blind check**: the number of participant IDs it names and of numbers that equal a human design mean to two decimals (only counts, so you do not see the results either).
 
@@ -99,7 +99,7 @@ Each card is one configuration:
 - **Runtimes:** cards show the runtimes this campaign uses and whether they are ready (**Show all runtimes** lists the others). WebXR needs Chrome and an app that exposes `window.xrStudy`. Unreal, Unity and Apple Vision Pro need that engine's MCP server command in **Settings**, on the machine that runs the engine.
 - **Starting:** the executor tells you which configurations cannot run here and lets you run the rest. A configuration that reads a source without a file on this machine (`workspace.json` → `sources`) cannot run as an agent; the freeze page warns about it too. The same holds for a source that leaves the study folder or reaches human results: the study folder itself, `human.json`, `campaigns/`, `runs/`. Only a project folder elsewhere on the machine is allowed, given as an absolute path.
 - **A pilot or small test:** open **Choose sessions to run**, check configurations and select the first *k* sessions of each, or tick sessions in the table. Only those start; the others stay *not started* and can run later in the same campaign. Start shows the exact number of sessions and, from earlier real runs, an estimate of the cost.
-- **Run agents** starts fresh, locked-down Claude Code sessions with your login. It asks before using your Claude usage.
+- **Run agents:** set **Mode** to *Run agents*, then press **Start all not run yet (n)** (or **Start selected (n)**). It starts fresh, locked-down Claude Code sessions with your login, and asks before using your Claude usage.
 - **Simulate** produces invented runs for trying the pipeline. They are labelled, and never scored against a real study. In a synthetic study they are never pooled with real runs of the same configuration: the real ones are scored, the simulated ones left out.
 - **What the agents get:** links to the brief, project and evidence, to read while sessions run.
 - **Watching:** the table shows each session live: status, tool calls (what the agent does before forecasting; submitting the forecast is not counted, here and in the attempts), and tokens in / out while it runs (input includes cache; each message's final count, so they match Claude Code's totals within the message in progress); the cost appears when the session ends. A session stopped or killed before the end keeps its tokens and shows "cost unknown (stopped before the end)". Simulated sessions show no tokens, since no model was called. Each configuration has a sum row.
@@ -118,7 +118,7 @@ Needs no human data, so it is useful while piloting. For each configuration: rea
 
 **Agents against humans:**
 
-1. Press **Analyze campaign**. The human reference (`human.json`) is used only here.
+1. Press **Analyze campaign**. Human values are shown only on this page (`human.json` is also read for declared inputs and the outcome-blind evidence check, without showing values).
 2. Select the configurations to compare, then a view:
 
 | View | Shows |

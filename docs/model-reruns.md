@@ -28,8 +28,8 @@ The API (`POST /api/workspace/continue`) takes `{ id, campaignId, changes, keepS
 ```json
 {
   "note": "Add a second model as a new arm; more repetitions for D",
-  "model": { "provider": "claude_code", "model": "NEW_DEFAULT_MODEL", "reasoning": "effort=high" },
-  "conditionModels": { "E": null, "D": { "provider": "claude_code", "model": "KEEP_OLD_MODEL", "reasoning": "effort=high" } },
+  "model": { "provider": "claude-code", "model": "NEW_DEFAULT_MODEL", "reasoning": "effort=high" },
+  "conditionModels": { "E": null, "D": { "provider": "claude-code", "model": "KEEP_OLD_MODEL", "reasoning": "effort=high" } },
   "cloneConditions": [{ "from": "D", "id": "D-modelB", "model": { "provider": "p", "model": "MODEL_B", "reasoning": "r" } }],
   "addConditions": [],
   "repetitions": { "D": 12 },
@@ -119,8 +119,8 @@ A **registry suite** (`xr-campaign-suite/1`) describes conditions, job templates
 Start a campaign from a registry suite, or repeat a saved one with only the model changed:
 
 ```bash
-node dist/cli.js campaign-new suite.json artifacts/my-new-model claude_code MODEL_ID "effort=high"
-node dist/cli.js campaign-rerun artifacts/my-new-model/campaign.json artifacts/next-model claude_code NEXT_MODEL_ID "effort=high"
+node dist/cli.js campaign-new suite.json artifacts/my-new-model claude-code MODEL_ID "effort=high"
+node dist/cli.js campaign-rerun artifacts/my-new-model/campaign.json artifacts/next-model claude-code NEXT_MODEL_ID "effort=high"
 ```
 
 **Provider IDs** above are recorded transport labels, not automatic adapters:
