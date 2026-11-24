@@ -461,19 +461,35 @@ async function refreshWorkspace() {
 const SUMMARY_REFRESH_MS = 2000;
 let summaryTimer: ReturnType<typeof setTimeout> | null = null;
 let lastSummary = 0;
+/** A refresh is waiting for the server's answer; another one asked for meanwhile follows it (never two at once). */
+let summaryLoading = false;
+let summaryAgain = false;
 function scheduleSummaryRefresh() {
-  if (summaryTimer || !ws) return;
+  if (!ws) return;
+  if (summaryLoading) {
+    summaryAgain = true;
+    return;
+  }
+  if (summaryTimer) return;
   summaryTimer = setTimeout(async () => {
     summaryTimer = null;
-    lastSummary = Date.now();
     if (!ws) return;
     const id = ws.id;
+    summaryLoading = true;
     try {
       const list = await api<CampaignInfo[]>(`workspace/campaigns?id=${encodeURIComponent(id)}`);
       if (ws?.id !== id) return;
       ws.campaigns = list;
     } catch {
       return;
+    } finally {
+      summaryLoading = false;
+      // The next refresh waits SUMMARY_REFRESH_MS after this answer, however long it took.
+      lastSummary = Date.now();
+      if (summaryAgain) {
+        summaryAgain = false;
+        scheduleSummaryRefresh();
+      }
     }
     if (page === "executor") scheduleRender();
     else if (["freeze", "compare", "analyzer", "continue"].includes(page) && !editingField()) render();

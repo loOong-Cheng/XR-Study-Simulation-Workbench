@@ -14,6 +14,44 @@ import { measurementValue } from "./validation.js";
 import { holm, mannWhitney, ranks, wilcoxonSignedRank } from "./rank-tests.js";
 export { holm, mannWhitney, wilcoxonSignedRank };
 
+// ---------- the report's values, indexed once per report ----------
+type Value = NonNullable<AnalysisReport["values"]>[number];
+type HumanValue = NonNullable<AnalysisReport["humanValues"]>[number];
+/**
+ * A report's predicted and human values by configuration, measure and design, each list in the
+ * report's order (as filtering the report's lists gives them). Large studies have hundreds of
+ * thousands of values; every figure used to filter all of them per configuration, measure and design.
+ */
+interface ValueIndex {
+  byAgent: Map<string, Value[]>;
+  byCell: Map<string, Value[]>;
+  human: Map<string, HumanValue[]>;
+}
+const valueIndexes = new WeakMap<AnalysisReport, { values: Value[] | undefined; humanValues: HumanValue[] | undefined; index: ValueIndex }>();
+function valueIndex(report: AnalysisReport): ValueIndex {
+  const kept = valueIndexes.get(report);
+  // Built again if the report's lists were replaced.
+  if (kept && kept.values === report.values && kept.humanValues === report.humanValues) return kept.index;
+  const index: ValueIndex = { byAgent: new Map(), byCell: new Map(), human: new Map() };
+  const add = <T>(map: Map<string, T[]>, key: string, v: T) => {
+    const list = map.get(key);
+    if (list) list.push(v);
+    else map.set(key, [v]);
+  };
+  for (const v of report.values ?? []) {
+    add(index.byAgent, v.agentId, v);
+    add(index.byCell, `${v.agentId}\u0000${v.outcomeId}\u0000${v.conditionId}`, v);
+  }
+  for (const v of report.humanValues ?? []) add(index.human, `${v.outcomeId}\u0000${v.conditionId}`, v);
+  valueIndexes.set(report, { values: report.values, humanValues: report.humanValues, index });
+  return index;
+}
+/** The report's values of a configuration (all measures), or of one measure and design. */
+const valuesOf = (report: AnalysisReport, agentId: string, outcomeId?: string, conditionId?: string): Value[] =>
+  (outcomeId === undefined ? valueIndex(report).byAgent.get(agentId) : valueIndex(report).byCell.get(`${agentId}\u0000${outcomeId}\u0000${conditionId}`)) ?? [];
+/** The human values of one measure and design. */
+const humanValuesOf = (report: AnalysisReport, outcomeId: string, conditionId: string): HumanValue[] => valueIndex(report).human.get(`${outcomeId}\u0000${conditionId}`) ?? [];
+
 export const stars = (p: number | null) =>
   p === null ? "" : p < 0.001 ? "***" : p < 0.01 ? "**" : p < 0.05 ? "*" : "";
 
@@ -185,7 +223,7 @@ export function figureSelection(
       omitted.push(`${label} is left out: it predicts no ${scope.domain} measure.`);
       return false;
     }
-    const rows = (report.values ?? []).filter((v) => v.agentId === id && v.level === "individual" && v.repetition === 1);
+    const rows = valuesOf(report, id).filter((v) => v.level === "individual" && v.repetition === 1);
     if (configs[id]?.level === "individual" || rows.length) {
       const have = new Set(rows.map((v) => v.participantId ?? v.unit)).size;
       if (have < people) {
@@ -209,7 +247,7 @@ export function figureSelection(
 function predicts(report: AnalysisReport, id: string, scope: { outcomeId: string } | { domain: Domain }): boolean {
   if (report.metrics?.length)
     return report.metrics.some((m) => m.agentId === id && ("outcomeId" in scope ? m.outcomeId === scope.outcomeId : m.domain === scope.domain));
-  return "outcomeId" in scope ? (report.values ?? []).some((v) => v.agentId === id && v.outcomeId === scope.outcomeId) : true;
+  return "outcomeId" in scope ? valuesOf(report, id).some((v) => v.outcomeId === scope.outcomeId) : true;
 }
 
 export function agreementFigure(
@@ -265,13 +303,11 @@ export function agentVsHumanFigure(
   const shown = agentIds.filter((id) => predicts(report, id, { outcomeId }));
   const sim = simulatedConfigs(report);
   const designs = study.conditions.map((c) => {
-    const human = (report.humanValues ?? []).filter((v) => v.outcomeId === outcomeId && v.conditionId === c.id);
+    const human = humanValuesOf(report, outcomeId, c.id);
     const groups: Group[] = [
       group("human", "Human", "human", human.map((v) => v.value), human.map((v) => v.participantId)),
       ...shown.map((id) => {
-        const rows = (report.values ?? []).filter(
-          (v) => v.agentId === id && v.outcomeId === outcomeId && v.conditionId === c.id && (v.level === "population" || v.repetition === 1),
-        );
+        const rows = valuesOf(report, id, outcomeId, c.id).filter((v) => v.level === "population" || v.repetition === 1);
         return group(id, markedLabel(labels, id, sim.has(id)), rows[0]?.level ?? "population", rows.map((v) => v.value), rows.map((v) => v.unit), sim.has(id));
       }),
     ];
@@ -380,12 +416,12 @@ export function correlationFigure(
     for (const o of study.outcomes) {
       const g = geo(study, o.id);
       const hm = study.conditions.map((c) =>
-        centre((report.humanValues ?? []).filter((v) => v.outcomeId === o.id && v.conditionId === c.id).map((v) => v.value), g),
+        centre(humanValuesOf(report, o.id, c.id).map((v) => v.value), g),
       );
       const am = study.conditions.map((c) =>
         centre(
-          (report.values ?? [])
-            .filter((v) => v.agentId === id && v.outcomeId === o.id && v.conditionId === c.id && (v.level === "population" || v.repetition === 1))
+          valuesOf(report, id, o.id, c.id)
+            .filter((v) => v.level === "population" || v.repetition === 1)
             .map((v) => v.value),
           g,
         ),
@@ -431,23 +467,29 @@ export function populationVsIndividualFigure(
   );
   const sim = simulatedConfigs(report);
   const groups = agentIds.filter((id) => predicts(report, id, { domain })).map((id) => {
-    const rows = (report.values ?? []).filter((v) => v.agentId === id);
+    const rows = valuesOf(report, id);
     const level = rows[0]?.level ?? "population";
     const targets = new Set(rows.map((v) => v.outcomeId));
-    const units = new Map<string, typeof rows>();
-    // population: one unit per run; individual: one cohort profile per repetition
+    // population: one unit per run; individual: one cohort profile per repetition. Each unit's
+    // values by measure and design, in the report's order.
+    const units = new Map<string, Map<string, typeof rows>>();
     rows.forEach((v) => {
       const key = level === "population" ? v.unit : `rep${v.repetition}`;
-      units.set(key, [...(units.get(key) ?? []), v]);
+      let cells = units.get(key);
+      if (!cells) units.set(key, (cells = new Map()));
+      const cell = `${v.outcomeId}\u0000${v.conditionId}`;
+      const list = cells.get(cell);
+      if (list) list.push(v);
+      else cells.set(cell, [v]);
     });
     const values: number[] = [],
       names: string[] = [];
-    for (const [key, list] of units) {
+    for (const [key, cells] of units) {
       // Design means on the analysis scale (log for geometric measures: geometric means).
       const profile = study.outcomes.map((o) => {
         const scale = (v: number) => (o.aggregation === "geometric" ? Math.log(v) : v);
         const byDesign = study.conditions.map((c) => {
-          const xs = list.filter((v) => v.outcomeId === o.id && v.conditionId === c.id).map((v) => scale(v.value));
+          const xs = (cells.get(`${o.id}\u0000${c.id}`) ?? []).map((v) => scale(v.value));
           return xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : NaN;
         });
         return byDesign.every(Number.isFinite) ? byDesign : undefined;
@@ -482,7 +524,7 @@ export function trajectoryFigure(
 ) {
   // Participant lines need a forecast per participant: individual configurations only.
   const levelOf = (id: string) =>
-    (report.values ?? []).find((v) => v.agentId === id)?.level ??
+    valuesOf(report, id)[0]?.level ??
     (report.runScores ?? []).find((r) => r.agentId === id)?.level ??
     (report.summaries ?? []).find((s) => s.agentId === id)?.level;
   const population = agentIds.filter((id) => levelOf(id) !== "individual");

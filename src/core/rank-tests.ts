@@ -72,13 +72,25 @@ function subsetSumTails(scores: number[], size: number, observed: number): { low
   // counts[k * width + s]: number of k-subsets of the scores seen so far with sum s.
   const counts = new Float64Array((size + 1) * width);
   counts[0] = 1;
+  // lo[k]..hi[k] holds every sum with a non-zero count in row k (none while hi < lo). Only sums
+  // whose source count can be non-zero are updated: the others would add 0, which changes nothing,
+  // so the counts are exactly those of updating every sum.
+  const lo = new Array<number>(size + 1).fill(Infinity),
+    hi = new Array<number>(size + 1).fill(-Infinity);
+  lo[0] = hi[0] = 0;
   let reach = 0;
   scores.forEach((c, i) => {
     reach += c;
     for (let k = Math.min(i + 1, size); k >= 1; k--) {
+      if (hi[k - 1] < lo[k - 1]) continue;
       const row = k * width,
         prev = (k - 1) * width;
-      for (let s = reach; s >= c; s--) counts[row + s] += counts[prev + s - c];
+      const top = Math.min(reach, hi[k - 1] + c),
+        bottom = Math.max(c, lo[k - 1] + c);
+      if (top < bottom) continue;
+      for (let s = top; s >= bottom; s--) counts[row + s] += counts[prev + s - c];
+      lo[k] = Math.min(lo[k], bottom);
+      hi[k] = Math.max(hi[k], top);
     }
   });
   let all = 0,

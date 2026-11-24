@@ -1,4 +1,4 @@
-import { analyzeVerifiedPlan } from "./analyzer.js";
+import { analyzeVerifiedPlan, type AnalysisMemo } from "./analyzer.js";
 import {
   campaignPlan,
   conditionModel,
@@ -150,10 +150,12 @@ export function analyzeCampaign(
   bundles: ResultBundle[],
   comparisons?: Comparison[],
   receipts?: CampaignReceipt[],
+  /** Scores kept from an analysis of the same campaign, human data and results with other comparisons. */
+  memo?: AnalysisMemo,
 ): CampaignAnalysis {
   const plan = campaignPlan(c);
   const merged = mergeCampaignResults(c, bundles);
-  const report = analyzeVerifiedPlan(plan, human, merged.bundle, comparisons);
+  const report = analyzeVerifiedPlan(plan, human, merged.bundle, comparisons, memo);
   if (receipts) addFailureReasons(c, report, receipts);
   if (merged.reused.length)
     report.notes.push(

@@ -2,9 +2,9 @@
 // attempt of a session. Labels live beside the frozen campaigns (campaign-labels.json), so frozen
 // files are never edited.
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, rename, rmdir, writeFile } from "node:fs/promises";
-import { join } from "node:path";
-import { conditionModel, type Campaign, type CampaignModel } from "./core/campaign.js";
+import { mkdir, open, readFile, readdir, rename, rmdir, stat, writeFile } from "node:fs/promises";
+import { basename, dirname, join } from "node:path";
+import { conditionModel, type Campaign, type CampaignModel, type CampaignReceipt } from "./core/campaign.js";
 import { hash } from "./core/planner.js";
 import type { RunResult } from "./core/types.js";
 import { requireThat } from "./core/validation.js";
@@ -77,23 +77,200 @@ export interface CampaignSummary {
   configs: { id: string; label: string; individual: boolean; runs: number }[];
   designKey: string;
 }
+// ---------- what the summaries read, kept between requests ----------
+// The page asks for the summaries every few seconds while sessions run. Frozen campaign files are
+// read again only when they change on disk; receipts.jsonl is append-only, so only lines added
+// since the last request are read (with the manifests they name); result files are read once each.
+// Loading a runs zip or deleting a campaign forgets what was kept (forgetSummaries).
+
+/** A frozen campaign file as last read, by its size, modification time and inode. */
+const campaignFiles = new Map<string, { stamp: string; campaign: Campaign | null }>();
+const designKeys = new WeakMap<Campaign, string>();
+/** listCampaigns, reading a campaign.json again only when it changed on disk. The objects are shared: read only. */
+async function campaignsKept(id: string): Promise<Campaign[]> {
+  const dir = join(workspaceDir(id), "campaigns");
+  if (!existsSync(dir)) return [];
+  const list: Campaign[] = [];
+  for (const name of await readdir(dir)) {
+    const path = join(dir, name, "campaign.json");
+    let st;
+    try {
+      st = await stat(path);
+    } catch {
+      continue;
+    }
+    const stamp = `${st.size} ${st.mtimeMs} ${st.ino}`;
+    let kept = campaignFiles.get(path);
+    if (!kept || kept.stamp !== stamp) {
+      kept = { stamp, campaign: await readJsonFile<Campaign>(path) };
+      campaignFiles.set(path, kept);
+    }
+    // A campaign lives in the folder named after its ID; a copy under another name is not listed.
+    if (kept.campaign?.id === name) list.push(kept.campaign);
+  }
+  return list.sort((a, b) => a.createdAt.localeCompare(b.createdAt));
+}
+const designKeyOf = (c: Campaign) => {
+  let k = designKeys.get(c);
+  if (k === undefined) designKeys.set(c, (k = sameDesignKey(c)));
+  return k;
+};
+/** What a campaign's run folder holds, counted so far (see readRunTally). */
+interface RunTally {
+  /** receipts.jsonl: inode and the bytes read so far (whole lines only). */
+  ino: number;
+  offset: number;
+  completed: Set<string>;
+  tried: Set<string>;
+  cost: number | null;
+  /** results/: whether each file's run is simulated, read once (null: not readable yet, read again next time). */
+  results: Map<string, boolean | null>;
+  resultsStamp: string;
+}
+const tallies = new Map<string, RunTally>();
+/** One reading of a run folder at a time (the live and the plain summaries may ask together). */
+const tallyTurns = new Map<string, Promise<unknown>>();
+/** For the tests: how many receipt lines, manifests and result files the summaries have read. */
+export const summaryReads = { receiptLines: 0, manifests: 0, results: 0, computations: 0 };
+/** Forget what the summaries kept of a study's campaigns, or of one (after a runs zip was loaded into it, or it was deleted). */
+export function forgetSummaries(id: string, campaignId?: string) {
+  const root = workspaceDir(id);
+  const runs = join(root, "runs"),
+    campaigns = join(root, "campaigns");
+  for (const key of [...tallies.keys()]) if (dirname(key) === runs && (!campaignId || basename(key) === campaignId)) tallies.delete(key);
+  for (const key of [...campaignFiles.keys()]) if (dirname(dirname(key)) === campaigns && (!campaignId || basename(dirname(key)) === campaignId)) campaignFiles.delete(key);
+}
+function readRunTally(dir: string): Promise<RunTally> {
+  const turn = (tallyTurns.get(dir) ?? Promise.resolve()).then(
+    () => tallyNow(dir),
+    () => tallyNow(dir),
+  );
+  tallyTurns.set(dir, turn);
+  void turn
+    .finally(() => {
+      if (tallyTurns.get(dir) === turn) tallyTurns.delete(dir);
+    })
+    .catch(() => undefined);
+  return turn;
+}
+/** f over the items, at most 16 at a time, with the results in the items' order. */
+async function inTurns<T, R>(items: T[], f: (item: T) => Promise<R>): Promise<R[]> {
+  const out = new Array<R>(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const i = next++;
+      out[i] = await f(items[i]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(16, items.length) }, worker));
+  return out;
+}
+async function statOrNull(path: string) {
+  try {
+    return await stat(path);
+  } catch {
+    return null;
+  }
+}
+async function tallyNow(dir: string): Promise<RunTally> {
+  let t = tallies.get(dir);
+  const receiptsPath = join(dir, "receipts.jsonl");
+  const st = await statOrNull(receiptsPath);
+  // A new or replaced receipts file (another inode, or shorter than what was read): count again.
+  if (!t || (st && (st.ino !== t.ino || st.size < t.offset)) || (!st && t.offset > 0)) {
+    t = { ino: st?.ino ?? 0, offset: 0, completed: new Set(), tried: new Set(), cost: null, results: t?.results ?? new Map(), resultsStamp: t?.resultsStamp ?? "" };
+    tallies.set(dir, t);
+  }
+  if (st && st.size > t.offset) {
+    const handle = await open(receiptsPath, "r");
+    let chunk: Buffer;
+    try {
+      chunk = Buffer.alloc(st.size - t.offset);
+      const { bytesRead } = await handle.read(chunk, 0, chunk.length, t.offset);
+      chunk = chunk.subarray(0, bytesRead);
+    } finally {
+      await handle.close();
+    }
+    // Only whole lines: a line being written now is read next time. Every line is parsed before
+    // anything is counted, so a line that does not parse fails the request, as before, every time.
+    const end = chunk.lastIndexOf(0x0a);
+    if (end >= 0) {
+      const lines = chunk.subarray(0, end).toString("utf8").split("\n").filter((l) => l.trim());
+      const receipts = lines.map((l) => JSON.parse(l) as CampaignReceipt);
+      const withManifest = receipts.filter((r) => r.executionManifest);
+      summaryReads.manifests += withManifest.length;
+      const costs = await inTurns(withManifest, async (r) => {
+        const m = await json<{ costUsd?: number | null }>(runRecordPath(dir, r.executionManifest!.path));
+        return typeof m?.costUsd === "number" ? m.costUsd : null;
+      });
+      summaryReads.receiptLines += receipts.length;
+      for (const r of receipts) {
+        t.tried.add(r.jobId);
+        if (r.status === "completed") t.completed.add(r.jobId);
+      }
+      // Added in receipt order, as reading the whole file adds them.
+      for (const c of costs) if (c !== null) t.cost = (t.cost ?? 0) + c;
+      t.offset += end + 1;
+    }
+  }
+  // Result files: the folder is listed again only when it changed (a file added, removed or renamed).
+  const resultsDir = join(dir, "results");
+  const rs = await statOrNull(resultsDir);
+  const stamp = rs ? `${rs.mtimeMs} ${rs.ino}` : "";
+  const tally = t;
+  const readResult = async (f: string) => {
+    summaryReads.results++;
+    const run = await json<RunResult>(join(resultsDir, f));
+    tally.results.set(f, run ? !!run.execution?.synthetic : null);
+  };
+  if (stamp !== t.resultsStamp) {
+    const names = rs ? await readdir(resultsDir) : [];
+    const now = new Set(names);
+    for (const f of [...t.results.keys()]) if (!now.has(f)) t.results.delete(f);
+    await inTurns(names.filter((f) => !tally.results.has(f)), readResult);
+    t.resultsStamp = stamp;
+  } else await inTurns([...t.results].filter(([, kind]) => kind === null).map(([f]) => f), readResult);
+  return t;
+}
+
 /**
  * Progress, results and cost of every campaign. `live` gives the session statuses of a campaign
  * whose executor is open (see liveStatuses in the executor), so these counts match the executor
  * table exactly, also for attempts that failed before they could write a receipt. Otherwise the
  * receipts count: a session with only failed attempts is failed, one without any is not run yet.
+ *
+ * Requests that arrive while the summaries are being computed share the next computation (which
+ * starts after the current one), so at most one runs per study at a time and every caller gets
+ * counts from after its request.
  */
-export async function campaignSummaries(id: string, live?: (campaignId: string) => Map<string, string> | null): Promise<CampaignSummary[]> {
-  const campaigns = await listCampaigns(id);
+export function campaignSummaries(id: string, live?: (campaignId: string) => Map<string, string> | null): Promise<CampaignSummary[]> {
+  const key = `${workspaceDir(id)}|${live ? "live" : "files"}`;
+  let line = summaryLines.get(key);
+  if (!line) summaryLines.set(key, (line = { tail: Promise.resolve(), next: null }));
+  if (line.next) return line.next;
+  const l = line;
+  const run = () => {
+    l.next = null;
+    return computeSummaries(id, live);
+  };
+  const next = l.tail.then(run, run);
+  l.next = next;
+  l.tail = next.catch(() => undefined);
+  return next;
+}
+const summaryLines = new Map<string, { tail: Promise<unknown>; next: Promise<CampaignSummary[]> | null }>();
+async function computeSummaries(id: string, live?: (campaignId: string) => Map<string, string> | null): Promise<CampaignSummary[]> {
+  summaryReads.computations++;
+  const campaigns = await campaignsKept(id);
   const labels = await readLabels(id);
   const byDigest = new Map(campaigns.map((c) => [c.digest, c.id]));
   const out: CampaignSummary[] = [];
   for (const c of campaigns) {
     const dir = runDir(id, c.id);
-    const receipts = await readReceipts(id, [c.id]);
+    const tally = await readRunTally(dir);
     const llm = c.jobs.filter((j) => j.kind === "llm");
-    const completed = new Set(receipts.filter((r) => r.status === "completed").map((r) => r.jobId));
-    const tried = new Set(receipts.map((r) => r.jobId));
+    const { completed, tried } = tally;
     const statuses = live?.(c.id) ?? null;
     const status = (jobId: string) => statuses?.get(jobId) ?? (completed.has(jobId) ? "done" : tried.has(jobId) ? "failed" : "not-started");
     const fresh = llm.filter((j) => !j.inheritedFrom).map((j) => status(j.id));
@@ -103,17 +280,14 @@ export async function campaignSummaries(id: string, live?: (campaignId: string) 
     const dropped = [...new Set(chain.flatMap((x) => x?.continuation?.dropConditions ?? []))].filter((x) => !present.has(x));
     let real = 0,
       simulated = 0;
-    if (existsSync(join(dir, "results")))
-      for (const f of await readdir(join(dir, "results"))) {
-        const run = await json<RunResult>(join(dir, "results", f));
-        if (run) run.execution?.synthetic ? simulated++ : real++;
-      }
-    let cost: number | null = null;
-    for (const r of receipts)
-      if (r.executionManifest) {
-        const m = await json<{ costUsd?: number | null }>(runRecordPath(dir, r.executionManifest.path));
-        if (typeof m?.costUsd === "number") cost = (cost ?? 0) + m.costUsd;
-      }
+    for (const synthetic of tally.results.values()) if (synthetic !== null) synthetic ? simulated++ : real++;
+    const cost = tally.cost;
+    const byCondition = new Map<string, typeof llm>();
+    for (const j of llm) {
+      const list = byCondition.get(j.conditionId);
+      if (list) list.push(j);
+      else byCondition.set(j.conditionId, [j]);
+    }
     out.push({
       id: c.id,
       digest: c.digest,
@@ -136,10 +310,10 @@ export async function campaignSummaries(id: string, live?: (campaignId: string) 
       configs: c.suite.conditions
         .filter((x) => x.kind === "llm")
         .map((x) => {
-          const jobs = llm.filter((j) => j.conditionId === x.id);
-          return { id: x.id, label: x.label, individual: jobs.some((j) => j.participantId), runs: Math.max(0, ...jobs.map((j) => j.repetition)) };
+          const jobs = byCondition.get(x.id) ?? [];
+          return { id: x.id, label: x.label, individual: jobs.some((j) => j.participantId), runs: jobs.reduce((m, j) => Math.max(m, j.repetition), 0) };
         }),
-      designKey: sameDesignKey(c),
+      designKey: designKeyOf(c),
     });
   }
   return out;

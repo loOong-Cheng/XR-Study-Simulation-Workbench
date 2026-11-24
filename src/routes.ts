@@ -7,6 +7,7 @@ import { readChecked, ReadRefused, realPath } from "./runtimes/guard.js";
 import { choice, flag, int, object, objects, text, texts, type Body } from "./request.js";
 import { campaignFromPlan, campaignPlan, conditionModel, continueFromStatus, lineageJobIndex, type Campaign, type CampaignContinuation } from "./core/campaign.js";
 import { analyzeCampaign, mergeCampaignResults, simulatedJobIds, type CampaignAnalysis } from "./core/campaign-study.js";
+import type { AnalysisMemo } from "./core/analyzer.js";
 import { compareAgents } from "./core/agent-comparison.js";
 import { compareCampaignScores } from "./core/campaign-comparison.js";
 import { agentVsHumanFigure, agreementFigure, correlationFigure, figureSelection, humanFigure, populationVsIndividualFigure, trajectoryFigure } from "./core/figures.js";
@@ -39,6 +40,7 @@ import {
   saveWorkspace,
   missingSources,
   runDir,
+  workspaceDir,
   createStudy,
   changedSources,
   rerunChangedSources,
@@ -47,7 +49,7 @@ import {
   receiptsWithResults,
   workspaceDir,
 } from "./workspace.js";
-import { campaignSummaries, deleteCampaign, sameDesignKey, sessionAttempts, writeLabel } from "./history.js";
+import { campaignSummaries, deleteCampaign, forgetSummaries, sameDesignKey, sessionAttempts, writeLabel } from "./history.js";
 import { evidenceOverview, knowledgeDraft, leakCheck, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
 
 type Json = (value: unknown, status?: number) => void;
@@ -61,7 +63,17 @@ export const ANALYSES_KEPT = 8;
 const analysisCache = new Map<string, { id: string; chain: string[]; receipts: number; value: CampaignAnalysis }>();
 export function forgetAnalyses(id: string, campaignId: string) {
   for (const [k, v] of analysisCache) if (v.id === id && v.chain.includes(campaignId)) analysisCache.delete(k);
+  for (const [k, v] of scoreMemos) if (v.id === id && v.chain.includes(campaignId)) scoreMemos.delete(k);
 }
+/**
+ * The scores of the last analyses of a campaign without their comparisons (AnalysisMemo), so
+ * choosing other comparisons computes only the comparisons: at most SCORES_KEPT campaigns, valid
+ * for the receipts and human.json they were computed from (dropped like the analyses).
+ */
+const SCORES_KEPT = 2;
+/** Figure data per analysis (dropped with it). Labels come from the campaign, which the analysis belongs to. */
+const figureCache = new WeakMap<CampaignAnalysis, Map<string, unknown>>();
+const scoreMemos = new Map<string, { id: string; chain: string[]; receipts: number; human: string; memo: AnalysisMemo }>();
 receiptsChanged.add(forgetAnalyses);
 /** For the tests: how many analyses are kept now. */
 export const cachedAnalyses = () => analysisCache.size;
@@ -99,8 +111,18 @@ async function analysis(id: string, campaignId: string, comparisons?: Comparison
   const present = new Set(campaign.suite.conditions.map((c) => c.id));
   const usable = comparisons?.filter((c) => present.has(c?.candidate) && present.has(c?.baseline));
   const skipped = (comparisons ?? []).filter((c) => !usable?.includes(c));
+  // Scores computed for other comparisons of the same campaign, receipts and human data are reused.
+  const memoKey = `${id}|${campaign.digest}`;
+  const humanStat = statSync(join(workspaceDir(id), "human.json"));
+  const humanStamp = `${humanStat.size} ${humanStat.mtimeMs} ${humanStat.ino}`;
+  let scores = scoreMemos.get(memoKey);
+  if (!scores || scores.receipts !== receipts.length || scores.human !== humanStamp)
+    scores = { id, chain: chain.map((c) => c.id), receipts: receipts.length, human: humanStamp, memo: new Map() };
+  scoreMemos.delete(memoKey);
+  scoreMemos.set(memoKey, scores);
+  while (scoreMemos.size > SCORES_KEPT) scoreMemos.delete(scoreMemos.keys().next().value!);
   // Receipts name why a session failed (report exclusions and audits).
-  const result = analyzeCampaign(campaign, human!, bundles, usable, receipts);
+  const result = analyzeCampaign(campaign, human!, bundles, usable, receipts, scores.memo);
   if (skipped.length)
     result.report.notes.push(
       `Skipped ${skipped.length} saved comparison(s) whose configurations are not in this campaign: ${skipped.map((c) => `${c.candidate} − ${c.baseline} (${c.domain})`).join("; ")}. The Holm family covers the remaining ${usable!.length}.`,
@@ -445,6 +467,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       // The study ID is canonical (workspaceDir), so this finds the executor that runs its sessions.
       closeExecutor(id, c);
       forgetAnalyses(id, c);
+      forgetSummaries(id, c);
       json(await deleteCampaign(id, c));
       return true;
     }
@@ -544,11 +567,14 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
           closeExecutor(id, c);
           // Their analyses (and those of continuations from them) are out of date.
           forgetAnalyses(id, c);
+          forgetSummaries(id, c);
         });
       });
       // Continuations of a campaign that gained records show their reused sessions from it
       // (simulated or real, tokens, cost): once the zip is written, their executors reload too,
       // unless sessions of theirs are running.
+      // Summaries computed while the zip was being written count again from the files now there.
+      changed.forEach((c) => forgetSummaries(id, c));
       if (loaded.written + loaded.updated > 0) {
         const all = await listCampaigns(id);
         const digests = new Set(all.filter((c) => changed.includes(c.id)).map((c) => c.digest));
@@ -632,8 +658,13 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       );
       const shown = figureSelection(study, a.report, ids, protocols, labels, kind === "agent-vs-human" ? { outcomeId } : kind === "correlation" ? {} : { domain });
       requireThat(shown.ids.length, `None of the chosen configurations can be shown here. ${shown.omitted.join(" ")}`);
+      // Figures of one analysis are computed once each (the same configurations, view and measure).
+      const figures = figureCache.get(a) ?? new Map<string, unknown>();
+      figureCache.set(a, figures);
+      const figureKey = JSON.stringify([kind, shown.ids, kind === "agent-vs-human" ? outcomeId : kind === "correlation" ? null : domain]);
       const figure =
-        kind === "agreement"
+        figures.get(figureKey) ??
+        (kind === "agreement"
           ? agreementFigure(a.report, shown.ids, domain, labels)
           : kind === "agent-vs-human"
           ? agentVsHumanFigure(study, a.report, shown.ids, outcomeId, labels)
@@ -645,8 +676,9 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
           ? trajectoryFigure(a.report, shown.ids, domain, labels)
           : (() => {
               throw new Error("Unknown figure.");
-            })();
-      json({ ...figure, omitted: shown.omitted });
+            })());
+      figures.set(figureKey, figure);
+      json({ ...(figure as object), omitted: shown.omitted });
       return true;
     }
     case "/api/workspace/compare": {
