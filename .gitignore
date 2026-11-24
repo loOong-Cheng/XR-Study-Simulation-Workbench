@@ -16,3 +16,6 @@ private/
 examples/*/campaigns/
 examples/*/runs/
 examples/*/study.approval.json
+
+# Worktrees of coding agents
+.claude/worktrees/
