@@ -16,7 +16,7 @@ import type { Campaign, CampaignContinuation, CampaignReceipt } from "./core/cam
 import { checkNewConfigurations, requireThat, validateAgents, validateComparisons, validateStudy } from "./core/validation.js";
 import { explainComparisons } from "./core/explain.js";
 import { measureNamedFieldProblem, PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
-import { agentRefusal, inside, nameKey, realPath, windowsAliasProblem, within } from "./runtimes/guard.js";
+import { agentRefusal, ignoredName, inside, nameKey, realPath, windowsAliasProblem, within } from "./runtimes/guard.js";
 import { readJsonFile, unquotePath, windowsUnusableName } from "./files.js";
 
 // dist/workspace.js or .test-build/src/workspace.js: walk up to the folder holding package.json.
@@ -34,8 +34,22 @@ export interface WorkspaceManifest {
   description?: string;
   /** Folders/files (relative to the workspace) backing each study source ID. */
   sources?: Record<string, string>;
-  /** WebXR apps: folder to serve and URL query per design, e.g. "?quality={condition}&study=1". */
-  app?: { serve: string; query: string };
+  /**
+   * WebXR apps: folder to serve and URL query per design, e.g. "?quality={condition}&study=1";
+   * what the app provides (capabilities, actions) and a line for agents on its controls
+   * (instructions). See docs/runtime-adapters.md → "The window.xrStudy contract".
+   */
+  app?: WebXRAppManifest;
+}
+export interface WebXRAppManifest {
+  serve: string;
+  query: string;
+  /** Capability names the app provides (screenshot is the runtime's own): look, pointer-select, pointer-xy, actions, phase-events, quality-lock. */
+  capabilities?: string[];
+  /** The app's own task actions, called through the runtime's `act` tool and window.xrStudy.act(name, args). */
+  actions?: { name: string; description?: string; params?: Record<string, unknown> }[];
+  /** How to use the app's controls, shown to agents with the tool descriptions. */
+  instructions?: string;
 }
 
 /** Study folders and files that hold human results or runs. No source may be, contain or reach them. */
@@ -153,16 +167,26 @@ export interface SourceFingerprint {
   path: string;
   sha256: string | null;
 }
-/** sha256 of a file, or of a folder's files (relative path and content, sorted; dot files left out). */
+/**
+ * Relative paths with "/" on every system, sorted by their UTF-8 bytes: the same list on Windows
+ * and POSIX. Mapping comes first: "p10\a.csv" sorts before "p1\a.csv" but after "p1/a.csv".
+ */
+export function portableOrder(paths: string[], separator: string = sep): string[] {
+  return paths.map((p) => p.split(separator).join("/")).sort((a, b) => Buffer.compare(Buffer.from(a, "utf8"), Buffer.from(b, "utf8")));
+}
+/**
+ * sha256 of a file, or of a folder's files (relative path and content, in portable order; dot
+ * files and OS clutter such as desktop.ini, Thumbs.db and ~$ lock files left out, see ignoredName).
+ */
 export function sourceHash(path: string): string | null {
   if (!existsSync(path)) return null;
   const h = createHash("sha256");
   if (!statSync(path).isDirectory()) return h.update(readFileSync(path)).digest("hex");
   const walk = (rel: string): string[] =>
     readdirSync(join(path, rel), { withFileTypes: true })
-      .filter((e) => !e.name.startsWith("."))
+      .filter((e) => !ignoredName(e.name))
       .flatMap((e) => (e.isDirectory() ? walk(join(rel, e.name)) : [join(rel, e.name)]));
-  for (const f of walk("").sort()) h.update(f.split(sep).join("/")).update("\0").update(createHash("sha256").update(readFileSync(join(path, f))).digest("hex")).update("\n");
+  for (const f of portableOrder(walk(""))) h.update(f).update("\0").update(createHash("sha256").update(readFileSync(join(path, f))).digest("hex")).update("\n");
   return h.digest("hex");
 }
 /** Fingerprints of the sources the configurations read, as they are on disk now (null where a source may not be used). */
@@ -184,7 +208,53 @@ export async function saveSourceFingerprints(id: string, campaign: Campaign) {
   const study = campaign.suite.study;
   if (!study) return;
   const used = [...new Set(campaign.suite.conditions.flatMap((c) => c.recipe.protocol?.sourceIds ?? []))];
-  await writeFile(fingerprintFile(id, campaign.id), pretty({ campaignId: campaign.id, recordedAt: new Date().toISOString(), sources: sourceFingerprints(dir, study, manifest, used) }));
+  await writeFile(
+    fingerprintFile(id, campaign.id),
+    pretty({ campaignId: campaign.id, recordedAt: new Date().toISOString(), sources: sourceFingerprints(dir, study, manifest, used), app: appFingerprint(dir, manifest) }),
+  );
+}
+// ---------- what a campaign froze: the WebXR app ----------
+/** The WebXR app as served to agents: its folder's files, its query and what workspace.json declares about it. */
+export interface AppFingerprint {
+  serve: string;
+  query: string;
+  /** sourceHash of the app folder (null when the folder cannot be used). */
+  sha256: string | null;
+  /** sha256 of the declared capabilities, actions and instructions (workspace.json → app). */
+  declared: string;
+}
+export function appFingerprint(dir: string, manifest: WorkspaceManifest): AppFingerprint | null {
+  const app = manifest.app;
+  if (!app || typeof app !== "object") return null;
+  const where = typeof app.serve === "string" ? sourceLocation(dir, "project", app.serve) : { problem: "missing" };
+  const declared = JSON.stringify({ capabilities: app.capabilities ?? null, actions: app.actions ?? null, instructions: app.instructions ?? null });
+  return {
+    serve: String(app.serve ?? ""),
+    query: String(app.query ?? ""),
+    sha256: where.path ? sourceHash(where.path) : null,
+    declared: createHash("sha256").update(declared).digest("hex"),
+  };
+}
+/**
+ * Why the WebXR app differs from the one the campaign froze (its folder's files, the query or the
+ * declarations in workspace.json → app), or null. Campaigns frozen before the app was recorded
+ * refuse nothing. Engine project folders are never fingerprinted (engines rewrite them).
+ */
+export async function changedApp(id: string, campaign: Campaign, manifest: WorkspaceManifest): Promise<string | null> {
+  const file = fingerprintFile(id, campaign.id);
+  if (!existsSync(file)) return null;
+  const frozen = await load<{ app?: AppFingerprint | null }>(file);
+  if (frozen.app === undefined) return null;
+  const now = appFingerprint(workspaceDir(id), manifest);
+  const f = frozen.app;
+  if (!f && !now) return null;
+  const tail = "changed after this campaign was frozen. Freeze a new campaign, or Continue / rerun to use the new version.";
+  if (!f || !now) return `The WebXR app (workspace.json → app) ${tail}`;
+  if (now.serve !== f.serve) return `The WebXR app (${f.serve}, now ${now.serve}) ${tail}`;
+  if (now.query !== f.query) return `The WebXR app's query (${f.query}, now ${now.query}) ${tail}`;
+  if (now.sha256 !== f.sha256) return `The WebXR app (${f.serve}) ${tail}`;
+  if (now.declared !== f.declared) return `The WebXR app's capabilities, actions or instructions (workspace.json → app) ${tail}`;
+  return null;
 }
 /**
  * Sources whose file changed since the campaign was frozen, with the message for the researcher.

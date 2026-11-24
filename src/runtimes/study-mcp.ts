@@ -19,6 +19,8 @@ export interface JobSpec {
   /** Submissions the session may make once its token budget is used up (the executor stops it after the last one is refused). */
   submitAttempts?: number;
   projectDir: string | null;
+  /** The study's source ID of the project folder (older job files: "project"). */
+  projectSourceId?: string | null;
   participantId: string | null;
   designs: { id: string; label: string }[];
   targets: {
@@ -79,7 +81,7 @@ if (spec.projectDir) {
         await countCall("list_files");
         const dir = inside(String(args.path ?? "."), "folder");
         if (!(await stat(dir)).isDirectory()) throw new ToolError("No such folder.");
-        // Only what read_file would give: no dot files, nothing hidden from agents, no links out.
+        // Only what read_file would give: no dot files or OS clutter, nothing hidden from agents, no links out.
         const entries = await agentFolderEntries(dir, projectRoot!);
         await log({ tool: "list_files", path: shown(dir) });
         return text(entries.join("\n") || "(empty)");
@@ -97,7 +99,7 @@ if (spec.projectDir) {
         await log({
           tool: "read_file",
           path: shown(file),
-          event: { type: "source", sourceId: "project", delivery: "read", sha256: sha(data) },
+          event: { type: "source", sourceId: spec.projectSourceId || "project", delivery: "read", sha256: sha(data) },
         });
         return text(data.toString("utf8").slice(0, 100_000));
       },

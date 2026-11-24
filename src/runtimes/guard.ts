@@ -15,6 +15,20 @@ type Platform = NodeJS.Platform;
 const lib = (platform: Platform) => (platform === "win32" ? path.win32 : path.posix);
 
 /**
+ * Files and folders that are never part of a source or app, on any system: dot files (.DS_Store,
+ * ._*, .git), Windows clutter (desktop.ini, Thumbs.db, $RECYCLE.BIN), macOS folder icons (Icon\r)
+ * and Office lock files (~$…). One list for source and app fingerprints and for what agents can
+ * list or read (agentFileList, agentPath), so a folder hashes the same on Windows and macOS.
+ */
+export function ignoredName(name: string): boolean {
+  return (
+    name.startsWith(".") ||
+    name.startsWith("~$") ||
+    /^(desktop\.ini|thumbs\.db|ehthumbs(_vista)?\.db|icon\r|\$recycle\.bin|system volume information)$/i.test(name)
+  );
+}
+
+/**
  * The real path with every name as it is on disk: symlinks and junctions resolved, the on-disk
  * letter case, Windows long names instead of 8.3 short names, and look-alikes the volume folds to
  * one name (long s, trailing dots) replaced by that name. Falls back to Node's own resolver only
@@ -123,6 +137,9 @@ function agentPathIn(realRoot: string, target: string): string | null {
   } catch {
     return null;
   }
+  // OS clutter and dot files are not part of the folder, as written or as resolved.
+  const rel = path.relative(realRoot, real);
+  if (rel && (ignoredName(path.basename(target)) || rel.split(/[\\/]/).some(ignoredName))) return null;
   return inside(realRoot, real) && !hiddenFromAgents(real) ? real : null;
 }
 /**
@@ -138,8 +155,8 @@ export function agentPath(root: string, target: string): string | null {
 }
 
 /**
- * The files of a folder as agents may see them ("sub/file.txt", at most `max`): dot files and
- * everything agentPath would refuse (hidden from agents, or a link leading out of the folder) left
+ * The files of a folder as agents may see them ("sub/file.txt", at most `max`): dot files, OS
+ * clutter (ignoredName) and everything agentPath would refuse (hidden from agents, or a link leading out of the folder) left
  * out, so a listing never names a file that reading would refuse. One list for the website, the
  * prompt and list_files.
  */
@@ -149,7 +166,7 @@ export async function agentFileList(root: string, max = 500): Promise<string[]> 
   const walk = async (rel: string) => {
     for (const e of await readdir(path.join(realRoot, rel), { withFileTypes: true })) {
       if (out.length >= max) return;
-      const real = e.name.startsWith(".") ? null : agentPathIn(realRoot, path.join(realRoot, rel, e.name));
+      const real = ignoredName(e.name) ? null : agentPathIn(realRoot, path.join(realRoot, rel, e.name));
       if (!real) continue;
       const name = rel ? `${rel}/${e.name}` : e.name;
       if (e.isDirectory()) await walk(name);
@@ -163,6 +180,6 @@ export async function agentFileList(root: string, max = 500): Promise<string[]> 
 export async function agentFolderEntries(dir: string, root: string): Promise<string[]> {
   const realRoot = realPath(root);
   return (await readdir(dir, { withFileTypes: true }))
-    .filter((e) => !e.name.startsWith(".") && agentPathIn(realRoot, path.join(dir, e.name)))
+    .filter((e) => !ignoredName(e.name) && agentPathIn(realRoot, path.join(dir, e.name)))
     .map((e) => (e.isDirectory() ? e.name + "/" : e.name));
 }
