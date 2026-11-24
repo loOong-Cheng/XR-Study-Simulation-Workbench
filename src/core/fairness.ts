@@ -77,6 +77,7 @@ const COUNT_OUTCOME = /(count|number of|per (main |scored )?(task|trial)|errors?
 /** "time", "count" or null: what kind of measure an outcome is (objective measures only). */
 function outcomeKind(o: Study["outcomes"][number]): "time" | "count" | null {
   if (o.domain !== "objective" || o.scale === "proportion" || o.scale === "rank") return null;
+  if ((o.scale as string) === "count") return "count";
   const text = `${o.id.replace(/-/g, " ")} ${o.label} ${o.unit}`;
   return TIME_OUTCOME.test(text) ? "time" : COUNT_OUTCOME.test(text) ? "count" : null;
 }

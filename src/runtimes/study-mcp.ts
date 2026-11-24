@@ -25,7 +25,10 @@ export interface JobSpec {
   participantId: string | null;
   designs: { id: string; label: string }[];
   /** Configurations that use the app: the cases the protocol requires (bridge contract). */
-  app?: { designs?: { id: string }[]; cases?: { caseId: string; conditionId: string }[] };
+  app?: {
+    designs?: { id: string; label?: string; practice?: { caseId: string } | null; main?: { caseId: string } | null }[];
+    cases?: { caseId: string; conditionId: string; phaseId?: string }[];
+  };
   targets: {
     id: string;
     label: string;
@@ -71,12 +74,20 @@ async function exposureGate(): Promise<void> {
     return;
   }
   await log({ tool: "submit_forecast", ok: false, missingCases: missing });
-  const designs = [...new Set(missing.map((id) => spec.app?.cases?.find((c) => c.caseId === id)?.conditionId).filter(Boolean))];
   throw new ToolError(
-    `Forecast not accepted yet: experience the app first. These required tasks have not been started and finished: ${missing.join(", ")}` +
-      (designs.length ? ` (designs ${designs.join(", ")})` : "") +
-      ". Open each design in your order and complete its tasks, then submit your forecast.",
+    `Forecast not accepted yet: experience the app first. Not done yet: ${missing.map(taskInWords).join("; ")}. Open each design in your order and complete its tasks, then submit your forecast.`,
   );
+}
+/** A required task in plain words: "the main task of design Large (large-main)". */
+function taskInWords(caseId: string): string {
+  const c = spec.app?.cases?.find((x) => x.caseId === caseId);
+  if (!c) return caseId;
+  const d = spec.app?.designs?.find((x) => x.id === c.conditionId);
+  // The design's name without a trailing explanation: "Low quality (flat, unlit colours)" → "Low quality".
+  const full = d?.label ?? spec.designs.find((x) => x.id === c.conditionId)?.label ?? c.conditionId;
+  const name = full.replace(/\s*\(.*\)\s*$/, "") || full;
+  const task = d?.practice?.caseId === caseId ? "practice task" : d?.main?.caseId === caseId ? "main task" : c.phaseId ? `${c.phaseId} task` : "task";
+  return `the ${task} of design ${name} (${caseId})`;
 }
 // The permitted folder as it is on disk (symlinks resolved, on-disk names); every path is checked against it after resolving its own.
 const projectRoot = (() => {

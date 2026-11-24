@@ -47,6 +47,8 @@ const call = (method, params) => new Promise((r) => { const n = ++id; wait[n] = 
   out({ type: "system", subtype: "init", session_id: "fake", model: args[args.indexOf("--model") + 1], claude_code_version: "fake", mcp_servers: [{ name: "study", status: "connected" }] });
   await call("initialize", {});
   const job = JSON.parse(fs.readFileSync(s.args[1] + "/job.json", "utf8"));
+  // App sessions: every required task started and ended (the forecast waits for them).
+  for (const c of (job.app && job.app.cases) || []) for (const type of ["case-start", "case-end"]) fs.appendFileSync(job.app.trace, JSON.stringify({ event: { type, caseId: c.caseId, phaseId: c.phaseId, submitted: true } }) + "\\n");
   const predictions = [];
   for (const d of job.designs) for (const t of job.targets) {
     const value = t.scale === "proportion" ? 0.5 : t.scale === "rank" ? 1 + job.designs.indexOf(d) : t.aggregation === "geometric" ? 20 : 3;
@@ -190,6 +192,18 @@ test("prompts: measured inputs change the system line; the job packet names the 
   const packet = jobPacket(plan, plan.jobs[0]) as { task: Record<string, unknown> };
   assert.equal(packet.task.title, "Graphics in a small room");
   assert.ok(!JSON.stringify(packet).includes("Which configuration wins?"));
+});
+
+test("play instructions name each task once, from its phase and its own label", async () => {
+  const { taskName, playInstructions } = await import("../src/executor/runner.js");
+  assert.equal(taskName("Main block (9 targets)", "Main block: click 9 targets in order"), "Main block: click 9 targets in order");
+  assert.equal(taskName("Practice trial", "Practice: select the wooden box"), "Practice: select the wooden box");
+  assert.equal(taskName("Scored search trials", ""), "Scored search trials");
+  assert.equal(taskName("Scored search trials", "find the mug"), "Scored search trials (find the mug)");
+  const study = validateStudy(await readJson(join(gq, "study.json")));
+  const text = playInstructions("webxr", ["low"], study, study.cases.filter((c) => c.conditionId === "low").map((c) => c.id));
+  assert.match(text, /In each design the tasks are: Practice: select the wooden box, at least 1 action; Main: Select the glossy ceramic mug/);
+  assert.doesNotMatch(text, /Practice trial \(Practice|trials \(Main/);
 });
 
 test("design order: the humans' orders in rotation for population sessions, the person's own for individual ones", () => {

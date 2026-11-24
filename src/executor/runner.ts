@@ -301,6 +301,19 @@ export const SUBMIT_ATTEMPTS = 3;
  * actions, views before actions), in the words of its runtime's tools. `capabilities` are what the
  * runtime provides (for WebXR: what workspace.json → app declares), so only offered tools are named.
  */
+/**
+ * A task named once, from its phase's label and its own label: the task's label alone when it
+ * already names the task ("Main block: click 9 targets" in the phase "Main block (9 targets)", or
+ * any "Name: what to do" label), the phase label alone without a task label, else "phase (label)".
+ */
+export function taskName(phaseLabel: string, label?: string): string {
+  const l = (label ?? "").trim();
+  if (!l) return phaseLabel;
+  const head = (x: string) => x.split(/[(:]/)[0].trim().toLowerCase();
+  const [hl, hp] = [head(l), head(phaseLabel)];
+  if (l.includes(":") || (hl && hp && (hl.startsWith(hp) || hp.startsWith(hl)))) return l;
+  return `${phaseLabel} (${l})`;
+}
 export function playInstructions(runtime: string, order: string[], study: Study, caseIds: string[], extra?: string, capabilities: string[] = []): string {
   const cases = caseIds.map((id) => study.cases.find((c) => c.id === id)).filter((c): c is Study["cases"][number] => !!c);
   const actions = [...new Set(cases.flatMap((c) => c.requiredActions))];
@@ -310,7 +323,7 @@ export function playInstructions(runtime: string, order: string[], study: Study,
     ...new Set(
       cases.map(
         (c) =>
-          `${phase(c.phaseId)}${c.label ? ` (${c.label})` : ""}${c.minActions ? `, at least ${c.minActions} action${c.minActions === 1 ? "" : "s"}` : ""}${c.observeBeforeEachAction ? ", with a fresh screenshot before each action (acting from memory is a protocol deviation)" : ""}`,
+          `${taskName(phase(c.phaseId), c.label)}${c.minActions ? `, at least ${c.minActions} action${c.minActions === 1 ? "" : "s"}` : ""}${c.observeBeforeEachAction ? ", with a fresh screenshot before each action (acting from memory is a protocol deviation)" : ""}`,
       ),
     ),
   ];

@@ -165,7 +165,7 @@ test("a bridge that never answers tools/list fails the session after startupSeco
 test("forecast gate: no forecast before the required cases, unless the budget is nearly used up; the row says so", async () => {
   const s = await session("graphics-quality", { runtime: "unreal", env: { FAKE_PLAN: "gate", FAKE_ENGINE_IDENTITY: JSON.stringify(MONO) }, agent: { maxTokens: 20_000 } });
   try {
-    assert.match(s.out.find((o) => o.what === "first-submit")!.text, /^Forecast not accepted yet: experience the app first\. These required tasks have not been started and finished: low-practice, low-main/);
+    assert.match(s.out.find((o) => o.what === "first-submit")!.text, /^Forecast not accepted yet: experience the app first\. Not done yet: the practice task of design Low quality \(low-practice\); the main task of design Low quality \(low-main\);/);
     assert.match(s.out.find((o) => o.what === "second-submit")!.text, /Forecast accepted/);
     assert.match(s.job.warning ?? "", /submitted without required exposure \(6 of 6 required tasks not finished/);
     assert.ok(s.audit!.scoreable && !s.audit!.compliant);
@@ -240,12 +240,12 @@ test("tool-call cap: refused calls are not counted, also in parallel; submit_for
     s = await studyServer(dir);
     const early = await s.tool("submit_forecast", forecast);
     assert.ok(early.isError);
-    assert.match(early.content[0].text, /These required tasks have not been started and finished: d-practice, d-main \(designs d\)/);
+    assert.match(early.content[0].text, /Not done yet: the task of design D \(d-practice\); the task of design D \(d-main\)\./);
     const ev = (event: Record<string, unknown>) => appendFile(join(dir, "trace.jsonl"), JSON.stringify({ t: Date.now(), server: "unity", event }) + "\n");
     await ev({ type: "case-start", caseId: "d-practice", phaseId: "practice" });
     await ev({ type: "case-end", caseId: "d-practice", phaseId: "practice", submitted: true });
     await ev({ type: "case-start", caseId: "d-main", phaseId: "main" });
-    assert.match((await s.tool("submit_forecast", forecast)).content[0].text, /not been started and finished: d-main/);
+    assert.match((await s.tool("submit_forecast", forecast)).content[0].text, /Not done yet: the task of design D \(d-main\)\./);
     await ev({ type: "case-end", caseId: "d-main", phaseId: "main", submitted: false });
     assert.match((await s.tool("submit_forecast", forecast)).content[0].text, /Forecast accepted/);
     // Submitting is never counted.
