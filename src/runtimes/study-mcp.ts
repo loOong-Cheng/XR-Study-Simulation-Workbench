@@ -11,6 +11,8 @@ import { budgetNearlyUsed, serveMcp, text, ToolError, type Tool } from "./mcp.js
 
 export interface JobSpec {
   jobId: string;
+  /** The executor's ID for this attempt, written into forecast.json: a forecast without it never counts. */
+  attemptId?: string;
   budget: number;
   tokenBudget?: number | null;
   projectDir: string | null;
@@ -175,7 +177,7 @@ tools.push({
     await writeFile(
       join(jobDir, "forecast.json"),
       JSON.stringify(
-        { measurements, uncertainty: args.uncertainty ?? null, reasoning: args.reasoning ?? null, submittedAt: new Date().toISOString() },
+        { attemptId: spec.attemptId ?? null, measurements, uncertainty: args.uncertainty ?? null, reasoning: args.reasoning ?? null, submittedAt: new Date().toISOString() },
         null,
         2,
       ),

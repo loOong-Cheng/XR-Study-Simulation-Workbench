@@ -3,7 +3,7 @@
 // progress to the workbench. All state is on disk (receipts, results, events),
 // so a run can pause, stop, resume or rerun failed jobs at any time.
 import { spawn, type ChildProcess } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { existsSync } from "node:fs";
 import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
@@ -497,15 +497,33 @@ export class Executor {
   private planJob(jobId: string) {
     return this.plan.jobs.find((j) => j.id === jobId)!;
   }
+  /**
+   * A fresh, empty folder for a new attempt of a session. An attempt never reuses a folder that is
+   * there already: a loaded runs zip or an attempt that ended without a receipt may have left files
+   * in it (Claude Code settings in session/, a forecast, a used-up tool budget). The number is the
+   * next one after every attempt counted and every attempt folder on disk; the folder is created
+   * here, and one that exists by then refuses the attempt.
+   */
+  private async attemptFolder(jobId: string): Promise<{ attempt: number; jobDir: string }> {
+    const base = join(this.dir, "jobs", jobId);
+    await mkdir(base, { recursive: true });
+    const onDisk = (await readdir(base)).map((f) => /^a(\d{1,6})$/i.exec(f)).filter((m) => m !== null).map((m) => Number(m![1]));
+    const attempt = Math.max(this.jobs.get(jobId)!.attempts, ...onDisk) + 1;
+    const jobDir = join(base, `a${attempt}`);
+    try {
+      await mkdir(jobDir);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code === "EEXIST") throw new Error(`The folder of attempt ${attempt} of this session exists already, so it was not run. Run it again.`);
+      throw e;
+    }
+    return { attempt, jobDir };
+  }
 
   // ---------- simulated execution ----------
   private async simulate(jobId: string, handle: RunHandle) {
     const job = this.planJob(jobId);
-    const state = this.jobs.get(jobId)!;
-    const attempt = state.attempts + 1;
     const a = this.agent(job.agentId);
-    const jobDir = join(this.dir, "jobs", jobId, `a${attempt}`);
-    await mkdir(jobDir, { recursive: true });
+    const { attempt, jobDir } = await this.attemptFolder(jobId);
     if (handle.stopped) return;
     this.update(jobId, { status: "running", attempts: attempt, simulated: true, startedAt: new Date().toISOString(), toolCalls: 0, lastTool: null, warning: null });
     // Tool calls are counted as in real sessions: the forecast submission is not one of them.
@@ -557,11 +575,11 @@ export class Executor {
   private async runAgent(jobId: string, settings: Settings, handle: RunHandle) {
     const job = this.planJob(jobId);
     const a = this.agent(job.agentId);
-    const state = this.jobs.get(jobId)!;
-    const attempt = state.attempts + 1;
-    const jobDir = join(this.dir, "jobs", jobId, `a${attempt}`);
+    const { attempt, jobDir } = await this.attemptFolder(jobId);
     const cwd = join(jobDir, "session");
-    await mkdir(cwd, { recursive: true });
+    await mkdir(cwd);
+    // The study server writes this ID into the forecast it accepts: only that forecast counts.
+    const attemptId = randomUUID();
     // The study as this campaign froze it: its sources, fields and participants. The workspace may
     // have changed since; only where the files live comes from it (workspace.json).
     const { dir: wsDir } = await readStudyFolder(this.workspaceId);
@@ -614,6 +632,7 @@ export class Executor {
       JSON.stringify(
         {
           jobId,
+          attemptId,
           budget: a.maxToolCalls,
           // Token budget: the runtimes read <job>/usage.json and refuse calls at 90% of it.
           tokenBudget: a.maxTokens ?? null,
@@ -850,7 +869,8 @@ export class Executor {
     const live = meter.totals();
     const usage: Record<string, any> = result?.usage ?? (meter.modelRan ? { input_tokens: live.uncached, cache_read_input_tokens: live.cacheRead, cache_creation_input_tokens: live.cacheWrite, output_tokens: live.output } : {});
     const costUsd = typeof result?.total_cost_usd === "number" ? result.total_cost_usd : null;
-    const forecast = existsSync(forecastPath) ? JSON.parse(await readFile(forecastPath, "utf8")) : null;
+    // Only the forecast the study server accepted in this attempt (it carries this attempt's ID).
+    const forecast = await acceptedForecast(forecastPath, attemptId);
     // The tool budget covers what the agent does before forecasting; submitting the forecast is not
     // part of it (a configuration without tools has budget 0 and still submits).
     const calls = existsSync(join(jobDir, "calls.log")) ? (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").filter((l) => l && l !== "submit_forecast").length : 0;
@@ -990,6 +1010,15 @@ export class Executor {
   }
 }
 
+/** The forecast in forecast.json if the study server wrote it for this attempt (its attemptId), else null. */
+async function acceptedForecast(path: string, attemptId: string): Promise<{ measurements?: RunResult["measurements"] } | null> {
+  try {
+    const f = JSON.parse(await readFile(path, "utf8"));
+    return f && typeof f === "object" && f.attemptId === attemptId ? f : null;
+  } catch {
+    return null;
+  }
+}
 /** All input tokens of a session: uncached input plus cache writes and cache reads. */
 function totalInput(e: { inputTokens: number | null; cacheReadTokens: number | null; cacheWriteTokens: number | null }): number | null {
   const parts = [e.inputTokens, e.cacheReadTokens, e.cacheWriteTokens].filter((x): x is number => typeof x === "number");
