@@ -638,16 +638,19 @@ test("knowledge: drafted, reviewed, saved, renamed, edited and deleted; particip
   const { readWorkspace } = await import("../src/workspace.js");
   const a = await tempWorkspace(resolve("examples/graphics-quality"));
   const bin = await mkdtemp(join(tmpdir(), "fake-assistant-"));
-  // A stand-in for the assistant (claude -p --output-format json): it reads the prompt and drafts
-  // a general note, or, for a document about the participants, one row per participant.
+  // A stand-in for the assistant (claude -p --output-format json): it reads the prompt on stdin and
+  // drafts a general note, or, for a document about the participants, one row per participant.
   await writeFile(
     join(bin, "claude.cjs"),
-    `const args = process.argv.slice(2); const prompt = args[args.indexOf("-p") + 1];
+    `let prompt = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", (d) => (prompt += d));
+process.stdin.on("end", () => {
+if (!prompt.includes("Participant IDs") || process.argv.some((a) => a.includes("Participant IDs"))) throw new Error("the prompt belongs on stdin, not the command line");
 const ids = (prompt.match(/Participant IDs: ([^\\n]*)\\./) || [, ""])[1].split(", ").filter(Boolean);
 const draft = /handedness/.test(prompt)
   ? { kind: "participant", label: "Handedness", description: "From the session notes.", participants: { fields: ["handedness"], rows: ids.map((id) => ({ id, handedness: "right" })) }, notes: "" }
   : { kind: "general", label: "Fidelity and presence", description: "Summary of a paper.", evidence: "# Fidelity and presence\\nHigher fidelity tends to raise presence.", notes: "Left out the paper's own study results." };
-console.log(JSON.stringify({ result: JSON.stringify(draft) }));`,
+console.log(JSON.stringify({ result: JSON.stringify(draft) }));
+});`,
   );
   await writeFile(join(bin, "settings.json"), JSON.stringify({ claudePath: join(bin, "claude.cjs") }));
   process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");

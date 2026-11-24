@@ -128,7 +128,8 @@ async function resetBrowser() {
 }
 async function browser(): Promise<void> {
   if (ws) return;
-  profile = await mkdtemp(join(tmpdir(), "xr-webxr-"));
+  // Named after the job: a Chrome left behind shows only --user-data-dir, which then names its session.
+  profile = await mkdtemp(join(tmpdir(), `xr-webxr-${String(spec.jobId ?? "job").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40)}-`));
   chrome = spawn(
     spec.chromePath,
     [
@@ -141,9 +142,11 @@ async function browser(): Promise<void> {
       "--window-size=1280,720",
       "--use-angle=swiftshader",
       "--enable-unsafe-swiftshader",
+      // Linux CI runners and root cannot use Chrome's sandbox (Ubuntu 24.04 restricts user namespaces): only there.
+      ...(process.platform === "linux" && (process.env.CI || process.getuid?.() === 0) ? ["--no-sandbox"] : []),
       "about:blank",
     ],
-    { stdio: ["ignore", "ignore", "pipe"] },
+    { stdio: ["ignore", "ignore", "pipe"], windowsHide: true },
   );
   const port = await new Promise<number>((ok, fail) => {
     const timer = setTimeout(() => fail(new ToolError("Chrome did not start. Check the Chrome path in Settings.")), 20_000);

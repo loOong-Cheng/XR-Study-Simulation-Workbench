@@ -2,27 +2,32 @@
 // results"). By default headless Claude Code with no tools, in an empty folder;
 // it can differ from the session that opened the app. Its drafts are untrusted:
 // quotes are checked against the document and the study is validated.
-import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { checkedReading, proposalFields, type ProposalDocument } from "./core/proposal.js";
 import type { Study } from "./core/types.js";
 import { requireThat, validateStudy } from "./core/validation.js";
-import { claudeCommand, readSettings } from "./settings.js";
+import { claudeCommand, claudeProblem, readSettings } from "./settings.js";
+import { spawnTree } from "./executor/processes.js";
 
 async function run(system: string, prompt: string): Promise<string> {
   const settings = await readSettings();
   const cwd = await mkdtemp(join(tmpdir(), "xr-assistant-"));
   try {
+    // The prompt (a whole document for Understand study) goes on stdin: a command line holds at most
+    // 32,767 characters on Windows and one argument 128 KB on Linux. `codex exec -` reads it there too.
     if (settings.assistant.kind === "codex")
-      return await exec("codex", ["exec", "--skip-git-repo-check", `${system}\n\n${prompt}`], cwd);
+      return await exec("codex", ["exec", "--skip-git-repo-check", "-"], cwd, `${system}\n\n${prompt}`);
     requireThat(settings.assistant.kind === "claude-code", "The API assistant only reads proposals (Settings → assistant). Choose Claude Code or Codex for this button.");
+    const problem = claudeProblem(settings);
+    requireThat(!problem, problem!);
     const claude = claudeCommand(settings);
     const out = await exec(
       claude.command,
-      [...claude.prefix, "-p", prompt, "--output-format", "json", "--model", settings.assistant.model, "--system-prompt", system, "--tools", "", "--strict-mcp-config", "--setting-sources", "local", "--disable-slash-commands", "--no-session-persistence"],
+      [...claude.prefix, "-p", "--output-format", "json", "--model", settings.assistant.model, "--system-prompt", system, "--tools", "", "--strict-mcp-config", "--setting-sources", "local", "--disable-slash-commands", "--no-session-persistence"],
       cwd,
+      prompt,
     );
     const parsed = JSON.parse(out) as { result?: string; is_error?: boolean };
     requireThat(!parsed.is_error && typeof parsed.result === "string", `The assistant returned no answer: ${out.slice(0, 300)}`);
@@ -31,14 +36,25 @@ async function run(system: string, prompt: string): Promise<string> {
     await rm(cwd, { recursive: true, force: true });
   }
 }
-function exec(cmd: string, args: string[], cwd: string): Promise<string> {
+/** Run a command with `input` on stdin; its output as text (characters split between chunks stay whole). */
+function exec(cmd: string, args: string[], cwd: string, input: string): Promise<string> {
   return new Promise((ok, fail) => {
-    const p = spawn(cmd, args, { cwd, stdio: ["ignore", "pipe", "pipe"] });
+    const cannot = (e: Error) => fail(new Error(`${cmd} could not start (${e.message}). Install it, run \`node scripts/setup.mjs\`, or choose another assistant in Settings.`));
+    let p: ReturnType<typeof spawnTree>;
+    try {
+      p = spawnTree(cmd, args, { cwd, stdio: ["pipe", "pipe", "pipe"] });
+    } catch (e) {
+      return cannot(e as Error); // e.g. a .cmd file on Windows
+    }
     let out = "",
       err = "";
-    p.stdout.on("data", (d) => (out += d));
-    p.stderr.on("data", (d) => (err += d));
-    p.on("error", (e) => fail(new Error(`${cmd} could not start (${e.message}). Install it or choose another assistant in Settings.`)));
+    p.stdout!.setEncoding("utf8");
+    p.stderr!.setEncoding("utf8");
+    p.stdout!.on("data", (d: string) => (out += d));
+    p.stderr!.on("data", (d: string) => (err += d));
+    p.stdin!.on("error", () => undefined);
+    p.stdin!.end(input);
+    p.on("error", cannot);
     p.on("close", (code) => (code === 0 ? ok(out) : fail(new Error(`${cmd} exited ${code}: ${err.slice(-400)}`))));
   });
 }

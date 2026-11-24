@@ -2,7 +2,7 @@
 // sessions (your planned usage) or as clearly labelled simulations, and streams
 // progress to the workbench. All state is on disk (receipts, results, events),
 // so a run can pause, stop, resume or rerun failed jobs at any time.
-import { spawn, type ChildProcess } from "node:child_process";
+import type { ChildProcess } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
 import { existsSync, statSync } from "node:fs";
 import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
@@ -14,7 +14,8 @@ import { lineageRuns, reusedUsage } from "../history.js";
 import { agentLevel, agentTargets, hash, jobPacket, protocolForJob } from "../core/planner.js";
 import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent } from "../core/types.js";
 import { claudeEffort, effortProblem, requireThat } from "../core/validation.js";
-import { claudeCommand, readSettings, runtimeLimits, type Settings } from "../settings.js";
+import { claudeCommand, claudeProblem, readSettings, runtimeLimits, type Settings } from "../settings.js";
+import { claudeFeatures, killTree, spawnTree } from "./processes.js";
 import { changedApp, changedSources, listCampaigns, listWorkspaces, missingSources, readCampaign, readHuman, readReceipts, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
 import { appActions, runtimeFor, runtimeStatus, webxrCapabilities } from "./runtimes.js";
 import { runRecordPath } from "./archive.js";
@@ -108,6 +109,8 @@ const bridgeProxy = resolve(here, "../runtimes/bridge-proxy.js");
 const sha = (x: string | Buffer) => createHash("sha256").update(x).digest("hex");
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const registry = new Map<string, Executor>();
+/** How long a study bridge that ended after it answered may take to be started again (tests shorten it). */
+export const timing = { bridgeRestartGraceMs: 15_000 };
 /** Executors being opened: a second request for the same campaign waits for the first, so there is only ever one. */
 const opening = new Map<string, Promise<Executor>>();
 /** Drop the executor of a campaign before it is deleted; refused while its sessions run or wait to run. */
@@ -341,6 +344,8 @@ export class Executor implements Schedulable {
   /** Every run until its receipt is written (also runs that were stopped). */
   private runs = new Set<Promise<void>>();
   listeners = new Set<(e: ExecutorEvent) => void>();
+  /** Whether this executor already said that the Claude Code here is too old for live token counts. */
+  private notedOldCli = false;
   private constructor(
     readonly workspaceId: string,
     readonly campaign: Campaign,
@@ -593,9 +598,12 @@ export class Executor implements Schedulable {
     // The WebXR app (its files, query and declarations) as the campaign froze it.
     const appChanged = await changedApp(this.workspaceId, this.campaign, this.manifest);
     const byRuntime = new Map<string, Set<string>>();
+    // Every agent session is a Claude Code session: a Claude Code that cannot start blocks them all.
+    const cliProblem = claudeProblem(settings);
     for (const id of jobIds) {
       const j = this.jobs.get(id);
       if (!j) continue;
+      if (cliProblem) byRuntime.set(cliProblem, (byRuntime.get(cliProblem) ?? new Set()).add(this.agent(j.agentId).label));
       // A source without a file blocks the configuration (never substitute its description).
       for (const m of missingSources(wsDir, study, this.manifest, this.agent(j.agentId).sourceIds))
         byRuntime.set(m.message, (byRuntime.get(m.message) ?? new Set()).add(this.agent(j.agentId).label));
@@ -717,7 +725,7 @@ export class Executor implements Schedulable {
     for (const [id, proc] of this.running) {
       const handle = this.handles.get(id);
       if (handle) Object.assign(handle, { stopped: true, reason });
-      proc?.kill("SIGTERM");
+      killTree(proc); // with its MCP servers, Chrome and bridge
       this.update(id, { status: reason === "stop" ? "stopped" : "failed", error: reason === "stop" ? STOPPED : INTERRUPTED, endedAt: new Date().toISOString(), lastTool: null });
     }
     this.running.clear();
@@ -1227,10 +1235,12 @@ export class Executor implements Schedulable {
         2,
       ),
     );
-    const servers: Record<string, unknown> = { study: { type: "stdio", command: process.execPath, args: [studyServer, jobDir] } };
+    // Every process of the session carries XR_STUDY_JOB, so this workbench's processes can be told apart.
+    const marker = { XR_STUDY_JOB: jobId };
+    const servers: Record<string, unknown> = { study: { type: "stdio", command: process.execPath, args: [studyServer, jobDir], env: marker } };
     // The study bridge as configured in Settings (recorded in the execution manifest).
     let bridge: { type: string; command: string; args: string[]; env: Record<string, string> } | null = null;
-    if (runtime === "webxr") servers.webxr = { type: "stdio", command: process.execPath, args: [webxrServer, jobDir] };
+    if (runtime === "webxr") servers.webxr = { type: "stdio", command: process.execPath, args: [webxrServer, jobDir], env: marker };
     else if (runtime !== "none") {
       const r = settings.runtimes[runtime];
       const vars: Record<string, string> = { jobDir, jobFile: join(jobDir, "job.json"), trace: join(jobDir, "trace.jsonl") };
@@ -1241,7 +1251,7 @@ export class Executor implements Schedulable {
         type: "stdio",
         command: fromRepo(r.command!),
         args: (r.args ?? []).map((x) => fromRepo(x.replace(/\{(jobDir|jobFile|trace)\}/g, (_, k: string) => vars[k]))),
-        env: { XR_STUDY_JOB_DIR: vars.jobDir, XR_STUDY_JOB_FILE: vars.jobFile, XR_STUDY_TRACE: vars.trace },
+        env: { XR_STUDY_JOB_DIR: vars.jobDir, XR_STUDY_JOB_FILE: vars.jobFile, XR_STUDY_TRACE: vars.trace, ...marker },
       };
       // Started through a wrapper that records each start of the bridge and its first answer to
       // tools/list (bridge.jsonl), and ends what the bridge leaves running when it ends.
@@ -1284,19 +1294,33 @@ export class Executor implements Schedulable {
     const sourceEvents: TraceEvent[] = injected.map((s) => ({ type: "source", sourceId: s.sourceId, delivery: "injected", sha256: sha(s.content) }));
 
     const model = a.model;
+    const problem = claudeProblem(settings);
+    requireThat(!problem, problem!);
+    // What this Claude Code accepts, read once from `claude --help`.
+    const cli = await claudeFeatures(settings);
+    if (cli.known && !cli.partialMessages && !this.notedOldCli) {
+      this.notedOldCli = true;
+      this.emit({
+        type: "log",
+        jobId,
+        text: "This Claude Code is an older version without --include-partial-messages: token counts update when a message ends and show too few output tokens until the session's own totals arrive at its end, so the token budget is checked later. Update Claude Code for live counts.",
+      });
+    }
+    // Beside prompt.md in the attempt folder: Claude Code starts in an empty working folder (session/).
+    if (cli.systemPromptFile) await writeFile(join(jobDir, "system-prompt.md"), system);
+    // The prompt goes on stdin (below), never on the command line: Windows allows 32,767 characters
+    // per command line and Linux 128 KB per argument, less than a brief with evidence or movement data.
     const args = [
       "-p",
-      prompt,
       "--output-format",
       "stream-json",
       "--verbose",
       // Each API message's final usage (message_delta), so live token counts and the budget follow the session.
-      "--include-partial-messages",
+      ...(cli.partialMessages ? ["--include-partial-messages"] : []),
       "--model",
       model.model,
       ...effortArgs(model.reasoning),
-      "--system-prompt",
-      system,
+      ...(cli.systemPromptFile ? ["--system-prompt-file", join(jobDir, "system-prompt.md")] : ["--system-prompt", system]),
       "--tools",
       "",
       "--strict-mcp-config",
@@ -1314,7 +1338,18 @@ export class Executor implements Schedulable {
     const mine = () => !handle.stopped;
     this.update(jobId, { status: "running", attempts: attempt, simulated: false, startedAt: startedAt.toISOString(), toolCalls: 0, lastTool: "starting session", error: null, warning: null, tokensIn: null, tokensOut: null, costUsd: null });
     const claude = claudeCommand(settings);
-    const proc = spawn(claude.command, [...claude.prefix, ...args], { cwd, stdio: ["ignore", "pipe", "pipe"], env: process.env });
+    let proc: ChildProcess;
+    try {
+      // Its own process tree (ended as a whole by killTree), without a console window, marked with the job.
+      proc = spawnTree(claude.command, [...claude.prefix, ...args], { cwd, stdio: ["pipe", "pipe", "pipe"], env: { ...process.env, ...marker } });
+    } catch (e) {
+      throw new Error(`Claude Code could not be started (${claude.command}: ${(e as Error).message}). Run \`node scripts/setup.mjs\` so the workbench finds the native Claude Code.`);
+    }
+    // A missing executable (ENOENT) is reported here and the session fails with a plain message, never the server.
+    let startError: Error | null = null;
+    proc.on("error", (e) => (startError = e));
+    proc.stdin!.on("error", () => undefined); // a session that ended early reads no more of its prompt
+    proc.stdin!.end(prompt);
     this.running.set(jobId, proc);
     // The marker names the claude process, so a workbench restarted after a crash can stop it (and finish this attempt from its files).
     void writeMarker(jobDir, {
@@ -1336,7 +1371,7 @@ export class Executor implements Schedulable {
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
-      proc.kill("SIGTERM");
+      killTree(proc);
     }, timeoutMinutes * 60_000);
     // A study bridge that never answers tools/list leaves the agent without the app: the session
     // is stopped as failed instead of running on without it.
@@ -1357,7 +1392,7 @@ export class Executor implements Schedulable {
               (errTail ? ` Its last output: ${errTail}` : "") +
               ` Check its command in Settings → Runtimes → ${runtime}.`;
             if (mine()) this.emit({ type: "log", jobId, text: startupFailed });
-            proc.kill("SIGTERM");
+            killTree(proc);
           })();
         }, startupSeconds * 1000)
       : undefined;
@@ -1391,7 +1426,7 @@ export class Executor implements Schedulable {
     };
     const endSession = (text: string) => {
       this.emit({ type: "log", jobId, text });
-      proc.kill("SIGTERM");
+      killTree(proc);
     };
     /** A tool call: other tools far over the budget stop the session; submissions never do. */
     const noteToolCall = (id: string, submit: boolean) => {
@@ -1421,12 +1456,51 @@ export class Executor implements Schedulable {
      * is checked against. Noted when the next turn begins (the tool result or a new message), so the
      * message that submitted it is counted in full and the closing turn is not.
      */
+    let submitSeen = false;
     const noteForecast = async () => {
-      if (atForecast !== null || !existsSync(forecastPath)) return;
+      if (atForecast !== null || !submitSeen || !existsSync(forecastPath)) return;
       atForecast = meter.totals().total;
       await writeUsage();
     };
-    proc.stderr.on("data", (d) => (stderr = (stderr + d).slice(-4000)));
+    /**
+     * A study bridge that could not start (it ended before it ever answered) or ended before the
+     * forecast and was not started again: the session stops at once with the bridge's own last
+     * output, instead of going on without the app. A bridge that ended after it answered gets
+     * timing.bridgeRestartGraceMs for Claude Code to start it again (a restart, flagged on the row);
+     * one that runs but never answers is the startup timeout's (startupSeconds).
+     */
+    let runtimeFailure: string | null = null;
+    const stopForRuntime = (message: string) => {
+      if (runtimeFailure || !mine()) return;
+      runtimeFailure = message;
+      this.emit({ type: "log", jobId, text: message });
+      killTree(proc);
+    };
+    const bridgeEnded = async (now = Date.now()): Promise<string | null> => {
+      if (!bridge) return null;
+      const records = await jsonLines(bridgeLog);
+      const i = records.map((x) => x.type === "exit" && !x.closed).lastIndexOf(true);
+      if (i < 0 || records.slice(i + 1).some((x) => x.type === "start")) return null;
+      const exit = records[i];
+      const answered = records.slice(0, i).some((x) => x.type === "ready");
+      if (answered && now - Number(exit.t ?? 0) < timing.bridgeRestartGraceMs) return null;
+      const stderrFile = join(jobDir, "bridge-stderr.log");
+      const said = existsSync(stderrFile) ? (await readFile(stderrFile, "utf8")).trim().split(/\r?\n/).slice(-3).join(" ").slice(-400) : "";
+      const name = runtimeName(runtime);
+      const how = exit.error ? String(exit.error) : exit.signal ? `signal ${exit.signal}` : `exit code ${exit.code}`;
+      return `${name[0].toUpperCase()}${name.slice(1)} ${answered ? "ended before the forecast" : "could not start"} (${how}): ${[bridge.command, ...bridge.args].join(" ")}${said ? `. It said: ${said}` : ""}. The session was stopped; check Settings → Runtimes → ${runtime}.`;
+    };
+    const watcher = bridge
+      ? setInterval(async () => {
+          if (runtimeFailure || startupFailed || atForecast !== null || existsSync(forecastPath)) return;
+          const message = await bridgeEnded();
+          if (message) stopForRuntime(message);
+        }, 500)
+      : null;
+    // Text, decoded across chunks: a character split between two chunks stays whole.
+    proc.stdout!.setEncoding("utf8");
+    proc.stderr!.setEncoding("utf8");
+    proc.stderr!.on("data", (d: string) => (stderr = (stderr + d).slice(-4000)));
     const shots = new ScreenshotIndex(join(jobDir, "screenshots"));
     const handleLine = async (line: string) => {
       let m: Record<string, any> | null = null;
@@ -1451,6 +1525,12 @@ export class Executor implements Schedulable {
         this.emit({ type: "log", jobId, text: `Session started (${actualModel}). MCP: ${servers.map((s) => `${s.name} ${s.status}`).join(", ")}` });
         if (pending.length) this.emit({ type: "log", jobId, text: `Still connecting: ${pending.map((s) => s.name).join(", ")}` });
         if (failed.length) this.emit({ type: "log", jobId, text: `Runtime failed to connect: ${failed.map((s) => s.name).join(", ")}` });
+        // Without the study server (submit_forecast) or its runtime, the session cannot do what it is for.
+        const needed = failed.filter((s) => s.name === "study" || s.name === runtime);
+        if (needed.length)
+          stopForRuntime(
+            `${needed.map((s) => (s.name === "study" ? "The study server" : `${runtimeName(runtime)[0].toUpperCase()}${runtimeName(runtime).slice(1)}`)).join(" and ")} failed to connect (${needed.map((s) => s.status).join(", ")}). The session was stopped${bridge ? `; check Settings → Runtimes → ${runtime}` : ""}.`,
+          );
       } else if (m.type === "stream_event") await trackUsage(m);
       else if (m.type === "assistant") {
         await trackUsage(m);
@@ -1458,6 +1538,7 @@ export class Executor implements Schedulable {
           if (c.type === "tool_use") {
             const name = String(c.name).replace(/^mcp__/, "").replace("__", ".");
             noteToolCall(String(c.id), /submit_forecast$/.test(name));
+            if (/submit_forecast$/.test(name)) submitSeen = true;
             const shots = existsSync(join(jobDir, "screenshots")) ? (await readdir(join(jobDir, "screenshots"))).sort() : [];
             if (mine())
               this.update(jobId, {
@@ -1477,8 +1558,8 @@ export class Executor implements Schedulable {
     };
     // Lines are handled one after another, and all of them before the session's end is read.
     let lines: Promise<void> = Promise.resolve();
-    proc.stdout.on("data", (d) => {
-      buf += d.toString();
+    proc.stdout!.on("data", (d: string) => {
+      buf += d;
       let i: number;
       while ((i = buf.indexOf("\n")) >= 0) {
         const line = buf.slice(0, i);
@@ -1489,9 +1570,16 @@ export class Executor implements Schedulable {
     const code = await new Promise<number | null>((ok) => proc.on("close", ok));
     clearTimeout(timer);
     clearTimeout(startup);
+    if (watcher) clearInterval(watcher);
     if (buf.trim()) lines = lines.then(() => handleLine(buf)).catch(() => undefined);
     await lines;
+    // Every line is read now: a forecast on disk was accepted before the session ended. (Before,
+    // only after the stream showed the submit_forecast call: lines are read a little behind the
+    // session, so forecast.json may exist while the message that submitted it is still being read.)
+    submitSeen = true;
     await noteForecast();
+    // How the bridge ended, in its own words, once the session is over (no grace is left to wait for).
+    const runtimeError = existsSync(forecastPath) ? null : runtimeFailure ?? (await bridgeEnded(Infinity));
     const traceLines = existsSync(join(jobDir, "trace.jsonl")) ? (await readFile(join(jobDir, "trace.jsonl"), "utf8")).trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
     const trace: TraceEvent[] = [...sourceEvents, ...traceLines.filter((l) => l.event).map((l) => l.event as TraceEvent)];
     // The runtime's own report of what it is (bridge contract). Without one, nothing is copied
@@ -1521,6 +1609,10 @@ export class Executor implements Schedulable {
       ? handle.reason === "shutdown"
         ? INTERRUPTED
         : STOPPED
+      : startError
+      ? `Claude Code could not be started (${claude.command}: ${(startError as Error).message}). Install Claude Code, log in, and run \`node scripts/setup.mjs\` so the workbench finds it.`
+      : runtimeError
+      ? runtimeError
       : startupFailed
       ? startupFailed
       : unknownModel

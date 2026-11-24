@@ -12,6 +12,7 @@ import { checkNewConfigurations, validateAgents, validateStudy } from "../src/co
 import { campaignFromPlan } from "../src/core/campaign.js";
 import { analyzeCampaign, syntheticCampaignExecution } from "../src/core/campaign-study.js";
 import type { AgentProtocol, HumanData, Study } from "../src/core/types.js";
+import { until } from "./until.js";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const readJson = async <T>(p: string) => JSON.parse(await readFile(p, "utf8")) as T;
@@ -44,7 +45,9 @@ async function fakeClaude(bin: string) {
   await writeFile(
     join(bin, "claude.cjs"),
     `const { spawn } = require("child_process"); const fs = require("fs");
-const args = process.argv.slice(2); const cfg = JSON.parse(fs.readFileSync(args[args.indexOf("--mcp-config") + 1], "utf8"));
+const args = process.argv.slice(2);
+if (args[0] === "--help") { if (process.env.FAKE_HELP) process.stdout.write(process.env.FAKE_HELP); process.exit(process.env.FAKE_HELP ? 0 : 1); }
+const cfg = JSON.parse(fs.readFileSync(args[args.indexOf("--mcp-config") + 1], "utf8"));
 const model = args[args.indexOf("--model") + 1];
 const out = (m) => console.log(JSON.stringify(m));
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -58,6 +61,10 @@ const message = (mid, usage, final, content) => {
   out({ type: "stream_event", event: { type: "message_delta", usage: { output_tokens: final } } });
 };
 (async () => {
+  // What the session got: the prompt on stdin, the command line, the system prompt file, the job marker.
+  let stdin = ""; process.stdin.setEncoding("utf8"); for await (const d of process.stdin) stdin += d;
+  const sp = args.indexOf("--system-prompt-file");
+  fs.writeFileSync("seen.json", JSON.stringify({ args, stdin, job: process.env.XR_STUDY_JOB || null, systemFile: sp >= 0 ? fs.readFileSync(args[sp + 1], "utf8") : null }));
   out({ type: "system", subtype: "init", session_id: "fake-session", model, claude_code_version: "fake", mcp_servers: [{ name: "study", status: "connected" }] });
   await call("initialize", {});
   message("m1", { input_tokens: 10, cache_creation_input_tokens: 2000, cache_read_input_tokens: 3000, output_tokens: 3 }, 400, [{ type: "text", text: "Reading the brief." }]);
@@ -528,6 +535,219 @@ test("executor: a WebXR app changed after freezing blocks app sessions; the app'
   } finally {
     delete process.env.XR_STUDY_SETTINGS;
     await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});
+
+test("executor: the prompt goes on stdin and the system prompt in a file; an older Claude Code runs without partial messages, said once", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign, saveSourceFingerprints, runDir } = await import("../src/workspace.js");
+  const a = await tempWorkspace(gq);
+  const bin = await mkdtemp(join(tmpdir(), "fake-claude-"));
+  await fakeClaude(bin);
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  // The help of an older Claude Code: print mode and a system prompt file, no partial messages.
+  process.env.FAKE_HELP = "Usage: claude [options] [command] [prompt]\n  -p, --print  Print response and exit\n  --output-format <format>  text, json or stream-json\n  --system-prompt-file <file>  System prompt from a file\n";
+  try {
+    // A brief of about 60,000 characters (with non-ASCII text): more than a Windows command line holds (32,767).
+    await writeFile(join(a.dir, "agent-brief.md"), "# Study brief\n" + "Participants rated each design – Präsenz, réalisme. ".repeat(1200));
+    const ws = await readWorkspace(a.id);
+    const pick = ws.agents!.filter((x) => x.id === "text-only").map((x) => ({ ...x, repetitions: 2 }));
+    const c = campaignFromPlan(freezePlan(ws.study, pick, 1), undefined, "stdin-prompt", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    await saveSourceFingerprints(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    const logs: string[] = [];
+    ex.listeners.add((e) => void (e.type === "log" && e.text && logs.push(e.text)));
+    await ex.start("agent");
+    await until(() => [...ex.jobs.values()].every((j) => j.status === "done" || j.status === "failed"), "both sessions to end", { executor: ex });
+    assert.equal(c.jobs.length, 2);
+    for (const j of c.jobs) {
+      assert.equal(ex.jobs.get(j.id)!.status, "done", ex.jobs.get(j.id)!.error ?? "");
+      const dir = join(runDir(a.id, c.id), "jobs", j.id, "a1");
+      const seen = await readJson<{ args: string[]; stdin: string; job: string | null; systemFile: string | null }>(join(dir, "session", "seen.json"));
+      assert.ok(seen.stdin.length > 60_000, `prompt on stdin: ${seen.stdin.length} characters`);
+      assert.ok((await readFile(join(dir, "prompt.md"), "utf8")).endsWith(`## Prompt\n${seen.stdin}\n`), "the prompt as written to prompt.md, characters intact");
+      assert.ok(Math.max(...seen.args.map((x) => x.length)) < 1000, "nothing long on the command line");
+      assert.ok(!seen.args.includes("--include-partial-messages") && !seen.args.includes("--system-prompt"), seen.args.join(" "));
+      assert.match(seen.systemFile ?? "", /^You are an AI agent forecasting the results of a completed XR user study/);
+      assert.equal(seen.job, j.id, "every process of the session carries XR_STUDY_JOB");
+      // Usage still counts, from each message as it ends.
+      assert.equal(ex.jobs.get(j.id)!.tokensOut, 600);
+    }
+    assert.equal(logs.filter((l) => /older version without --include-partial-messages/.test(l)).length, 1, "said once");
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    delete process.env.FAKE_HELP;
+    await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});
+
+test("executor: a study bridge that cannot start, or ends before the forecast and is not started again, stops its session with its own words; a Claude Code that cannot start fails plainly", async () => {
+  const { Executor, closeExecutor, timing } = await import("../src/executor/runner.js");
+  const { readWorkspace, saveCampaign } = await import("../src/workspace.js");
+  const a = await tempWorkspace(gq);
+  const bin = await mkdtemp(join(tmpdir(), "fake-bridge-"));
+  // Like the Windows Store stub that stands in for a missing Python: it ends before it ever answers.
+  await writeFile(join(bin, "bridge.cjs"), `process.stderr.write("Python was not found; run without arguments to install from the Microsoft Store\\n"); process.exit(3);`);
+  // A bridge that answers initialize and tools/list, then loses its engine and ends.
+  await writeFile(
+    join(bin, "late.cjs"),
+    `require("readline").createInterface({ input: process.stdin }).on("line", (l) => { const m = JSON.parse(l);
+  process.stdout.write(JSON.stringify({ jsonrpc: "2.0", id: m.id, result: m.method === "tools/list" ? { tools: [] } : { protocolVersion: "2025-06-18", capabilities: { tools: {} }, serverInfo: { name: "late", version: "1" } } }) + "\\n");
+  if (m.method === "tools/list") setTimeout(() => { process.stderr.write("Lost the connection to the engine\\n"); process.exit(4); }, 200); });`,
+  );
+  // A session that starts its MCP servers, asks the runtime for its tools, then waits (it would
+  // spend tokens without the app).
+  await writeFile(
+    join(bin, "claude.cjs"),
+    `const { spawn } = require("child_process"); const fs = require("fs");
+const args = process.argv.slice(2); if (args[0] === "--help") process.exit(1);
+const cfg = JSON.parse(fs.readFileSync(args[args.indexOf("--mcp-config") + 1], "utf8"));
+for (const [name, s] of Object.entries(cfg.mcpServers)) {
+  const p = spawn(s.command, s.args, { env: { ...process.env, ...(s.env || {}) }, stdio: ["pipe", "pipe", "pipe"] });
+  p.stdin.on("error", () => undefined);
+  if (name !== "study") for (const [id, method] of [[1, "initialize"], [2, "tools/list"]]) p.stdin.write(JSON.stringify({ jsonrpc: "2.0", id, method, params: {} }) + "\\n");
+}
+console.log(JSON.stringify({ type: "system", subtype: "init", session_id: "s", model: "m", claude_code_version: "fake", mcp_servers: [] }));
+setTimeout(() => process.exit(0), 60000);`,
+  );
+  let bridgeFile = "bridge.cjs";
+  const runtimes = () => ({ unreal: { command: process.execPath, args: [join(bin, bridgeFile), "{jobFile}"], capabilities: ["screenshot", "pointer-select", "phase-events", "quality-lock"] } });
+  // Each change of settings is a new file: an executor that just ended may still be reading the last one.
+  let n = 0;
+  const settings = async (extra: Record<string, unknown>) => {
+    const file = join(bin, `settings-${++n}.json`);
+    await writeFile(file, JSON.stringify({ claudePath: join(bin, "claude.cjs"), runtimes: runtimes(), ...extra }));
+    process.env.XR_STUDY_SETTINGS = file;
+  };
+  await settings({});
+  try {
+    const ws = await readWorkspace(a.id);
+    const agents = ws.agents!.filter((x) => x.id === "uses-app").map((x) => ({ ...x, repetitions: 1, runtime: "unreal" }));
+    const c = campaignFromPlan(freezePlan(ws.study, agents, 1), undefined, "bridge-fails", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    const job = c.jobs[0].id;
+    const started = Date.now();
+    await ex.start("agent", [job]);
+    await until(() => ["done", "failed"].includes(ex.jobs.get(job)!.status), "the session to end", { executor: ex });
+    assert.ok(Date.now() - started < 30_000, "stopped when the bridge ended, not at the session's end");
+    assert.match(
+      ex.jobs.get(job)!.error ?? "",
+      /^The Unreal bridge could not start \(exit code 3\): .*bridge\.cjs .*job\.json\. It said: Python was not found; run without arguments to install from the Microsoft Store\. The session was stopped; check Settings → Runtimes → unreal\.$/,
+    );
+    await until(() => ex.running.size === 0, "the executor to be idle", { executor: ex });
+    closeExecutor(a.id, c.id);
+
+    // A bridge that answered and then ended: Claude Code may start it again (a restart, flagged on
+    // the row), so the session stops only when no new start follows within the grace.
+    const grace = timing.bridgeRestartGraceMs;
+    timing.bridgeRestartGraceMs = 300;
+    try {
+      bridgeFile = "late.cjs";
+      await settings({});
+      const exLate = await Executor.open(a.id, c.id);
+      await exLate.start("agent", [job]);
+      await until(() => ["done", "failed"].includes(exLate.jobs.get(job)!.status), "the session to end", { executor: exLate });
+      assert.match(
+        exLate.jobs.get(job)!.error ?? "",
+        /^The Unreal bridge ended before the forecast \(exit code 4\): .*late\.cjs .*job\.json\. It said: Lost the connection to the engine\. The session was stopped; check Settings → Runtimes → unreal\.$/,
+      );
+      await until(() => exLate.running.size === 0, "the executor to be idle", { executor: exLate });
+      closeExecutor(a.id, c.id);
+    } finally {
+      timing.bridgeRestartGraceMs = grace;
+      bridgeFile = "bridge.cjs";
+    }
+
+    // A .cmd file as Claude Code is refused before anything starts; a missing program fails its session only.
+    await settings({ claudePath: "C:\\Tools\\npm\\claude.cmd" });
+    const ex2 = await Executor.open(a.id, c.id);
+    assert.match((await ex2.blockers([job]))[0]?.message ?? "", /a \.cmd\/\.bat script that agent sessions cannot start/);
+    closeExecutor(a.id, c.id);
+    await settings({ claudePath: "xr-no-such-claude-program" });
+    const ex3 = await Executor.open(a.id, c.id);
+    await ex3.start("agent", [job]);
+    await until(() => ex3.jobs.get(job)!.status === "failed", "the session to fail", { executor: ex3 });
+    assert.match(ex3.jobs.get(job)!.error ?? "", /^Claude Code could not be started \(xr-no-such-claude-program: .*ENOENT.*\)\. Install Claude Code/);
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});
+
+test("processes: a session's whole process tree ends; the help text tells the flags; old WebXR profiles go", async () => {
+  const { spawnTree, killTree, removeStaleProfiles, featuresFromHelp } = await import("../src/executor/processes.js");
+  const { claudeProblem } = await import("../src/settings.js");
+  // A session that started a server which ignores SIGTERM (it ends only by force).
+  const grandchild = `process.on("SIGTERM", () => undefined); setInterval(() => undefined, 1000);`;
+  const parent = spawnTree(process.execPath, ["-e", `const c = require("child_process").spawn(process.execPath, ["-e", ${JSON.stringify(grandchild)}], { stdio: "ignore" }); console.log(c.pid); setInterval(() => undefined, 1000);`], { stdio: ["ignore", "pipe", "ignore"] });
+  const pid = Number(await new Promise<string>((ok) => parent.stdout!.once("data", (d) => ok(String(d)))));
+  const alive = (p: number) => {
+    try {
+      process.kill(p, 0);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+  assert.ok(pid > 0 && alive(pid));
+  killTree(parent, 300);
+  await until(() => !alive(pid), "the server the session started to end", { limitMs: 30_000 });
+
+  const current = "  --include-partial-messages  Include partial message chunks\n  --output-format <format>\n  --bare  provide context via: --system-prompt[-file], --append-system-prompt[-file]\n";
+  assert.deepEqual(featuresFromHelp(current), { known: true, partialMessages: true, systemPromptFile: true });
+  assert.deepEqual(featuresFromHelp("  --output-format <format>\n  --system-prompt <prompt>\n"), { known: true, partialMessages: false, systemPromptFile: false });
+  assert.equal(featuresFromHelp("node: bad option: --help"), null);
+  assert.match(claudeProblem({ claudePath: "C:\\Users\\x\\AppData\\Roaming\\npm\\claude.CMD" }) ?? "", /\.cmd\/\.bat script/);
+  assert.match(claudeProblem({ claudePath: join(tmpdir(), "no-such-folder", "claude") }) ?? "", /was not found at/);
+  assert.equal(claudeProblem({ claudePath: process.execPath }), null);
+  assert.equal(claudeProblem({}), null);
+
+  const { utimes } = await import("node:fs/promises");
+  const old = await mkdtemp(join(tmpdir(), "xr-webxr-unit-old-"));
+  const fresh = await mkdtemp(join(tmpdir(), "xr-webxr-unit-fresh-"));
+  try {
+    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 3600_000);
+    await utimes(old, twoDaysAgo, twoDaysAgo);
+    assert.ok((await removeStaleProfiles()) >= 1);
+    assert.equal(existsSync(old), false);
+    assert.equal(existsSync(fresh), true, "a running session's profile stays");
+  } finally {
+    await removeDir(old);
+    await removeDir(fresh);
+  }
+});
+
+test("assistant: a long document goes to Claude Code on stdin, not on the command line", async () => {
+  const { understandStudy } = await import("../src/assistant.js");
+  const { extractProposal } = await import("../src/core/proposal.js");
+  const bin = await mkdtemp(join(tmpdir(), "fake-assistant-"));
+  const seenFile = join(bin, "seen.json");
+  await writeFile(
+    join(bin, "claude.cjs"),
+    `const fs = require("fs"); let stdin = ""; process.stdin.setEncoding("utf8"); process.stdin.on("data", (d) => (stdin += d));
+process.stdin.on("end", () => {
+  fs.writeFileSync(${JSON.stringify(seenFile)}, JSON.stringify({ args: process.argv.slice(2), stdin }));
+  console.log(JSON.stringify({ result: "{}" }));
+});`,
+  );
+  await writeFile(join(bin, "settings.json"), JSON.stringify({ claudePath: join(bin, "claude.cjs") }));
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  try {
+    // About 100,000 characters: a 30-page manuscript.
+    const doc = await extractProposal("long.md", Buffer.from("Material cues in VR\n" + "Participants compared matte and glossy materials – très réaliste. ".repeat(1500) + "\nThe end of the document.\n"));
+    await understandStudy(doc, null, null).catch(() => undefined); // the empty draft does not matter here
+    const seen = await readJson<{ args: string[]; stdin: string }>(seenFile);
+    assert.ok(seen.stdin.length > 90_000, `prompt on stdin: ${seen.stdin.length} characters`);
+    assert.ok(seen.stdin.includes("très réaliste") && seen.stdin.includes("The end of the document."));
+    assert.ok(Math.max(...seen.args.map((x) => x.length)) < 2000, "only options on the command line");
+    assert.equal(seen.args[seen.args.indexOf("-p") + 1], "--output-format");
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
     await removeDir(bin);
   }
 });

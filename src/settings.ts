@@ -70,8 +70,22 @@ export function claudeCommand(settings: Pick<Settings, "claudePath">): { command
   const p = settings.claudePath || "claude";
   return /\.[cm]?js$/i.test(p) ? { command: process.execPath, prefix: [p] } : { command: p, prefix: [] };
 }
+/**
+ * Why the configured Claude Code cannot be started, or null. A .cmd/.bat file (npm's claude.cmd)
+ * needs a shell on Windows, which the executor does not use; a path that does not exist fails at
+ * once. The default, `claude` on PATH, is checked when a session starts.
+ */
+export function claudeProblem(settings: Pick<Settings, "claudePath">): string | null {
+  const p = settings.claudePath;
+  if (!p) return null;
+  if (/\.(cmd|bat)$/i.test(p))
+    return `Claude Code is set to ${p}, a .cmd/.bat script that agent sessions cannot start. Run \`node scripts/setup.mjs\`, which finds the native claude.exe, or set claudePath in private/settings.json to claude.exe.`;
+  if (/[\\/]/.test(p) && !existsSync(p)) return `Claude Code was not found at ${p}. Run \`node scripts/setup.mjs\` on this machine to find it again.`;
+  return null;
+}
 /** XR_STUDY_SETTINGS points at another settings file (tests, several machines sharing one checkout). */
-const path = () => process.env.XR_STUDY_SETTINGS || join(repoRoot, "private", "settings.json");
+export const settingsFile = () => process.env.XR_STUDY_SETTINGS || join(repoRoot, "private", "settings.json");
+const path = settingsFile;
 /**
  * Program paths without the quotes a pasted path brings along ("Copy as path" in Windows Explorer,
  * or a path copied from a shortcut): Chrome, Claude Code and each runtime's command.
