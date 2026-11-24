@@ -3,8 +3,8 @@
   "configurations": [
     {
       "name": "xr-workbench",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["start"],
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["--run", "start"],
       "port": 4317
     }
   ]

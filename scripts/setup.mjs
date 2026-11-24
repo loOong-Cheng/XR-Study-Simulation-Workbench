@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // One-step machine setup, meant to be run by a coding agent (see AGENTS.md → "New machine").
-// Installs dependencies, builds, finds Claude Code and Chrome, writes them into
+// Installs dependencies, builds, finds Claude Code, Chrome and Python, writes them into
 // private/settings.json, and reports what is ready. Plain Node, no dependencies.
 //
 //   node scripts/setup.mjs            install (if needed), build, detect, write settings, report
@@ -9,7 +9,7 @@
 import { spawnSync } from "node:child_process";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, relative } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -90,37 +90,88 @@ const chromePath = chromeCandidates.find((p) => existsSync(p));
 say(`Chrome: ${chromePath ?? "not found"}`);
 if (!chromePath) notes.push("Chrome was not found, so the WebXR suite can only be simulated. Install Google Chrome to run it for real.");
 
-// 5 · Settings
-const { readSettings, writeSettings } = await import(pathToFileURL(join(root, "dist", "settings.js")).href);
+// 5 · Python, for study bridges written in Python (Suite 2: examples/selection/runtime/bridge.py).
+// A real interpreter only: on Windows `python` may be the Microsoft Store stub, which starts, prints
+// "Python was not found" and exits, so each candidate must run a line of Python.
+const pythonCandidates = win ? [["py", ["-3"]], ["python", []], ["python3", []]] : [["python3", []], ["python", []]];
+let python = null;
+for (const [cmd, pre] of pythonCandidates) {
+  const r = run(cmd, [...pre, "-c", "import sys; print(sys.executable); print('%d.%d.%d' % sys.version_info[:3])"], { shell: false, timeout: 30_000 });
+  const [exe, version] = `${r.stdout ?? ""}`.trim().split(/\r?\n/).map((s) => s.trim());
+  if (r.status === 0 && exe && existsSync(exe) && Number(version?.split(".")[0]) >= 3) {
+    python = { exe, version };
+    break;
+  }
+}
+say(`Python: ${python ? `${python.exe} (${python.version})` : "not found"}`);
+
+// 6 · Settings
+const { readSettings, writeSettings, settingsFile } = await import(pathToFileURL(join(root, "dist", "settings.js")).href);
 const settings = await readSettings();
 const changes = [];
 if (claudePath && settings.claudePath !== claudePath) (settings.claudePath = claudePath), changes.push(`claudePath = ${claudePath}`);
 if (chromePath && settings.chromePath !== chromePath) (settings.chromePath = chromePath), changes.push(`chromePath = ${chromePath}`);
+// A bridge started with a bare `python`/`python3`/`py` gets this machine's interpreter by its full path.
+for (const [id, r] of Object.entries(settings.runtimes ?? {})) {
+  if (!r.command || !/^(python3?|py)(\.exe)?$/i.test(r.command)) continue;
+  if (!python) {
+    problems.push(`The ${id} runtime starts \`${r.command}\`, but no Python 3 was found. Install Python 3 (Windows: winget install Python.Python.3.12; macOS: brew install python) and run setup again.`);
+    continue;
+  }
+  const args = /^py(\.exe)?$/i.test(r.command) && /^-\d/.test(r.args?.[0] ?? "") ? r.args.slice(1) : r.args;
+  settings.runtimes[id] = { ...r, command: python.exe, args };
+  changes.push(`runtimes.${id}.command = ${python.exe}`);
+}
+if (!python) notes.push("Python 3 was not found. Study bridges written in Python (Suite 2's examples/selection/runtime/bridge.py) need it; install Python 3 if you use one.");
+const shownSettings = relative(root, settingsFile()).startsWith("..") ? settingsFile() : relative(root, settingsFile()).split("\\").join("/");
 if (changes.length && !check) {
   await writeSettings(settings);
-  say(`Settings written to private/settings.json: ${changes.join("; ")}`);
+  say(`Settings written to ${shownSettings}: ${changes.join("; ")}`);
 }
 
-// 6 · Engine runtimes and the MCP servers Claude Code already knows
+// 7 · Engine runtimes and the local MCP servers Claude Code already knows
 say("\nEngine runtimes (Settings → Runtimes):");
 for (const id of ["unreal", "unity", "visionos"]) {
   const r = settings.runtimes[id] ?? {};
   say(`  ${id}: ${r.command ? `${r.command} ${(r.args ?? []).join(" ")}` : "not configured"}${r.capabilities?.length ? ` [${r.capabilities.join(", ")}]` : ""}`);
 }
+if (python && !settings.runtimes.unity?.command)
+  say(`  (Suite 2's Unity bridge: command ${python.exe}, arguments examples/selection/runtime/bridge.py {jobFile})`);
 if (claudePath) {
+  // `claude mcp list` prints "name: command args - status" per server. Only local stdio servers can
+  // drive an engine on this machine: claude.ai connectors and remote (HTTP/SSE) servers are left out.
   const m = run(claudePath, ["mcp", "list"], { shell: false, timeout: 60_000 });
-  const text = `${m.stdout ?? ""}`.trim();
-  say("\nMCP servers configured in Claude Code on this machine (candidates for an engine runtime):");
-  say(text ? text.split(/\r?\n/).map((l) => `  ${l}`).join("\n") : "  (none listed)");
+  const local = `${m.stdout ?? ""}`
+    .split(/\r?\n/)
+    .map((l) => l.match(/^(.+?): (.*) - (.+)$/))
+    .filter((x) => x && !/^claude\.ai\b/i.test(x[1]) && !/^[a-z][a-z0-9+.-]*:\/\//i.test(x[2].trim()) && !/\((HTTP|SSE|WS|WebSocket)\)\s*$/i.test(x[2]))
+    .map(([, name, command]) => `  ${name}: ${command.trim()}`);
+  say("\nLocal MCP servers in Claude Code (an engine's own MCP server a study bridge can drive):");
+  say(local.length ? local.join("\n") : "  (none)");
 }
 
-// 7 · Studies
+// 8 · Long paths (Windows): run folders nest a study, a campaign, a job and its attempt, and Unity
+// screenshots reach about 240 characters from a short checkout; Windows stops at 260 unless long
+// paths are enabled (Python bridges, Unity logs and claude.exe's working folder are affected).
+if (win) {
+  const lp = run("reg", ["query", "HKLM\\SYSTEM\\CurrentControlSet\\Control\\FileSystem", "/v", "LongPathsEnabled"], { shell: false, timeout: 30_000 });
+  const enabled = lp.status === 0 && /LongPathsEnabled\s+REG_DWORD\s+0x0*1\b/i.test(lp.stdout ?? "");
+  const shorter = "a short folder such as C:\\xr-study-sim (not under OneDrive) avoids that";
+  if (!enabled)
+    notes.push(
+      `Windows long paths are not enabled. Engine runs write files up to about ${180 + root.length} characters deep (Unity screenshots), and Windows refuses paths over 260 characters without them. Enable them once in an administrator PowerShell: New-ItemProperty -Path "HKLM:\\SYSTEM\\CurrentControlSet\\Control\\FileSystem" -Name LongPathsEnabled -Value 1 -PropertyType DWORD -Force (then sign out and in).${root.length > 60 ? ` This folder's path is also long (${root.length} characters); ${shorter}.` : ""}`,
+    );
+  else if (root.length > 60)
+    notes.push(`This folder's path is ${root.length} characters long. Long paths are enabled, but some engine tools still stop at 260 characters; ${shorter}.`);
+}
+
+// 9 · Studies
 const { listWorkspaces } = await import(pathToFileURL(join(root, "dist", "workspace.js")).href);
 say("\nStudies:");
 for (const w of await listWorkspaces())
   say(`  ${w.id}  ·  ${w.title}  ·  engine ${w.engine}${w.synthetic ? " · synthetic" : ""}${w.hasHuman ? " · human data" : ""} · ${w.campaigns} campaign(s)`);
 
-// 8 · Tests
+// 10 · Tests
 if (flags.has("--test") && !check) {
   say("\nRunning tests …");
   const t = run("npm", ["test"], { stdio: "inherit" });
@@ -136,6 +187,8 @@ function report() {
     say("\nSetup is not complete.");
     process.exit(1);
   }
-  say("Setup complete. Start the website with `npm start` → http://127.0.0.1:4317");
+  // The port the website will use: XR_STUDY_PORT when set (also for `npm start`), else 4317.
+  const port = Number(process.env.XR_STUDY_PORT) || 4317;
+  say(`Setup complete. Start the website with \`npm start\` → http://127.0.0.1:${port}${process.env.XR_STUDY_PORT ? " (XR_STUDY_PORT)" : " (set XR_STUDY_PORT for another port)"}`);
   process.exit(0);
 }
