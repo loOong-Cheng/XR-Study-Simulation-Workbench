@@ -3,6 +3,7 @@
 // The page never requests human reference values while planning.
 import type { AgentProtocol, Comparison, Domain, Study } from "../core/types.js";
 import { agentVsHumanPlot, agreementPlot, correlationPlot, downloadPng, downloadSvg, humanPlot, trajectoryPlot } from "./plots.js";
+import { clippedToScale, focusMark, focusTarget, markdownToHtml, money, plural, type FocusMark } from "./ui.js";
 
 type Page = "home" | "study" | "evidence" | "configs" | "freeze" | "compare" | "executor" | "analyzer" | "continue" | "settings";
 interface WorkspaceInfo { id: string; title: string; suite: string | null; description: string | null; synthetic: boolean; engine: string; hasAgents: boolean; hasHuman: boolean; campaigns: number }
@@ -19,7 +20,10 @@ interface WorkspaceView {
   studyWarnings?: string[];
   /** Fairness of what agents get (core/fairness.ts): the research question, stand-in recordings, models of compared configurations. */
   warnings?: string[];
+  /** Per configuration: what it names that the saved study does not have, and why it does not fit. */
+  problems?: ConfigProblem[];
 }
+interface ConfigProblem { configId: string; label: string; unknownSources: string[]; unknownOutcomes: string[]; unknownCases: string[]; message: string | null }
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
 interface RuntimeStatus { id: string; label: string; available: boolean; builtIn: boolean; message: string }
 interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; noResult?: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null }
@@ -75,7 +79,6 @@ let chosen = new Set<string>();
 let pickK = 1;
 let pickConfigs = new Set<string>();
 const canRun = (j: JobState) => ["not-started", "failed", "stopped"].includes(j.status);
-const money = (x: number | null | undefined) => (x == null ? "—" : `$${x.toFixed(2)}`);
 const campaignOf = (id: string | null) => ws?.campaigns.find((c) => c.id === id) ?? null;
 function campaignName(c: CampaignInfo | null) {
   if (!c) return "No campaign";
@@ -124,7 +127,7 @@ function configSum(list: JobState[]) {
 function studyInputs() {
   if (!ws || !campaignInputs || campaignInputs.campaignId !== campaignId || !campaignInputs.sources.length) return "";
   const link = (id: string) => `/api/workspace/source?id=${encodeURIComponent(ws!.id)}&source=${encodeURIComponent(id)}`;
-  return `<div class="card inputs"><h3>What the agents get</h3><ul>${campaignInputs.sources
+  return `<div class="card inputs"><h2>What the agents get</h2><ul>${campaignInputs.sources
     .map(
       (src) =>
         `<li>${src.readable ? `<a href="${link(src.id)}" target="_blank" rel="noopener">${esc(src.label)}</a>` : esc(src.label)} <span class="small">${src.path ? `${esc(src.path)} · ` : ""}${esc(src.kind)} · ${src.configs} configuration(s)${src.removed ? " · deleted from the study after this campaign was frozen" : src.readable ? "" : " · no file on this machine"}</span></li>`,
@@ -163,10 +166,10 @@ async function loadAttempts(jobId: string) {
 /** The exact sessions that will start, per configuration, with a cost estimate from earlier real runs. */
 async function runSummary(jobs: JobState[]): Promise<string> {
   const est = await api<{ label: string; sessions: number; perSession: number | null; basedOn: number; total: number | null }[]>("executor/estimate", { id: ws!.id, campaignId, jobIds: jobs.map((j) => j.jobId) });
-  const lines = est.map((e) => `${e.label}: ${e.sessions} session${e.sessions === 1 ? "" : "s"}${e.total === null ? " (no earlier real run to estimate cost from)" : `, about $${e.total.toFixed(2)} ($${e.perSession!.toFixed(2)} each, from ${e.basedOn} earlier run${e.basedOn === 1 ? "" : "s"})`}`);
+  const lines = est.map((e) => `${e.label}: ${plural(e.sessions, "session")}${e.total === null ? " (no earlier real run to estimate cost from)" : `, about ${money(e.total)} (${money(e.perSession)} each, from ${plural(e.basedOn, "earlier run")})`}`);
   const known = est.filter((e) => e.total !== null);
   const sum = known.reduce((x, e) => x + e.total!, 0);
-  return `Start exactly ${jobs.length} Claude Code session${jobs.length === 1 ? "" : "s"} with your login?\n\n${lines.join("\n")}${known.length ? `\n\nEstimated: about $${sum.toFixed(2)}${known.length < est.length ? " for the configurations with earlier runs" : ""}.` : ""}\nThis uses your Claude usage.`;
+  return `Start exactly ${plural(jobs.length, "Claude Code session")} with your login?\n\n${lines.join("\n")}${known.length ? `\n\nEstimated: about ${money(sum)}${known.length < est.length ? " for the configurations with earlier runs" : ""}.` : ""}\nThis uses your Claude usage.`;
 }
 let events: EventSource | null = null;
 let mode: "agent" | "simulate" = "simulate";
@@ -237,23 +240,96 @@ const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getEleme
 const esc = (x: unknown) => String(x ?? "").replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
 const pct = (x: number | null | undefined) => (x == null ? "—" : (x * 100).toFixed(1) + "%");
 const btn = (action: string, label: string, primary = false, extra = "") => `<button class="button ${primary ? "primary" : ""}" data-action="${action}" ${extra}>${label}</button>`;
-const heading = (eyebrow: string, title: string, lead: string) => `<div class="eyebrow">${eyebrow}</div><h1>${title}</h1><p class="lead">${lead}</p>`;
+// The page title can take the focus (after a page change), so a screen reader reads where you are.
+const heading = (eyebrow: string, title: string, lead: string) => `<div class="eyebrow">${eyebrow}</div><h1 id="page-title" tabindex="-1">${title}</h1><p class="lead">${lead}</p>`;
+/** The study or configurations differ from the saved files (also configurations never saved: templates). */
 const unsaved = () => !!ws && JSON.stringify({ study, agents }) !== saved;
+/** You changed the study or configurations since they were loaded or saved (templates alone are no change). */
+const edited = () => !!ws && JSON.stringify({ study, agents }) !== baseline;
+/**
+ * One polite live region speaks short status messages (toasts, the server banner) to screen
+ * readers; the page itself is not a live region, so a redraw is not read out again.
+ */
+let announceTimer: ReturnType<typeof setTimeout> | undefined;
+function announce(message: string) {
+  const live = $("live");
+  if (!live) return;
+  live.textContent = "";
+  // Emptied first, so the same message twice is read twice.
+  if (announceTimer) clearTimeout(announceTimer);
+  announceTimer = setTimeout(() => (live.textContent = message), 60);
+}
 let toastTimer: ReturnType<typeof setTimeout> | undefined;
 function toast(message: string, error = false) {
   const t = $("toast");
   t.textContent = message;
   t.hidden = false;
   t.className = error ? "error-toast" : "";
+  announce(error ? `Error: ${message}` : message);
   // A new message restarts the timer; errors stay longer.
   if (toastTimer) clearTimeout(toastTimer);
   toastTimer = setTimeout(() => (t.hidden = true), error ? 12000 : 6000);
 }
+const SERVER_GONE = "The workbench server is not answering; retrying…";
 async function api<T = any>(path: string, body?: unknown): Promise<T> {
-  const r = await fetch("/api/" + path, body === undefined ? undefined : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
-  const v = await r.json();
+  let r: Response;
+  try {
+    r = await fetch("/api/" + path, body === undefined ? undefined : { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  } catch {
+    // No answer at all: the server stopped. The banner says so and the page reconnects by itself.
+    serverGone();
+    throw new Error("The workbench server is not answering. Start it again (npm start); this page reconnects by itself, then try again.");
+  }
+  let v: any;
+  try {
+    v = await r.json();
+  } catch {
+    throw new Error(`The server answered ${r.status} without a readable message.`);
+  }
   if (!r.ok) throw new Error(v.error ?? "Request failed.");
   return v as T;
+}
+// ---------- server banner: the page notices when the workbench server stops, and reconnects ----------
+let serverDown = false;
+let streamRetries = 0;
+let retryTimer: ReturnType<typeof setTimeout> | null = null;
+let retryDelay = 1000;
+function setServerDown(down: boolean) {
+  if (down === serverDown) return;
+  serverDown = down;
+  const banner = $("server-banner");
+  if (banner) banner.hidden = !down;
+  announce(down ? SERVER_GONE : "The workbench server is answering again.");
+}
+/** The server stopped answering: show the banner and try again with growing pauses (at most 15 s). */
+function serverGone() {
+  setServerDown(true);
+  if (retryTimer) return;
+  retryTimer = setTimeout(async () => {
+    retryTimer = null;
+    try {
+      const r = await fetch("/api/settings", { cache: "no-store" });
+      if (!r.ok) throw new Error();
+    } catch {
+      retryDelay = Math.min(15000, retryDelay * 2);
+      serverGone();
+      return;
+    }
+    serverBack();
+  }, retryDelay);
+}
+function serverBack() {
+  retryDelay = 1000;
+  if (retryTimer) clearTimeout(retryTimer);
+  retryTimer = null;
+  const was = serverDown;
+  setServerDown(false);
+  if (!was) return;
+  // The page never loaded (the server was down when it opened): load it now.
+  if (!settings) return location.reload();
+  // A restarted server reopens the campaign's executor from disk: listen again and refresh progress.
+  if (ws && campaignId && (!events || events.readyState === EventSource.CLOSED)) openStream();
+  scheduleSummaryRefresh();
 }
 function pickFile(accept: string): Promise<File | undefined> {
   return new Promise((ok) => {
@@ -343,6 +419,8 @@ async function openWorkspace(id: string) {
   outcomeId = "";
   humanOutcome = "";
   view = "agreement";
+  // The analyzer starts on a domain this study measures (subjective first), not the last study's choice.
+  domain = ws.study.outcomes.some((o) => o.domain === "subjective") || !ws.study.outcomes.length ? "subjective" : "objective";
   showSignificantOnly = false;
   logs.clear();
   // Real studies start in "Run agents" (nothing starts without your OK); synthetic ones in "Simulate".
@@ -350,10 +428,20 @@ async function openWorkspace(id: string) {
   history.replaceState(null, "", `?study=${encodeURIComponent(id)}`);
   showCampaign(ws.campaigns.at(-1)?.id ?? null);
 }
+/**
+ * The mode follows the study's kind when that changes (a study.json loaded or saved as synthetic or
+ * real): Simulate for synthetic studies, Run agents for real ones. Not while sessions run or wait.
+ */
+function followStudyKind(wasSynthetic: boolean, isSynthetic: boolean) {
+  if (isSynthetic === wasSynthetic) return;
+  if (snapshot && (snapshot.running || snapshot.queued)) return;
+  mode = isSynthetic ? "simulate" : "agent";
+}
 async function refreshWorkspace() {
   if (!ws) return;
   const keep = { study, agents };
   const dirty = unsaved();
+  const wasSynthetic = !!ws.study.synthetic;
   ws = await api<WorkspaceView>(`workspace?id=${encodeURIComponent(ws.id)}`);
   if (dirty) ({ study, agents } = keep);
   else {
@@ -362,6 +450,7 @@ async function refreshWorkspace() {
     saved = ws.agentsSaved ? JSON.stringify({ study, agents }) : "";
     baseline = JSON.stringify({ study, agents });
   }
+  followStudyKind(wasSynthetic, !!ws.study.synthetic);
 }
 /**
  * Campaign progress (Freeze & campaigns, the campaign bar, Delete) follows the sessions: refreshed
@@ -409,8 +498,37 @@ function connect() {
   campaignInputs = null;
   if (!ws || !campaignId) return;
   void loadCampaignInputs();
-  events = new EventSource(`/api/executor/events?id=${encodeURIComponent(ws.id)}&campaign=${encodeURIComponent(campaignId)}`);
-  events.onmessage = (m) => {
+  openStream();
+}
+/**
+ * Listen to the executor of the campaign shown. When the stream breaks (the server stopped), the
+ * banner says so and the page reconnects by itself; the table keeps its last state until then.
+ */
+function openStream() {
+  events?.close();
+  if (!ws || !campaignId) return;
+  const [id, cid] = [ws.id, campaignId];
+  const source = new EventSource(`/api/executor/events?id=${encodeURIComponent(id)}&campaign=${encodeURIComponent(cid)}`);
+  events = source;
+  source.onopen = () => {
+    streamRetries = 0;
+    serverBack();
+  };
+  source.onerror = async () => {
+    if (events !== source) return;
+    // The browser's own retry gives up on some errors; the page reconnects itself in every case.
+    source.close();
+    events = null;
+    const answering = await fetch("/api/settings", { cache: "no-store" }).then((r) => r.ok, () => false);
+    if (!answering) return serverGone();
+    // The server answers but ended this stream: listen again a few times, then say so.
+    if (++streamRetries <= 3)
+      setTimeout(() => {
+        if (!events && ws?.id === id && campaignId === cid) openStream();
+      }, 1000 * streamRetries);
+    else toast("Live progress of this campaign stopped. Reload the page to listen again.", true);
+  };
+  source.onmessage = (m) => {
     const e = JSON.parse(m.data);
     if (e.type === "snapshot") {
       snapshot = e.snapshot;
@@ -431,7 +549,7 @@ function connect() {
         // "Queue finished.", "Paused", "Stopped." belong to Run agents; other pages do not pop them up.
         if (e.text && page === "executor") toast(e.text);
         scheduleRender();
-      });
+      }).catch(() => undefined);
     }
     scheduleRender();
   };
@@ -463,19 +581,145 @@ function scheduleRender() {
 }
 
 // ---------- rendering ----------
+/**
+ * Where the focus goes after the next redraw when the focused control cannot say so itself: the
+ * button just clicked (it is disabled while its action runs), or the page title after a page change.
+ */
+let focusNext: FocusMark | "heading" | null = null;
+/** The text field typed into since its last change event: a redraw keeps what was typed. */
+let typing: HTMLInputElement | HTMLTextAreaElement | null = null;
+const markOf = (el: HTMLElement) => focusMark(el, $("content").getElementsByTagName(el.tagName));
+/** Put the focus on the page title (without scrolling), so a screen reader reads the new page. */
+function focusHeading() {
+  const h = $("content").querySelector<HTMLElement>("h1") ?? $("content");
+  h.focus({ preventScroll: true });
+}
+/** A control that cannot take the focus now (disabled): the next one in its row of buttons, else the title. */
+function focusNear(el: HTMLElement) {
+  const near = el.closest(".actions, .card, tr")?.querySelector<HTMLElement>("button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), a[href], [tabindex='0']");
+  if (near) near.focus({ preventScroll: true });
+  else focusHeading();
+}
 function render() {
+  const content = $("content");
+  const now = document.activeElement;
+  const active = now instanceof HTMLElement && now !== content && content.contains(now) ? now : null;
+  const wanted = focusNext ?? (active ? markOf(active) : null);
+  focusNext = null;
+  // A text field keeps its caret, scroll and (while being typed into) its text.
+  const field = active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement ? active : null;
+  const caret = field ? { typed: field === typing, value: field.value, start: field.selectionStart, end: field.selectionEnd, dir: field.selectionDirection, scroll: field.scrollTop } : null;
+  // Open <details> stay open: a redraw would otherwise close the one you are working in.
+  const open = new Set(Array.from(content.querySelectorAll<HTMLDetailsElement>("details[data-key][open]")).map((d) => d.dataset.key!));
   document.querySelectorAll<HTMLButtonElement>("[data-page]").forEach((b) => {
     b.classList.toggle("active", b.dataset.page === page);
+    if (b.dataset.page === page) b.setAttribute("aria-current", "page");
+    else b.removeAttribute("aria-current");
     b.disabled = !ws && !["home", "settings"].includes(b.dataset.page!);
   });
   $("study-breadcrumb").textContent = ws ? `${ws.manifest.suite ? ws.manifest.suite + " · " : ""}${study?.title}` : "No study open";
   $("data-label").textContent = ws ? (study?.synthetic ? "SYNTHETIC STUDY" : "RESEARCH STUDY") : "—";
   $("data-label").className = "pill" + (ws && !study?.synthetic ? " real" : "");
   const pages: Record<Page, () => string> = { home: renderHome, study: renderStudy, evidence: renderEvidence, compare: renderCompareAgents, configs: renderConfigs, freeze: renderFreeze, executor: renderExecutor, analyzer: renderAnalyzer, continue: renderContinue, settings: renderSettings };
-  $("content").innerHTML =
-    (ws?.problem && page !== "home" && page !== "settings" ? `<div class="notice"><strong>The saved files disagree.</strong> ${esc(ws.problem)}</div>` : "") +
-    (unsaved() && !["home", "study", "evidence", "configs", "freeze", "settings"].includes(page) ? `<div class="notice">Unsaved planner changes. Save them on the Study or Agent configurations page.</div>` : "") +
+  content.innerHTML =
+    (ws?.problem && page !== "home" && page !== "settings" ? problemBanner() : "") +
+    (edited() && !["home", "study", "evidence", "configs", "freeze", "settings"].includes(page) ? `<div class="notice">Unsaved planner changes. Save them on the Study or Agent configurations page.</div>` : "") +
     pages[page]();
+  content.querySelectorAll<HTMLDetailsElement>("details[data-key]").forEach((d) => open.has(d.dataset.key!) && (d.open = true));
+  // Focus inside the page that nothing names, or a control that is gone: the page title, not the top of the document.
+  if (wanted === "heading" || (active && !wanted)) return focusHeading();
+  if (!wanted) return;
+  const target = focusTarget(wanted, content.getElementsByTagName(wanted.key.slice(0, wanted.key.indexOf("|")))) as HTMLElement | null;
+  if (!target) return focusHeading();
+  if ((target as HTMLButtonElement).disabled) return focusNear(target);
+  target.focus({ preventScroll: true });
+  if (caret && (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement)) {
+    if (caret.typed && target.value !== caret.value) {
+      target.value = caret.value;
+      typing = target;
+    }
+    try {
+      if (caret.start !== null && caret.end !== null) target.setSelectionRange(caret.start, caret.end, caret.dir ?? undefined);
+    } catch {
+      // Number, checkbox and other inputs have no caret.
+    }
+    target.scrollTop = caret.scroll;
+  }
+}
+/** Redraw after the current event: a change while tabbing away lets the focus land first, then keeps it there. */
+let redrawSoon = false;
+function renderSoon() {
+  if (redrawSoon) return;
+  redrawSoon = true;
+  setTimeout(() => {
+    redrawSoon = false;
+    render();
+  }, 0);
+}
+/** What a configuration (as edited now) names that the study (as edited now) does not have. */
+function unknownRefs(a: AgentProtocol) {
+  const st = study!;
+  const sources = new Set(st.sources.map((x) => x.id));
+  const outcomes = new Set(st.outcomes.map((x) => x.id));
+  const cases = new Set(st.cases.map((x) => x.id));
+  return {
+    sources: [...new Set([...a.sourceIds, ...a.requiredSourceIds])].filter((id) => !sources.has(id)),
+    outcomes: [...new Set([...(a.targets ?? []), ...(a.inputs ?? [])])].filter((id) => !outcomes.has(id)),
+    cases: a.requiredCaseIds.filter((id) => !cases.has(id)),
+  };
+}
+const hasUnknown = (a: AgentProtocol) => {
+  const u = unknownRefs(a);
+  return !!(u.sources.length || u.outcomes.length || u.cases.length);
+};
+/** "source "notes"" or "sources "a", "b"" and the like. */
+const named = (one: string, ids: string[]) => `${ids.length === 1 ? one : `${one}s`} ${ids.map((x) => `"${x}"`).join(", ")}`;
+/** In words: what a configuration names that the study does not have. */
+function unknownText(a: AgentProtocol) {
+  const u = unknownRefs(a);
+  const parts = [u.sources.length ? named("source", u.sources) : "", u.outcomes.length ? named("measure", u.outcomes) : "", u.cases.length ? named("task", u.cases) : ""].filter(Boolean);
+  return parts.length ? `${a.label} (${a.id}) names ${parts.join(", ")}, which the study does not have` : "";
+}
+/** The button that removes what the study does not have from one configuration. */
+function fixButton(a: AgentProtocol, primary = true) {
+  const u = unknownRefs(a);
+  const what = u.sources.length && !u.outcomes.length && !u.cases.length ? (u.sources.length === 1 ? "the unknown source" : "the unknown sources") : "what the study does not have";
+  return btn(`fix-config:${a.id}`, `Remove ${what} from ${esc(a.label)}`, primary);
+}
+/**
+ * The saved study and configurations disagree: say which configuration names what, offer to remove
+ * it, and say that saving, approving and freezing wait for the fix.
+ */
+function problemBanner() {
+  const broken = agents.filter(hasUnknown);
+  // Unknown sources, measures and tasks are checked here on the configurations as edited; other
+  // refusals of the saved files are shown as the server words them.
+  const listed = (p: ConfigProblem) => p.unknownSources.length || p.unknownOutcomes.length || p.unknownCases.length;
+  const other = (ws?.problems ?? []).filter((p) => p.message && !listed(p) && agents.some((a) => a.id === p.configId));
+  const fixedHere = !broken.length && !other.length && unsaved();
+  // One primary button per page: on Freeze the fix is the next step (freezing waits for it); Agent
+  // configurations marks it on the configuration's card; other pages keep their own next step.
+  const lines = broken
+    .map((a, i) => `<li>${esc(unknownText(a))}. ${fixButton(a, i === 0 && page === "freeze")}</li>`)
+    .concat(other.map((p) => `<li>${esc(p.label)} (${esc(p.configId)}): ${esc(p.message)}</li>`));
+  return `<div class="notice problem"><strong>The saved files disagree.</strong> ${
+    lines.length
+      ? `The saved agent configurations do not fit the saved study. Saving, approving and freezing wait until they do.<ul>${lines.join("")}</ul>${broken.length ? "<p>Or add what is missing back to the study (Evidence &amp; knowledge, Study &amp; variables).</p>" : ""}`
+      : fixedHere
+      ? "Fixed on this page but not saved yet: press <strong>Save configurations</strong> on Agent configurations."
+      : esc(ws!.problem)
+  }</div>`;
+}
+/** Saving sends the study and configurations together: refuse in words before the server refuses in IDs. */
+function checkSavable() {
+  const block = problemBlock();
+  if (block) throw new Error(`Not saved: ${block}`);
+}
+/** Why the configurations cannot be saved, approved or frozen yet (null when they can). */
+function problemBlock(): string | null {
+  const broken = agents.filter(hasUnknown);
+  if (!broken.length) return null;
+  return `${broken.map(unknownText).join("; ")}. Press "Remove … from ${broken[0].label}" in the notice at the top of the page or on its card, or add it back to the study, then save.`;
 }
 const withheld = `<div class="notice neutral"><strong>Reference answers are withheld.</strong> Neither you nor the agents see the human results while planning. Measured values are used only for inputs you declare per configuration, and in the analyzer.</div>`;
 
@@ -526,7 +770,7 @@ function knowledgeActions(id: string, kind: "general" | "participant") {
 }
 function renameForm(id: string, label: string, description: string) {
   return knowledgeEdit?.id === id && knowledgeEdit.mode === "rename"
-    ? `<div class="row"><label class="field">Name<input id="k-label" value="${esc(label)}"></label><label class="field">What it is and where it comes from<input id="k-desc" value="${esc(description)}"></label></div><div class="actions">${btn(`k-rename-save:${id}`, "Save name", true)}${btn("k-cancel", "Cancel")}</div>`
+    ? `<div class="row"><label class="field">Name<input id="k-label" value="${esc(label)}"></label><label class="field">What it is and where it comes from<input id="k-desc" value="${esc(description)}"></label></div><div class="actions">${btn(`k-rename-save:${id}`, "Save name", evidenceNext() === `k-rename-save:${id}`)}${btn("k-cancel", "Cancel")}</div>`
     : "";
 }
 const usedBy = (id: string) => agents.filter((a) => a.sourceIds.includes(id));
@@ -546,7 +790,7 @@ function generalSection() {
       return `<div class="card"><div class="card-heading"><div><h3>${esc(e.label)}</h3><p class="caption">${esc(e.description)}</p></div><span class="tag">general</span></div>
         <p class="caption">${e.exists ? `${esc(e.path)} · ${(e.bytes / 1024).toFixed(1)} KB · sha256 ${esc(e.sha256!.slice(0, 16))}… · <a href="/api/workspace/source?id=${encodeURIComponent(ws!.id)}&source=${encodeURIComponent(e.id)}" target="_blank" rel="noopener">open full text</a>` : `<span class="warn">${e.problem && e.path ? `Not usable: this source ${esc(e.problem)}` : `No file on this machine${e.path ? ` (${esc(e.path)} is missing)` : ""}`}.</span>`} · ${usedText(e.id)}</p>
         ${knowledgeActions(e.id, "general")}${renameForm(e.id, e.label, e.description)}
-        ${editing ? `<label class="field">Text (Markdown)<textarea id="k-text" rows="18">${esc(knowledgeEdit!.text ?? "")}</textarea></label><div class="actions">${btn(`k-text-save:${e.id}`, "Save text", true)}${btn("k-cancel", "Cancel")}</div>` : `${check}${predicted}${e.exists ? `<pre class="preview">${esc(e.preview)}${e.truncated ? "\n…" : ""}</pre>` : ""}`}</div>`;
+        ${editing ? `<label class="field">Text (Markdown)<textarea id="k-text" rows="18">${esc(knowledgeEdit!.text ?? "")}</textarea></label><div class="actions">${btn(`k-text-save:${e.id}`, "Save text", evidenceNext() === `k-text-save:${e.id}`)}${btn("k-cancel", "Cancel")}</div>` : `${check}${predicted}${e.exists ? `<pre class="preview">${esc(e.preview)}${e.truncated ? "\n…" : ""}</pre>` : ""}`}</div>`;
     })
     .join("");
   return `<h2 class="group-title">General knowledge</h2><p class="group-caption">The same for everyone: findings from papers, computational models, expert heuristics.</p>${cards || '<div class="card"><p class="caption">None yet.</p></div>'}`;
@@ -570,7 +814,7 @@ function participantSection() {
                   ? `<label class="check disabled"><input type="checkbox" disabled> ${esc(c.name)} <small class="warn">(empty for ${esc(c.missing.slice(0, 5).join(", "))}${c.missing.length > 5 ? " …" : ""})</small></label>`
                   : `<label class="check"><input type="checkbox" data-kfield="${esc(c.name)}" ${k.fields.includes(c.name) ? "checked" : ""}> ${esc(c.name)}</label>`,
               )
-              .join("")}</div><div class="actions">${btn(`k-fields-save:${k.id}`, "Save fields", true)}${btn("k-cancel", "Cancel")}</div>`
+              .join("")}</div><div class="actions">${btn(`k-fields-save:${k.id}`, "Save fields", evidenceNext() === `k-fields-save:${k.id}`)}${btn("k-cancel", "Cancel")}</div>`
           : "";
       const shown =
         k.kind === "demographics"
@@ -605,13 +849,14 @@ function addKnowledgeCard() {
           .join("")}</div>`;
   return `<div class="card draft"><h2>${d.replaces ? "Replace" : "New"} ${where}</h2><p class="caption">${esc(by)}. ${d.replaces ? `It replaces the file of ${esc(study!.sources.find((x) => x.id === d.replaces)?.label ?? d.replaces)}.` : `It will be listed under ${where}.`}${d.notes ? ` Notes: ${esc(d.notes)}` : ""}</p>
     <div class="row"><label class="field">Name<input id="kd-label" value="${esc(d.label)}"></label><label class="field">What it is and where it comes from<input id="kd-desc" value="${esc(d.description)}"></label></div>
-    ${body}<div class="actions">${btn("k-add-save", d.replaces ? "Replace" : `Add to ${where}`, d.kind === "general" || !d.problems.length, d.kind === "participant" && d.problems.length ? "disabled" : "")}${btn("k-discard", "Discard")}</div></div>`;
+    ${body}<div class="actions">${btn("k-add-save", d.replaces ? "Replace" : `Add to ${where}`, evidenceNext() === "k-add-save", d.kind === "participant" && d.problems.length ? "disabled" : "")}${btn("k-discard", "Discard", evidenceNext() === "k-discard")}</div></div>`;
 }
 /**
  * Save a knowledge change in one step: files to write, sources to unmap, and the study and
  * configurations as they are now (this also saves other unsaved planner edits).
  */
 async function saveKnowledge(write?: { sourceId: string; path: string; text: string }[], unmap?: string[]) {
+  checkSavable();
   await api("workspace/knowledge-save", { id: ws!.id, study, agents, write, unmap });
   saved = JSON.stringify({ study, agents });
   await refreshWorkspace();
@@ -635,34 +880,50 @@ function briefCard() {
   const b = brief;
   const has = !!b?.exists;
   const writing = briefEdit !== null;
-  const form = `<label class="field">Brief (Markdown): the task, each design, the procedure and each measure as participants experienced them. Never results.<textarea id="brief-text" rows="16">${esc(briefEdit ?? "")}</textarea></label><div class="actions">${btn("brief-save", "Save brief", true)}${btn("brief-cancel", "Cancel")}</div>`;
+  const next = evidenceNext();
+  const form = `<label class="field">Brief (Markdown): the task, each design, the procedure and each measure as participants experienced them. Never results.<textarea id="brief-text" rows="16">${esc(briefEdit ?? "")}</textarea></label><div class="actions">${btn("brief-save", "Save brief", next === "brief-save")}${btn("brief-cancel", "Cancel")}</div>`;
   const pending = briefDraft !== null ? `<p class="caption">A brief drafted by Understand study is waiting: it is written when you save the study.</p>` : "";
-  return `<div class="card"><div class="card-heading"><div><h3>Study brief — what every configuration gets</h3><p class="caption">The description agents read first: the task, designs, procedure and measures as participants experienced them, without any results. Understand study drafts it from your document; you can also write it here.</p></div><span class="tag">brief</span></div>
+  return `<div class="card"><div class="card-heading"><div><h2>Study brief — what every configuration gets</h2><p class="caption">The description agents read first: the task, designs, procedure and measures as participants experienced them, without any results. Understand study drafts it from your document; you can also write it here.</p></div><span class="tag">brief</span></div>
     ${has ? `<p class="caption">${esc(b!.path)} · ${(b!.bytes / 1024).toFixed(1)} KB · sha256 ${esc(b!.sha256!.slice(0, 16))}… · <a href="/api/workspace/source?id=${encodeURIComponent(ws!.id)}&source=${encodeURIComponent(b!.id)}" target="_blank" rel="noopener">open full text</a> · ${usedText(b!.id)}</p>` : `<div class="notice">No study brief yet, so no configuration can run as an agent.${b?.path ? ` (${esc(b.path)} is missing or empty.)` : ""} Write it below${studyUnderstood() ? "" : ", or let Understand study draft it from your document"}.</div>`}
-    ${pending}${writing ? form : `<div class="actions">${btn("brief-edit", has ? "Edit text" : "Write the brief", !has && briefDraft === null && !unsaved())}</div>${has ? `${leakNotice(b!.check, "The brief must not contain the study's results.")}<pre class="preview">${esc(b!.preview)}${b!.truncated ? "\n…" : ""}</pre>` : ""}`}</div>`;
+    ${pending}${writing ? form : `<div class="actions">${btn("brief-edit", has ? "Edit text" : "Write the brief", next === "brief-edit")}</div>${has ? `${leakNotice(b!.check, "The brief must not contain the study's results.")}<pre class="preview">${esc(b!.preview)}${b!.truncated ? "\n…" : ""}</pre>` : ""}`}</div>`;
 }
 /** Planner tab: the evidence agents may get, what is in it, who gets it, and an outcome-blind check. */
 function renderEvidence() {
   if (!ws || !study) return "";
   const intro = heading("PLANNER", "Evidence and knowledge.", "What configurations get: the study brief (everyone), general knowledge (the same for everyone) and participant-specific knowledge (per person). Knowledge beyond the brief is optional: the workbench runs without any. Which configuration gets what is chosen on Agent configurations, for example two otherwise identical configurations with different knowledge, to compare them in the analyzer.");
   if (!evidence) return intro + `<div class="card"><p class="caption">Loading…</p></div>`;
-  const briefMissing = !brief?.exists && briefDraft === null;
+  const next = evidenceNext();
   return (
     intro +
     briefCard() +
     generalSection() +
     participantSection() +
     addKnowledgeCard() +
-    `<div class="actions sticky">${btn("save", unsaved() || briefDraft !== null ? "Save study" : "Saved", unsaved() || briefDraft !== null)}${btn("goto:configs", "Agent configurations →", !unsaved() && briefDraft === null && !briefMissing)}</div>`
+    `<div class="actions sticky">${btn("save", unsaved() || briefDraft !== null ? "Save study" : "Saved", next === "save")}${btn("goto:configs", "Agent configurations →", next === "goto:configs")}</div>`
   );
+}
+/**
+ * The Evidence page's next step, which alone gets the primary button: finish the form that is
+ * open, save your changes, write the missing brief, then go on to Agent configurations.
+ * Configurations that were never saved (templates) are no change of yours: they wait for Agent configurations.
+ */
+function evidenceNext(): string {
+  if (briefEdit !== null) return "brief-save";
+  if (knowledgeEdit) return `k-${knowledgeEdit.mode === "rename" ? "rename" : knowledgeEdit.mode}-save:${knowledgeEdit.id}`;
+  if (knowledgeDraft) return knowledgeDraft.kind === "participant" && knowledgeDraft.problems.length ? "k-discard" : "k-add-save";
+  if (edited() || briefDraft !== null) return "save";
+  if (!brief?.exists) return "brief-edit";
+  return "goto:configs";
 }
 
 function renderHome() {
-  const card = (w: WorkspaceInfo) =>
-    `<article class="card study-card"><div class="eyebrow">${esc(w.suite ?? "Study")}</div><h2>${esc(w.title)}</h2><p class="caption">${esc(w.description ?? "")}</p><div class="tags"><span class="tag">${w.synthetic ? "synthetic" : "research data"}</span><span class="tag">engine: ${esc(w.engine)}</span><span class="tag">${w.campaigns} campaign(s)</span>${w.hasHuman ? "" : '<span class="tag pending">no human reference yet</span>'}</div><div class="actions">${btn(`open:${w.id}`, "Open", true)}</div><p class="path">${esc(w.id)}</p></article>`;
-  const examples = workspaces.filter((w) => w.id.startsWith("examples/"));
+  // One primary button: the study open now, else your first own study, else Create study.
   const own = workspaces.filter((w) => !w.id.startsWith("examples/"));
-  const newStudy = `<article class="card study-card new-study"><div class="eyebrow">NEW STUDY</div><h2>Start from a document</h2><p class="caption">Create a study folder, then use <em>Understand study</em> to draft it from your protocol or manuscript. Real data stays under <code>private/studies/</code>, which git ignores.</p><label class="field">Folder name<input id="new-study-name" placeholder="e.g. my-unity-study"></label><div class="actions">${btn("create-study", "Create study", true)}</div></article>`;
+  const primary = ws && workspaces.some((w) => w.id === ws!.id) ? ws.id : own[0]?.id ?? null;
+  const card = (w: WorkspaceInfo) =>
+    `<article class="card study-card"><div class="eyebrow">${esc(w.suite ?? "Study")}</div><h2>${esc(w.title)}</h2><p class="caption">${esc(w.description ?? "")}</p><div class="tags"><span class="tag">${w.synthetic ? "synthetic" : "research data"}</span><span class="tag">engine: ${esc(w.engine)}</span><span class="tag">${w.campaigns} campaign(s)</span>${w.hasHuman ? "" : '<span class="tag pending">no human reference yet</span>'}</div><div class="actions">${btn(`open:${w.id}`, "Open", w.id === primary, `aria-label="Open ${esc(w.title)}"`)}</div><p class="path">${esc(w.id)}</p></article>`;
+  const examples = workspaces.filter((w) => w.id.startsWith("examples/"));
+  const newStudy = `<article class="card study-card new-study"><div class="eyebrow">NEW STUDY</div><h2>Start from a document</h2><p class="caption">Create a study folder, then use <em>Understand study</em> to draft it from your protocol or manuscript. Real data stays under <code>private/studies/</code>, which git ignores.</p><label class="field">Folder name<input id="new-study-name" placeholder="e.g. my-unity-study"></label><div class="actions">${btn("create-study", "Create study", primary === null)}</div></article>`;
   return (
     heading("OPEN A STUDY", "Which study are you working on?", "Each study is a folder with its description, agent configurations, campaigns and runs. Everything is saved, so you can stop and continue at any step.") +
     `<div class="study-grid">${newStudy}${own.map(card).join("")}</div>` +
@@ -767,6 +1028,11 @@ function renderConfigs() {
       .map((r) => `<option value="${r}" ${runtimeOf(a) === r ? "selected" : ""}>${r}${rt(r)?.available ? "" : " (not configured)"}</option>`)
       .join("");
   const targetsOf = (a: AgentProtocol) => (a.targets ?? study!.outcomes.map((o) => o.id)).filter((id) => !a.inputs?.includes(id));
+  // A configuration that names what the study does not have: the fix on its card is the next step.
+  const firstBroken = agents.find(hasUnknown)?.id;
+  const block = problemBlock();
+  // Other refusals of the saved files (unknown sources, measures and tasks are checked on the card as edited).
+  const savedProblem = (id: string) => (ws!.problems ?? []).find((p) => p.configId === id && p.message && !p.unknownSources.length && !p.unknownOutcomes.length && !p.unknownCases.length)?.message ?? null;
   return (
     heading("2 · PLANNER", "Configure the agents.", "Each card is one agent configuration: what it gets, at which level it predicts, with which model and runtime, how often, and which measures it predicts or receives.") +
     `<div class="card"><div class="actions">${btn("apply-default-model", `Use default model for all (${esc(settings?.forecasting.model)})`)}<select id="template" aria-label="Template">${templates()
@@ -777,7 +1043,13 @@ function renderConfigs() {
         const r = rt(runtimeOf(a));
         const tg = targetsOf(a);
         const level = a.level ?? study!.predictionLevel;
-        return `<article class="card config-card"><div class="card-heading"><div><div class="eyebrow">${esc(a.id)}</div><input class="title-input" aria-label="Configuration name" data-cfg="${esc(a.id)}" data-field="label" value="${esc(a.label)}"></div><div class="actions">${btn(`duplicate-config:${a.id}`, "Duplicate")}${btn(`remove-config:${a.id}`, "Remove")}</div></div><p class="caption">${esc(a.rationale)}</p>
+        return `<article class="card config-card"><div class="card-heading"><div><div class="eyebrow">${esc(a.id)}</div><input class="title-input" aria-label="Configuration name" data-cfg="${esc(a.id)}" data-field="label" value="${esc(a.label)}"></div><div class="actions">${btn(`duplicate-config:${a.id}`, "Duplicate")}${btn(`remove-config:${a.id}`, "Remove")}</div></div><p class="caption">${esc(a.rationale)}</p>${
+          hasUnknown(a)
+            ? `<div class="notice problem">${esc(unknownText(a))}. Saving waits until it is removed (or added back to the study).<div class="actions">${fixButton(a, a.id === firstBroken)}</div></div>`
+            : savedProblem(a.id) && ws!.problem
+            ? `<div class="notice">In the saved files: ${esc(savedProblem(a.id))}</div>`
+            : ""
+        }
         <div class="row4"><label class="field">Level<select data-cfg="${esc(a.id)}" data-field="level"><option value="population" ${level === "population" ? "selected" : ""}>Population</option><option value="individual" ${level === "individual" ? "selected" : ""} ${study!.design === "between-subjects" ? "disabled" : ""}>Individual${study!.design === "between-subjects" ? " (needs within-subjects)" : ""}</option></select></label><label class="field">Runs${level === "individual" ? " per person" : ""}<input type="number" min="1" max="${level === "individual" ? 50 : 1000}" data-cfg="${esc(a.id)}" data-field="repetitions" value="${a.repetitions ?? ""}" placeholder="${level === "individual" ? `default ${newRepetitions}` : `default ${Math.max(1, study!.participants.length)} × ${newRepetitions}`}"></label><label class="field">Runtime<select data-cfg="${esc(a.id)}" data-field="runtime">${runtimeOptions(a)}</select></label><label class="field">Token budget per session<input type="number" min="20000" max="50000000" step="1000" data-cfg="${esc(a.id)}" data-field="maxTokens" value="${a.maxTokens ?? ""}" placeholder="no limit"></label></div><p class="caption">All tokens a session uses: input (including cache) and output; at least 20,000. When what is left is under 10% of it, or under 3.5 × the last turn (the submission, a possible second one and the closing turn each re-read the context), the tools stop and the agent submits. A submitting session is never stopped for its budget (it has 3 attempts); one still calling other tools above 150% is stopped, and none after its forecast was accepted. ${a.maxTokens ? `${fmtTokensLong(a.maxTokens)} tokens.` : "Empty = no limit."}</p>
         <div class="row3"><label class="field">Provider<input data-cfg="${esc(a.id)}" data-field="provider" value="${esc(a.model.provider)}"></label><label class="field">Model<input data-cfg="${esc(a.id)}" data-field="model" value="${esc(a.model.model)}"></label><label class="field">Effort${effortSelect(`data-cfg="${esc(a.id)}" data-field="reasoning"`, a.model.reasoning)}</label></div>
         <div class="mini-title">The agent gets</div><div class="config-picks">${study!.sources
@@ -788,9 +1060,9 @@ function renderConfigs() {
               : `<label class="check"><input type="checkbox" data-src="${esc(a.id)}|${esc(src.id)}" ${a.sourceIds.includes(src.id) ? "checked" : ""}> ${esc(src.label)} <small>(${esc(src.kind)}${src.fields?.length ? `: ${esc(src.fields.join(", "))}` : ""})</small></label>`,
           )
           .join("")}${study!.cases.length ? `<label class="check"><input type="checkbox" data-app="${esc(a.id)}" ${a.tools.includes("xr-interact") ? "checked" : ""}> the running app <small>(${esc(study!.runtime.observation)} screenshots, does the tasks)</small></label>` : ""}</div>${ws!.missingSources?.[a.id]?.length ? `<p class="caption warn">Cannot run as an agent yet: ${esc(ws!.missingSources[a.id].join(", "))} is missing or incomplete (see Evidence &amp; knowledge).</p>` : ""}${a.inputs?.length ? `<p class="caption">Also measured ${a.inputs.map(outcomeName).map(esc).join(", ")} from the human data (you do not see the values).</p>` : ""}
-        <details><summary>Advanced: tool-call limit</summary><label class="field">Tool-call limit (safety cap; the forecast is not counted)<input type="number" min="0" data-cfg="${esc(a.id)}" data-field="maxToolCalls" value="${a.maxToolCalls}"></label>${budgetNote(a)}</details>
+        <details data-key="tools-${esc(a.id)}"><summary data-key="tools-${esc(a.id)}">Advanced: tool-call limit</summary><label class="field">Tool-call limit (safety cap; the forecast is not counted)<input type="number" min="0" data-cfg="${esc(a.id)}" data-field="maxToolCalls" value="${a.maxToolCalls}"></label>${budgetNote(a)}</details>
         ${r && !r.available && a.tools.includes("xr-interact") ? `<div class="notice">${esc(r.message)}</div>` : ""}
-        <details><summary>Predicts ${tg.length} of ${study!.outcomes.length} measures${a.inputs?.length ? ` · ${a.inputs.length} given as input` : ""}</summary><div class="table-scroll"><table><thead><tr><th>Measure</th><th>Predict</th><th>Give as measured input</th></tr></thead><tbody>${study!.outcomes
+        <details data-key="targets-${esc(a.id)}"><summary data-key="targets-${esc(a.id)}">Predicts ${tg.length} of ${study!.outcomes.length} measures${a.inputs?.length ? ` · ${a.inputs.length} given as input` : ""}</summary><div class="table-scroll"><table><thead><tr><th>Measure</th><th>Predict</th><th>Give as measured input</th></tr></thead><tbody>${study!.outcomes
           .map(
             (o) =>
               `<tr><td>${esc(o.label)} <span class="domain-label ${o.domain}">${o.domain}</span></td><td><input type="checkbox" aria-label="Predict ${esc(o.label)}" data-target="${esc(a.id)}|${esc(o.id)}" ${tg.includes(o.id) ? "checked" : ""}></td><td><input type="checkbox" aria-label="Give ${esc(o.label)} as input" data-input="${esc(a.id)}|${esc(o.id)}" ${a.inputs?.includes(o.id) ? "checked" : ""} ${study!.predictionTiming === "before-experience" ? "disabled title='Only for forecasts after the study'" : ""}></td></tr>`,
@@ -798,7 +1070,13 @@ function renderConfigs() {
           .join("")}</tbody></table></div></details></article>`;
       })
       .join("")}</div>
-    <div class="card"><h2>Approve</h2><p class="caption">${ws.approval.current ? `Approved ${new Date(ws.approval.approval!.approvedAt).toLocaleString()}.` : ws.approval.approved ? "Changed since approval." : "Not approved yet."} Approval records exactly the saved study and configurations.</p><label class="field">Note (optional)<input id="approve-note" placeholder="e.g. checked measures against the analysis plan"></label><div class="actions">${btn("save", unsaved() ? "Save configurations" : "Saved", unsaved())}${btn("approve", "Approve study and configurations", !unsaved() && !ws.approval.current)}${btn("goto:freeze", "Freeze →", !unsaved() && ws.approval.current)}</div></div>`
+    <div class="card"><h2>Approve</h2><p class="caption">${ws.approval.current ? `Approved ${new Date(ws.approval.approval!.approvedAt).toLocaleString()}.` : ws.approval.approved ? "Changed since approval." : "Not approved yet."} Approval records exactly the saved study and configurations.</p><label class="field">Note (optional)<input id="approve-note" placeholder="e.g. checked measures against the analysis plan"></label><div class="actions">${btn("save", unsaved() ? "Save configurations" : "Saved", !block && unsaved())}${btn("approve", "Approve study and configurations", !block && !unsaved() && !ws.approval.current)}${btn("goto:freeze", "Freeze →", !block && !unsaved() && ws.approval.current)}</div>${
+      block
+        ? `<p class="caption warn">Saving, approving and freezing wait: ${esc(block)}</p>`
+        : ws.problem && !unsaved()
+        ? `<p class="caption warn">Approving and freezing wait until the saved configurations fit the study (see the notice at the top).</p>`
+        : ""
+    }</div>`
   );
 }
 
@@ -879,7 +1157,7 @@ function campaignHistory() {
     for (const c of (children.get(parent) ?? []).sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
       // A continuation repeats its parent's design on purpose; only unrelated repeats are flagged.
       const same = ws!.campaigns.some((x) => x.id !== c.id && x.designKey === c.designKey && x.parentId !== c.id && c.parentId !== x.id);
-      rows.push(`<tr class="${c.id === campaignId ? "selected-row" : ""}"><td><span class="indent-${Math.min(depth, 4)}">${depth ? "↳ " : ""}</span><input class="label-input" data-campaign-label="${esc(c.id)}" value="${esc(c.label ?? "")}" placeholder="${esc(campaignName({ ...c, label: null }))}" aria-label="Label of campaign ${esc(c.id)}">${c.note ? `<br><span class="small">${esc(c.note)}</span>` : ""}${same ? `<br><span class="small warn">Same configurations as another campaign</span>` : ""}</td><td class="small">${esc(new Date(c.createdAt).toLocaleString())}</td><td>${c.jobs}${c.reused ? `<br><span class="small">${c.reused} reused</span>` : ""}</td><td>${c.done}</td><td>${c.failed}</td><td>${c.notStarted}</td><td>${c.real}${c.simulated ? ` + ${c.simulated} sim` : ""}</td><td>${money(c.costUsd)}</td><td>${btn(`use-campaign:${c.id}`, c.id === campaignId ? "Shown" : "Show", c.id === campaignId)} ${btn(`delete-campaign:${c.id}`, "Delete")}</td></tr>`);
+      rows.push(`<tr class="${c.id === campaignId ? "selected-row" : ""}"><td><span class="indent-${Math.min(depth, 4)}">${depth ? "↳ " : ""}</span><input class="label-input" data-campaign-label="${esc(c.id)}" value="${esc(c.label ?? "")}" placeholder="${esc(campaignName({ ...c, label: null }))}" aria-label="Label of campaign ${esc(c.id)}">${c.note ? `<br><span class="small">${esc(c.note)}</span>` : ""}${same ? `<br><span class="small warn">Same configurations as another campaign</span>` : ""}</td><td class="small">${esc(new Date(c.createdAt).toLocaleString())}</td><td>${c.jobs}${c.reused ? `<br><span class="small">${c.reused} reused</span>` : ""}</td><td>${c.done}</td><td>${c.failed}</td><td>${c.notStarted}</td><td>${c.real}${c.simulated ? ` + ${c.simulated} sim` : ""}</td><td>${money(c.costUsd)}</td><td>${c.id === campaignId ? `<button class="button current" data-action="use-campaign:${esc(c.id)}" aria-pressed="true">Shown</button>` : btn(`use-campaign:${c.id}`, "Show", false, 'aria-pressed="false"')} ${btn(`delete-campaign:${c.id}`, "Delete")}</td></tr>`);
       walk(c.id, depth + 1);
     }
   };
@@ -918,6 +1196,7 @@ function renderFreeze() {
   const n = study.participants.length;
   const jobs = agents.reduce((sum, a) => sum + runsOf(a) * (isIndividual(a) ? n : 1), 0);
   const above = agents.filter((a) => !isIndividual(a) && a.repetitions && a.repetitions > n * newRepetitions).map((a) => a.label);
+  const next = freezeNext();
   return (
     heading("3 · PLANNER", "Freeze a campaign.", "Freezing locks the study and configurations into a campaign with a fixed list of sessions. Later changes become a continuation that reuses finished runs.") +
     `<div class="freeze-layout"><section><div class="card"><h2>New campaign</h2><div class="row"><label class="field">Runs per participant<input type="number" min="1" max="50" id="new-reps" value="${newRepetitions}"></label><label class="field">Label (optional)<input id="new-label" value="${esc(newLabel)}" placeholder="e.g. pilot A×2, main run"></label></div><p class="caption">For configurations without their own count: individual configurations run ${newRepetitions}× per participant; population configurations get ${n} participants × ${newRepetitions} = ${n * newRepetitions} runs, the same number of forecasts. To fix a configuration's runs (for example fewer, to save usage), type a number in its Runs box below; leave it empty to follow this setting.${above.length ? ` More than ${n * newRepetitions} population runs: ${esc(above.join(", "))}.` : ""}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Runs</th><th>Sessions</th></tr></thead><tbody>${agents
@@ -942,10 +1221,26 @@ function renderFreeze() {
         : ""
     }${
       agents.every((a) => a.repetitions) ? `<div class="notice">Runs per participant changes nothing here: every configuration has a fixed run count. Clear a Runs box to make it follow runs per participant.</div>` : ""
-    }<p class="caption">${agents.length} configurations · ${jobs} sessions. Each session is one fresh agent run. An empty Runs box follows runs per participant; a number fixes it. ${ws.approval.current ? "Approved." : "Not approved yet: you can freeze, but approval documents your review."}</p><div class="actions">${btn("freeze", unsaved() ? "Save changes and freeze" : "Freeze campaign", true)}</div>${unsaved() ? '<p class="caption">You have unsaved changes (here or on Study and Agent configurations). They are saved to the study folder before freezing; an earlier approval then no longer matches.</p>' : ""}</div></section></div>${campaignHistory()}`
+    }<p class="caption">${agents.length} configurations · ${jobs} sessions. Each session is one fresh agent run. An empty Runs box follows runs per participant; a number fixes it. ${ws.approval.current ? "Approved." : "Not approved yet: you can freeze, but approval documents your review."}</p><div class="actions">${btn("freeze", unsaved() ? "Save changes and freeze" : "Freeze campaign", next === "freeze")}${ws.campaigns.length ? btn("goto:executor", "Run agents →", next === "executor") : ""}${next === "continue" ? btn("goto:continue", "Continue / rerun →", true) : ""}${next === "compare" ? btn("goto:compare", "Compare agents →", true) : ""}</div>${
+      next === "continue" ? '<p class="caption">A model changed since the campaign shown was frozen: Continue / rerun makes a new campaign that reuses the finished runs that still match.</p>' : next === "compare" ? '<p class="caption">The campaign shown is complete. Freeze again only for a new, separate campaign.</p>' : ""
+    }${unsaved() ? '<p class="caption">You have unsaved changes (here or on Study and Agent configurations). They are saved to the study folder before freezing; an earlier approval then no longer matches.</p>' : ""}</div></section></div>${campaignHistory()}`
   );
 }
 
+/**
+ * The Freeze page's next step, which alone gets the primary button: fix files that disagree, freeze
+ * (nothing frozen yet, changes, or configurations not in the campaign shown), continue after a model
+ * change, run the sessions of the campaign shown, or compare once it is complete.
+ */
+function freezeNext(): "fix" | "freeze" | "continue" | "executor" | "compare" {
+  if (problemBlock() || ws!.problem) return "fix";
+  const c = campaignOf(campaignId);
+  if (!c || unsaved()) return "freeze";
+  if (agents.some((a) => !c.models[a.id] && !c.dropped?.includes(a.id))) return "freeze";
+  if (modelChanges(c.id).length) return "continue";
+  if (c.notStarted || c.failed || c.running) return "executor";
+  return "compare";
+}
 function chosenRunnable() {
   return snapshot?.jobs.filter((j) => chosen.has(j.jobId) && canRun(j)) ?? [];
 }
@@ -959,7 +1254,7 @@ function chooser(byConfig: Map<string, JobState[]>) {
       return `<tr><td><input type="checkbox" data-pick-config="${esc(id)}" ${pickConfigs.has(id) ? "checked" : ""} aria-label="Choose ${esc(list[0].label)}"></td><td>${esc(list[0].label)}</td><td>${finished}</td><td>${open}</td><td>${picked || ""}</td></tr>`;
     })
     .join("");
-  return `<details class="chooser" ${chosen.size || pickConfigs.size ? "open" : ""}><summary>Choose sessions to run, or configurations to rerun</summary>
+  return `<details class="chooser" data-key="chooser" ${chosen.size || pickConfigs.size ? "open" : ""}><summary data-key="chooser">Choose sessions to run, or configurations to rerun</summary>
     <div class="table-scroll"><table><thead><tr><th><span class="sr-only">Choose</span></th><th>Configuration</th><th>Finished</th><th>Not run yet</th><th>Selected</th></tr></thead><tbody>${rows}</tbody></table></div>
     <div class="row"><label class="field">Sessions per checked configuration<input type="number" id="pick-k" min="1" max="1000" value="${pickK}"></label></div>
     <div class="actions">${btn("pick-first", `Select the first ${pickK} of each checked configuration`)}${btn("pick-clear", "Clear selection")}${btn("rerun-configs", "Rerun the checked configurations")}</div>
@@ -1021,6 +1316,13 @@ function modeChoice() {
 }
 // The button names stay "Start …" (as the docs say); the mode choice above says what starts.
 const startLabel = (n: number, selection: boolean) => `${selection ? "Start selected" : "Start all not run yet"} (${n})`;
+/** Start: off when nothing is left to run (every session finished, running or reused). */
+function startButton(s: Snapshot | null) {
+  const selection = !!chosenRunnable().length;
+  const n = chosenRunnable().length || (s?.jobs.filter(canRun).length ?? 0);
+  if (!n) return btn("exec-start", startLabel(0, false), false, 'disabled title="Nothing to run: every session is finished, running or reused."');
+  return btn("exec-start", startLabel(n, selection), executorNext(s) === "start");
+}
 /** The executor's next sensible step, which gets the primary button. */
 function executorNext(s: Snapshot | null): "start" | "rerun" | "analyze" | null {
   if (!s) return null;
@@ -1038,10 +1340,12 @@ function renderExecutor() {
   const total = s?.jobs.length ?? 0;
   const byConfig = new Map<string, JobState[]>();
   s?.jobs.forEach((j) => byConfig.set(j.agentId, [...(byConfig.get(j.agentId) ?? []), j]));
+  // Pause and Stop act on sessions that run or wait; with none they are off (no "Paused" while idle).
+  const active = !!(s && (s.running || s.queued || counts.running || counts.queued));
   // SVG, because the page's security policy blocks inline style attributes.
   const colors: Record<string, string> = { done: "#3f9b6b", reused: "#9cc5ad", running: "#4c78a8", failed: "#c8564b", stopped: "#d9a441", queued: "#b9c9d9", "not-started": "#e8ebe6" };
   let x = 0;
-  const bar = `<svg class="progress-svg" viewBox="0 0 1000 10" preserveAspectRatio="none" role="img" aria-label="Progress">${["done", "reused", "running", "failed", "stopped", "queued", "not-started"]
+  const bar = `<svg class="progress-svg" viewBox="0 0 1000 10" preserveAspectRatio="none" role="img" aria-label="Progress: ${esc(Object.entries(counts).map(([k, v]) => `${v} ${k === "not-started" ? "not started" : k}`).join(", ") || "no sessions")}">${["done", "reused", "running", "failed", "stopped", "queued", "not-started"]
     .map((k) => {
       if (!counts[k] || !total) return "";
       const w = (counts[k] / total) * 1000;
@@ -1063,16 +1367,16 @@ function renderExecutor() {
     ${modeChoice()}
     <div class="row"><label class="field">Parallel sessions<input type="number" id="exec-concurrency" min="1" max="8" value="${settings?.concurrency ?? 1}"></label></div>
     ${chooser(byConfig)}
-    <div class="actions">${btn("exec-start", startLabel(chosenRunnable().length || (s?.jobs.filter(canRun).length ?? 0), !!chosenRunnable().length), executorNext(s) === "start")}${btn("exec-pause", "Pause")}${resumeButton(s)}${btn("exec-stop", "Stop")}${btn("exec-rerun", "Rerun failed", executorNext(s) === "rerun")}${btn("exec-export", "Save runs as zip")}${btn("exec-import", "Load runs zip")}${executorNext(s) === "analyze" ? btn("goto:compare", "Compare agents →", true) : ""}</div>
+    <div class="actions">${startButton(s)}${active ? btn("exec-pause", "Pause") : btn("exec-pause", "Pause", false, 'disabled title="Nothing is running or waiting."')}${resumeButton(s)}${active ? btn("exec-stop", "Stop") : btn("exec-stop", "Stop", false, 'disabled title="Nothing is running or waiting."')}${(counts.failed ?? 0) + (counts.stopped ?? 0) ? btn("exec-rerun", "Rerun failed", executorNext(s) === "rerun") : btn("exec-rerun", "Rerun failed", false, 'disabled title="No session failed or was stopped."')}${btn("exec-export", "Save runs as zip")}${btn("exec-import", "Load runs zip")}${executorNext(s) === "analyze" ? btn("goto:compare", "Compare agents →", true) : ""}</div>
     <p class="caption">${study?.synthetic ? "Simulated runs are labelled, and never pooled with real runs of the same configuration." : "This is a research study: simulated runs only test the pipeline. They are labelled and never scored against the human data."} Agent runs use your Claude usage; the start button asks first.</p></div>
-    <div class="preview-bar"><label class="check"><input type="checkbox" id="watch-running" ${watchRunning ? "checked" : ""}> Preview all running sessions</label>${shownJobs().length ? btn("preview-none", "Close previews") : ""}<span class="small">Click a session to preview it; Ctrl/⌘-click (or Shift-click) to preview several; click it again to close.</span></div>
+    <div class="preview-bar"><label class="check"><input type="checkbox" id="watch-running" ${watchRunning ? "checked" : ""}> Preview all running sessions</label>${shownJobs().length ? btn("preview-none", "Close previews") : ""}<span class="small">Click a session (or focus it and press Enter or Space) to preview it; Ctrl/⌘ or Shift with it previews several; again closes it.</span></div>
     <div class="exec-layout ${shownJobs().length ? (shownJobs().length > 1 ? "multi" : "") : "no-preview"}"><div class="card job-table"><div class="table-scroll"><table><thead><tr><th><span class="sr-only">Choose</span></th><th>Configuration</th><th>Job</th><th>Status</th><th title="Tool calls before the forecast; submitting the forecast is not counted">Tools</th><th>Last step</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${[...byConfig]
       .map(([, list]) =>
         configSum(list) +
         list
           .map(
             (j, i) =>
-              `<tr class="${shownJobs().some((x) => x.jobId === j.jobId) ? "selected-row" : ""}" data-job="${esc(j.jobId)}"><td>${canRun(j) ? `<input type="checkbox" data-pick-job="${esc(j.jobId)}" ${chosen.has(j.jobId) ? "checked" : ""} aria-label="Choose ${esc(j.label)} ${esc(j.jobId)}">` : ""}</td><td>${i === 0 ? esc(j.label) : ""}</td><td>${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition}${j.attempts > 1 ? ` (a${j.attempts})` : ""}</td><td><span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status === "queued" ? "waiting" : j.status}${j.simulated ? " · sim" : ""}</span></td><td>${j.toolCalls || ""}</td><td class="wrap small">${j.warning ? `<span class="warn">${esc(j.warning)}</span>${j.error || j.lastTool ? "<br>" : ""}` : ""}${esc(j.error ?? j.lastTool ?? "")}</td><td>${j.simulated ? '<span class="small">— (simulated)</span>' : tokenCell(j)}</td><td>${costCell(j)}</td></tr>`,
+              `<tr class="${shownJobs().some((x) => x.jobId === j.jobId) ? "selected-row" : ""}" data-job="${esc(j.jobId)}" tabindex="0" aria-selected="${shownJobs().some((x) => x.jobId === j.jobId)}"><td>${canRun(j) ? `<input type="checkbox" data-pick-job="${esc(j.jobId)}" ${chosen.has(j.jobId) ? "checked" : ""} aria-label="Choose ${esc(j.label)} ${esc(j.jobId)}">` : ""}</td><td>${i === 0 ? esc(j.label) : ""}</td><td>${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition}${j.attempts > 1 ? ` (a${j.attempts})` : ""}</td><td><span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status === "queued" ? "waiting" : j.status}${j.simulated ? " · sim" : ""}</span></td><td>${j.toolCalls || ""}</td><td class="wrap small">${j.warning ? `<span class="warn">${esc(j.warning)}</span>${j.error || j.lastTool ? "<br>" : ""}` : ""}${esc(j.error ?? j.lastTool ?? "")}</td><td>${j.simulated ? '<span class="small">— (simulated)</span>' : tokenCell(j)}</td><td>${costCell(j)}</td></tr>`,
           )
           .join(""),
       )
@@ -1090,6 +1394,16 @@ function renderCompareAgents() {
     campaignBar() +
     renderAgentCmp()
   );
+}
+/**
+ * Compare with humans: the one primary button follows the next step — analyze the campaign, then
+ * draw a figure. Without human data only the human card could help, and it has nothing to show.
+ */
+function analyzerNext(): "analyze" | "draw" | "draw-human" | null {
+  if (!ws?.hasHuman) return null;
+  if (!analysis) return "analyze";
+  if (!figureSvg && !figureData?.empty) return "draw";
+  return null;
 }
 /** Analyzer, page 2: human data on its own, and agents against the humans. */
 function renderAnalyzer() {
@@ -1138,12 +1452,13 @@ function renderAgentCmp() {
 
 /** Which human design differences the scores use, in words. */
 function pairRuleText(a: AnalysisView) {
-  const pairs = (showSignificantOnly && a.significantOnly ? a.significantOnly.humanPairs : a.humanPairs) ?? [];
+  // Counted per domain, like the figure: the design pairs of this domain's measures.
+  const pairs = (((showSignificantOnly && a.significantOnly ? a.significantOnly.humanPairs : a.humanPairs) ?? []) as HumanPairView[]).filter((p) => a.outcomes.find((o) => o.id === p.outcomeId)?.domain === domain);
   const used = pairs.filter((p) => p.used).length;
   if (a.design === "between-subjects")
-    return `Between-subjects: agents are scored only on design pairs where the human groups differ significantly (Mann–Whitney U, Holm within each measure, α = .05): ${used} of ${pairs.length} pairs. Preference rankings and individual forecasts do not apply.${used ? "" : " Nothing can be scored yet: no difference between the groups is significant. With fewer than 2 people in a group no test is possible, and small groups rarely reach significance."}`;
+    return `Between-subjects: agents are scored only on design pairs where the human groups differ significantly (Mann–Whitney U, Holm within each measure, α = .05): ${used} of ${plural(pairs.length, "design pair")} (${domain} measures). Preference rankings and individual forecasts do not apply.${used ? "" : " Nothing can be scored yet: no difference between the groups is significant. With fewer than 2 people in a group no test is possible, and small groups rarely reach significance."}`;
   if (showSignificantOnly)
-    return `Second view: only design pairs with a significant paired human difference (Wilcoxon signed-rank, Holm within each measure, α = .05): ${used} of ${pairs.length} pairs. Population configurations only.`;
+    return `Second view: only design pairs with a significant paired human difference (Wilcoxon signed-rank, Holm within each measure, α = .05): ${used} of ${plural(pairs.length, "design pair")} (${domain} measures). Population configurations only.`;
   return "Within-subjects: agents are scored on every difference of the human design means (main analysis).";
 }
 /** The human design differences per measure, with their test, and whether agents are scored on them. */
@@ -1170,12 +1485,12 @@ function absoluteCard(a: AnalysisView) {
     .map(([id, list]) => {
       const inside = list.filter((f) => f.inside).length;
       const detail = list
-        .map((f) => `<tr class="${f.inside ? "" : "miss"}"><td>${esc(outcome(f.outcomeId)?.label ?? f.outcomeId)}</td><td>${esc(f.conditionId)}</td><td>${fmt(f.agent)}</td><td>${fmt(f.human)} [${fmt(f.low)}, ${fmt(f.high)}], n = ${f.n}${f.degenerate ? ` <span class="small" title="${esc(f.note ?? "")}">(all gave the same value)</span>` : ""}</td><td>${f.error >= 0 ? "+" : ""}${fmt(f.error)}</td><td>${f.inside ? (f.degenerate ? "exact match" : "inside") : "outside"}</td></tr>`)
+        .map((f) => `<tr class="${f.inside ? "" : "miss"}"><td>${esc(outcome(f.outcomeId)?.label ?? f.outcomeId)}</td><td>${esc(f.conditionId)}</td><td>${fmt(f.agent)}</td><td>${fmt(f.human)} [${fmt(f.low)}, ${fmt(f.high)}]${clippedToScale(study?.outcomes.find((o) => o.id === f.outcomeId)?.scale, study?.conditions.length ?? 0, f.low, f.high, f.degenerate, study?.outcomes.find((o) => o.id === f.outcomeId)?.range) ? ' <span class="small">(clipped to the scale)</span>' : ""}, n = ${f.n}${f.degenerate ? ` <span class="small" title="${esc(f.note ?? "")}">(all gave the same value)</span>` : ""}</td><td>${f.error >= 0 ? "+" : ""}${fmt(f.error)}</td><td>${f.inside ? (f.degenerate ? "exact match" : "inside") : "outside"}</td></tr>`)
         .join("");
-      return `<details><summary><strong>${esc(label(id))}</strong>: ${inside} of ${list.length} values inside the human 95% CI</summary><div class="table-scroll"><table><thead><tr><th>Measure</th><th>Design</th><th>Agent (mean of runs)</th><th>Human mean [95% CI]</th><th>Agent − human</th><th></th></tr></thead><tbody>${detail}</tbody></table></div></details>`;
+      return `<details data-key="abs-${esc(id)}"><summary data-key="abs-${esc(id)}"><strong>${esc(label(id))}</strong>: ${inside} of ${list.length} values inside the human 95% CI</summary><div class="table-scroll"><table><thead><tr><th>Measure</th><th>Design</th><th>Agent (mean of runs)</th><th>Human mean [95% CI]</th><th>Agent − human</th><th></th></tr></thead><tbody>${detail}</tbody></table></div></details>`;
     })
     .join("");
-  return `<div class="card"><h2>Absolute values (${domain})</h2><p class="caption">Population configurations: is the mean of the runs' predictions inside the human group's 95% confidence interval (t interval; geometric measures on the log scale)? ${a.design === "between-subjects" ? "Between subjects, these group values are what the study compares." : ""}</p>${rows}</div>`;
+  return `<div class="card"><h2>Absolute values (${domain})</h2><p class="caption">Population configurations: is the mean of the runs' predictions inside the human group's 95% confidence interval (t interval; geometric measures on the log scale; an interval that would pass a bound of its scale, such as 0–1 for proportions, 1–k for mean ranks or a declared range, is cut there and marked "clipped to the scale")? ${a.design === "between-subjects" ? "Between subjects, these group values are what the study compares." : ""}</p>${rows}</div>`;
 }
 
 let humanFig: any = null;
@@ -1192,7 +1507,7 @@ function humanCard() {
   const label = (id: string) => study!.conditions.find((c) => c.id === id)?.label ?? id;
   const tables = f
     ? `<div class="table-scroll"><table><thead><tr><th>Design</th><th>n</th><th>${f.logScale ? "Geometric mean" : "Mean"} [95% CI]</th><th>Median</th>${f.logScale ? "" : "<th>SD</th>"}</tr></thead><tbody>${f.summary
-        .map((r: any) => `<tr><td>${esc(r.label)}</td><td>${r.n}</td><td>${num(r.mean)} [${num(r.low)}, ${num(r.high)}]</td><td>${num(r.median)}</td>${f.logScale ? "" : `<td>${num(r.sd)}</td>`}</tr>`)
+        .map((r: any) => `<tr><td>${esc(r.label)}</td><td>${r.n}</td><td>${num(r.mean)} [${num(r.low)}, ${num(r.high)}]${clippedToScale(f.outcome?.scale, study!.conditions.length, r.low, r.high, r.degenerate, study!.outcomes.find((o) => o.id === f.outcome?.id)?.range) ? ' <span class="small">(clipped to the scale)</span>' : ""}</td><td>${num(r.median)}</td>${f.logScale ? "" : `<td>${num(r.sd)}</td>`}</tr>`)
         .join("")}</tbody></table></div>
       <div class="table-scroll"><table><thead><tr><th>Designs</th><th>Test</th><th>p</th><th>p (Holm)</th></tr></thead><tbody>${f.brackets
         .map((b: any) => `<tr><td>${esc(label(b.a))} vs ${esc(label(b.b))}</td><td>${esc(b.test)}</td><td>${pv(b.p)}</td><td>${pv(b.holm)} ${b.stars}</td></tr>`)
@@ -1200,7 +1515,7 @@ function humanCard() {
     : "";
   return `<div class="card"><h2>Human data</h2><p class="caption">The participants' values per design for one measure, with the test that fits the ${esc(study.design)} design. No configuration or agent run is needed.</p>
     <div class="row"><label class="field">Measure<select id="hu-outcome">${options}</select></label></div>
-    <div class="actions">${btn("draw-human", "Show human data", true)}${humanSvg ? btn("save-human-svg", "Save SVG") + btn("save-human-png", "Save PNG") : ""}</div>
+    <div class="actions">${btn("draw-human", "Show human data", analyzerNext() === "draw-human")}${humanSvg ? btn("save-human-svg", "Save SVG") + btn("save-human-png", "Save PNG") : ""}</div>
     ${humanSvg ? `<div class="figure">${humanSvg}</div>${tables}` : ""}</div>`;
 }
 
@@ -1234,17 +1549,20 @@ function renderHumans() {
   const ws_ = ws!;
   if (!analysis)
     return (
-      `<div class="card"><h2>Agents against the humans</h2><p class="caption">Reads the human reference and the finished runs of the campaign shown (including reused runs from earlier campaigns).</p><div class="actions">${btn("analyze", "Analyze campaign", true)}${btn("exec-import", "Load runs zip")}</div><p class="caption">Human reference: ${ws_.hasHuman ? "available" : "missing (human.json)"}.</p></div>`
+      `<div class="card"><h2>Agents against the humans</h2><p class="caption">Reads the human reference and the finished runs of the campaign shown (including reused runs from earlier campaigns).</p><div class="actions">${btn("analyze", "Analyze campaign", analyzerNext() === "analyze")}${btn("exec-import", "Load runs zip")}</div><p class="caption">Human reference: ${ws_.hasHuman ? "available" : "missing (human.json)"}.</p></div>`
     );
   const a = analysis;
   const level = (id: string) => a.configs.find((c) => c.id === id)?.level;
   const views = analyzerViews(a);
   const outcomeOptions = a.outcomes.map((o) => `<option value="${o.id}" ${o.id === outcomeId ? "selected" : ""}>${esc(o.label)}</option>`).join("");
+  const usedPairs = ((showSignificantOnly && a.significantOnly ? a.significantOnly.humanPairs : a.humanPairs) ?? []).filter((p) => p.used && a.outcomes.find((o) => o.id === p.outcomeId)?.domain === domain).length;
   const summaryRows = (showSignificantOnly && a.significantOnly ? a.significantOnly.summaries : a.summaries)
     .filter((s) => s.domain === domain)
     .map((s) => {
       const c = a.configs.find((x) => x.id === s.agentId);
-      return `<tr><td>${esc(c?.label ?? s.agentId)}</td><td>${esc(s.level ?? c?.level)}</td><td>${esc(c?.model.model)}</td><td>${pct(s.agreement)}</td><td>${s.ci95 ? `${pct(s.ci95.low)} – ${pct(s.ci95.high)}` : "—"}</td><td>${s.scoreable} / ${s.assigned}${s.simulated ? `<br><span class="small">${s.real ? `${s.real} real + ${s.simulated} simulated; simulated left out` : `${s.simulated} simulated`}</span>` : ""}</td></tr>`;
+      // Runs that could be scored, next to an agreement of "—": say why nothing was scored.
+      const why = s.agreement == null && s.scoreable && !usedPairs ? `<br><span class="small">none scored: no ${a.design === "between-subjects" || showSignificantOnly ? "significant " : ""}design pair</span>` : "";
+      return `<tr><td>${esc(c?.label ?? s.agentId)}</td><td>${esc(s.level ?? c?.level)}</td><td>${esc(c?.model.model)}</td><td>${pct(s.agreement)}</td><td>${s.ci95 ? `${pct(s.ci95.low)} – ${pct(s.ci95.high)}` : "—"}</td><td>${s.scoreable} / ${s.assigned}${why}${s.simulated ? `<br><span class="small">${s.real ? `${s.real} real + ${s.simulated} simulated; simulated left out` : `${s.simulated} simulated`}</span>` : ""}</td></tr>`;
     })
     .join("");
   const name = (id: string) => a.configs.find((c) => c.id === id)?.label ?? id;
@@ -1258,19 +1576,19 @@ function renderHumans() {
     `<div class="card"><div class="config-picks">${a.configs
       .map((c) => `<label class="check"><input type="checkbox" data-pick="${esc(c.id)}" ${selected.has(c.id) ? "checked" : ""}> ${esc(c.label)} <small>(${c.level}, ${esc(c.model.model)})</small></label>`)
       .join("")}</div>
-    <div class="tabs">${views.map(([v, l]) => `<button class="tab ${view === v ? "active" : ""}" data-view="${v}">${l}</button>`).join("")}</div>
+    <div class="tabs" role="tablist" aria-label="Figure view">${views.map(([v, l]) => `<button class="tab ${view === v ? "active" : ""}" role="tab" id="tab-${v}" aria-selected="${view === v}" aria-controls="figure-panel" tabindex="${view === v ? 0 : -1}" data-view="${v}">${l}</button>`).join("")}</div>
     <div class="row"><label class="field">Domain<select id="an-domain"><option value="subjective" ${domain === "subjective" ? "selected" : ""}>Subjective</option><option value="objective" ${domain === "objective" ? "selected" : ""}>Objective</option></select></label>${view === "agent-vs-human" ? `<label class="field">Measure<select id="an-outcome">${outcomeOptions}</select></label>` : ""}</div>
-    <div class="actions">${btn("draw", "Draw figure", true)}${figureSvg ? btn("save-svg", "Save SVG") + btn("save-png", "Save PNG") : ""}${btn("analyze", "Re-analyze")}${btn("explain", "Explain with assistant")}${btn("exec-import", "Load runs zip")}</div>
+    <div class="actions">${btn("draw", "Draw figure", analyzerNext() === "draw")}${figureSvg ? btn("save-svg", "Save SVG") + btn("save-png", "Save PNG") : ""}${btn("analyze", "Re-analyze")}${btn("explain", "Explain with assistant")}${btn("exec-import", "Load runs zip")}</div>
     ${view === "trajectories" && [...selected].some((id) => level(id) !== "individual") ? '<p class="caption">Participant lines use individual configurations only; population configurations are ignored here.</p>' : ""}
-    <div class="figure">${figureSvg || (figureData?.empty ? `<p class="caption warn">${esc(figureData.note)}</p>` : '<p class="caption">Choose configurations and a view, then draw the figure.</p>')}</div>${figureData?.omitted?.length ? `<div class="notice">${figureData.omitted.map((n: string) => esc(n)).join("<br>")}</div>` : ""}${figureData?.note && !figureData.empty ? `<p class="caption">${esc(figureData.note)}</p>` : ""}
+    <div class="figure" id="figure-panel" role="tabpanel" aria-labelledby="tab-${view}">${figureSvg || (figureData?.empty ? `<p class="caption warn">${esc(figureData.note)}</p>` : '<p class="caption">Choose configurations and a view, then draw the figure.</p>')}</div>${figureData?.omitted?.length ? `<div class="notice">${figureData.omitted.map((n: string) => esc(n)).join("<br>")}</div>` : ""}${figureData?.note && !figureData.empty ? `<p class="caption">${esc(figureData.note)}</p>` : ""}
     ${
       figureData?.discrepancies
         ? `<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Design</th><th>Human</th><th>Agent</th><th>Discrepancy</th><th>Test</th><th>Holm p</th></tr></thead><tbody>${figureData.discrepancies
             .map((r: any) => `<tr${r.simulated ? ' class="simulated-row"' : ""}><td>${esc(name(r.agentId))}${r.simulated ? ' <span class="small warn">(simulated)</span>' : ""}</td><td>${esc(study?.conditions.find((c) => c.id === r.conditionId)?.label ?? r.conditionId)}</td><td>${Number(r.humanCentre).toFixed(2)}</td><td>${Number(r.agentCentre).toFixed(2)}</td><td>${Number(r.discrepancy).toFixed(2)}</td><td class="small">${esc(r.test ?? "")}</td><td>${r.holm == null ? "—" : r.holm.toFixed(3)} ${r.stars}</td></tr>`)
             .join("")}</tbody></table></div>`
         : ""
-    }${explainText ? `<div class="notice neutral explain">${esc(explainText).replace(/\n/g, "<br>")}</div>` : ""}</div>
-    <div class="card"><h2>Scores (${domain})${showSignificantOnly ? " · significant human differences only" : ""}</h2><p class="caption">${pairRuleText(a)}</p>${a.significantOnly ? `<div class="actions">${btn("toggle-significant", showSignificantOnly ? "Show scores on all mean differences" : "Show scores on significant differences only")}</div>` : ""}<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Model</th><th>Agreement</th><th>95% interval</th><th>Scoreable</th></tr></thead><tbody>${summaryRows}</tbody></table></div></div>
+    }${explainText ? `<div class="notice neutral explain"><p class="explain-by">The assistant's explanation:</p>${markdownToHtml(explainText)}</div>` : ""}</div>
+    <div class="card"><h2>Scores (${domain})${showSignificantOnly ? " · significant human differences only" : ""}</h2><p class="caption">${pairRuleText(a)}</p>${a.significantOnly ? `<div class="actions">${btn("toggle-significant", showSignificantOnly ? "Show scores on all mean differences" : "Show scores on significant differences only")}</div>` : ""}<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Model</th><th>Agreement</th><th>95% interval</th><th>Scoreable runs</th></tr></thead><tbody>${summaryRows}</tbody></table></div></div>
     ${humanPairsCard(a)}${absoluteCard(a)}
     <div class="card"><h2>Planned comparisons</h2><p class="caption">Chosen at analysis (they are not needed for data collection). One Holm correction covers all of them; choosing them changes no other number.</p><div class="table-scroll"><table><thead><tr><th>Candidate − baseline</th><th>Domain</th><th>Difference</th><th>95% interval</th><th>Holm p</th><th></th></tr></thead><tbody>${comparisons
       .map((c, i) => {
@@ -1278,7 +1596,7 @@ function renderHumans() {
         return `<tr><td>${esc(name(c.candidate))} − ${esc(name(c.baseline))}</td><td>${c.domain}</td><td>${r?.difference == null ? "—" : (r.difference * 100).toFixed(1) + " pp"}</td><td>${r?.ci95 ? `${pct(r.ci95.low)} – ${pct(r.ci95.high)}` : "—"}</td><td>${r?.holmP == null ? (r?.status.startsWith("Not tested") ? `<span class="small warn">${esc(r.status)}</span>` : "—") : r.holmP.toFixed(3)}</td><td>${btn(`cmp-remove:${i}`, "Remove")}</td></tr>`;
       })
       .join("")}<tr><td><select id="cmp-a" aria-label="Candidate">${a.configs.map((c) => `<option value="${c.id}">${esc(c.label)}</option>`).join("")}</select> − <select id="cmp-b" aria-label="Baseline">${a.configs.map((c) => `<option value="${c.id}">${esc(c.label)}</option>`).join("")}</select></td><td><select id="cmp-d" aria-label="Domain"><option>subjective</option><option>objective</option></select></td><td></td><td></td><td></td><td>${btn("cmp-add", "Add")}</td></tr></tbody></table></div><div class="actions">${btn("cmp-save", "Save comparisons")}</div></div>
-    ${a.exclusions.length || a.notes.length ? `<div class="card"><details><summary>Notes and exclusions</summary><ul>${[...a.exclusions, ...a.notes].map((n) => `<li class="caption">${esc(n)}</li>`).join("")}</ul></details></div>` : ""}`
+    ${a.exclusions.length || a.notes.length ? `<div class="card"><details data-key="notes"><summary data-key="notes">Notes and exclusions</summary><ul>${[...a.exclusions, ...a.notes].map((n) => `<li class="caption">${esc(n)}</li>`).join("")}</ul></details></div>` : ""}`
   );
 }
 
@@ -1303,14 +1621,14 @@ function renderContinue() {
     <div class="notice neutral cont-help"><p><strong>Runs</strong>: more runs than before add sessions; finished ones are reused.</p><p><strong>Changing a model</strong> is done on <strong>Agent configurations</strong>: change the configuration's model there and save. Continue then runs that configuration again in full with its new model; its runs with the old model are not reused.</p><p><strong>Add model</strong> appends a model: the configuration stays as it is (its finished runs are reused) and a copy with the added model joins it, so both models can be compared with the method held fixed.</p><p><strong>Rerun</strong>: fresh sessions with the same setup. <strong>Drop</strong>: leave the configuration out.</p></div>
     ${modelChanges(base).length ? `<div class="notice">Model changed on Agent configurations since this campaign: ${modelChanges(base).map((m) => `${esc(m.label)} (${esc(m.from)} → ${esc(m.to)})`).join("; ")}. Continue runs ${modelChanges(base).length === 1 ? "it" : "them"} again with the new model.</div>` : ""}
     <div class="table-scroll"><table class="continuation-table"><thead><tr><th>Configuration</th><th>Runs</th><th>Add model</th><th>Rerun</th><th>Drop</th></tr></thead><tbody>${rows}</tbody></table></div>
-    <h3>Model for "Add model"</h3>
+    <h2 class="subhead">Model for "Add model"</h2>
     <div class="row3"><label class="field">Provider<input id="cont-arm-provider" value="${esc(contArmModel.provider)}"></label><label class="field">Model<input id="cont-arm-model" value="${esc(contArmModel.model)}" placeholder="exact model ID"></label><label class="field">Effort${effortSelect('id="cont-arm-reasoning"', contArmModel.reasoning)}</label></div>
     <label class="field">Name of the added copy: suffix<input id="cont-suffix" value="${esc(contSuffix)}" placeholder="from the model ID, e.g. uses-app-fable-5-2"></label>
     <p class="caption">Effort is how much the model thinks before answering (Claude Code's --effort); "default" leaves it to Claude Code.</p>
     <label class="field">Note<input id="cont-note" value="${esc(contNote)}" placeholder="why this continuation"></label>
     <label class="check"><input type="checkbox" id="cont-keep-sim" ${contKeepSimulated ? "checked" : ""}> Keep simulated runs</label>
     <p class="caption">Off: sessions that were only simulated run again, like sessions that never ran (choose this before running real agents). On: finished simulated runs are reused, for trying the pipeline.</p>
-    <div class="actions">${btn("cont-preview", "Preview", true)}${p ? btn("cont-adopt", "Create continuation") : ""}</div>${
+    <div class="actions">${btn("cont-preview", p ? "Preview again" : "Preview", !p)}${p ? btn("cont-adopt", "Create continuation", true) : ""}</div>${
       p
         ? (() => {
             const sim = contPreviewSim;
@@ -1319,7 +1637,7 @@ function renderContinue() {
               ? ` ${sim.reused} of the reused runs ${sim.reused === 1 ? "is" : "are"} simulated (invented); they test the pipeline, not prediction quality.`
               : "";
             const againLine = sim?.runAgain ? ` ${sim.runAgain} session${sim.runAgain === 1 ? " was" : "s were"} only simulated and run${sim.runAgain === 1 ? "s" : ""} again.` : "";
-            return `<div class="divider"></div>${contPreviewSources.map((n) => `<div class="notice">${esc(n)}</div>`).join("")}<p class="caption">${p.jobs.filter((j: any) => j.kind === "llm" && !j.inheritedFrom).length} new sessions, ${reused} reused (only sessions with an accepted forecast are reused).${simLine}${againLine}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Model</th><th>Sessions</th><th>Reused</th></tr></thead><tbody>${p.suite.conditions
+            return `<div class="divider"></div>${contPreviewSources.map((n) => `<div class="notice">${esc(n)}</div>`).join("")}<p class="caption">${plural(p.jobs.filter((j: any) => j.kind === "llm" && !j.inheritedFrom).length, "new session")}, ${reused} reused (only sessions with an accepted forecast are reused).${simLine}${againLine}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Model</th><th>Sessions</th><th>Reused</th></tr></thead><tbody>${p.suite.conditions
               .map((c: any) => {
                 const jobs = p.jobs.filter((j: any) => j.conditionId === c.id);
                 const s = sim?.byCondition[c.id];
@@ -1351,6 +1669,16 @@ function modelChanges(baseId: string | null) {
     if (!old || (old.provider === a.model.provider && old.model === a.model.model && effortLevel(old.reasoning) === effortLevel(a.model.reasoning))) return [];
     return [{ id: a.id, label: a.label, from: modelText(old), to: modelText(a.model) }];
   });
+}
+/** Preview or create the continuation; "nothing changes" is said in words, not in the change set's field names. */
+async function continueCampaign(preview: boolean): Promise<any> {
+  try {
+    return await api("workspace/continue", { id: ws!.id, campaignId: contBase ?? campaignId, changes: continuationChanges(), keepSimulated: contKeepSimulated, ...(preview ? { preview: true } : {}) });
+  } catch (err) {
+    if (/^A continuation needs at least one change/.test((err as Error).message))
+      throw new Error("Nothing to continue: every session of this campaign finished and would be reused as it is. Raise the runs, tick Add model, Rerun or Drop for a configuration, or change a model on Agent configurations, then preview again.");
+    throw err;
+  }
 }
 function continuationChanges() {
   const changes: Record<string, any> = {};
@@ -1507,7 +1835,8 @@ async function action(name: string) {
       break;
     }
     case "approve":
-      if (unsaved()) throw new Error("Save first.");
+      if (unsaved()) throw new Error(problemBlock() ? `Approval waits: ${problemBlock()}` : "Save first.");
+      if (ws!.problem) throw new Error("Approval waits: the saved agent configurations do not fit the saved study (see the notice at the top). Fix them, save, then approve.");
       await api("workspace/approve", { id: ws!.id, note: $<HTMLInputElement>("approve-note")?.value ?? "" });
       await refreshWorkspace();
       toast("Approved.");
@@ -1546,7 +1875,9 @@ async function action(name: string) {
         if (!loaded || typeof loaded !== "object" || !Array.isArray(loaded.conditions) || !Array.isArray(loaded.outcomes)) throw new Error(`${f.name} does not look like a study.json (designs and measures are missing).`);
         // The study keeps its own ID: human data, campaigns and approvals refer to it.
         const other = loaded.id && loaded.id !== ws!.study.id ? loaded.id : null;
+        const wasSynthetic = !!study?.synthetic;
         study = { ...loaded, id: ws!.study.id };
+        followStudyKind(wasSynthetic, !!study.synthetic);
         toast(other ? `Loaded. The file's study ID "${other}" was replaced by this study's ID "${ws!.study.id}". Save to keep it.` : "Loaded. Save to keep it.");
       }
       break;
@@ -1586,8 +1917,27 @@ async function action(name: string) {
     case "remove-config":
       agents = agents.filter((a) => a.id !== arg);
       break;
+    case "fix-config": {
+      // Remove what the study does not have (sources, measures, tasks); the rest of the configuration stays.
+      const a = agents.find((x) => x.id === arg);
+      if (!a) break;
+      const u = unknownRefs(a);
+      setAccess(a, a.sourceIds, a.tools.includes("xr-interact"));
+      a.requiredCaseIds = a.requiredCaseIds.filter((id) => !u.cases.includes(id));
+      if (a.targets) a.targets = a.targets.filter((id) => !u.outcomes.includes(id));
+      if (a.targets && !a.targets.length) delete a.targets;
+      if (a.inputs) a.inputs = a.inputs.filter((id) => !u.outcomes.includes(id));
+      if (a.inputs && !a.inputs.length) delete a.inputs;
+      const removed = [u.sources.length ? named("source", u.sources) : "", u.outcomes.length ? named("measure", u.outcomes) : "", u.cases.length ? named("task", u.cases) : ""].filter(Boolean).join(", ");
+      toast(`Removed ${removed} from ${a.label}. Save the configurations to write the fix to agents.json.`);
+      // The fix button is gone: the focus goes to the next step, Save configurations (if this page has it).
+      if (page === "configs") focusNext = { key: "BUTTON|data-action=save", index: 0 };
+      break;
+    }
     case "freeze": {
       newRepetitions = Number($<HTMLInputElement>("new-reps").value) || 1;
+      if (problemBlock()) throw new Error(`Freezing waits: ${problemBlock()}`);
+      if (ws!.problem && !unsaved()) throw new Error("Freezing waits: the saved agent configurations do not fit the saved study (see the notice at the top). Fix them on Agent configurations and save.");
       if (unsaved() || briefDraft !== null) await saveStudy();
       const check = await api<{ duplicates: { id: string; label: string | null; createdAt: string }[]; jobs: number }>("workspace/freeze", { id: ws!.id, repetitions: newRepetitions, check: true });
       if (check.duplicates.length) {
@@ -1759,6 +2109,7 @@ async function action(name: string) {
       if (!text.trim()) throw new Error("The brief is empty. Describe the task, the designs, the procedure and the measures as participants experienced them.");
       // Other planner edits are saved first, so the brief and the study stay in step.
       if (unsaved()) {
+        checkSavable();
         await api("workspace/save", { id: ws!.id, study, agents });
         saved = JSON.stringify({ study, agents });
       }
@@ -1894,14 +2245,14 @@ async function action(name: string) {
       toast("Comparisons saved to comparisons.json.");
       break;
     case "cont-preview": {
-      const r = await api("workspace/continue", { id: ws!.id, campaignId: contBase ?? campaignId, changes: continuationChanges(), keepSimulated: contKeepSimulated, preview: true });
+      const r = await continueCampaign(true);
       contPreview = r.campaign;
       contPreviewSim = r.simulated ?? null;
       contPreviewSources = r.sourceChanges ?? [];
       break;
     }
     case "cont-adopt": {
-      const r = await api("workspace/continue", { id: ws!.id, campaignId: contBase ?? campaignId, changes: continuationChanges(), keepSimulated: contKeepSimulated });
+      const r = await continueCampaign(false);
       await refreshWorkspace();
       showCampaign(r.campaignId);
       contRows = {};
@@ -1934,6 +2285,7 @@ async function action(name: string) {
 }
 /** Save the study and configurations, and a brief taken from Understand study. Returns where the brief was written. */
 async function saveStudy(): Promise<string | null> {
+  checkSavable();
   await api("workspace/save", { id: ws!.id, study, agents });
   saved = JSON.stringify({ study, agents });
   let wrote: string | null = null;
@@ -1965,8 +2317,30 @@ function syncContinuation() {
 }
 
 // ---------- events ----------
+/** Preview a session of the executor table (one, or several with Ctrl, ⌘ or Shift); again closes it. */
+function togglePreview(id: string, several: boolean) {
+  if (several) watched.has(id) ? watched.delete(id) : watched.add(id);
+  else watched = watched.size === 1 && watched.has(id) ? new Set() : new Set([id]);
+  selectedJob = watched.size === 1 ? [...watched][0] : null;
+  render();
+  if (selectedJob) void loadAttempts(selectedJob).catch(() => undefined);
+}
+/** Show the figure view of a tab (Agreement, Agent vs human, …); the old figure belongs to the old view. */
+function chooseView(v: View) {
+  view = v;
+  figureSvg = "";
+  figureData = null;
+  render();
+}
 document.addEventListener("click", async (e) => {
   const t = e.target as HTMLElement;
+  const skip = t.closest<HTMLElement>(".skip-link");
+  if (skip) {
+    // To the page title, without changing the address (the study stays in it).
+    e.preventDefault();
+    focusHeading();
+    return;
+  }
   const nav = t.closest<HTMLElement>("[data-page]");
   if (nav) {
     if (page === "continue") syncContinuation();
@@ -1974,6 +2348,8 @@ document.addEventListener("click", async (e) => {
     page = nav.dataset.page as Page;
     if (page === "continue" && from !== "continue") enterContinue();
     if (page === "evidence") evidence = null;
+    // A new page: the focus goes to its title, so keyboard and screen reader users start there.
+    focusNext = "heading";
     render();
     window.scrollTo(0, 0);
     if (page === "evidence") void loadEvidence();
@@ -1981,26 +2357,21 @@ document.addEventListener("click", async (e) => {
   }
   const row = t.closest<HTMLElement>("[data-job]");
   if (row && !t.closest("button") && !t.closest("input")) {
-    const id = row.dataset.job!;
     const me = e as MouseEvent;
-    if (me.metaKey || me.ctrlKey || me.shiftKey) watched.has(id) ? watched.delete(id) : watched.add(id);
-    else watched = watched.size === 1 && watched.has(id) ? new Set() : new Set([id]);
-    selectedJob = watched.size === 1 ? [...watched][0] : null;
-    render();
-    if (selectedJob) void loadAttempts(selectedJob).catch(() => undefined);
+    togglePreview(row.dataset.job!, me.metaKey || me.ctrlKey || me.shiftKey);
     return;
   }
   const tab = t.closest<HTMLElement>("[data-view]");
   if (tab) {
-    view = tab.dataset.view as View;
-    figureSvg = "";
-    figureData = null;
-    render();
+    chooseView(tab.dataset.view as View);
     return;
   }
   const b = t.closest<HTMLElement>("[data-action]");
   if (!b || busy) return;
   if (page === "continue") syncContinuation();
+  const from = page;
+  // The button is disabled while its action runs, which takes the focus away: it comes back after the redraw.
+  if ($("content").contains(b)) focusNext = markOf(b);
   try {
     busy = true;
     b.setAttribute("disabled", "");
@@ -2009,33 +2380,67 @@ document.addEventListener("click", async (e) => {
     toast((err as Error).message, true);
   } finally {
     busy = false;
+    if (page !== from) focusNext = "heading";
     render();
   }
 });
+document.addEventListener("keydown", (e) => {
+  const t = e.target as HTMLElement;
+  // Executor table rows: Enter or Space previews the session, as a click does.
+  if (t.matches?.("tr[data-job]") && (e.key === "Enter" || e.key === " ")) {
+    e.preventDefault();
+    togglePreview(t.dataset.job!, e.ctrlKey || e.metaKey || e.shiftKey);
+    return;
+  }
+  // Figure views are tabs: arrow keys, Home and End move between them and show the view.
+  if (t.matches?.("[role=tab][data-view]") && ["ArrowLeft", "ArrowRight", "Home", "End"].includes(e.key)) {
+    const tabs = Array.from(t.parentElement!.querySelectorAll<HTMLElement>("[role=tab][data-view]"));
+    const i = tabs.indexOf(t);
+    const j = e.key === "Home" ? 0 : e.key === "End" ? tabs.length - 1 : (i + (e.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length;
+    e.preventDefault();
+    focusNext = markOf(tabs[j]);
+    chooseView(tabs[j].dataset.view as View);
+  }
+});
+// What is typed into a text field survives a redraw until its change event takes it.
+document.addEventListener("input", (e) => {
+  const el = e.target;
+  if ((el instanceof HTMLInputElement && !["checkbox", "radio", "file"].includes(el.type)) || el instanceof HTMLTextAreaElement) typing = el;
+});
 document.addEventListener("change", (e) => {
   const el = e.target as HTMLInputElement & HTMLSelectElement;
-  if (el.id === "an-domain") domain = el.value as Domain;
-  if (el.id === "an-outcome") outcomeId = el.value;
+  if (typing === (el as unknown)) typing = null;
+  // The continuation's text fields are read before a redraw, so nothing typed there is lost.
+  if (page === "continue") syncContinuation();
+  if (el.id === "an-domain" || el.id === "an-outcome") {
+    // Scores, human differences and absolute values follow the domain at once; a drawn figure belongs to the old choice.
+    if (el.id === "an-domain") domain = el.value as Domain;
+    else outcomeId = el.value;
+    figureSvg = "";
+    figureData = null;
+    renderSoon();
+    return;
+  }
   if (el.id === "hu-outcome") {
     humanOutcome = el.value;
     humanFig = null;
     humanSvg = "";
-    render();
+    renderSoon();
     return;
   }
   if (el.name === "exec-mode") {
     mode = el.value === "agent" ? "agent" : "simulate";
-    render();
+    renderSoon();
     return;
   }
   if (el.id === "watch-running") {
     watchRunning = el.checked;
-    render();
+    renderSoon();
     return;
   }
   if (el.id === "campaign-switch") {
     showCampaign(el.value);
-    render();
+    renderSoon();
     return;
   }
   if (el.dataset.campaignLabel) {
@@ -2053,16 +2458,18 @@ document.addEventListener("change", (e) => {
     if (el.dataset.pickJob) el.checked ? chosen.add(el.dataset.pickJob) : chosen.delete(el.dataset.pickJob);
     if (el.dataset.pickConfig) el.checked ? pickConfigs.add(el.dataset.pickConfig) : pickConfigs.delete(el.dataset.pickConfig);
     if (el.id === "pick-k") pickK = Math.min(1000, Math.max(1, Math.round(Number(el.value)) || 1));
-    render();
+    renderSoon();
     return;
   }
   if (el.id === "cont-base") {
     contBase = el.value;
     contPreview = null;
+    renderSoon();
+    return;
   }
   if (el.id === "new-reps") {
     newRepetitions = Math.min(50, Math.max(1, Math.round(Number(el.value)) || 1));
-    render();
+    renderSoon();
     return;
   }
   if (!study) return;
@@ -2142,7 +2549,7 @@ document.addEventListener("change", (e) => {
         if (Number(v) > 0) study.analysis.familyWeights[el.dataset.id!] = Number(v);
         break;
     }
-    render();
+    renderSoon();
     return;
   }
   if (el.dataset.cfg) {
@@ -2170,7 +2577,7 @@ document.addEventListener("change", (e) => {
     else if (f === "maxToolCalls") a.maxToolCalls = Number(el.value);
     else if (f === "maxTokens") el.value ? (a.maxTokens = Math.round(Number(el.value))) : delete a.maxTokens;
     else if (f === "provider" || f === "model" || f === "reasoning") a.model = { ...a.model, [f]: el.value };
-    render();
+    renderSoon();
     return;
   }
   if (el.dataset.src || el.dataset.app) {
@@ -2183,7 +2590,7 @@ document.addEventListener("change", (e) => {
     }
     setAccess(a, ids, el.dataset.app ? el.checked : a.tools.includes("xr-interact"));
     if (evidence) evidence = evidence.map((e) => ({ ...e, configs: agents.filter((x) => x.sourceIds.includes(e.id)).map((x) => x.id) }));
-    render();
+    renderSoon();
     return;
   }
   if (el.dataset.target || el.dataset.input) {
@@ -2203,7 +2610,7 @@ document.addEventListener("change", (e) => {
       if (!a.inputs.length) delete a.inputs;
       if (el.checked && a.targets) a.targets = a.targets.filter((x) => x !== outcome);
     }
-    render();
+    renderSoon();
     return;
   }
   if (el.dataset.pick) {
@@ -2215,19 +2622,22 @@ document.addEventListener("change", (e) => {
     const f = el.dataset.field!;
     if (f === "repetitions") r.repetitions = Number(el.value);
     else (r as any)[f] = el.checked;
+    // A preview of other choices is gone: Create continuation waits for a new preview.
     contPreview = null;
+    renderSoon();
+    return;
   }
   if (el.id === "cont-keep-sim") {
     contKeepSimulated = el.checked;
     contPreview = null;
-    render();
+    renderSoon();
     return;
   }
   if (el.id === "cmp-before" || el.id === "cmp-after") {
     if (el.id === "cmp-before") cmpBefore = el.value;
     else cmpAfter = el.value;
     campaignCmp = null;
-    render();
+    renderSoon();
     return;
   }
 });

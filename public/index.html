@@ -9,28 +9,29 @@
     <script type="module" src="/app.js"></script>
   </head>
   <body>
+    <a class="skip-link" href="#content">Skip to the page</a>
     <div class="shell">
       <aside class="sidebar">
         <a class="brand" href="/" aria-label="XR Study Sim home"
-          ><span class="brand-icon">xr</span><span>Study Sim<small>HCI RESEARCH WORKBENCH</small></span></a
+          ><span class="brand-icon" aria-hidden="true">xr</span><span>Study Sim<small>HCI RESEARCH WORKBENCH</small></span></a
         >
         <nav aria-label="Workflow" id="nav">
-          <button data-page="home" class="nav"><span>◎</span> Open study</button>
+          <button data-page="home" class="nav"><span aria-hidden="true">◎</span> Open study</button>
           <div class="sidebar-label">PLANNER</div>
-          <button data-page="study" class="nav"><span>1</span> Study &amp; variables</button>
-          <button data-page="evidence" class="nav"><span>E</span> Evidence &amp; knowledge</button>
-          <button data-page="configs" class="nav"><span>2</span> Agent configurations</button>
-          <button data-page="freeze" class="nav"><span>3</span> Freeze &amp; campaigns</button>
+          <button data-page="study" class="nav"><span aria-hidden="true">1</span> Study &amp; variables</button>
+          <button data-page="evidence" class="nav"><span aria-hidden="true">E</span> Evidence &amp; knowledge</button>
+          <button data-page="configs" class="nav"><span aria-hidden="true">2</span> Agent configurations</button>
+          <button data-page="freeze" class="nav"><span aria-hidden="true">3</span> Freeze &amp; campaigns</button>
           <div class="sidebar-label">EXECUTOR</div>
-          <button data-page="executor" class="nav"><span>4</span> Run agents</button>
+          <button data-page="executor" class="nav"><span aria-hidden="true">4</span> Run agents</button>
           <div class="sidebar-label">ANALYZER</div>
-          <button data-page="compare" class="nav"><span>5</span> Compare agents</button>
-          <button data-page="analyzer" class="nav"><span>6</span> Compare with humans</button>
+          <button data-page="compare" class="nav"><span aria-hidden="true">5</span> Compare agents</button>
+          <button data-page="analyzer" class="nav"><span aria-hidden="true">6</span> Compare with humans</button>
           <div class="sidebar-label">PLANNER</div>
-          <button data-page="continue" class="nav"><span>7</span> Continue / rerun</button>
+          <button data-page="continue" class="nav"><span aria-hidden="true">7</span> Continue / rerun</button>
         </nav>
         <div class="sidebar-bottom">
-          <button data-page="settings" class="nav"><span>⚙</span> Settings</button>
+          <button data-page="settings" class="nav"><span aria-hidden="true">⚙</span> Settings</button>
           <p>Reference answers are withheld from you and from agents until analysis.</p>
           <small>v0.4 · Open research software</small>
         </div>
@@ -40,10 +41,13 @@
           <span id="study-breadcrumb">No study open</span>
           <div><span class="pill" id="data-label">—</span></div>
         </header>
-        <main id="content" aria-live="polite"></main>
+        <div id="server-banner" class="server-banner" hidden>The workbench server is not answering; retrying… Start it again with <code>npm start</code> if it stopped. Changes you make now are not saved until it answers.</div>
+        <main id="content" tabindex="-1"></main>
         <footer>Agent forecasts are evaluated against human evidence; they do not replace it.</footer>
       </div>
     </div>
-    <div id="toast" role="status" hidden></div>
+    <!-- Toasts are shown here; screen readers hear them (and the server banner) through the one polite live region below. -->
+    <div id="toast" aria-hidden="true" hidden></div>
+    <div id="live" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
   </body>
 </html>

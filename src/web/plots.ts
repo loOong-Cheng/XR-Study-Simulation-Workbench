@@ -44,7 +44,8 @@ export function colorFor(id: string, order: string[]): string {
 const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 const fmt = (v: number, d = 2) => (Number.isFinite(v) ? v.toFixed(d) : "—");
 function svg(width: number, height: number, body: string, title: string) {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" font-family="Inter, -apple-system, 'Segoe UI', sans-serif"><rect width="100%" height="100%" fill="#fff"/><text x="16" y="24" font-size="15" font-weight="700" fill="#1f2a24">${esc(title)}</text>${body}</svg>`;
+  // An image with its title as name, for screen readers on the page and in saved files.
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${width} ${height}" width="${width}" height="${height}" role="img" aria-label="${esc(title)}" font-family="Inter, -apple-system, 'Segoe UI', sans-serif"><title>${esc(title)}</title><rect width="100%" height="100%" fill="#fff"/><text x="16" y="24" font-size="15" font-weight="700" fill="#1f2a24">${esc(title)}</text>${body}</svg>`;
 }
 function niceTicks(lo: number, hi: number, count = 5): number[] {
   const span = hi - lo || 1;

@@ -44,6 +44,7 @@ const server = createServer(async (req, res) => {
         "/app.css": [join(root, "public/app.css"), "text/css"],
         "/app.js": [join(root, "dist/web/app.js"), "text/javascript"],
         "/plots.js": [join(root, "dist/web/plots.js"), "text/javascript"],
+        "/ui.js": [join(root, "dist/web/ui.js"), "text/javascript"],
       };
       const route = routes[path];
       if (!route) {
