@@ -2,8 +2,10 @@ import { test } from "node:test";
 import assert from "node:assert/strict";
 import {
   analyze,
+  analyzeVerifiedPlan,
   directionalAgreement,
   holmAdjust,
+  meanInterval,
 } from "../src/core/analyzer.js";
 import {
   holm,
@@ -556,4 +558,47 @@ test("t quantile matches R's qt(0.975, df) for any df", () => {
   for (const [df, q] of r) close(t975(df), q, 1e-12);
   close(studentTQuantile(0.025, 10), -t975(10), 1e-14);
   assert.ok(Number.isNaN(t975(0)));
+});
+test("human intervals: bounded scales are clipped; identical values give a flagged zero-width interval", async () => {
+  const s = exampleStudy();
+  const accuracy = s.outcomes.find((o) => o.scale === "proportion")!;
+  const time = s.outcomes.find((o) => o.scale === "continuous" && o.aggregation === "arithmetic")!;
+  // R: t.test(c(0, 0, 0, .1, .05)) -> mean .03, 95% CI [-0.02553, 0.08553].
+  const p = meanInterval(s, accuracy, [0, 0, 0, 0.1, 0.05])!;
+  close(p.mean, 0.03, 1e-15);
+  assert.equal(p.low, 0, "a proportion cannot be negative");
+  close(p.high, 0.0855289021039559, 1e-12);
+  close(meanInterval(s, time, [0, 0, 0, 0.1, 0.05])!.low, -0.0255289021039559, 1e-12);
+  const rank = s.outcomes.find((o) => o.scale === "rank")!;
+  assert.equal(meanInterval(s, rank, [1, 1, 1, 2])!.low, 1);
+  const same = meanInterval(s, s.outcomes.find((o) => o.scale === "ordinal")!, [4, 4, 4, 4])!;
+  assert.deepEqual([same.low, same.high, same.degenerate], [4, 4, true]);
+  // In the analyzer: every person gave 2, so "inside" is an exact match and the row says so.
+  const x = await known(3);
+  x.human.measurements.forEach((r) => (r.value = 2));
+  const fit = analyze(x.plan, x.human, x.results).absoluteFit!;
+  assert.ok(fit.length > 0 && fit.every((f) => f.degenerate && f.low === 2 && f.high === 2 && /same value/.test(f.note!)));
+  assert.ok(fit.every((f) => f.inside === (Math.abs(f.agent - 2) <= 1e-8)));
+  assert.ok(fit.some((f) => f.inside) && fit.some((f) => !f.inside));
+});
+test("bootstrap: each configuration resamples from its own stream", async () => {
+  const x = await example();
+  const full = analyzeVerifiedPlan(x.plan, x.human, x.results, []);
+  const drop = "text-only";
+  const kept = new Set(x.plan.jobs.filter((j) => j.agentId !== drop).map((j) => j.id));
+  const without = analyzeVerifiedPlan(
+    { ...x.plan, agents: x.plan.agents.filter((a) => a.id !== drop), jobs: x.plan.jobs.filter((j) => kept.has(j.id)) },
+    x.human,
+    { ...x.results, runs: x.results.runs.filter((r) => kept.has(r.jobId)) },
+    [],
+  );
+  const reversed = analyzeVerifiedPlan({ ...x.plan, agents: [...x.plan.agents].reverse() }, x.human, x.results, []);
+  const ci = (r: typeof full, id: string, d: string) => r.summaries.find((s) => s.agentId === id && s.domain === d)!.ci95;
+  for (const id of ["reads-project", "uses-app", "reads-evidence"])
+    for (const d of ["objective", "subjective"]) {
+      assert.ok(ci(full, id, d), `${id} ${d} has an interval`);
+      assert.deepEqual(ci(without, id, d), ci(full, id, d), `${id} ${d} without ${drop}`);
+      assert.deepEqual(ci(reversed, id, d), ci(full, id, d), `${id} ${d} reordered`);
+    }
+  assert.deepEqual(analyzeVerifiedPlan(x.plan, x.human, x.results, []).summaries, full.summaries);
 });

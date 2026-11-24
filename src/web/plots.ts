@@ -159,7 +159,7 @@ export function agreementPlot(fig: { groups: Group[]; brackets: Bracket[]; chanc
 
 /** Agent vs human for one outcome: grouped by design. */
 export function agentVsHumanPlot(
-  fig: { outcome: { label: string; unit: string; scale: string }; logScale: boolean; designs: { conditionId: string; label: string; groups: Group[] }[]; discrepancies: { agentId: string; conditionId: string; stars: string }[] },
+  fig: { outcome: { label: string; unit: string; scale: string }; logScale: boolean; designs: { conditionId: string; label: string; groups: Group[] }[]; discrepancies: { agentId: string; conditionId: string; stars: string; test?: string; holm?: number | null }[] },
   title: string,
   order: string[],
 ): string {
@@ -186,8 +186,8 @@ export function agentVsHumanPlot(
     d.groups.forEach((g, gi) => {
       const cx = x0 + slot * (gi + 0.5);
       body += distribution(g, cx, slot * 0.9, ax, colorFor(g.id, order), false, g.values.length >= 5);
-      const mark = fig.discrepancies.find((r) => r.agentId === g.id && r.conditionId === d.conditionId)?.stars;
-      if (mark) body += `<text x="${cx}" y="${top - 4}" font-size="15" font-weight="700" text-anchor="middle">${mark}</text>`;
+      const row = fig.discrepancies.find((r) => r.agentId === g.id && r.conditionId === d.conditionId);
+      if (row?.stars) body += `<text x="${cx}" y="${top - 4}" font-size="15" font-weight="700" text-anchor="middle">${row.stars}${row.test ? `<title>${esc(row.test)}, Holm p = ${fmt(row.holm ?? NaN, 4)}</title>` : ""}</text>`;
     });
     body += `<text x="${x0 + (per * slot) / 2}" y="${ax.bottom + 20}" font-size="12" font-weight="600" text-anchor="middle">${esc(d.label.length > 28 ? d.label.slice(0, 27) + "…" : d.label)}</text>`;
   });
@@ -195,7 +195,7 @@ export function agentVsHumanPlot(
   body += legend
     .map((g, i) => `<rect x="${left + i * 150}" y="${ax.bottom + 36}" width="10" height="10" fill="${colorFor(g.id, order)}"/><text x="${left + i * 150 + 14}" y="${ax.bottom + 45}" font-size="11">${esc(g.label.slice(0, 22))}</text>`)
     .join("");
-  body += `<text x="${left}" y="${ax.bottom + 66}" font-size="10" fill="#666">Stars above a box: config differs from humans for that design (Mann–Whitney U, Holm across the table).</text>`;
+  body += `<text x="${left}" y="${ax.bottom + 66}" font-size="10" fill="#666">Stars above a box: config differs from humans for that design (Wilcoxon signed-rank: paired by participant for individual configs, humans vs the mean forecast for population configs; Holm across the table).</text>`;
   return svg(Math.max(width, 520), ax.bottom + 76, body, title);
 }
 

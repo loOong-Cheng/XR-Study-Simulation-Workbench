@@ -9,7 +9,7 @@ import { validateAgents, validateHumanData, validateStudy } from "../src/core/va
 import { campaignFromPlan } from "../src/core/campaign.js";
 import { analyzeCampaign, syntheticCampaignExecution } from "../src/core/campaign-study.js";
 import { holm, mannWhitney, wilcoxonSignedRank } from "../src/core/figures.js";
-import type { AgentProtocol, Comparison, HumanData, Study } from "../src/core/types.js";
+import type { AgentProtocol, AnalysisReport, Comparison, HumanData, Study } from "../src/core/types.js";
 
 // Run from the repository root (npm test).
 const example = (p: string) => resolve("examples/graphics-quality", p);
@@ -884,6 +884,22 @@ test("human data only: per-design values with the design's test, matching the an
     const p = report.significantOnly!.humanPairs.find((x) => x.outcomeId === "presence" && x.a === b.a && x.b === b.b)!;
     assert.ok(Math.abs((p.pHolm ?? 1) - (b.holm ?? 1)) < 1e-12, `${b.a}-${b.b}`);
   }
+  // A geometric measure: both test each person's log ratio (the figure used raw differences, so its
+  // Holm p-values were .0179/.0025/.0898 against the analyzer's .0132/.0013/.0665). R, exact:
+  // wilcox.test(log(b) - log(a)) -> .0065765, .00041962, .066536 (no ties).
+  const geo = humanFigure(study, human, "search-time");
+  const exact: Record<string, [number, number]> = {
+    "low-medium": [0.0065765380859375, 0.013153076171875],
+    "low-high": [0.00041961669921875, 0.00125885009765625],
+    "medium-high": [0.06653594970703125, 0.06653594970703125],
+  };
+  assert.equal(geo.brackets.length, 3);
+  for (const b of geo.brackets) {
+    const p = report.significantOnly!.humanPairs.find((x) => x.outcomeId === "search-time" && x.a === b.a && x.b === b.b)!;
+    assert.equal(b.p, p.p, `${b.a}-${b.b}`);
+    assert.equal(b.holm, p.pHolm, `${b.a}-${b.b}`);
+    assert.ok(Math.abs(b.p! - exact[`${b.a}-${b.b}`][0]) < 1e-12 && Math.abs(b.holm! - exact[`${b.a}-${b.b}`][1]) < 1e-12, `${b.a}-${b.b}: ${b.p} ${b.holm}`);
+  }
   // Between subjects: independent groups, Mann–Whitney U.
   const s = structuredClone(study) as Study;
   s.design = "between-subjects";
@@ -893,6 +909,90 @@ test("human data only: per-design values with the design's test, matching the an
   const between = humanFigure(s, { ...human, measurements: human.measurements.filter((m) => assigned.get(m.participantId!) === m.conditionId) }, "realism");
   assert.ok(between.brackets.every((b) => b.test === "Mann–Whitney U"));
   assert.ok(between.groups.every((g) => g.stats.n === 6));
+});
+
+test("population vs individual figure scores each population run exactly as the analyzer", async () => {
+  const { populationVsIndividualFigure } = await import("../src/core/figures.js");
+  const same = (study: Study, report: AnalysisReport, ids: string[]) => {
+    let n = 0;
+    for (const domain of ["objective", "subjective"] as const)
+      for (const g of populationVsIndividualFigure(study, report, ids, domain).groups)
+        g.units.forEach((u, k) => {
+          const r = report.runScores!.find((x) => x.agentId === g.id && x.unit === u && x.domain === domain)!;
+          assert.ok(Math.abs(r.agreement! - g.values[k]) < 1e-12, `${g.id} ${u} ${domain}: ${g.values[k]} vs ${r.agreement}`);
+          n++;
+        });
+    return n;
+  };
+  // Within subjects: every difference of the design means.
+  const within = validateStudy(await json("study.json"));
+  const humanWithin = await json<HumanData>("human.json");
+  const agents = validateAgents(within, await json<AgentProtocol[]>("agents.json"));
+  const population = agents.filter((a) => (a.level ?? within.predictionLevel) === "population").map((a) => a.id);
+  const cw = campaignFromPlan(freezePlan(within, withDefaultRuns(within, agents, 1), 1), undefined, "fig4-within", new Date(Date.now() - 1000).toISOString());
+  assert.ok(same(within, analyzeCampaign(cw, humanWithin, [syntheticCampaignExecution(cw).results]).report, population) > 0);
+  // Between subjects: only the significant group differences count (the figure scored every mean
+  // difference: text-only run 1 got .647 where the analyzer gave .714).
+  const s = structuredClone(within) as Study;
+  s.design = "between-subjects";
+  s.participants = s.participants.map((p) => ({ id: p.id, stratum: `group-${p.conditionOrder[0]}`, conditionOrder: [p.conditionOrder[0]] }));
+  s.outcomes = s.outcomes.filter((o) => o.scale !== "rank");
+  s.analysis.familyWeights = Object.fromEntries(Object.entries(s.analysis.familyWeights).filter(([f]) => s.outcomes.some((o) => o.family === f)));
+  const study = validateStudy(s);
+  const assigned = new Map(study.participants.map((p) => [p.id, p.conditionOrder[0]]));
+  const human: HumanData = { ...humanWithin, measurements: humanWithin.measurements.filter((m) => assigned.get(m.participantId!) === m.conditionId && study.outcomes.some((o) => o.id === m.outcomeId)) };
+  const raw = (await json<AgentProtocol[]>("agents.json")).map((a) => ({ ...a, targets: a.targets?.filter((t) => study.outcomes.some((o) => o.id === t)), inputs: a.inputs?.filter((t) => study.outcomes.some((o) => o.id === t)) }));
+  const between = validateAgents(study, raw.filter((a) => a.level !== "individual" && !a.inputs?.length));
+  const cb = campaignFromPlan(freezePlan(study, withDefaultRuns(study, between, 2), 2), undefined, "fig4-between", new Date(Date.now() - 1000).toISOString());
+  const rb = analyzeCampaign(cb, human, [syntheticCampaignExecution(cb).results]).report;
+  assert.ok(rb.humanPairs!.some((p) => !p.used), "some mean differences are not scored");
+  assert.ok(same(study, rb, between.map((a) => a.id)) > 0);
+  // A measure without any scored pair is left out of the weights (the figure kept its weight: 1/3).
+  const toy = {
+    design: "within-subjects",
+    conditions: [{ id: "A" }, { id: "B" }],
+    participants: [{ id: "p1" }],
+    outcomes: ["o1", "o2", "o3"].map((id, i) => ({ id, domain: "subjective", family: i < 2 ? "F1" : "F2", weight: 1, aggregation: "arithmetic", scale: "continuous" })),
+    analysis: { tieTolerance: 1e-8, familyWeights: { F1: 1, F2: 1 } },
+  } as unknown as Study;
+  const row = (o: string, a: number, b: number) => [
+    { outcomeId: o, conditionId: "A", value: a },
+    { outcomeId: o, conditionId: "B", value: b },
+  ];
+  const humanValues = [...row("o1", 1, 2), ...row("o2", 3, 3), ...row("o3", 1, 2)].map((v) => ({ participantId: "p1", ...v }));
+  const values = [...row("o1", 1, 2), ...row("o2", 5, 4), ...row("o3", 2, 1)].map((v) => ({ agentId: "x", level: "population" as const, unit: "run1", repetition: 1, ...v }));
+  const toyFigure = populationVsIndividualFigure(toy, { values, humanValues } as unknown as AnalysisReport, ["x"], "subjective");
+  assert.deepEqual(toyFigure.groups[0].values, [0.5]);
+});
+
+test("agent vs human figure: paired test for individual configs, one-sample test against the mean forecast for population runs", async () => {
+  const { agentVsHumanFigure } = await import("../src/core/figures.js");
+  const study = {
+    design: "within-subjects",
+    conditions: [{ id: "A", label: "A" }],
+    outcomes: [{ id: "t", label: "Time", unit: "s", domain: "objective", scale: "continuous", aggregation: "geometric" }],
+    analysis: { tieTolerance: 1e-8 },
+  } as unknown as Study;
+  const people = ["p1", "p2", "p3", "p4", "p5", "p6"];
+  const humans = [10, 12, 15, 20, 30, 41],
+    perPerson = [11, 13, 14, 25, 33, 52],
+    runs = [12, 18];
+  const report = {
+    humanValues: people.map((p, i) => ({ participantId: p, outcomeId: "t", conditionId: "A", value: humans[i] })),
+    values: [
+      ...runs.map((v, i) => ({ agentId: "pop", level: "population", unit: `run${i}`, repetition: 1, outcomeId: "t", conditionId: "A", value: v })),
+      ...people.map((p, i) => ({ agentId: "ind", level: "individual", unit: p, participantId: p, repetition: 1, outcomeId: "t", conditionId: "A", value: perPerson[i] })),
+    ],
+  } as unknown as AnalysisReport;
+  const fig = agentVsHumanFigure(study, report, ["pop", "ind"], "t");
+  const [pop, ind] = fig.discrepancies;
+  // R, exact permutation on the log scale (11/10 and 33/30 tie):
+  // wilcox.test(log(h), mu = mean(log(c(12, 18)))) -> .4375; paired log(f) − log(h) -> .0625.
+  assert.equal(pop.test, "One-sample Wilcoxon signed-rank vs mean forecast");
+  assert.ok(Math.abs(pop.p! - 0.4375) < 1e-12 && pop.n === 6);
+  assert.equal(ind.test, "Wilcoxon signed-rank, paired by participant");
+  assert.ok(Math.abs(ind.p! - 0.0625) < 1e-12 && ind.n === 6);
+  assert.deepEqual([pop.holm, ind.holm], [0.4375, 0.125]);
 });
 
 test("executor: token counts show live while a session runs", async () => {

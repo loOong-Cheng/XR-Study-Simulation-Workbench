@@ -1,6 +1,12 @@
 // Figure data and rank tests for the analyzer. Pure functions: the browser only
 // draws what these return, so every number on a figure can be checked here.
-import { directionalAgreement } from "./analyzer.js";
+import {
+  designPairTests,
+  humanMatrix,
+  meanInterval,
+  populationReference,
+  populationRunScore,
+} from "./analyzer.js";
 import type { AnalysisReport, Domain, HumanData, Study } from "./types.js";
 import { measurementValue } from "./validation.js";
 
@@ -74,8 +80,12 @@ export interface Bracket {
 }
 const labelOf = (labels: Record<string, string>, id: string) => labels[id] ?? id;
 
-/** Pairwise brackets between groups; paired Wilcoxon when both are individual configs. */
-function brackets(groups: Group[]): Bracket[] {
+/**
+ * Pairwise brackets between groups; paired Wilcoxon when both are individual configs. The scores
+ * are computed against one fixed human sample, so the tests condition on it. Without a study tie
+ * tolerance, near-ties are rounded at 1e-9 (relative to the largest value when that exceeds 1).
+ */
+function brackets(groups: Group[], tolerance?: number): Bracket[] {
   const rows: Bracket[] = [];
   for (let i = 0; i < groups.length; i++)
     for (let j = i + 1; j < groups.length; j++) {
@@ -84,9 +94,9 @@ function brackets(groups: Group[]): Bracket[] {
       if (a.level === "individual" && b.level === "individual") {
         const byUnit = new Map(b.units.map((u, k) => [u, b.values[k]]));
         const diffs = a.units.flatMap((u, k) => (byUnit.has(u) ? [byUnit.get(u)! - a.values[k]] : []));
-        rows.push({ a: a.id, b: b.id, test: "Wilcoxon signed-rank", p: wilcoxonSignedRank(diffs).p, holm: null, stars: "" });
+        rows.push({ a: a.id, b: b.id, test: "Wilcoxon signed-rank", p: wilcoxonSignedRank(diffs, tolerance).p, holm: null, stars: "" });
       } else
-        rows.push({ a: a.id, b: b.id, test: "Mann–Whitney U", p: mannWhitney(a.values, b.values).p, holm: null, stars: "" });
+        rows.push({ a: a.id, b: b.id, test: "Mann–Whitney U", p: mannWhitney(a.values, b.values, tolerance).p, holm: null, stars: "" });
     }
   holm(rows.map((r) => r.p)).forEach((h, i) => {
     rows[i].holm = h;
@@ -198,18 +208,42 @@ export function agentVsHumanFigure(
     ];
     return { conditionId: c.id, label: c.label, groups };
   });
-  const rows = designs.flatMap((d) =>
-    d.groups.slice(1).map((ag) => ({
-      agentId: ag.id,
-      conditionId: d.conditionId,
-      humanCentre: centre(d.groups[0].values, g),
-      agentCentre: centre(ag.values, g),
-      discrepancy: centre(ag.values, g) - centre(d.groups[0].values, g),
-      p: mannWhitney(ag.values, d.groups[0].values).p,
-      holm: null as number | null,
-      stars: "",
-    })),
-  );
+  // Individual configurations forecast each participant: paired Wilcoxon signed-rank on
+  // (forecast − that person's value). Population runs are not people: one-sample Wilcoxon
+  // signed-rank of the human values against the configuration's mean forecast (H0: the humans are
+  // centred on the forecast). Both on the log scale for geometric measures, Holm over the table.
+  const tolerance = study.analysis.tieTolerance;
+  const scale = (v: number) => (g ? Math.log(v) : v);
+  const rows = designs.flatMap((d) => {
+    const human = d.groups[0];
+    return d.groups.slice(1).map((ag) => {
+      let diffs: number[];
+      let test: Discrepancy["test"];
+      if (ag.level === "individual") {
+        const byPerson = new Map(human.units.map((u, k) => [u, human.values[k]]));
+        diffs = ag.units.flatMap((u, k) => (byPerson.has(u) ? [scale(ag.values[k]) - scale(byPerson.get(u)!)] : []));
+        test = "Wilcoxon signed-rank, paired by participant";
+      } else {
+        const forecast = ag.values.length ? ag.values.reduce((s, v) => s + scale(v), 0) / ag.values.length : NaN;
+        diffs = Number.isFinite(forecast) ? human.values.map((v) => scale(v) - forecast) : [];
+        test = "One-sample Wilcoxon signed-rank vs mean forecast";
+      }
+      const r = wilcoxonSignedRank(diffs, tolerance);
+      const row: Discrepancy = {
+        agentId: ag.id,
+        conditionId: d.conditionId,
+        humanCentre: centre(human.values, g),
+        agentCentre: centre(ag.values, g),
+        discrepancy: centre(ag.values, g) - centre(human.values, g),
+        test,
+        n: r.n,
+        p: r.p,
+        holm: null,
+        stars: "",
+      };
+      return row;
+    });
+  });
   holm(rows.map((r) => r.p)).forEach((h, i) => {
     rows[i].holm = h;
     rows[i].stars = stars(h);
@@ -220,8 +254,22 @@ export function agentVsHumanFigure(
     logScale: g,
     designs,
     discrepancies: rows,
-    note: `Human: one value per participant. Configs: one prediction per population run, or per participant (primary forecast) for individual configs. Discrepancy = config ${g ? "geometric mean" : "mean"} − human ${g ? "geometric mean" : "mean"}. Mann–Whitney U per design and config, Holm across this table.`,
+    note: `Human: one value per participant. Configs: one prediction per population run, or per participant (primary forecast) for individual configs. Discrepancy = config ${g ? "geometric mean" : "mean"} − human ${g ? "geometric mean" : "mean"}. Individual configs: Wilcoxon signed-rank on each participant's forecast − their value. Population configs: one-sample Wilcoxon signed-rank of the human values against the mean forecast (the runs are not people). ${g ? "Log scale. " : ""}Holm across this table; the tests treat the human sample as fixed.`,
   };
+}
+export interface Discrepancy {
+  agentId: string;
+  conditionId: string;
+  humanCentre: number;
+  agentCentre: number;
+  discrepancy: number;
+  /** What was tested for this configuration and design. */
+  test: "Wilcoxon signed-rank, paired by participant" | "One-sample Wilcoxon signed-rank vs mean forecast";
+  /** Non-zero differences the test used. */
+  n: number;
+  p: number | null;
+  holm: number | null;
+  stars: string;
 }
 
 /** (3) Correlation of agent design means with human design means (each outcome z-scored across designs). */
@@ -273,38 +321,6 @@ export function correlationFigure(
   };
 }
 
-/** Population agreement of an arbitrary design profile per outcome (same rule as the analyzer, available-outcome weights). */
-function populationAgreement(
-  study: Study,
-  report: AnalysisReport,
-  profile: Map<string, number[]>,
-  domain: Domain,
-): number | null {
-  let sum = 0,
-    total = 0;
-  const outcomes = study.outcomes.filter((o) => o.domain === domain && profile.has(o.id));
-  const families = new Map<string, typeof outcomes>();
-  outcomes.forEach((o) => families.set(o.family, [...(families.get(o.family) ?? []), o]));
-  for (const [family, list] of families) {
-    const within = list.reduce((s, o) => s + o.weight, 0);
-    for (const o of list) {
-      const g = geo(study, o.id);
-      const truth = study.conditions.map((c) =>
-        centre((report.humanValues ?? []).filter((v) => v.outcomeId === o.id && v.conditionId === c.id).map((v) => v.value), g),
-      );
-      if (truth.some((v) => !Number.isFinite(v))) continue;
-      const t = g ? truth.map(Math.log) : truth,
-        p = g ? profile.get(o.id)!.map(Math.log) : profile.get(o.id)!;
-      const a = directionalAgreement(t, p, study.analysis.tieTolerance).score;
-      if (a === null) continue;
-      const w = (study.analysis.familyWeights[family] * o.weight) / within;
-      sum += a * w;
-      total += w;
-    }
-  }
-  return total > 0 ? sum / total : null;
-}
-
 /** (4) Repeated population runs vs individual forecasts averaged to the cohort (one value per repetition). */
 export function populationVsIndividualFigure(
   study: Study,
@@ -313,9 +329,18 @@ export function populationVsIndividualFigure(
   domain: Domain,
   labels: Record<string, string> = {},
 ) {
+  // The analyzer's population scoring (pair masks, uninformative measures, weights), so a
+  // population run's value here equals its per-run score in the report.
+  const human = new Map((report.humanValues ?? []).map((v) => [`${v.participantId}|${v.conditionId}|${v.outcomeId}`, v.value]));
+  const reference = populationReference(
+    study,
+    humanMatrix(study, (p, c, o) => human.get(`${p}|${c}|${o}`)),
+    study.design === "between-subjects" ? "significant" : "means",
+  );
   const groups = agentIds.map((id) => {
     const rows = (report.values ?? []).filter((v) => v.agentId === id);
     const level = rows[0]?.level ?? "population";
+    const targets = new Set(rows.map((v) => v.outcomeId));
     const units = new Map<string, typeof rows>();
     // population: one unit per run; individual: one cohort profile per repetition
     rows.forEach((v) => {
@@ -325,14 +350,16 @@ export function populationVsIndividualFigure(
     const values: number[] = [],
       names: string[] = [];
     for (const [key, list] of units) {
-      const profile = new Map<string, number[]>();
-      for (const o of study.outcomes) {
-        const byDesign = study.conditions.map((c) =>
-          centre(list.filter((v) => v.outcomeId === o.id && v.conditionId === c.id).map((v) => v.value), geo(study, o.id)),
-        );
-        if (byDesign.every(Number.isFinite)) profile.set(o.id, byDesign);
-      }
-      const a = populationAgreement(study, report, profile, domain);
+      // Design means on the analysis scale (log for geometric measures: geometric means).
+      const profile = study.outcomes.map((o) => {
+        const scale = (v: number) => (o.aggregation === "geometric" ? Math.log(v) : v);
+        const byDesign = study.conditions.map((c) => {
+          const xs = list.filter((v) => v.outcomeId === o.id && v.conditionId === c.id).map((v) => scale(v.value));
+          return xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : NaN;
+        });
+        return byDesign.every(Number.isFinite) ? byDesign : undefined;
+      });
+      const a = populationRunScore(study, reference, targets, profile, domain);
       if (a !== null) {
         values.push(a);
         names.push(key);
@@ -348,8 +375,8 @@ export function populationVsIndividualFigure(
     yLabel: "Population agreement (%)",
     chance: 0.5,
     groups,
-    brackets: brackets(independent),
-    note: "Population configs: each run's forecast. Individual configs: each repetition's participant forecasts averaged per design (geometric mean where declared) and scored against the human population pattern. Mann–Whitney U, Holm across brackets.",
+    brackets: brackets(independent, study.analysis.tieTolerance),
+    note: `Population configs: each run's forecast, scored as in the analyzer's per-run scores. Individual configs: each repetition's participant forecasts averaged per design (geometric mean where declared) and scored the same way against the human population pattern (${study.design === "between-subjects" ? "significant group differences only" : "every difference of the design means"}). Mann–Whitney U, Holm across brackets; the tests treat the human sample as fixed.`,
   };
 }
 
@@ -413,31 +440,45 @@ export function humanFigure(study: Study, human: HumanData, outcomeId: string) {
       }
     return group(c.id, c.label, "human", values, units);
   });
-  const rows: Bracket[] = [];
-  for (let i = 0; i < byDesign.length; i++)
-    for (let j = i + 1; j < byDesign.length; j++) {
-      const a = byDesign[i],
-        b = byDesign[j];
-      if (between) rows.push({ a: a.id, b: b.id, test: "Mann–Whitney U", p: mannWhitney(a.values, b.values).p, holm: null, stars: "" });
-      else {
-        const byPerson = new Map(b.units.map((u, k) => [u, b.values[k]]));
-        const diffs = a.units.flatMap((u, k) => (byPerson.has(u) ? [byPerson.get(u)! - a.values[k]] : []));
-        rows.push({ a: a.id, b: b.id, test: "Wilcoxon signed-rank", p: wilcoxonSignedRank(diffs).p, holm: null, stars: "" });
+  // The analyzer's tests (designPairTests): same data on the analysis scale, so paired differences
+  // of geometric measures are log ratios and the p-values equal the analyzer's human pairs.
+  const value = new Map<string, number>();
+  for (const m of human.measurements)
+    if (m.outcomeId === o.id && m.participantId)
+      try {
+        value.set(`${m.participantId}|${m.conditionId}`, measurementValue(study, m));
+      } catch {
+        // malformed reference rows are reported by the human-data check
       }
-    }
-  holm(rows.map((r) => r.p)).forEach((h, k) => {
-    rows[k].holm = h;
-    rows[k].stars = stars(h);
-  });
-  const t975 = (df: number) => (df <= 30 ? [12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.16, 2.145, 2.131, 2.12, 2.11, 2.101, 2.093, 2.086, 2.08, 2.074, 2.069, 2.064, 2.06, 2.056, 2.052, 2.048, 2.045, 2.042][df - 1] : df <= 60 ? 2.042 - ((df - 30) / 30) * 0.042 : 1.96 + 40 / (df * df));
+  const oi = study.outcomes.indexOf(o);
+  const matrix = humanMatrix(study, (p, c, outcome) => (outcome === o.id ? value.get(`${p}|${c}`) : undefined));
+  const rows: Bracket[] = designPairTests(study, matrix[oi]).map((t) => ({
+    a: study.conditions[t.i].id,
+    b: study.conditions[t.j].id,
+    test: t.test,
+    p: t.p,
+    holm: t.pHolm,
+    stars: stars(t.pHolm),
+  }));
   const summary = byDesign.map((g) => {
     const xs = geometric ? g.values.map(Math.log) : g.values;
     const n = xs.length;
+    const ci = meanInterval(study, o, xs);
     const m = n ? xs.reduce((s, x) => s + x, 0) / n : NaN;
     const sd = n > 1 ? Math.sqrt(xs.reduce((s, x) => s + (x - m) ** 2, 0) / (n - 1)) : NaN;
-    const half = n > 1 ? t975(n - 1) * (sd / Math.sqrt(n)) : NaN;
     const back = (x: number) => (geometric ? Math.exp(x) : x);
-    return { conditionId: g.id, label: g.label, n, mean: back(m), median: g.stats.median, sd: geometric ? NaN : sd, low: back(m - half), high: back(m + half) };
+    return {
+      conditionId: g.id,
+      label: g.label,
+      n,
+      mean: ci ? ci.mean : back(m),
+      median: g.stats.median,
+      sd: geometric ? NaN : sd,
+      low: ci ? ci.low : NaN,
+      high: ci ? ci.high : NaN,
+      degenerate: ci?.degenerate ?? false,
+      ...(ci?.degenerate ? { note: `All ${n} people gave the same value; the interval is degenerate.` } : {}),
+    };
   });
   return {
     outcome: { id: o.id, label: o.label, unit: o.unit, scale: o.scale, domain: o.domain },
@@ -446,6 +487,6 @@ export function humanFigure(study: Study, human: HumanData, outcomeId: string) {
     groups: byDesign,
     brackets: rows,
     summary,
-    note: `${between ? "Independent groups: Mann–Whitney U" : "Same people in every design: Wilcoxon signed-rank on each person's difference"} between every pair of designs, Holm-adjusted over this measure's pairs. ${geometric ? "Geometric means and intervals (log scale)." : "Means with 95% t intervals."}`,
+    note: `${between ? "Independent groups: Mann–Whitney U" : `Same people in every design: Wilcoxon signed-rank on each person's difference${geometric ? " (log ratio)" : ""}`} between every pair of designs, Holm-adjusted over this measure's pairs. ${geometric ? "Geometric means and intervals (log scale)." : "Means with 95% t intervals."}${summary.some((s) => s.degenerate) ? " A zero-width interval means every person gave the same value." : ""}`,
   };
 }

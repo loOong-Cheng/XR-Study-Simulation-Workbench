@@ -6,6 +6,7 @@ import type {
   HumanData,
   Measurement,
   MetricScore,
+  Outcome,
   Plan,
   AbsoluteFit,
   HumanPair,
@@ -13,10 +14,11 @@ import type {
   ResultBundle,
   RunResult,
   RunScore,
+  Study,
   SummaryScore,
 } from "./types.js";
 import { agentLevel, agentTargets, verifyPlan } from "./planner.js";
-import { holm, mannWhitney, wilcoxonSignedRank } from "./rank-tests.js";
+import { holm, mannWhitney, roundForTies, t975, wilcoxonSignedRank } from "./rank-tests.js";
 import { auditRun } from "./protocol.js";
 import {
   measurementKey,
@@ -99,34 +101,39 @@ function resamplePeople(plan: Plan, rng: () => number): number[] {
     indices.map(() => indices[Math.floor(rng() * indices.length)]),
   );
 }
-function balancedWeights(
-  plan: Plan,
+/**
+ * Outcome weights within one domain over the included outcomes (indices of study.outcomes): the
+ * declared family budgets normalised over the families present, outcome weights normalised within
+ * a family. Shared by the summaries, the per-run scores, the figures and the agent comparison.
+ */
+export function outcomeWeights(
+  study: Study,
   domain: Domain,
-  informative: boolean[],
+  included: boolean[],
 ): Map<number, number> {
   const groups = new Map<string, number[]>();
-  plan.study.outcomes.forEach((o, i) => {
-    if (o.domain === domain && informative[i]) {
+  study.outcomes.forEach((o, i) => {
+    if (o.domain === domain && included[i]) {
       const rows = groups.get(o.family) ?? [];
       rows.push(i);
       groups.set(o.family, rows);
     }
   });
   const total = [...groups.keys()].reduce(
-    (a, f) => a + plan.study.analysis.familyWeights[f],
+    (a, f) => a + study.analysis.familyWeights[f],
     0,
   );
   const weights = new Map<number, number>();
   for (const [f, indices] of groups) {
     const within = indices.reduce(
-      (a, i) => a + plan.study.outcomes[i].weight,
+      (a, i) => a + study.outcomes[i].weight,
       0,
     );
     for (const i of indices)
       weights.set(
         i,
-        ((plan.study.analysis.familyWeights[f] / total) *
-          plan.study.outcomes[i].weight) /
+        ((study.analysis.familyWeights[f] / total) *
+          study.outcomes[i].weight) /
           within,
       );
   }
@@ -140,16 +147,212 @@ function weightedScore(
     return null;
   return [...weights].reduce((a, [i, w]) => a + values[i]! * w, 0);
 }
+/** Weighted mean over the outcomes that have a score, weights renormalised over those. */
+export function weightedAvailable(
+  scores: (number | null)[],
+  weights: Map<number, number>,
+): number | null {
+  let sum = 0,
+    total = 0;
+  for (const [i, wi] of weights)
+    if (scores[i] !== null && scores[i] !== undefined) {
+      sum += scores[i]! * wi;
+      total += wi;
+    }
+  return total > 0 ? sum / total : null;
+}
+/** Holm over the declared family; untestable comparisons count in the family size (see holm). */
 export function holmAdjust(rows: ContrastScore[]): void {
-  const ordered = rows.filter((r) => r.p !== null).sort((a, b) => a.p! - b.p!);
-  let previous = 0;
-  for (let i = 0; i < ordered.length; i++) {
-    previous = Math.max(
-      previous,
-      Math.min(1, (rows.length - i) * ordered[i].p!),
+  holm(rows.map((r) => r.p)).forEach((p, i) => (rows[i].holmP = p));
+}
+
+/** Human values per measure × person × design on the analysis scale (log for geometric measures). */
+export type HumanMatrix = (number | null)[][][];
+export function humanMatrix(
+  study: Study,
+  valueOf: (participantId: string, conditionId: string, outcomeId: string) => number | undefined,
+): HumanMatrix {
+  return study.outcomes.map((o) =>
+    study.participants.map((p) =>
+      study.conditions.map((c) => {
+        const v = valueOf(p.id, c.id, o.id);
+        return v === undefined ? null : o.aggregation === "geometric" ? Math.log(v) : v;
+      }),
+    ),
+  );
+}
+export interface DesignPairTest {
+  i: number;
+  j: number;
+  test: "Mann–Whitney U" | "Wilcoxon signed-rank";
+  p: number | null;
+  pHolm: number | null;
+}
+/**
+ * Tests every pair of designs of one measure (rows: person × design on the analysis scale, so
+ * paired differences of geometric measures are log ratios): Mann–Whitney U between the independent
+ * groups (between subjects) or Wilcoxon signed-rank on each person's difference (within subjects),
+ * values rounded to the study's tie tolerance, Holm over the pairs of the measure. The analyzer and
+ * the human-data figure both use this, so their p-values are the same.
+ */
+export function designPairTests(
+  study: Study,
+  rows: (number | null)[][],
+): DesignPairTest[] {
+  const between = study.design === "between-subjects";
+  const tolerance = study.analysis.tieTolerance;
+  const tests: DesignPairTest[] = [];
+  const group = (ci: number) =>
+    rows.map((row) => row[ci]).filter((x): x is number => x !== null);
+  for (let i = 0; i < study.conditions.length; i++)
+    for (let j = i + 1; j < study.conditions.length; j++) {
+      const paired = rows
+        .filter((row) => row[i] !== null && row[j] !== null)
+        .map((row) => (row[j] as number) - (row[i] as number));
+      tests.push({
+        i,
+        j,
+        test: between ? "Mann–Whitney U" : "Wilcoxon signed-rank",
+        p: between
+          ? mannWhitney(group(i), group(j), tolerance).p
+          : wilcoxonSignedRank(paired, tolerance).p,
+        pHolm: null,
+      });
+    }
+  holm(tests.map((t) => t.p)).forEach((p, k) => (tests[k].pHolm = p));
+  return tests;
+}
+/** The human population pattern agents are scored against, and which design pairs count. */
+export interface PopulationReference {
+  /** Design means per measure on the analysis scale (null if a design has no data). */
+  truth: (number[] | null)[];
+  /** Per measure, whether each design pair (i < j, row-major) is scored. */
+  masks: boolean[][];
+  /** Measures with at least one scored pair. */
+  informative: boolean[];
+  pairs: HumanPair[];
+}
+/**
+ * "means": every difference of the design means beyond the tie tolerance. "significant": only
+ * pairs whose test (designPairTests) is significant after Holm at α = .05.
+ */
+export function populationReference(
+  study: Study,
+  h: HumanMatrix,
+  pairRule: "means" | "significant",
+): PopulationReference {
+  const tolerance = study.analysis.tieTolerance;
+  const pairs: HumanPair[] = [];
+  const truth = study.outcomes.map((_, oi) => {
+    const means = study.conditions.map((_, ci) =>
+      mean(h[oi].map((row) => row[ci]).filter((x): x is number => x !== null)),
     );
-    ordered[i].holmP = previous;
+    return means.some((v) => v === null) ? null : (means as number[]);
+  });
+  const masks = study.outcomes.map((o, oi) => {
+    const profile = truth[oi];
+    if (!profile) return [];
+    const byMean = pairMask(profile, tolerance);
+    const tests = designPairTests(study, h[oi]);
+    const restore = (v: number) => (o.aggregation === "geometric" ? Math.exp(v) : v);
+    tests.forEach((t, k) => {
+      const significant = t.pHolm !== null && t.pHolm < ALPHA;
+      pairs.push({
+        outcomeId: o.id,
+        a: study.conditions[t.i].id,
+        b: study.conditions[t.j].id,
+        meanA: restore(profile[t.i]),
+        meanB: restore(profile[t.j]),
+        test: t.test,
+        p: t.p,
+        pHolm: t.pHolm,
+        significant,
+        used: byMean[k] && (pairRule === "means" || significant),
+      });
+    });
+    return pairRule === "means"
+      ? byMean
+      : byMean.map((m, k) => m && tests[k].pHolm !== null && tests[k].pHolm! < ALPHA);
+  });
+  return { truth, masks, informative: masks.map((m) => m.some(Boolean)), pairs };
+}
+/**
+ * Per-outcome directional agreement of one population forecast (profile per outcome on the
+ * analysis scale) with the reference; null for outcomes not predicted or not informative.
+ */
+export function populationOutcomeScores(
+  study: Study,
+  ref: PopulationReference,
+  targets: Set<string>,
+  profile: (number[] | undefined)[],
+): (number | null)[] {
+  return study.outcomes.map((o, oi) => {
+    const truth = ref.truth[oi],
+      p = profile[oi];
+    if (!targets.has(o.id) || !ref.informative[oi] || !truth || !p || p.length !== truth.length) return null;
+    return directionalAgreement(truth, p, study.analysis.tieTolerance, ref.masks[oi]).score;
+  });
+}
+/** A population forecast's agreement in one domain, exactly as the analyzer's per-run scores. */
+export function populationRunScore(
+  study: Study,
+  ref: PopulationReference,
+  targets: Set<string>,
+  profile: (number[] | undefined)[],
+  domain: Domain,
+): number | null {
+  const weights = outcomeWeights(
+    study,
+    domain,
+    study.outcomes.map((o, i) => ref.informative[i] && targets.has(o.id)),
+  );
+  return weightedAvailable(populationOutcomeScores(study, ref, targets, profile), weights);
+}
+/**
+ * Seed of one bootstrap stream, derived from the study seed and a name (FNV-1a), so that each
+ * configuration resamples its runs from its own stream: its interval does not change when other
+ * configurations are added, removed or reordered.
+ */
+export function streamSeed(seed: number, name: string): number {
+  let h = 0x811c9dc5;
+  for (const ch of `${seed >>> 0}\u0000${name}`) {
+    h ^= ch.charCodeAt(0);
+    h = Math.imul(h, 0x01000193);
   }
+  return h >>> 0;
+}
+/** Bounds a measure's values cannot leave: proportions [0, 1], mean ranks [1, number of designs]. */
+export function scaleBounds(study: Study, o: Outcome): [number, number] | null {
+  return o.scale === "proportion" ? [0, 1] : o.scale === "rank" ? [1, study.conditions.length] : null;
+}
+export interface MeanInterval {
+  /** Mean (geometric mean for geometric measures) and its 95% t interval on the measure's scale. */
+  mean: number;
+  low: number;
+  high: number;
+  n: number;
+  /** Analysis-scale (log for geometric measures) mean and half-width, before clipping. */
+  centre: number;
+  half: number;
+  /** All n people gave the same value (within the tie tolerance): a zero-width interval. */
+  degenerate: boolean;
+}
+/**
+ * Mean and 95% t interval of the human values of one measure and design (analysis scale in, the
+ * measure's scale out). Intervals of bounded scales are clipped to the scale's bounds.
+ */
+export function meanInterval(study: Study, o: Outcome, values: number[]): MeanInterval | null {
+  const n = values.length;
+  if (n < 2) return null;
+  const m = mean(values)!;
+  const grid = roundForTies(values, study.analysis.tieTolerance);
+  const degenerate = grid.every((x) => x === grid[0]);
+  const sd = degenerate ? 0 : Math.sqrt(values.reduce((s, x) => s + (x - m) ** 2, 0) / (n - 1));
+  const half = t975(n - 1) * (sd / Math.sqrt(n));
+  const back = (v: number) => (o.aggregation === "geometric" ? Math.exp(v) : v);
+  const bounds = scaleBounds(study, o);
+  const clip = (v: number) => (bounds ? Math.min(bounds[1], Math.max(bounds[0], v)) : v);
+  return { mean: back(m), low: clip(back(m - half)), high: clip(back(m + half)), n, centre: m, half, degenerate };
 }
 export function analyze(
   plan: Plan,
@@ -270,11 +473,6 @@ function mergeLevels(plan: Plan, parts: AnalysisReport[]): AnalysisReport {
     absoluteFit: parts.flatMap((p) => p.absoluteFit ?? []),
   };
 }
-/** Two-sided 97.5% Student t quantile for a 95% interval. */
-function t975(df: number): number {
-  const table = [12.706, 4.303, 3.182, 2.776, 2.571, 2.447, 2.365, 2.306, 2.262, 2.228, 2.201, 2.179, 2.16, 2.145, 2.131, 2.12, 2.11, 2.101, 2.093, 2.086, 2.08, 2.074, 2.069, 2.064, 2.06, 2.056, 2.052, 2.048, 2.045, 2.042];
-  return df < 1 ? NaN : df <= 30 ? table[df - 1] : df <= 60 ? 2.042 - ((df - 30) / 30) * 0.042 : 1.96 + 40 / (df * df);
-}
 const ALPHA = 0.05;
 function analyzeLevel(
   plan: Plan,
@@ -381,14 +579,10 @@ function analyzeLevel(
     outcomes[i].aggregation === "geometric" ? Math.log(v) : v;
   const restore = (i: number, v: number): number =>
     outcomes[i].aggregation === "geometric" ? Math.exp(v) : v;
-  const h = outcomes.map((o, oi) =>
-    people.map((p) =>
-      conditions.map((c) => {
-        const r = humanMap.get(`${p.id}|${c.id}|${o.id}`);
-        return r ? transform(oi, measurementValue(plan.study, r)) : null;
-      }),
-    ),
-  );
+  const h = humanMatrix(plan.study, (p, c, o) => {
+    const r = humanMap.get(`${p}|${c}|${o}`);
+    return r ? measurementValue(plan.study, r) : undefined;
+  });
   const truthProfile = (oi: number, indices: number[]): number[] | null => {
     const means = conditions.map((_, ci) =>
       mean(
@@ -404,40 +598,13 @@ function analyzeLevel(
   // Which human design differences count. "means": any difference of the design means beyond the
   // tie tolerance. "significant": only pairs a test supports, Holm-adjusted over the design pairs of
   // one measure at .05: Mann–Whitney U between the two groups (between-subjects) or Wilcoxon
-  // signed-rank on each person's difference (within-subjects). Rank tests are unaffected by the
-  // log scale used for geometric measures.
+  // signed-rank on each person's difference (within-subjects), both on the analysis scale (paired
+  // differences of geometric measures are log ratios). See populationReference.
   const between = plan.study.design === "between-subjects";
-  const humanPairs: HumanPair[] = [];
-  const masks = outcomes.map((o, oi) => {
-    const profile = truthProfile(oi, all);
-    if (!profile) return [];
-    const byMean = pairMask(profile, tolerance);
-    if (plan.study.predictionLevel !== "population") return byMean;
-    const tests: { i: number; j: number; p: number | null }[] = [];
-    for (let i = 0; i < conditions.length; i++)
-      for (let j = i + 1; j < conditions.length; j++) {
-        const group = (ci: number) => h[oi].map((row) => row[ci]).filter((x): x is number => x !== null);
-        const paired = h[oi].filter((row) => row[i] !== null && row[j] !== null).map((row) => (row[j] as number) - (row[i] as number));
-        tests.push({ i, j, p: between ? mannWhitney(group(i), group(j)).p : wilcoxonSignedRank(paired).p });
-      }
-    const adjusted = holm(tests.map((t) => t.p));
-    const significant = adjusted.map((p) => p !== null && p < ALPHA);
-    tests.forEach((t, k) =>
-      humanPairs.push({
-        outcomeId: o.id,
-        a: conditions[t.i].id,
-        b: conditions[t.j].id,
-        meanA: restore(oi, profile[t.i]),
-        meanB: restore(oi, profile[t.j]),
-        test: between ? "Mann–Whitney U" : "Wilcoxon signed-rank",
-        p: t.p,
-        pHolm: adjusted[k],
-        significant: significant[k],
-        used: byMean[k] && (pairRule === "means" || significant[k]),
-      }),
-    );
-    return pairRule === "means" ? byMean : byMean.map((m, k) => m && significant[k]);
-  });
+  const reference =
+    plan.study.predictionLevel === "population" ? populationReference(plan.study, h, pairRule) : null;
+  const humanPairs: HumanPair[] = reference?.pairs ?? [];
+  const masks = reference?.masks ?? outcomes.map(() => []);
   const individualEligible = outcomes.map((_, oi) =>
     people.map(
       (_, pi) =>
@@ -598,8 +765,8 @@ function analyzeLevel(
   };
   const domains: Domain[] = ["objective", "subjective"];
   const weightsOver = (domain: Domain, ...agentIds: string[]) =>
-    balancedWeights(
-      plan,
+    outcomeWeights(
+      plan.study,
       domain,
       informative.map((x, i) => x && agentIds.every((id) => targetSets.get(id)!.has(outcomes[i].id))),
     );
@@ -629,12 +796,17 @@ function analyzeLevel(
       }),
     );
   }
-  // Per-outcome bootstrap scores, so any comparison can be weighted over common targets.
+  // Per-outcome bootstrap scores, so any comparison can be weighted over common targets. People are
+  // resampled from one stream shared by every configuration (paired draws for comparisons); each
+  // configuration resamples its runs from its own stream, derived from the seed and its ID, so its
+  // interval does not depend on which other configurations are analysed.
   const draws = new Map<string, (number | null)[][]>(plan.agents.map((a) => [a.id, []]));
-  const rng = random(plan.study.analysis.seed);
+  const seed = plan.study.analysis.seed;
+  const peopleStream = random(streamSeed(seed, "participants"));
+  const runStreams = new Map(plan.agents.map((a) => [a.id, random(streamSeed(seed, `config:${a.id}`))]));
   for (let draw = 0; draw < plan.study.analysis.bootstrapDraws; draw++) {
-    const indices = resamplePeople(plan, rng);
-    for (const a of plan.agents) draws.get(a.id)!.push(scoreAgent(a.id, indices, rng).scores);
+    const indices = resamplePeople(plan, peopleStream);
+    for (const a of plan.agents) draws.get(a.id)!.push(scoreAgent(a.id, indices, runStreams.get(a.id)!).scores);
   }
   const bootstrapOf = (agentId: string, w: Map<number, number>) =>
     draws.get(agentId)!.map((scores) => weightedScore(scores, w));
@@ -707,33 +879,22 @@ function analyzeLevel(
   const level = plan.study.predictionLevel;
   const runScores: RunScore[] = [];
   const values: PredictedValue[] = [];
-  const available = (scores: (number | null)[], w: Map<number, number>) => {
-    let sum = 0,
-      total = 0;
-    for (const [i, wi] of w)
-      if (scores[i] !== null) {
-        sum += scores[i]! * wi;
-        total += wi;
-      }
-    return total > 0 ? sum / total : null;
-  };
   for (const a of plan.agents) {
     const targets = targetSets.get(a.id)!;
     const ownWeights = new Map(domains.map((d) => [d, weightsOver(d, a.id)]));
     for (const job of plan.jobs.filter((j) => j.agentId === a.id && predicted.has(j.id))) {
       const p = predicted.get(job.id)!;
       const pi = job.participantId ? people.findIndex((x) => x.id === job.participantId) : -1;
-      const perOutcome = outcomes.map((o, oi) => {
-        if (!targets.has(o.id) || !informative[oi]) return null;
-        if (level === "population") {
-          const truth = truthProfile(oi, all);
-          return truth ? directionalAgreement(truth, p[oi], tolerance, masks[oi]).score : null;
-        }
-        const truth = h[oi][pi];
-        return truth && truth.every((x) => x !== null)
-          ? directionalAgreement(truth as number[], p[oi], tolerance).score
-          : null;
-      });
+      // Population runs: the shared scorer, which the population-vs-individual figure reuses.
+      const perOutcome = reference
+        ? populationOutcomeScores(plan.study, reference, targets, p)
+        : outcomes.map((o, oi) => {
+            if (!targets.has(o.id) || !informative[oi]) return null;
+            const truth = h[oi][pi];
+            return truth && truth.every((x) => x !== null)
+              ? directionalAgreement(truth as number[], p[oi], tolerance).score
+              : null;
+          });
       for (const domain of domains)
         if (ownWeights.get(domain)!.size)
           runScores.push({
@@ -742,7 +903,7 @@ function analyzeLevel(
             domain,
             unit: level === "population" ? job.id : job.participantId!,
             repetition: job.repetition,
-            agreement: available(perOutcome, ownWeights.get(domain)!),
+            agreement: weightedAvailable(perOutcome, ownWeights.get(domain)!),
           });
       outcomes.forEach((o, oi) => {
         if (!targets.has(o.id)) return;
@@ -771,7 +932,9 @@ function analyzeLevel(
     ),
   );
   // Absolute values (population level): each configuration's mean prediction against the human
-  // group's 95% t interval, per measure and design (geometric measures on the log scale).
+  // group's 95% t interval, per measure and design (geometric measures on the log scale; intervals
+  // of proportions and mean ranks clipped to their scale). When every person gave the same value
+  // the interval has zero width and "inside" means an exact match (within the tie tolerance).
   const absoluteFit: AbsoluteFit[] = [];
   if (plan.study.predictionLevel === "population")
     for (const a of plan.agents) {
@@ -781,22 +944,25 @@ function analyzeLevel(
         if (!targetSets.get(a.id)!.has(o.id)) return;
         conditions.forEach((c, ci) => {
           const hv = h[oi].map((row) => row[ci]).filter((x): x is number => x !== null);
-          if (hv.length < 2) return;
-          const m = mean(hv)!;
-          const sd = Math.sqrt(hv.reduce((s, x) => s + (x - m) ** 2, 0) / (hv.length - 1));
-          const half = t975(hv.length - 1) * (sd / Math.sqrt(hv.length));
+          const ci95 = meanInterval(plan.study, o, hv);
+          if (!ci95) return;
+          const m = ci95.centre;
           const av = mean(jobs.map((j) => predicted.get(j.id)![oi][ci]))!;
           absoluteFit.push({
             agentId: a.id,
             outcomeId: o.id,
             conditionId: c.id,
-            human: restore(oi, m),
-            low: restore(oi, m - half),
-            high: restore(oi, m + half),
-            n: hv.length,
+            human: ci95.mean,
+            low: ci95.low,
+            high: ci95.high,
+            n: ci95.n,
             agent: restore(oi, av),
-            error: restore(oi, av) - restore(oi, m),
-            inside: av >= m - half && av <= m + half,
+            error: restore(oi, av) - ci95.mean,
+            inside: ci95.degenerate ? Math.abs(av - m) <= tolerance : av >= m - ci95.half && av <= m + ci95.half,
+            degenerate: ci95.degenerate,
+            ...(ci95.degenerate
+              ? { note: `All ${ci95.n} people gave the same value; the interval is degenerate, so "inside" means an exact match.` }
+              : {}),
           });
         });
       });

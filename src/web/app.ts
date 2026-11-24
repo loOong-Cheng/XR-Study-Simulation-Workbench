@@ -26,7 +26,7 @@ interface AnalysisView {
   summaries: { agentId: string; level?: string; domain: Domain; agreement: number | null; ci95: { low: number; high: number } | null; assigned: number; returned: number; real?: number; simulated?: number; scoreable: number; compliant: number }[];
   contrasts: { candidate: string; baseline: string; domain: Domain; difference: number | null; ci95: { low: number; high: number } | null; holmP: number | null; declared: string; status: string }[];
   design?: string; pairRule?: "means" | "significant";
-  humanPairs?: HumanPairView[]; absoluteFit?: { agentId: string; outcomeId: string; conditionId: string; human: number; low: number; high: number; n: number; agent: number; error: number; inside: boolean }[];
+  humanPairs?: HumanPairView[]; absoluteFit?: { agentId: string; outcomeId: string; conditionId: string; human: number; low: number; high: number; n: number; agent: number; error: number; inside: boolean; degenerate?: boolean; note?: string }[];
   significantOnly?: { summaries: AnalysisView["summaries"]; exclusions: string[]; humanPairs: HumanPairView[] } | null;
   audits: { jobId: string; issues: string[] }[]; assigned: number; progress?: { sessions: number; finished: number; failed: number; notStarted: number }; notes: string[]; exclusions: string[]; reused: number; synthetic: boolean;
 }
@@ -936,7 +936,7 @@ function absoluteCard(a: AnalysisView) {
     .map(([id, list]) => {
       const inside = list.filter((f) => f.inside).length;
       const detail = list
-        .map((f) => `<tr class="${f.inside ? "" : "miss"}"><td>${esc(outcome(f.outcomeId)?.label ?? f.outcomeId)}</td><td>${esc(f.conditionId)}</td><td>${fmt(f.agent)}</td><td>${fmt(f.human)} [${fmt(f.low)}, ${fmt(f.high)}], n = ${f.n}</td><td>${f.error >= 0 ? "+" : ""}${fmt(f.error)}</td><td>${f.inside ? "inside" : "outside"}</td></tr>`)
+        .map((f) => `<tr class="${f.inside ? "" : "miss"}"><td>${esc(outcome(f.outcomeId)?.label ?? f.outcomeId)}</td><td>${esc(f.conditionId)}</td><td>${fmt(f.agent)}</td><td>${fmt(f.human)} [${fmt(f.low)}, ${fmt(f.high)}], n = ${f.n}${f.degenerate ? ` <span class="small" title="${esc(f.note ?? "")}">(all gave the same value)</span>` : ""}</td><td>${f.error >= 0 ? "+" : ""}${fmt(f.error)}</td><td>${f.inside ? (f.degenerate ? "exact match" : "inside") : "outside"}</td></tr>`)
         .join("");
       return `<details><summary><strong>${esc(label(id))}</strong>: ${inside} of ${list.length} values inside the human 95% CI</summary><div class="table-scroll"><table><thead><tr><th>Measure</th><th>Design</th><th>Agent (mean of runs)</th><th>Human mean [95% CI]</th><th>Agent − human</th><th></th></tr></thead><tbody>${detail}</tbody></table></div></details>`;
     })
@@ -1011,8 +1011,8 @@ function renderHumans() {
     <div class="figure">${figureSvg || '<p class="caption">Choose configurations and a view, then draw the figure.</p>'}</div>${figureData?.omitted?.length ? `<div class="notice">${figureData.omitted.map((n: string) => esc(n)).join("<br>")}</div>` : ""}${figureData?.note ? `<p class="caption">${esc(figureData.note)}</p>` : ""}
     ${
       figureData?.discrepancies
-        ? `<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Design</th><th>Human</th><th>Agent</th><th>Discrepancy</th><th>Holm p</th></tr></thead><tbody>${figureData.discrepancies
-            .map((r: any) => `<tr><td>${esc(name(r.agentId))}</td><td>${esc(study?.conditions.find((c) => c.id === r.conditionId)?.label ?? r.conditionId)}</td><td>${Number(r.humanCentre).toFixed(2)}</td><td>${Number(r.agentCentre).toFixed(2)}</td><td>${Number(r.discrepancy).toFixed(2)}</td><td>${r.holm == null ? "—" : r.holm.toFixed(3)} ${r.stars}</td></tr>`)
+        ? `<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Design</th><th>Human</th><th>Agent</th><th>Discrepancy</th><th>Test</th><th>Holm p</th></tr></thead><tbody>${figureData.discrepancies
+            .map((r: any) => `<tr><td>${esc(name(r.agentId))}</td><td>${esc(study?.conditions.find((c) => c.id === r.conditionId)?.label ?? r.conditionId)}</td><td>${Number(r.humanCentre).toFixed(2)}</td><td>${Number(r.agentCentre).toFixed(2)}</td><td>${Number(r.discrepancy).toFixed(2)}</td><td class="small">${esc(r.test ?? "")}</td><td>${r.holm == null ? "—" : r.holm.toFixed(3)} ${r.stars}</td></tr>`)
             .join("")}</tbody></table></div>`
         : ""
     }${explainText ? `<div class="notice neutral explain">${esc(explainText).replace(/\n/g, "<br>")}</div>` : ""}</div>

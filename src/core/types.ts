@@ -348,7 +348,11 @@ export interface AbsoluteFit {
   agent: number;
   /** Agent minus human, on the outcome's scale. */
   error: number;
+  /** Inside the human 95% interval (an exact match, within the tie tolerance, when degenerate). */
   inside: boolean;
+  /** Every person gave the same value, so the interval has zero width. */
+  degenerate?: boolean;
+  note?: string;
 }
 export interface RunScore {
   agentId: string;
