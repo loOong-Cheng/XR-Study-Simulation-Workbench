@@ -85,7 +85,7 @@ class Session:
 
     def count_call(self, tool):
         # Token budget: the executor keeps <job>/usage.json current and sets submitNow once what is left
-        # is smaller than 10% of the budget or 1.5 x the last turn; then only the forecast may follow.
+        # is smaller than 10% of the budget or 3.5 x the last turn; then only the forecast may follow.
         token_budget = int(self.job.get("tokenBudget") or 0)
         if token_budget:
             try:

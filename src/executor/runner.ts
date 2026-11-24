@@ -22,11 +22,14 @@ import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
 import { agentFileList } from "../runtimes/guard.js";
 import { readText } from "../files.js";
+import { answerNeeds } from "../core/forecast-format.js";
 
 /** not-started: never asked to run; queued: asked to run and waiting for a free slot. */
 export type JobStatus = "not-started" | "queued" | "running" | "done" | "failed" | "stopped" | "reused";
 /** The error of an attempt you stopped (also in its receipt, so it reads as stopped after a restart). */
 export const STOPPED = "Stopped by you.";
+/** The error of an attempt that has a folder but no receipt (the words of sessionAttempts in history.ts). */
+export const STOPPED_UNRECORDED = "Stopped before it finished; no result was recorded.";
 /** Shown for a real session that ended before Claude Code reported its cost. */
 export const COST_UNKNOWN = "unknown (stopped before the end)";
 /** One run of a session: stop() marks it, so a stopped run never overwrites a rerun of the same session. */
@@ -118,7 +121,10 @@ export function budgetWarning(total: number | null, budget: number | undefined, 
 export class UsageMeter {
   private messages = new Map<string, { uncached: number; cacheWrite: number; cacheRead: number; output: number }>();
   private current = "";
-  /** Whether any model answered (a session with an unknown model never gets this far). */
+  /**
+   * Whether any model answered. Claude Code's own messages do not count: with an unknown model it
+   * writes the error as an assistant message of model "<synthetic>" with zero usage.
+   */
   modelRan = false;
   /**
    * One stream line. Assistant messages repeat the usage of their message_start (output only a
@@ -129,12 +135,15 @@ export class UsageMeter {
   add(m: Record<string, any>): boolean {
     let u: Record<string, unknown> | undefined;
     let id = this.current;
+    if (m.type === "assistant" && m.message?.model === "<synthetic>") return false;
     if (m.type === "assistant" && m.message?.usage) (u = m.message.usage), (id = String(m.message.id ?? id));
     else if (m.type === "stream_event" && m.event?.type === "message_start") (u = m.event.message?.usage), (id = this.current = String(m.event.message?.id ?? `m${this.messages.size}`));
     else if (m.type === "stream_event" && m.event?.type === "message_delta") u = m.event.usage;
     if (!u) return false;
-    this.modelRan = true;
     const n = (k: string) => Number(u![k]) || 0;
+    // A message without any tokens was not answered by a model.
+    if (!["input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens"].some((k) => n(k) > 0)) return false;
+    this.modelRan = true;
     const old = this.messages.get(id) ?? { uncached: 0, cacheWrite: 0, cacheRead: 0, output: 0 };
     this.messages.set(id, {
       uncached: Math.max(old.uncached, n("input_tokens")),
@@ -160,10 +169,14 @@ export class UsageMeter {
 }
 /**
  * Whether the tools should refuse and ask for the forecast: when what is left of the budget is
- * smaller than 10% of it, or than 1.5 × the last turn's input (every turn re-reads the context).
+ * smaller than 10% of it, or than the turns still needed: the submission, one possibly rejected
+ * submission and the closing turn, each re-reading about the last turn's input (3.5 × it, with room
+ * for their output).
  */
 export const submitNow = (budget: number | null | undefined, total: number, lastTurnInput: number) =>
-  !!budget && budget - total < Math.max(0.1 * budget, 1.5 * lastTurnInput);
+  !!budget && budget - total < Math.max(0.1 * budget, 3.5 * lastTurnInput);
+/** Submissions a session may make once its tools were refused for the budget; it is stopped after the last one is refused. */
+export const SUBMIT_ATTEMPTS = 3;
 
 /** How the agent should play the app, in the words of its runtime's tools. */
 export function playInstructions(runtime: string, order: string[], study: Study, caseIds: string[], extra?: string): string {
@@ -208,14 +221,37 @@ export class Executor {
   private agent(id: string) {
     return this.plan.agents.find((a) => a.id === id)!;
   }
+  /**
+   * The sessions as the files on disk record them, so a restart shows what was shown before:
+   * receipts (status, error, usage of failed attempts), results and execution manifests (tokens,
+   * tool calls, cost, tokens when the forecast was accepted) and the attempt folders. An attempt
+   * folder without a receipt was stopped before it finished (a stopped simulated session writes
+   * none) and counts as an attempt, so a rerun gets a new folder.
+   */
   private async load() {
     const receipts = await readReceipts(this.workspaceId, [this.campaign.id]);
+    const json = async <T>(path: string): Promise<T | null> => {
+      try {
+        return JSON.parse(await readFile(path, "utf8")) as T;
+      } catch {
+        return null;
+      }
+    };
+    // Tool calls as the executor counts them: calls.log without the forecast submission.
+    const callsIn = async (dir: string) =>
+      existsSync(join(dir, "calls.log")) ? (await readFile(join(dir, "calls.log"), "utf8")).split("\n").filter((l) => l.trim() && l.trim() !== "submit_forecast").length : 0;
     for (const j of this.campaign.jobs) {
       if (j.kind !== "llm") continue;
       const a = this.agent(j.conditionId);
-      const mine = receipts.filter((r) => r.jobId === j.id);
+      const mine = receipts.filter((r) => r.jobId === j.id).sort((x, y) => x.attempt - y.attempt) as (CampaignReceipt & { usage: Partial<FullUsage> })[];
       const done = mine.find((r) => r.status === "completed");
-      this.jobs.set(j.id, {
+      const last = mine.at(-1);
+      const jobDir = join(this.dir, "jobs", j.id);
+      const folders = !j.inheritedFrom && existsSync(jobDir) ? (await readdir(jobDir)).filter((f) => /^a\d+$/.test(f)).map((f) => Number(f.slice(1))) : [];
+      const attempts = Math.max(0, ...folders, ...mine.map((r) => r.attempt));
+      // The latest attempt has a folder but no receipt: it was stopped before it finished.
+      const unrecorded = !done && !j.inheritedFrom && attempts > (last?.attempt ?? 0);
+      const state: JobState = {
         jobId: j.id,
         agentId: a.id,
         label: a.label,
@@ -223,8 +259,8 @@ export class Executor {
         participantId: j.participantId ?? null,
         repetition: j.repetition,
         runtime: runtimeFor(this.plan.study, a),
-        status: j.inheritedFrom ? "reused" : done ? "done" : mine.at(-1)?.error === STOPPED ? "stopped" : mine.length ? "failed" : "not-started",
-        attempts: mine.length,
+        status: j.inheritedFrom ? "reused" : done ? "done" : unrecorded || last?.error === STOPPED ? "stopped" : last ? "failed" : "not-started",
+        attempts,
         simulated: false,
         toolCalls: 0,
         tokensIn: null,
@@ -233,45 +269,55 @@ export class Executor {
         warning: null,
         lastTool: null,
         screenshot: null,
-        error: done ? null : (mine.at(-1)?.error ?? null),
+        error: done ? null : unrecorded ? STOPPED_UNRECORDED : (last?.error ?? null),
         startedAt: null,
         endedAt: null,
-      });
+      };
+      this.jobs.set(j.id, state);
+      if (done || j.inheritedFrom || !attempts) continue;
+      // A failed or stopped attempt that counts last: its tool calls from its folder, its usage from
+      // the receipt (or, without one, the live count in usage.json); cost unknown when it ended early.
+      const dir = join(jobDir, `a${attempts}`);
+      state.toolCalls = await callsIn(dir);
+      if (unrecorded) {
+        // A real session's folder holds its session folder and job.json; a simulated one's only calls.log.
+        state.simulated = !existsSync(join(dir, "session")) && !existsSync(join(dir, "job.json"));
+        const live = await json<{ input?: number; output?: number }>(join(dir, "usage.json"));
+        if (live && !state.simulated) (state.tokensIn = live.input ?? null), (state.tokensOut = live.output ?? null);
+        continue;
+      }
+      const u = last!.usage;
+      const run = await json<RunResult>(join(dir, "result.json"));
+      state.simulated = run?.execution.synthetic ?? false;
+      if (!u || u.outputTokens == null) continue;
+      state.tokensIn = totalInput({ inputTokens: u.inputTokens ?? null, cacheReadTokens: u.cacheReadTokens ?? null, cacheWriteTokens: u.cacheWriteTokens ?? null });
+      state.tokensOut = u.outputTokens;
+      state.costUsd = u.costUsd ?? null;
+      // As when the session ended: a failed session over its budget says so (a stopped one does not).
+      if (state.status === "failed") state.warning = budgetWarning(state.tokensIn === null ? null : state.tokensIn + (state.tokensOut ?? 0), a.maxTokens, u.tokensAtSubmit ?? null);
     }
     if (existsSync(join(this.dir, "results")))
       for (const f of await readdir(join(this.dir, "results"))) {
-        const run = JSON.parse(await readFile(join(this.dir, "results", f), "utf8")) as RunResult;
-        const s = this.jobs.get(run.jobId);
-        if (!s) continue;
+        const run = await json<RunResult>(join(this.dir, "results", f));
+        const s = run && this.jobs.get(run.jobId);
+        if (!s || s.status !== "done") continue;
         s.simulated = run.execution.synthetic;
         s.toolCalls = run.execution.toolCalls;
         if (!run.execution.synthetic) {
           s.tokensIn = totalInput(run.execution);
           s.tokensOut = run.execution.outputTokens;
-          s.warning = budgetWarning(s.tokensIn === null ? null : s.tokensIn + (s.tokensOut ?? 0), this.agent(s.agentId).maxTokens);
+          s.warning = budgetWarning(s.tokensIn === null ? null : s.tokensIn + (s.tokensOut ?? 0), this.agent(s.agentId).maxTokens, run.execution.tokensAtSubmit ?? null);
         }
       }
-    // A failed or stopped attempt that counts last: its usage from the receipt (cost unknown when it ended early).
-    for (const s of this.jobs.values()) {
-      const last = receipts.filter((r) => r.jobId === s.jobId).at(-1) as (CampaignReceipt & { usage: Partial<FullUsage> }) | undefined;
-      if (s.status !== "failed" && s.status !== "stopped") continue;
-      const u = last?.usage;
-      if (!u || u.outputTokens == null) continue;
-      s.tokensIn = totalInput({ inputTokens: u.inputTokens ?? null, cacheReadTokens: u.cacheReadTokens ?? null, cacheWriteTokens: u.cacheWriteTokens ?? null });
-      s.tokensOut = u.outputTokens;
-      s.costUsd = u.costUsd ?? null;
-    }
     // Cost of the attempt that counts, from its execution manifest.
     for (const r of receipts)
       if (r.status === "completed" && r.executionManifest?.path.endsWith("execution-manifest.json")) {
         const s = this.jobs.get(r.jobId);
         if (!s || s.costUsd !== null) continue;
-        try {
-          const m = JSON.parse(await readFile(runRecordPath(this.dir, r.executionManifest.path)!, "utf8")) as { costUsd?: number | null };
-          s.costUsd = typeof m.costUsd === "number" ? m.costUsd : null;
-        } catch {
-          // manifest not here
-        }
+        // Only inside this campaign's run folder (runRecordPath).
+        const path = runRecordPath(this.dir, r.executionManifest.path);
+        const m = path ? await json<{ costUsd?: number | null }>(path) : null;
+        s.costUsd = typeof m?.costUsd === "number" ? m.costUsd : null;
       }
     // Reused sessions show the tokens and cost of the run they reuse (from the campaign it ran in).
     for (const [jobId, usage] of await reusedUsage(this.workspaceId, this.campaign)) if (this.jobs.has(jobId)) Object.assign(this.jobs.get(jobId)!, usage);
@@ -419,9 +465,17 @@ export class Executor {
     this.emit({ type: "state", text: "Paused: running sessions finish, no new ones start." });
     return this.snapshot();
   }
+  /**
+   * Continue after Pause: only the sessions that were waiting in the queue start. Stop empties the
+   * queue, so stopped sessions run again only through Start or Rerun failed, which check what blocks
+   * them (and, in the website, ask before real sessions start).
+   */
   resume() {
-    if (!this.queue.length)
-      this.queue = [...this.jobs.values()].filter((j) => j.status === "queued" || j.status === "stopped").map((j) => j.jobId);
+    this.queue = this.queue.filter((id) => this.jobs.get(id)?.status === "queued");
+    requireThat(
+      this.queue.length > 0 || this.running.size > 0,
+      "Nothing to resume: no sessions are waiting. Stopped or failed sessions run again with Rerun failed, and the others with Start.",
+    );
     this.paused = false;
     this.emit({ type: "state" });
     void this.pump();
@@ -638,8 +692,9 @@ export class Executor {
           jobId,
           attemptId,
           budget: a.maxToolCalls,
-          // Token budget: the runtimes read <job>/usage.json and refuse calls at 90% of it.
+          // Token budget: the runtimes read <job>/usage.json and refuse calls once submitNow is set.
           tokenBudget: a.maxTokens ?? null,
+          submitAttempts: SUBMIT_ATTEMPTS,
           projectDir: a.tools.includes("read-files") ? a.sourceIds.map(src).find((p, i) => kindOf(a.sourceIds[i]) === "project" && p) ?? null : null,
           participantId: job.participantId ?? null,
           designs,
@@ -697,7 +752,7 @@ export class Executor {
     const system = [
       "You are an AI agent forecasting the results of a completed XR user study. You have not seen any participant's answers and must not try to obtain them.",
       "Use only the tools provided. Your elapsed time, clicks and errors are not the participants' times or errors; predict what the participants did and reported.",
-      "Finish by calling submit_forecast exactly once with one value for every design × outcome listed (named items for composite outcomes), plus your uncertainty and a short reasoning. Then stop.",
+      "Finish by calling submit_forecast exactly once with one row per design × outcome listed, each as its \"answer\" says (the named items for measures with items, not a value), plus your uncertainty and a short reasoning. Then stop.",
       ...(a.tools.includes("xr-interact") ? [playInstructions(runtime, ordered, study, protocol.requiredCaseIds, settings.runtimes[runtime]?.instructions)] : []),
     ].join("\n");
     const prompt = [
@@ -709,7 +764,8 @@ export class Executor {
           ...(job.participantId ? { participant: (packet.task as { orderContext?: unknown }).orderContext } : { cohort: (packet.task as { orderContext?: unknown }).orderContext }),
           designs,
           phases: study.phases,
-          predict: study.outcomes.filter((o) => targets.includes(o.id)).map((o) => ({ outcome: o.id, label: o.label, domain: o.domain, unit: o.unit, scale: o.scale, items: o.components, description: o.description })),
+          // "answer" says exactly what submit_forecast needs per row (the item IDs of measures with items).
+          predict: study.outcomes.filter((o) => targets.includes(o.id)).map((o) => ({ outcome: o.id, label: o.label, domain: o.domain, unit: o.unit, scale: o.scale, items: o.components, answer: `give ${answerNeeds(o, designs.length)}`, description: o.description })),
         },
         null,
         2,
@@ -768,17 +824,25 @@ export class Executor {
       proc.kill("SIGTERM");
     }, timeoutMinutes * 60_000);
     // Token use so far, per API message (see UsageMeter), written to usage.json for the runtimes:
-    // `submitNow` asks them to refuse further tools. A session far over budget is stopped, but never
-    // once its forecast was accepted (the closing turn then only ends the session).
+    // `submitNow` asks them to refuse further tools, and stays set. A session that then submits is
+    // never stopped for its budget: it has SUBMIT_ATTEMPTS submissions and is stopped only once the
+    // last of them is refused. A session that still calls other tools far over its budget (1.5 ×) is
+    // stopped; none is stopped once its forecast was accepted (the closing turn only ends it).
     const forecastPath = join(jobDir, "forecast.json");
     const meter = new UsageMeter();
+    let refused = false;
     let overBudget = false;
+    let outOfAttempts = false;
+    let lateRejections = 0;
+    /** Submissions by tool_use ID: true when made after the tools were refused for the budget. */
+    const submissions = new Map<string, boolean>();
     let atForecast: number | null = null;
     const writeUsage = async () => {
       const t = meter.totals();
+      if (atForecast === null && submitNow(a.maxTokens, t.total, t.lastTurnInput)) refused = true;
       await writeFile(
         join(jobDir, "usage.json"),
-        JSON.stringify({ tokens: t.total, input: t.input, output: t.output, uncachedInput: t.uncached, cacheWrite: t.cacheWrite, cacheRead: t.cacheRead, lastTurnInput: t.lastTurnInput, budget: a.maxTokens ?? null, submitNow: atForecast === null && submitNow(a.maxTokens, t.total, t.lastTurnInput), tokensAtSubmit: atForecast }),
+        JSON.stringify({ tokens: t.total, input: t.input, output: t.output, uncachedInput: t.uncached, cacheWrite: t.cacheWrite, cacheRead: t.cacheRead, lastTurnInput: t.lastTurnInput, budget: a.maxTokens ?? null, submitNow: atForecast === null && refused, tokensAtSubmit: atForecast }),
       );
       return t;
     };
@@ -786,12 +850,34 @@ export class Executor {
       if (!meter.add(m)) return;
       const t = await writeUsage();
       if (mine()) this.update(jobId, { tokensIn: t.input, tokensOut: t.output });
-      if (a.maxTokens && t.total > a.maxTokens * 1.5 && !overBudget && atForecast === null) {
-        overBudget = true;
-        this.emit({ type: "log", jobId, text: `Stopped: ${fmt(t.total)} tokens, far over the token budget of ${fmt(a.maxTokens)}.` });
-        proc.kill("SIGTERM");
-      }
     };
+    const endSession = (text: string) => {
+      this.emit({ type: "log", jobId, text });
+      proc.kill("SIGTERM");
+    };
+    /** A tool call: other tools far over the budget stop the session; submissions never do. */
+    const noteToolCall = (id: string, submit: boolean) => {
+      if (submit) return void submissions.set(id, refused);
+      const total = meter.totals().total;
+      if (!a.maxTokens || total <= a.maxTokens * 1.5 || overBudget || outOfAttempts || atForecast !== null) return;
+      overBudget = true;
+      endSession(`Stopped: ${fmt(total)} tokens, far over the token budget of ${fmt(a.maxTokens)}, and still calling other tools instead of submitting the forecast.`);
+    };
+    /** Tool results: count the refused late submissions (the session ends after the last attempt). */
+    const noteToolResults = (m: Record<string, any>) => {
+      const content = Array.isArray(m.message?.content) ? m.message.content : [];
+      for (const c of content) {
+        if (c?.type !== "tool_result" || !submissions.get(String(c.tool_use_id))) continue;
+        const text = typeof c.content === "string" ? c.content : JSON.stringify(c.content ?? "");
+        if ((c.is_error === true || /Forecast not accepted/.test(text)) && !existsSync(forecastPath)) lateRejections++;
+      }
+      if (lateRejections < SUBMIT_ATTEMPTS || outOfAttempts || overBudget || atForecast !== null) return;
+      outOfAttempts = true;
+      endSession(`Stopped: the forecast was not accepted in ${SUBMIT_ATTEMPTS} attempts after the token budget was used up.`);
+    };
+    /** Tool calls as the final count has them (calls.log, without the submission): refused calls are not counted. */
+    const callsMade = async () =>
+      existsSync(join(jobDir, "calls.log")) ? (await readFile(join(jobDir, "calls.log"), "utf8")).split("\n").filter((l) => l.trim() && l.trim() !== "submit_forecast").length : 0;
     /**
      * The moment the study server accepted the forecast: the tokens up to here are what the budget
      * is checked against. Noted when the next turn begins (the tool result or a new message), so the
@@ -833,8 +919,7 @@ export class Executor {
         for (const c of m.message?.content ?? []) {
           if (c.type === "tool_use") {
             const name = String(c.name).replace(/^mcp__/, "").replace("__", ".");
-            // Tool calls are what the agent does before forecasting: the submission is not counted (as in calls.log).
-            if (!/submit_forecast$/.test(name)) tools++;
+            noteToolCall(String(c.id), /submit_forecast$/.test(name));
             const shots = existsSync(join(jobDir, "screenshots")) ? (await readdir(join(jobDir, "screenshots"))).sort() : [];
             if (mine())
               this.update(jobId, {
@@ -844,6 +929,12 @@ export class Executor {
               });
           } else if (c.type === "text" && c.text?.trim()) this.emit({ type: "log", jobId, text: String(c.text).slice(0, 400) });
         }
+      } else if (m.type === "user") {
+        noteToolResults(m);
+        // Tool calls are what the agent did before forecasting, as the runtimes logged them: the
+        // submission and calls refused for the budget are not counted (the same as the final count).
+        const made = await callsMade();
+        if (made !== tools && mine()) this.update(jobId, { toolCalls: (tools = made) });
       } else if (m.type === "result") box.result = m;
     };
     // Lines are handled one after another, and all of them before the session's end is read.
@@ -879,15 +970,17 @@ export class Executor {
     // part of it (a configuration without tools has budget 0 and still submits).
     const calls = existsSync(join(jobDir, "calls.log")) ? (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").filter((l) => l && l !== "submit_forecast").length : 0;
     const ok = !!forecast;
-    const unknownModel = /unrecognized_model/i.test(`${stderr} ${JSON.stringify(result ?? "")}`);
+    const unknownModel = /unrecognized_model|issue with the selected model/i.test(`${stderr} ${JSON.stringify(result ?? "")}`);
     const error = ok
       ? null
       : handle.stopped
       ? STOPPED
       : unknownModel
       ? `Claude Code does not know the model "${model.model}". Check the model ID on Agent configurations.`
+      : outOfAttempts
+      ? `Stopped: the forecast was not accepted in ${SUBMIT_ATTEMPTS} attempts after the token budget of ${fmt(a.maxTokens!)} tokens was used up.`
       : overBudget
-      ? `Stopped: the session used more than 1.5 × its token budget of ${fmt(a.maxTokens!)} tokens.`
+      ? `Stopped: the session used more than 1.5 × its token budget of ${fmt(a.maxTokens!)} tokens and was still calling other tools instead of submitting its forecast.`
       : timedOut
       ? `Stopped after ${timeoutMinutes} minutes (time limit for the ${runtime} runtime; Settings → Runtimes → time limit).`
       : result?.subtype && result.subtype !== "success"
@@ -949,7 +1042,7 @@ export class Executor {
       {
         requestedModel: model,
         effort: effortArgs(model.reasoning)[1] ?? "default",
-        actualModel: meter.modelRan || ok ? actualModel : null,
+        actualModel: (meter.modelRan && !unknownModel) || ok ? actualModel : null,
         cliVersion,
         runtime,
         runtimeCommand: runtime === "webxr" || runtime === "none" ? "built in" : servers[runtime],
@@ -969,7 +1062,7 @@ export class Executor {
     await writeFile(join(jobDir, "execution-manifest.json"), manifestBody);
     const requested = conditionModel(this.campaign, job.agentId);
     // No model answered (for example an unknown model ID): no effective model is recorded.
-    const effective = !meter.modelRan && !ok ? null : !actualModel || actualModel === requested.model || actualModel.startsWith(requested.model) ? { ...requested } : { ...requested, model: actualModel };
+    const effective = (!meter.modelRan || unknownModel) && !ok ? null : !actualModel || actualModel === requested.model || actualModel.startsWith(requested.model) ? { ...requested } : { ...requested, model: actualModel };
     const receiptUsage: CampaignReceipt["usage"] = full;
     await this.finish(
       job,

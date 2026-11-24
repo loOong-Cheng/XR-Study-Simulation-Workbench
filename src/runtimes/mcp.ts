@@ -71,8 +71,9 @@ export const text = (t: string): Content[] => [{ type: "text", text: t }];
 
 /**
  * Whether a session's token budget is nearly used, from <job>/usage.json, which the executor keeps
- * current: it sets submitNow once what is left is smaller than 10% of the budget or 1.5 × the last
- * turn's input (every turn re-reads the context). 90% used always counts, for older executors.
+ * current: it sets submitNow once what is left is smaller than 10% of the budget or 3.5 × the last
+ * turn's input (the submission, a possible second one and the closing turn each re-read the
+ * context). 90% used always counts, for older executors.
  */
 export async function budgetNearlyUsed(jobDir: string, budget: number): Promise<boolean> {
   try {

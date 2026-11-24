@@ -8,6 +8,7 @@ import { appendFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { agentFolderEntries, agentPath, realPath, windowsAliasProblem, within } from "./guard.js";
 import { budgetNearlyUsed, serveMcp, text, ToolError, type Tool } from "./mcp.js";
+import { checkForecast, submitDescription } from "../core/forecast-format.js";
 
 export interface JobSpec {
   jobId: string;
@@ -15,6 +16,8 @@ export interface JobSpec {
   attemptId?: string;
   budget: number;
   tokenBudget?: number | null;
+  /** Submissions the session may make once its token budget is used up (the executor stops it after the last one is refused). */
+  submitAttempts?: number;
   projectDir: string | null;
   participantId: string | null;
   designs: { id: string; label: string }[];
@@ -101,10 +104,15 @@ if (spec.projectDir) {
     },
   );
 }
+/** Submissions refused after the token budget ran out; the executor ends the session after spec.submitAttempts of them. */
+let lateRejections = 0;
 tools.push({
   name: "submit_forecast",
-  description:
-    "Submit your final forecast: one value for every design × outcome listed in the task (or the named items for composite outcomes). Call once, at the end.",
+  // The row shape and, per measure, exactly what it needs (the item IDs of composite measures).
+  description: submitDescription(
+    spec.designs.map((d) => d.id),
+    spec.targets,
+  ),
   inputSchema: {
     type: "object",
     properties: {
@@ -130,46 +138,23 @@ tools.push({
     await countCall("submit_forecast");
     if (submitted) throw new ToolError("The forecast was already accepted. End the session.");
     const rows = Array.isArray(args.predictions) ? (args.predictions as Record<string, unknown>[]) : [];
-    const problems: string[] = [];
-    const seen = new Set<string>();
-    const measurements: Record<string, unknown>[] = [];
-    const designIds = new Set(spec.designs.map((d) => d.id));
-    for (const r of rows) {
-      const t = spec.targets.find((x) => x.id === r.outcome);
-      const key = `${r.design}|${r.outcome}`;
-      if (!t || !designIds.has(String(r.design))) {
-        problems.push(`Unknown design/outcome ${key}.`);
-        continue;
-      }
-      if (seen.has(key)) problems.push(`Duplicate ${key}.`);
-      seen.add(key);
-      let value: number | undefined;
-      let components: Record<string, number> | undefined;
-      if (t.components) {
-        const items = (r.items ?? {}) as Record<string, number>;
-        const missing = t.components.filter((c) => !Number.isFinite(items[c]));
-        if (missing.length) problems.push(`${key} needs items ${missing.join(", ")}.`);
-        components = Object.fromEntries(t.components.map((c) => [c, Number(items[c])]));
-      } else {
-        value = Number(r.value);
-        if (!Number.isFinite(value)) problems.push(`${key} needs a numeric value.`);
-        else if (t.scale === "proportion" && (value < 0 || value > 1)) problems.push(`${key} must be a proportion 0–1.`);
-        else if (t.scale === "rank" && (value < 1 || value > spec.designs.length))
-          problems.push(`${key} must be a rank from 1 to ${spec.designs.length}.`);
-        else if (t.aggregation === "geometric" && value <= 0) problems.push(`${key} must be positive.`);
-      }
-      measurements.push({
-        conditionId: r.design,
-        outcomeId: r.outcome,
-        ...(spec.participantId ? { participantId: spec.participantId } : {}),
-        ...(components ? { components } : { value }),
-      });
-    }
-    for (const d of spec.designs)
-      for (const t of spec.targets) if (!seen.has(`${d.id}|${t.id}`)) problems.push(`Missing ${d.id}|${t.id}.`);
+    // Everything to fix at once, per measure (see checkForecast).
+    const { problems, measurements } = checkForecast(
+      rows,
+      spec.designs.map((d) => d.id),
+      spec.targets,
+      spec.participantId,
+    );
+    if (!rows.length) problems.unshift(`"predictions" is empty: give one row per design × outcome.`);
     if (problems.length) {
       await log({ tool: "submit_forecast", ok: false, problems: problems.slice(0, 20) });
-      throw new ToolError(`Forecast not accepted. Fix and submit again:\n- ${problems.slice(0, 30).join("\n- ")}`);
+      // Once the token budget is used up, the session has a few attempts left (the executor ends it after the last).
+      const late = spec.tokenBudget && spec.submitAttempts && (await budgetNearlyUsed(jobDir, spec.tokenBudget)) ? ++lateRejections : 0;
+      const left = late ? Math.max(0, spec.submitAttempts! - late) : null;
+      throw new ToolError(
+        `Forecast not accepted. Fix everything below and submit all rows again in one call:\n- ${problems.join("\n- ")}` +
+          (left === null ? "" : left ? `\nThe token budget is used up: ${left} more attempt${left === 1 ? "" : "s"}.` : "\nThe token budget is used up and this was the last attempt."),
+      );
     }
     submitted = true;
     await writeFile(
