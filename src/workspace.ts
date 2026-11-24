@@ -428,18 +428,61 @@ export async function readWorkspace(id: string) {
 export async function readWorkspaceForEditing(id: string) {
   const folder = await readStudyFolder(id);
   const path = join(folder.dir, "agents.json");
-  if (!existsSync(path)) return { ...folder, agents: null, problem: null as string | null };
+  const none: ConfigProblem[] = [];
+  if (!existsSync(path)) return { ...folder, agents: null, problem: null as string | null, problems: none };
   const raw = await load<unknown>(path);
   try {
-    return { ...folder, agents: validateAgents(folder.study, raw as AgentProtocol[]), problem: null as string | null };
+    return { ...folder, agents: validateAgents(folder.study, raw as AgentProtocol[]), problem: null as string | null, problems: none };
   } catch (e) {
     const usable = Array.isArray(raw) && raw.every((a) => a && typeof a === "object" && Array.isArray(a.sourceIds) && Array.isArray(a.tools) && a.model && typeof a.id === "string");
+    const problems = usable ? configProblems(folder.study, raw as AgentProtocol[]) : none;
+    // Name the configuration and what it names that the study lacks, not only the first refusal.
+    const named = problems.filter((p) => p.unknownSources.length || p.unknownOutcomes.length || p.unknownCases.length);
+    const what = named.length ? named.map(describeConfigProblem).join("; ") + "." : (e as Error).message;
     return {
       ...folder,
       agents: usable ? (raw as AgentProtocol[]) : null,
-      problem: `The saved agent configurations (agents.json) do not fit the saved study (study.json): ${(e as Error).message} Fix this on Agent configurations and save${usable ? "" : "; agents.json could not be read, so templates are shown instead"}.`,
+      problem: `The saved agent configurations (agents.json) do not fit the saved study (study.json): ${what} Fix this on Agent configurations and save${usable ? "" : "; agents.json could not be read, so templates are shown instead"}.`,
+      problems,
     };
   }
+}
+/** What one saved configuration names that the saved study does not have, and why it does not fit. */
+export interface ConfigProblem {
+  configId: string;
+  label: string;
+  unknownSources: string[];
+  unknownOutcomes: string[];
+  unknownCases: string[];
+  /** The validation message for this configuration on its own (null when it fits on its own). */
+  message: string | null;
+}
+/** Per configuration: the source, measure and task IDs it names that the study lacks (for the website's fix). */
+export function configProblems(study: Study, agents: AgentProtocol[]): ConfigProblem[] {
+  const sources = new Set(study.sources.map((s) => s.id));
+  const outcomes = new Set(study.outcomes.map((o) => o.id));
+  const cases = new Set(study.cases.map((c) => c.id));
+  const ids = (x: unknown) => (Array.isArray(x) ? x.filter((v): v is string => typeof v === "string") : []);
+  // One configuration on its own: planned contrasts name other configurations, so they are left out here.
+  const alone = { ...study, analysis: { ...study.analysis, contrasts: [] } };
+  return agents.flatMap((a) => {
+    const unknownSources = [...new Set([...ids(a.sourceIds), ...ids(a.requiredSourceIds)])].filter((x) => !sources.has(x));
+    const unknownOutcomes = [...new Set([...ids(a.targets), ...ids(a.inputs)])].filter((x) => !outcomes.has(x));
+    const unknownCases = ids(a.requiredCaseIds).filter((x) => !cases.has(x));
+    let message: string | null = null;
+    try {
+      validateAgents(alone, [a]);
+    } catch (e) {
+      message = (e as Error).message;
+    }
+    if (!message && !unknownSources.length && !unknownOutcomes.length && !unknownCases.length) return [];
+    return [{ configId: String(a.id), label: typeof a.label === "string" ? a.label : String(a.id), unknownSources, unknownOutcomes, unknownCases, message }];
+  });
+}
+function describeConfigProblem(p: ConfigProblem) {
+  const list = (one: string, xs: string[]) => (xs.length ? `${xs.length === 1 ? one : `${one}s`} ${xs.map((x) => `"${x}"`).join(", ")}` : "");
+  const parts = [list("source", p.unknownSources), list("measure", p.unknownOutcomes), list("task", p.unknownCases)].filter(Boolean);
+  return `${p.label} (${p.configId}) names ${parts.join(", ")}, which the study does not have`;
 }
 /**
  * Save the study, configurations and comparisons in one step: whatever is not sent is taken as

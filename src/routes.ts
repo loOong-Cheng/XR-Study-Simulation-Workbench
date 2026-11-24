@@ -214,6 +214,8 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
         problem: ws.problem,
         // Planning warnings (no human values read), e.g. too few people for any significant difference.
         studyWarnings: studyWarnings(ws.study),
+        // Per configuration: what it names that the study lacks, so the page can offer to remove it.
+        problems: ws.problems,
       });
       return true;
     }
