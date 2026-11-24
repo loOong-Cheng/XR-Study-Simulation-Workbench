@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { freezePlan, withDefaultRuns } from "../src/core/planner.js";
+import { freezePlan, proposeAgents, withDefaultRuns } from "../src/core/planner.js";
 import { campaignFromPlan, continueFromStatus } from "../src/core/campaign.js";
 import type { Study } from "../src/core/types.js";
 
@@ -39,7 +39,8 @@ const research = (s: Study) => {
 };
 
 test("simulated values lie on each measure's range; research studies can be simulated, never as real runs", async () => {
-  const { measureRange, simulatedResults, syntheticResults } = await import("../src/core/example.js");
+  const { exampleStudy, measureRange, simulatedResults, syntheticResults, typicalRange } = await import("../src/core/example.js");
+  const { validateStudy } = await import("../src/core/validation.js");
   const o = (unit: string, scale: Study["outcomes"][number]["scale"] = "ordinal") => ({ id: "m", label: "M", domain: "subjective" as const, unit, scale, aggregation: "arithmetic" as const, family: "m", weight: 1, phaseIds: ["main"], description: "" });
   assert.deepEqual(measureRange(o("0-100")), [0, 100]);
   assert.deepEqual(measureRange(o("NASA-TLX score (0–100)")), [0, 100]);
@@ -49,10 +50,50 @@ test("simulated values lie on each measure's range; research studies can be simu
   assert.deepEqual(measureRange(o("% correct", "continuous")), [0, 100]);
   assert.equal(measureRange(o("seconds", "continuous")), null);
   assert.equal(measureRange(o("rank; 1 = best", "rank")), null);
+  // Units and scales: points, proportions, a declared range before the unit.
+  assert.deepEqual(measureRange(o("7-point Likert")), [1, 7]);
+  assert.deepEqual(measureRange(o("1–10")), [1, 10]);
+  assert.deepEqual(measureRange(o("proportion of trials", "continuous")), [0, 1]);
+  assert.deepEqual(measureRange({ ...o("score", "continuous"), range: [0, 50] }), [0, 50]);
+  assert.deepEqual(measureRange({ ...o("0–100", "continuous"), range: [0, 10] }), [0, 10], "a declared range wins over the unit");
+  // Typical sizes of unbounded measures: times by their unit, counts, distances.
+  assert.deepEqual(typicalRange(o("ms", "continuous")), [2000, 30000]);
+  assert.deepEqual(typicalRange(o("reaction time (msec)", "continuous")), [2000, 30000]);
+  for (const unit of ["s", "sec", "seconds", "time (s)", "seconds per main trial"]) assert.deepEqual(typicalRange(o(unit, "continuous")), [2, 30], unit);
+  assert.deepEqual(typicalRange(o("min", "continuous")), [1, 10]);
+  assert.deepEqual(typicalRange(o("collisions", "count")), [0, 8]);
+  assert.deepEqual(typicalRange(o("wrong selections per main trial", "continuous")), [0, 3]);
+  assert.equal(typicalRange(o("arbitrary units", "continuous")), null);
+
+  // Simulated values follow the unit: thousands for "ms", whole non-negative numbers for counts,
+  // the declared range for a rating whose unit does not say it.
+  const units = exampleStudy();
+  units.synthetic = true;
+  const add = (id: string, unit: string, scale: Study["outcomes"][number]["scale"], extra: Partial<Study["outcomes"][number]> = {}) =>
+    units.outcomes.push({ ...units.outcomes[0], id, label: id, unit, scale, aggregation: "arithmetic", components: undefined, ...extra });
+  add("reaction-ms", "ms", "continuous");
+  add("task-min", "minutes", "continuous");
+  add("collisions", "collisions", "count");
+  add("comfort", "rating", "ordinal", { range: [1, 5] });
+  add("score-pct", "%", "continuous");
+  units.outcomes.forEach((x) => {
+    if (x.components === undefined) delete x.components;
+  });
+  const unitStudy = validateStudy(units);
+  const sim = simulatedResults(freezePlan(unitStudy, await proposeAgents(unitStudy), 1), 3).runs;
+  const of = (id: string) => sim.flatMap((r) => r.measurements.filter((m) => m.outcomeId === id).map((m) => m.value!));
+  assert.ok(of("reaction-ms").length && of("reaction-ms").every((v) => v >= 2000 && v <= 30000), `ms: ${of("reaction-ms").slice(0, 3)}`);
+  assert.ok(of("task-min").every((v) => v >= 1 && v <= 10));
+  assert.ok(of("collisions").every((v) => Number.isInteger(v) && v >= 0 && v <= 8));
+  assert.ok(of("comfort").every((v) => v >= 1 && v <= 5));
+  assert.ok(of("score-pct").every((v) => v >= 0 && v <= 100) && of("score-pct").some((v) => v > 15));
 
   const a = await tempWorkspace(resolve("examples/graphics-quality"), (s) => {
     research(s);
-    s.outcomes.find((x) => x.id === "visual-discomfort")!.unit = "TLX-like workload (0–100)";
+    // The unit names the range (its declared 0–10 range is removed for this check).
+    const discomfort = s.outcomes.find((x) => x.id === "visual-discomfort")!;
+    discomfort.unit = "TLX-like workload (0–100)";
+    delete discomfort.range;
   });
   try {
     const { readWorkspace } = await import("../src/workspace.js");

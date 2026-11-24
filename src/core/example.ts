@@ -282,16 +282,43 @@ export function syntheticHumanData(study: Study): HumanData {
   };
 }
 /**
- * The range a measure's values lie in, from its scale and unit: a unit such as "1-7", "1–7 item
- * mean", "0 to 100" or "score (0–100)" names its own range, a proportion is 0–1 and "%" is 0–100.
- * Null when nothing says (for example "seconds", or a rank).
+ * The range a measure's values lie in: its declared `range`, else what its scale and unit say. A
+ * unit such as "1-7", "1–7 item mean", "0 to 100" or "score (0–100)" names its own range, "7-point"
+ * means 1–7, a proportion (scale, or a unit starting with "proportion" or "fraction") is 0–1 and
+ * "%" is 0–100. Null when nothing bounds the measure (for example "seconds", or a rank).
  */
 export function measureRange(outcome: Study["outcomes"][number]): [number, number] | null {
   if (outcome.scale === "rank") return null;
-  const m = /(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)/i.exec(outcome.unit ?? "");
+  if (outcome.range) return [outcome.range[0], outcome.range[1]];
+  const unit = outcome.unit ?? "";
+  const m = /(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)/i.exec(unit);
   if (m && Number(m[2]) > Number(m[1])) return [Number(m[1]), Number(m[2])];
-  if (outcome.scale === "proportion") return [0, 1];
-  if (/%|percent/i.test(outcome.unit ?? "")) return [0, 100];
+  const points = /\b(\d+)[\s-]*point\b/i.exec(unit);
+  if (points && Number(points[1]) >= 2) return [1, Number(points[1])];
+  if (outcome.scale === "proportion" || /^\s*(proportion|fraction)\b/i.test(unit)) return [0, 1];
+  if (/%|percent/i.test(unit)) return [0, 100];
+  return null;
+}
+/**
+ * Typical values of a measure without bounds, from its unit and scale, so that invented
+ * (simulated) forecasts have a plausible size: task times in milliseconds, seconds, minutes or
+ * hours, counts (per person, or a rate "per" trial or task), distances and angles. Null when the
+ * unit names nothing known. This only shapes simulated runs; nothing is scored or validated by it.
+ */
+export function typicalRange(outcome: Study["outcomes"][number]): [number, number] | null {
+  if (outcome.scale === "rank") return null;
+  const unit = (outcome.unit ?? "").toLowerCase();
+  const has = (re: RegExp) => re.test(unit);
+  if (has(/\b(ms|msec|millisec\w*)\b/)) return [2000, 30000];
+  if (has(/\b(s|sec|secs|second|seconds)\b/)) return [2, 30];
+  if (has(/\b(min|mins|minute|minutes)\b/)) return [1, 10];
+  if (has(/\b(h|hr|hrs|hour|hours)\b/)) return [0.1, 2];
+  const countWords = /\b(count|counts|number|errors?|collisions?|clicks?|selections?|attempts?|mistakes?|teleports?|steps?|times)\b|#/;
+  if (outcome.scale === "count" || has(countWords)) return has(/\bper\b|\/|\brate\b/) ? [0, 3] : [0, 8];
+  if (has(/\b(cm|centimet\w*)\b/)) return [1, 50];
+  if (has(/\b(mm|millimet\w*)\b/)) return [5, 200];
+  if (has(/\b(m|metres?|meters?)\b/)) return [0.5, 10];
+  if (has(/\b(deg|degrees?)\b|°/)) return [1, 45];
   return null;
 }
 export function syntheticResults(
@@ -443,8 +470,10 @@ function inventedResults(plan: Plan, includeViolation: boolean, seed: number): R
     const targets = agentTargets(plan.study, agent);
     const measurements = plan.study.outcomes.filter((o) => targets.includes(o.id)).flatMap((o) =>
       plan.study.conditions.map((c, ci) => {
-        // Invented values lie on the measure's own range (e.g. 0–100 for a TLX score, 1–7 for a rating).
-        const range = values[o.id] || preferences.has(o.id) ? null : measureRange(o);
+        // Invented values lie on the measure's own range (e.g. 0–100 for a TLX score, 1–7 for a
+        // rating) or, without one, on the typical size its unit names (thousands for "ms").
+        const bounds = measureRange(o);
+        const range = values[o.id] || preferences.has(o.id) ? null : bounds ?? typicalRange(o);
         let v =
           preferences.get(o.id)?.[ci] ??
           (range
@@ -452,21 +481,20 @@ function inventedResults(plan: Plan, includeViolation: boolean, seed: number): R
             : (values[o.id]?.[ci % 3] ?? ci + 2) +
               (rng() - 0.5) * (o.scale === "proportion" ? 0.1 : 1.3));
         if (range) v = Math.max(range[0], Math.min(range[1], v));
+        if (bounds && !preferences.has(o.id)) v = Math.max(bounds[0], Math.min(bounds[1], v));
         if (o.scale === "proportion") v = Math.max(0, Math.min(1, v));
+        if (o.scale === "count") v = Math.max(0, Math.round(v));
         if (o.aggregation === "geometric") v = Math.max(0.01, v);
-        return o.components
-          ? {
-              outcomeId: o.id,
-              conditionId: c.id,
-              participantId: job.participantId,
-              components: Object.fromEntries(
-                o.components.map((id, i) => [
-                  id,
-                  v + (i - (o.components!.length - 1) / 2) * 0.08,
-                ]),
-              ),
-            }
-          : record(o.id, c.id, v, job.participantId);
+        if (!o.components) return record(o.id, c.id, v, job.participantId);
+        // Items whose composite (the declared mean or sum, with weights) is v.
+        const weights = o.componentWeights;
+        const items: Record<string, number> =
+          o.componentRule === "sum"
+            ? Object.fromEntries(o.components.map((id) => [id, v / o.components!.reduce((s, x) => s + (weights?.[x] ?? 1), 0)]))
+            : weights
+            ? Object.fromEntries(o.components.map((id) => [id, v]))
+            : Object.fromEntries(o.components.map((id, i) => [id, v + (i - (o.components!.length - 1) / 2) * 0.08]));
+        return { outcomeId: o.id, conditionId: c.id, participantId: job.participantId, components: items };
       }),
     );
     return {
