@@ -216,6 +216,37 @@ export function runtimeIssues(plan: Plan, agent: AgentProtocol, trace: TraceEven
   return issues;
 }
 
+/**
+ * The token-budget check of a real session. When the execution record carries the tokens used up
+ * to the moment the forecast was accepted (`tokensAtSubmit`), those are what the budget covers;
+ * the session's closing turn after the forecast is reported separately and does not count.
+ * Without that field, the session's total is compared.
+ */
+export function tokenBudgetIssue(
+  execution: RunResult["execution"],
+  maxTokens: number | undefined,
+): string | null {
+  if (!maxTokens || execution.synthetic) return null;
+  const total = [
+    execution.inputTokens,
+    execution.cacheReadTokens,
+    execution.cacheWriteTokens,
+    execution.outputTokens,
+  ].reduce<number>((s, x) => s + (typeof x === "number" && Number.isFinite(x) ? x : 0), 0);
+  const atSubmit = (execution as { tokensAtSubmit?: unknown }).tokensAtSubmit;
+  if (typeof atSubmit === "number" && Number.isFinite(atSubmit) && atSubmit >= 0) {
+    if (atSubmit <= maxTokens) return null;
+    const closing = total - atSubmit;
+    return `Token budget exceeded: ${atSubmit} of ${maxTokens} tokens before the forecast was accepted${closing > 0 ? ` (the closing turn after it used ${closing} more, which the budget does not count)` : ""}.`;
+  }
+  return total <= maxTokens ? null : `Token budget exceeded: ${total} of ${maxTokens} tokens.`;
+}
+
+/**
+ * Audit one returned run. Every check runs and every deviation is listed: one failed check
+ * (for example the token budget) never hides the others. Scoreability depends only on the
+ * forecast itself; any listed issue makes the run non-compliant.
+ */
 export function auditRun(
   plan: Plan,
   job: Job,
@@ -230,140 +261,143 @@ export function auditRun(
       compliant: false,
       issues: ["Scheduled job was not returned."],
     };
-  let scoreable = true;
   const agent = protocolForJob(plan, job);
-  try {
-    requireThat(
-      run.jobId === job.id && run.planDigest === plan.digest,
-      "Job identity or frozen-plan digest mismatch.",
-    );
-    requireThat(
-      run.status === "completed",
-      "Worker reported a failed execution.",
-    );
-    // Invented (mock or simulated) executions are only scoreable in synthetic studies;
-    // real agent executions are scoreable in any study.
-    requireThat(
-      !run.execution.synthetic || plan.study.synthetic,
-      "Simulated execution cannot be scored against a real study.",
-    );
-    const targets = agentTargets(plan.study, agent);
-    const expected = plan.study.conditions.length * targets.length;
-    requireThat(
-      Array.isArray(run.measurements) && run.measurements.length === expected,
-      "Incomplete or unexpected forecast grid.",
-    );
-    const seen = new Set<string>();
-    for (const r of run.measurements) {
-      requireThat(
-        r.participantId === job.participantId,
-        "Prediction participant does not match the job.",
-      );
-      const key = measurementKey(r);
-      requireThat(!seen.has(key), "Duplicate forecast record.");
-      requireThat(targets.includes(r.outcomeId), `Forecast for ${r.outcomeId}, which this configuration does not predict.`);
-      seen.add(key);
-      measurementValue(plan.study, r);
+  /** Record a deviation when `ok` is false. */
+  const check = (ok: unknown, message: string) => {
+    if (!ok) issues.push(message);
+    return !!ok;
+  };
+  /** Run checks that may meet malformed data; an unexpected error becomes a deviation, not a stop. */
+  const guarded = (fn: () => void) => {
+    try {
+      fn();
+    } catch (error) {
+      issues.push((error as Error).message);
     }
-  } catch (error) {
-    scoreable = false;
-    issues.push((error as Error).message);
-  }
-  try {
-    requireThat(
-      typeof run.sessionId === "string" && run.sessionId.length > 0,
-      "Missing independent-session identifier.",
-    );
-    const e = run.execution;
-    requireThat(
-      Number.isFinite(Date.parse(e.startedAt)) &&
-        Date.parse(e.startedAt) >=
+  };
+  // Scoreability: is this a usable forecast for this job?
+  check(
+    run.jobId === job.id && run.planDigest === plan.digest,
+    "Job identity or frozen-plan digest mismatch.",
+  );
+  const e = run.execution as RunResult["execution"] | undefined;
+  const recorded = check(e && typeof e === "object", "Missing execution record (versions, model, budgets and times).");
+  const failed = !check(run.status === "completed", "Worker reported a failed execution.");
+  // Invented (mock or simulated) executions are only scoreable in synthetic studies;
+  // real agent executions are scoreable in any study.
+  check(
+    !e?.synthetic || plan.study.synthetic,
+    "Simulated execution cannot be scored against a real study.",
+  );
+  if (!failed)
+    guarded(() => {
+      const targets = agentTargets(plan.study, agent);
+      const expected = plan.study.conditions.length * targets.length;
+      requireThat(
+        Array.isArray(run.measurements) && run.measurements.length === expected,
+        "Incomplete or unexpected forecast grid.",
+      );
+      const seen = new Set<string>();
+      for (const r of run.measurements) {
+        requireThat(
+          r.participantId === job.participantId,
+          "Prediction participant does not match the job.",
+        );
+        const key = measurementKey(r);
+        requireThat(!seen.has(key), "Duplicate forecast record.");
+        requireThat(targets.includes(r.outcomeId), `Forecast for ${r.outcomeId}, which this configuration does not predict.`);
+        seen.add(key);
+        measurementValue(plan.study, r);
+      }
+    });
+  const scoreable = issues.length === 0;
+  // Compliance: how the forecast was made. Each check is independent.
+  check(
+    typeof run.sessionId === "string" && run.sessionId.length > 0,
+    "Missing independent-session identifier.",
+  );
+  if (recorded) {
+    const x = e!;
+    check(
+      Number.isFinite(Date.parse(x.startedAt)) &&
+        Date.parse(x.startedAt) >=
           Date.parse(plan.jobFrozenAt?.[job.id] ?? plan.frozenAt),
       "Execution predates the frozen plan or lacks a start timestamp.",
     );
-    requireThat(
-      e.versions &&
+    check(
+      x.versions &&
         (["engine", "runtime", "connector", "provider"] as const).every(
-          (k) => typeof e.versions[k] === "string" && e.versions[k].length > 0,
+          (k) => typeof x.versions[k] === "string" && x.versions[k].length > 0,
         ),
       "Record engine, runtime, connector and provider versions.",
     );
-    for (const v of [
-      e.inputTokens,
-      e.cacheReadTokens,
-      e.cacheWriteTokens,
-      e.reasoningTokens,
-    ])
-      requireThat(
-        v === null || (Number.isSafeInteger(v) && v >= 0),
-        "Unavailable token breakdowns must be null, not invented.",
-      );
-    requireThat(
-      e.provider === agent.model.provider &&
-        e.model === agent.model.model &&
-        e.reasoning === agent.model.reasoning,
+    check(
+      [x.inputTokens, x.cacheReadTokens, x.cacheWriteTokens, x.reasoningTokens].every(
+        (v) => v === null || (Number.isSafeInteger(v) && v >= 0),
+      ),
+      "Unavailable token breakdowns must be null, not invented.",
+    );
+    check(
+      x.provider === agent.model.provider &&
+        x.model === agent.model.model &&
+        x.reasoning === agent.model.reasoning,
       "Model settings differ from the frozen recipe.",
     );
     if (agent.tools.includes("xr-interact")) {
-      issues.push(...runtimeIssues(plan, agent, run.trace));
+      guarded(() => issues.push(...runtimeIssues(plan, agent, run.trace)));
       // "custom" engine or backend in the recipe means not specified (e.g. a WebXR app).
       const want = plan.study.runtime;
-      requireThat(
-        (want.engine === "custom" || e.engine === want.engine || e.engine === agent.runtime) &&
-          (want.backend === "custom" || e.backend === want.backend) &&
-          e.deviceProfile === want.deviceProfile &&
-          e.observation === agent.observation,
+      const capabilities = Array.isArray(x.capabilities) ? x.capabilities : [];
+      check(
+        (want.engine === "custom" || x.engine === want.engine || x.engine === agent.runtime) &&
+          (want.backend === "custom" || x.backend === want.backend) &&
+          x.deviceProfile === want.deviceProfile &&
+          x.observation === agent.observation,
         "Runtime, device profile or observation differs from the frozen recipe.",
       );
-      requireThat(
-        plan.study.runtime.requiredCapabilities.every((c) =>
-          e.capabilities.includes(c),
-        ),
+      check(
+        want.requiredCapabilities.every((c) => capabilities.includes(c)),
         "Required runtime capability is absent.",
       );
       if (agent.observation === "stereo-pair")
-        requireThat(
-          e.capabilities.includes("stereo-capture"),
+        check(
+          capabilities.includes("stereo-capture"),
           "Stereo capture is not supported by this worker.",
         );
     }
-    requireThat(
-      Number.isInteger(e.toolCalls) &&
-        e.toolCalls >= 0 &&
-        e.toolCalls <= agent.maxToolCalls,
+    check(
+      Number.isInteger(x.toolCalls) &&
+        x.toolCalls >= 0 &&
+        x.toolCalls <= agent.maxToolCalls,
       "Tool budget exceeded or not recorded.",
     );
-    requireThat(
-      Number.isInteger(e.outputTokens) &&
-        e.outputTokens >= 0 &&
-        e.outputTokens <= agent.maxOutputTokens,
+    check(
+      Number.isInteger(x.outputTokens) &&
+        x.outputTokens >= 0 &&
+        x.outputTokens <= agent.maxOutputTokens,
       "Output budget exceeded or not recorded.",
     );
-    if (agent.maxTokens && !e.synthetic) {
-      const used = [e.inputTokens, e.cacheReadTokens, e.cacheWriteTokens, e.outputTokens].reduce<number>((s, x) => s + (x ?? 0), 0);
-      requireThat(used <= agent.maxTokens, `Token budget exceeded: ${used} of ${agent.maxTokens} tokens.`);
-    }
-    requireThat(
-      Number.isFinite(e.inferenceWallTimeMs) &&
-        e.inferenceWallTimeMs >= 0 &&
-        Number.isFinite(e.simulationTimeMs) &&
-        e.simulationTimeMs >= 0,
+    const budget = tokenBudgetIssue(x, agent.maxTokens);
+    if (budget) issues.push(budget);
+    check(
+      Number.isFinite(x.inferenceWallTimeMs) &&
+        x.inferenceWallTimeMs >= 0 &&
+        Number.isFinite(x.simulationTimeMs) &&
+        x.simulationTimeMs >= 0,
       "Keep valid model wall time and simulation time separately.",
     );
-    requireThat(
-      e.humanTimeEstimateMs === null ||
-        (Number.isFinite(e.humanTimeEstimateMs) && e.humanTimeEstimateMs >= 0),
+    check(
+      x.humanTimeEstimateMs === null ||
+        (Number.isFinite(x.humanTimeEstimateMs) && x.humanTimeEstimateMs >= 0),
       "Invalid separately modeled human time.",
     );
-    requireThat(
-      Array.isArray(run.trace) &&
-        run.trace.filter((e) => e.type === "forecast").length === 1,
-      "Record exactly one forecast boundary.",
-    );
-    issues.push(...exposureIssues(plan, agent, run.trace));
-  } catch (error) {
-    issues.push((error as Error).message);
   }
+  const trace = Array.isArray(run.trace) ? run.trace : null;
+  check(
+    trace && trace.filter((t) => t?.type === "forecast").length === 1,
+    "Record exactly one forecast boundary.",
+  );
+  if (trace) guarded(() => issues.push(...exposureIssues(plan, agent, trace)));
   return {
     jobId: job.id,
     completed: run.status === "completed",

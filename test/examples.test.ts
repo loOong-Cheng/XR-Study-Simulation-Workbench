@@ -1146,3 +1146,44 @@ test("two eyes: simulated stereo sessions pass the audit; the built-in WebXR run
     await removeDir(cfg);
   }
 });
+
+// ---------- found by the second test round (T2, Nov 2026) ----------
+test("audit: a token-budget overrun is one deviation among the others; only tokens up to the forecast count", async () => {
+  const { auditRun } = await import("../src/core/protocol.js");
+  const { campaignPlan } = await import("../src/core/campaign.js");
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json")).map((a) => (a.id === "uses-app" ? { ...a, maxTokens: 60_000 } : a));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "audit-all", new Date(Date.now() - 1000).toISOString());
+  const plan = campaignPlan(c);
+  const run = syntheticCampaignExecution(c).results.runs.find((r) => c.jobs.find((j) => j.id === r.jobId)!.conditionId === "uses-app")!;
+  const job = plan.jobs.find((j) => j.id === run.jobId)!;
+  Object.assign(run.execution, { synthetic: false, inputTokens: 20_000, cacheReadTokens: 70_000, cacheWriteTokens: 0, outputTokens: 7_712 });
+  // The session took no screenshots: that must be reported next to the budget, not hidden by it.
+  run.trace = run.trace.filter((e) => e.type !== "observation");
+  const over = auditRun(plan, job, run);
+  assert.ok(over.issues.includes("Token budget exceeded: 97712 of 60000 tokens."), JSON.stringify(over.issues));
+  const required = plan.study.cases.filter((x) => plan.agents.find((a) => a.id === "uses-app")!.requiredCaseIds.includes(x.id));
+  for (const x of required) assert.ok(over.issues.includes(`No valid observation for required case ${x.id}.`), x.id);
+  assert.equal(over.scoreable, true, "deviations do not drop a usable forecast");
+  assert.equal(over.compliant, false);
+  // With the tokens counted when the forecast was accepted, the closing turn does not count …
+  const within = structuredClone(run);
+  Object.assign(within.execution, { tokensAtSubmit: 55_000 });
+  const ok = auditRun(plan, job, within);
+  assert.ok(!ok.issues.some((i) => /Token budget/.test(i)), JSON.stringify(ok.issues));
+  assert.ok(ok.issues.some((i) => /No valid observation/.test(i)));
+  // … and an overrun before the forecast names the closing turn separately.
+  Object.assign(within.execution, { tokensAtSubmit: 72_000 });
+  assert.ok(
+    auditRun(plan, job, within).issues.includes(
+      "Token budget exceeded: 72000 of 60000 tokens before the forecast was accepted (the closing turn after it used 25712 more, which the budget does not count).",
+    ),
+  );
+  // A run without an execution record is listed, not thrown.
+  const bare = structuredClone(run) as unknown as Record<string, unknown>;
+  delete bare.execution;
+  const missing = auditRun(plan, job, bare as never);
+  assert.equal(missing.scoreable, false);
+  assert.ok(missing.issues.some((i) => /Missing execution record/.test(i)));
+  assert.ok(missing.issues.some((i) => /No valid observation/.test(i)));
+});
