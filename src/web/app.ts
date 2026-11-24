@@ -21,7 +21,7 @@ interface WorkspaceView {
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
 interface RuntimeStatus { id: string; label: string; available: boolean; builtIn: boolean; message: string }
 interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; noResult?: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null }
-interface Snapshot { campaignId: string; mode: string; paused: boolean; running: number; queued: number; counts: Record<string, number>; jobs: JobState[] }
+interface Snapshot { campaignId: string; mode: string; paused: boolean; running: number; queued: number; waiting?: string | null; counts: Record<string, number>; jobs: JobState[] }
 interface AnalysisView {
   campaignId: string; configs: { id: string; label: string; level: string; model: { model: string }; targets: string[] }[];
   outcomes: { id: string; label: string; domain: Domain; unit: string }[];
@@ -979,6 +979,8 @@ function previewTile(j: JobState, single: boolean) {
 
 /** Paused means sessions wait in the queue; with nothing waiting or running the executor is idle. */
 function queueState(s: Snapshot | null) {
+  // Parallel sessions hold across campaigns: say so when another campaign has the free slots.
+  if (s && !s.paused && s.waiting) return ` · ${esc(s.waiting.replace(/\.$/, "").replace(/^W/, "w"))}`;
   if (!s || !s.paused) return "";
   if (s.queued || s.counts.queued) return " · paused";
   return s.running ? " · pausing: running sessions finish" : " · idle";
@@ -1370,7 +1372,7 @@ function renderSettings() {
     <div class="card"><h2>Runtimes (MCP servers)</h2><p class="caption">WebXR is built in. For Unreal, Unity or Apple Vision Pro, give the command that starts that engine's MCP server on this machine (for example your study bridge). Quote arguments that contain spaces. {jobDir}, {jobFile} and {trace} in the arguments are replaced for each session. Leave empty if the runtime is not available here; those configurations can then only be simulated.</p>${["unreal", "unity", "visionos"]
       .map((r) => `<div class="row"><label class="field">${r} command<input id="set-rt-${r}" value="${esc(s.runtimes[r]?.command ?? "")}" placeholder="not configured"></label><label class="field">${r} arguments<input id="set-rt-${r}-args" value="${esc(joinArgs(s.runtimes[r]?.args ?? []))}"></label></div><label class="field">${r} capabilities (comma-separated, e.g. screenshot, phase-events)<input id="set-rt-${r}-caps" value="${esc((s.runtimes[r]?.capabilities ?? []).join(", "))}"></label><div class="row"><label class="field">${r} time limit per session (minutes)<input type="number" min="1" id="set-rt-${r}-timeout" value="${s.runtimes[r]?.timeoutMinutes ?? ""}" placeholder="${Math.max(90, s.jobTimeoutMinutes)} (default)"></label><label class="field">${r} sessions at the same time<input type="number" min="1" id="set-rt-${r}-parallel" value="${s.runtimes[r]?.maxParallel ?? ""}" placeholder="1 (default: one editor, one session)"></label></div><label class="field">${r}: how agents should use its tools (optional)<textarea id="set-rt-${r}-help" rows="2">${esc(s.runtimes[r]?.instructions ?? "")}</textarea></label>`)
       .join("")}<label class="field">Chrome path (WebXR)<input id="set-chrome" value="${esc(s.chromePath)}"></label></div></section>
-    <aside><div class="card"><h2>Execution</h2><label class="field">Parallel sessions<input type="number" id="set-concurrency" min="1" max="8" value="${s.concurrency}"></label><label class="field">Session time limit (minutes)<input type="number" id="set-timeout" min="1" value="${s.jobTimeoutMinutes}"></label><p class="caption">Parallel sessions is the overall limit. Engine runtimes (Unreal, Unity, visionOS) also have their own limits under Runtimes: by default one session at a time and at least 90 minutes each.</p><div class="actions">${btn("save-settings", "Save settings", true)}</div></div></aside></div>`
+    <aside><div class="card"><h2>Execution</h2><label class="field">Parallel sessions<input type="number" id="set-concurrency" min="1" max="8" value="${s.concurrency}"></label><label class="field">Session time limit (minutes)<input type="number" id="set-timeout" min="1" value="${s.jobTimeoutMinutes}"></label><p class="caption">Parallel sessions is the overall limit, for all campaigns together (simulated sessions have their own limit of 8, or more if this is higher). Engine runtimes (Unreal, Unity, visionOS) also have their own limits under Runtimes: by default one session at a time and at least 90 minutes each.</p><div class="actions">${btn("save-settings", "Save settings", true)}</div></div></aside></div>`
   );
 }
 

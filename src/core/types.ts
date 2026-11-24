@@ -263,6 +263,8 @@ export interface RunResult {
     tokensAtSubmit?: number;
     /** Times the session's external runtime (study bridge) was started; more than 1 is a restart. */
     runtimeStarts?: number;
+    /** Set when the session was finished from its files after a workbench restart (its end was never seen). */
+    recovered?: string;
   };
   measurements: Measurement[];
   trace: TraceEvent[];

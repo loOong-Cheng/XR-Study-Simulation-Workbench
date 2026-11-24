@@ -116,7 +116,7 @@ private/studies/<name>/            (or examples/<name>/ for synthetic studies)
 - Merging: `receipts.jsonl` and `events.jsonl` gain the lines they lack. A different record for the same session attempt (keys in any order) refuses the zip.
 - Saving leaves out links, anything that is not a plain file, and attempts without a receipt; the zip's `manifest.json` counts them.
 
-**Attempts** always start in a fresh, empty folder `jobs/<job>/a<n>/` (never one that exists); only the forecast the study MCP server accepted in that attempt counts.
+**Attempts** always start in a fresh, empty folder `jobs/<job>/a<n>/` (never one that exists); only the forecast the study MCP server accepted in that attempt counts. Each starts with a marker, `attempt.json` (start, mode, the claude process, the workbench process), and ends with a receipt, also when stopped. If the workbench is stopped (Ctrl+C) or crashes, running sessions are recorded as **interrupted**; after a crash the next start stops the processes left behind (only those whose command line names the attempt folder) and finishes an attempt whose forecast was already accepted, marked "completed after a workbench restart". **Parallel sessions** and each runtime's sessions-at-a-time are one limit for all campaigns together.
 
 Templates: `examples/graphics-quality/` (WebXR, runnable), `examples/ecolar/` (Unreal; mixed levels, measured inputs, movement data), `examples/selection/` (Unity app and bridge; participant background). Contracts: `src/core/types.ts`, `docs/data-contract.md`.
 

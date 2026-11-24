@@ -18,6 +18,7 @@ import { validateAgents, validateStudy } from "./core/validation.js";
 import { hash } from "./core/planner.js";
 import { approvalState, approve, readReviewFiles } from "./review.js";
 import { handleGet, handlePost } from "./routes.js";
+import { recoverLeftovers, shutdownExecutors } from "./executor/runner.js";
 import { hostAllowed, originAllowed, publicError } from "./http-guard.js";
 
 // Review mode: `cli review <study.json> [--agents agents.json]` sets these. The
@@ -375,8 +376,23 @@ server.on("error", (error) => {
   );
   process.exitCode = 1;
 });
-server.listen(port, "127.0.0.1", () =>
+server.listen(port, "127.0.0.1", () => {
   console.log(
     `XR Study Sim — http://127.0.0.1:${port}\nLocal planning and analysis. Optional proposal-reader calls occur only when requested. XR execution remains external.`,
-  ),
-);
+  );
+  // Sessions a crashed or killed workbench left behind: stop their processes, record how they ended.
+  void recoverLeftovers()
+    .then((n) => n && console.log(`Closed the sessions a previous run of the workbench left unfinished, in ${n} campaign(s).`))
+    .catch((e) => console.error("Could not check for sessions left unfinished:", (e as Error).message));
+});
+// Ctrl+C or a stop signal: running sessions are stopped and recorded as interrupted before the
+// workbench exits (a second signal exits at once).
+let closing = false;
+for (const signal of ["SIGINT", "SIGTERM"] as const)
+  process.on(signal, () => {
+    if (closing) process.exit(1);
+    closing = true;
+    console.log(`\n${signal}: stopping running sessions (recorded as interrupted)…`);
+    server.close();
+    void shutdownExecutors().finally(() => process.exit(0));
+  });

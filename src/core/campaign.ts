@@ -140,6 +140,10 @@ export interface CampaignReceipt {
   executionManifest: { path: string; sha256: string } | null;
   usage: { inputTokens: number | null; outputTokens: number | null };
   error?: string;
+  /** The workbench stopped (shut down or crashed) while this attempt ran; status is "failed". */
+  interrupted?: boolean;
+  /** Set when the attempt was finished from its files after a workbench restart (see the executor). */
+  recovered?: string;
 }
 const idPattern = /^[a-zA-Z0-9][a-zA-Z0-9_-]{0,80}$/;
 const shaPattern = /^[a-f0-9]{64}$/;

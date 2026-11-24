@@ -139,7 +139,7 @@ The bridge is the runtime's command in Settings, for example `node` with argumen
 | `capabilities` | What the bridge really provides, e.g. `["screenshot", "phase-events", "stereo-capture"]`. The executor blocks configurations whose study requires a capability the runtime does not declare; stereo configurations need `stereo-capture`. The audit compares the bridge's own `runtime` event, not this list. |
 | `instructions` | One or two sentences for the agent on how to use the bridge's tools (added to the session's instructions). |
 | `timeoutMinutes` | Time limit per session (default 90 for Unreal, Unity and visionOS, or the global limit if higher). |
-| `maxParallel` | Sessions on this runtime at once (default 1: one editor hosts one Play session; app-free sessions keep running alongside). |
+| `maxParallel` | Sessions on this runtime at once, across all campaigns (default 1: one editor hosts one Play session, so two campaigns never drive it at once; app-free sessions keep running alongside). Settings → Parallel sessions is likewise one limit for all campaigns together; a campaign whose sessions wait for a slot another campaign holds says so ("waiting for a free slot"). |
 | `startupSeconds` | Seconds the bridge has to answer `tools/list` (default 60). |
 | `note` | Free text for you. |
 

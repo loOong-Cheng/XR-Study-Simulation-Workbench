@@ -4,7 +4,7 @@
 // so a run can pause, stop, resume or rerun failed jobs at any time.
 import { spawn, type ChildProcess } from "node:child_process";
 import { createHash, randomUUID } from "node:crypto";
-import { existsSync } from "node:fs";
+import { existsSync, statSync } from "node:fs";
 import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -15,9 +15,11 @@ import { agentLevel, agentTargets, hash, jobPacket, protocolForJob } from "../co
 import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent } from "../core/types.js";
 import { claudeEffort, effortProblem, requireThat } from "../core/validation.js";
 import { claudeCommand, readSettings, runtimeLimits, type Settings } from "../settings.js";
-import { changedApp, changedSources, listCampaigns, missingSources, readCampaign, readHuman, readReceipts, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
+import { changedApp, changedSources, listCampaigns, listWorkspaces, missingSources, readCampaign, readHuman, readReceipts, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
 import { appActions, runtimeFor, runtimeStatus, webxrCapabilities } from "./runtimes.js";
 import { runRecordPath } from "./archive.js";
+import { activeAttempts, appendLine, SERVER, serverAlive, stopLeftovers, unfinishedAttempts, writeMarker, type AttemptMarker } from "./attempts.js";
+import { joinScheduler, leaveScheduler, schedule, type Schedulable } from "./scheduler.js";
 import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
 import { agentFileList } from "../runtimes/guard.js";
@@ -33,10 +35,24 @@ export const STOPPED = "Stopped by you.";
 export const STOPPED_UNRECORDED = "Stopped before it finished; no result was recorded.";
 /** Shown for a real session that ended before Claude Code reported its cost. */
 export const COST_UNKNOWN = "unknown (stopped before the end)";
+/**
+ * The error of an attempt the workbench could not see to its end: it was shut down, or crashed,
+ * while the session ran (also in its receipt). The session can be run again, in a new attempt folder.
+ */
+export const INTERRUPTED = "Interrupted: the workbench stopped while this session ran. Run it again.";
+/** Receipt, result and manifest note of an attempt whose forecast was accepted before a crash and that was finished after the restart. */
+export const RECOVERED = "Completed after a workbench restart: the forecast was accepted before the workbench stopped. Tokens are those recorded until then; the cost is unknown.";
 /** One run of a session: stop() marks it, so a stopped run never overwrites a rerun of the same session. */
 interface RunHandle {
   stopped: boolean;
+  /** Stopped by you (Stop), or by the workbench shutting down. */
+  reason?: "stop" | "shutdown";
+  /** The attempt's folder and number once created: every attempt ends with a receipt. */
+  dir?: string;
+  attempt?: number;
 }
+/** Called with (study, campaign) after a receipt was written, e.g. to forget cached analyses. */
+export const receiptsChanged = new Set<(workspaceId: string, campaignId: string) => void>();
 /** Usage as recorded in receipts: uncached input, cache writes and reads, output (thinking included) and cost. */
 export interface FullUsage {
   inputTokens: number | null;
@@ -92,12 +108,59 @@ const bridgeProxy = resolve(here, "../runtimes/bridge-proxy.js");
 const sha = (x: string | Buffer) => createHash("sha256").update(x).digest("hex");
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const registry = new Map<string, Executor>();
-/** Drop the executor of a campaign before it is deleted; refused while its sessions run. */
+/** Executors being opened: a second request for the same campaign waits for the first, so there is only ever one. */
+const opening = new Map<string, Promise<Executor>>();
+/** Drop the executor of a campaign before it is deleted; refused while its sessions run or wait to run. */
 export function closeExecutor(workspaceId: string, campaignId: string) {
   workspaceDir(workspaceId); // only the canonical study ID, so the key below is the one open() used
-  const ex = registry.get(`${workspaceId}::${campaignId}`);
+  const key = `${workspaceId}::${campaignId}`;
+  const ex = registry.get(key);
   requireThat(!ex || ex.running.size === 0, "Sessions of this campaign are running. Stop them first.");
-  registry.delete(`${workspaceId}::${campaignId}`);
+  requireThat(!ex || ex.paused || !ex.queue.length, "Sessions of this campaign are waiting to run. Stop them first.");
+  registry.delete(key);
+  opening.delete(key);
+  if (ex) leaveScheduler(ex);
+}
+/**
+ * Workbench shutdown (SIGINT/SIGTERM): every running session is stopped and recorded as
+ * interrupted (with its usage so far); waiting ones stay not started. Resolves when their receipts
+ * are written, or after `timeoutMs`.
+ */
+let shuttingDown = false;
+export async function shutdownExecutors(timeoutMs = 20_000) {
+  shuttingDown = true;
+  const runs = [...registry.values()].flatMap((ex) => ex.interrupt());
+  let timer: NodeJS.Timeout | undefined;
+  await Promise.race([Promise.allSettled(runs), new Promise((r) => (timer = setTimeout(r, timeoutMs)))]);
+  clearTimeout(timer);
+}
+/**
+ * At server start: attempts that a crashed or killed workbench left without a receipt, in every
+ * study and campaign, are closed (see Executor.recover) and the processes they left are stopped.
+ * Returns how many campaigns had such attempts.
+ */
+export async function recoverLeftovers(): Promise<number> {
+  let n = 0;
+  for (const w of await listWorkspaces()) {
+    let campaigns: Campaign[] = [];
+    try {
+      campaigns = await listCampaigns(w.id);
+    } catch {
+      continue;
+    }
+    for (const c of campaigns) {
+      try {
+        const receipts = await readReceipts(w.id, [c.id]);
+        const left = await unfinishedAttempts(runDir(w.id, c.id), new Set(receipts.map((r) => `${r.jobId}|${r.attempt}`)));
+        if (!left.some((u) => !activeAttempts.has(u.dir))) continue;
+        await Executor.open(w.id, c.id);
+        n++;
+      } catch (e) {
+        console.error(`Could not check the sessions of ${w.id} ${c.id}:`, (e as Error).message);
+      }
+    }
+  }
+  return n;
 }
 /** Session statuses of a campaign whose executor is open (what the executor table shows), else null. */
 export function liveStatuses(workspaceId: string, campaignId: string): Map<string, JobStatus> | null {
@@ -265,14 +328,18 @@ export function playInstructions(runtime: string, order: string[], study: Study,
   ].join("\n");
 }
 
-export class Executor {
+export class Executor implements Schedulable {
   jobs = new Map<string, JobState>();
   paused = true;
   mode: "agent" | "simulate" = "simulate";
   queue: string[] = [];
   running = new Map<string, ChildProcess | null>();
+  /** Why queued sessions wait when another campaign holds the free slots (see scheduler.ts), else null. */
+  waiting: string | null = null;
   /** The current run of each running session (see RunHandle). */
   private handles = new Map<string, RunHandle>();
+  /** Every run until its receipt is written (also runs that were stopped). */
+  private runs = new Set<Promise<void>>();
   listeners = new Set<(e: ExecutorEvent) => void>();
   private constructor(
     readonly workspaceId: string,
@@ -282,17 +349,45 @@ export class Executor {
     readonly dir: string,
   ) {}
 
+  /**
+   * The one executor of a campaign. Requests that arrive while it is being opened wait for the
+   * same one (never two executors running the same sessions). Opening it first closes attempts a
+   * crashed workbench left behind (recover).
+   */
   static async open(workspaceId: string, campaignId: string): Promise<Executor> {
     workspaceDir(workspaceId); // one executor per study: refuse any non-canonical spelling of its ID
     const key = `${workspaceId}::${campaignId}`;
-    if (registry.has(key)) return registry.get(key)!;
-    const campaign = await readCampaign(workspaceId, campaignId);
-    const plan = campaignPlan(campaign);
-    const { manifest } = await readStudyFolder(workspaceId);
-    const ex = new Executor(workspaceId, campaign, plan, manifest, runDir(workspaceId, campaignId));
-    await ex.load();
-    registry.set(key, ex);
-    return ex;
+    const open = registry.get(key);
+    if (open) return open;
+    let pending = opening.get(key);
+    if (!pending) {
+      const created = (async () => {
+        const campaign = await readCampaign(workspaceId, campaignId);
+        const plan = campaignPlan(campaign);
+        const { manifest } = await readStudyFolder(workspaceId);
+        const ex = new Executor(workspaceId, campaign, plan, manifest, runDir(workspaceId, campaignId));
+        await ex.recover();
+        await ex.load();
+        return ex;
+      })();
+      pending = created;
+      opening.set(key, created);
+      // Registered before any caller continues (this handler is attached first).
+      created.then(
+        (ex) => {
+          if (opening.get(key) !== created) return;
+          opening.delete(key);
+          registry.set(key, ex);
+          joinScheduler(ex);
+        },
+        () => {
+          if (opening.get(key) === created) opening.delete(key);
+        },
+      );
+    }
+    const ex = await pending;
+    // Closed while it was opening (e.g. runs loaded from a zip): open it again from disk.
+    return registry.get(key) === ex ? ex : Executor.open(workspaceId, campaignId);
   }
   private agent(id: string) {
     return this.plan.agents.find((a) => a.id === id)!;
@@ -300,9 +395,10 @@ export class Executor {
   /**
    * The sessions as the files on disk record them, so a restart shows what was shown before:
    * receipts (status, error, usage of failed attempts), results and execution manifests (tokens,
-   * tool calls, cost, tokens when the forecast was accepted) and the attempt folders. An attempt
-   * folder without a receipt was stopped before it finished (a stopped simulated session writes
-   * none) and counts as an attempt, so a rerun gets a new folder.
+   * tool calls, cost, tokens when the forecast was accepted) and the attempt folders. Every attempt
+   * now ends with a receipt (also stopped simulated ones), and those a crashed workbench left get
+   * one when the campaign opens (recover). An attempt folder still without a receipt (written by an
+   * older version) was stopped before it finished and counts as an attempt, so a rerun gets a new folder.
    */
   private async load() {
     const receipts = await readReceipts(this.workspaceId, [this.campaign.id]);
@@ -364,7 +460,8 @@ export class Executor {
       }
       const u = last!.usage;
       const run = await json<RunResult>(join(dir, "result.json"));
-      state.simulated = run?.execution.synthetic ?? false;
+      // A stopped or interrupted simulation has a receipt but no result: its marker says it was simulated.
+      state.simulated = run?.execution.synthetic ?? (await json<{ mode?: string }>(join(dir, "attempt.json")))?.mode === "simulate";
       if (!u || u.outputTokens == null) continue;
       state.tokensIn = totalInput({ inputTokens: u.inputTokens ?? null, cacheReadTokens: u.cacheReadTokens ?? null, cacheWriteTokens: u.cacheWriteTokens ?? null });
       state.tokensOut = u.outputTokens;
@@ -414,6 +511,11 @@ export class Executor {
           s.warning = "marked reused, but it never ran: no result to reuse; a continuation runs it again";
         }
       }
+    // A forecast finished after a restart says so in the table.
+    for (const s of this.jobs.values()) {
+      const done = receipts.find((r) => r.jobId === s.jobId && r.status === "completed");
+      if (s.status === "done" && done?.recovered) s.warning = [s.warning, "completed after a workbench restart"].filter(Boolean).join("; ");
+    }
   }
   snapshot() {
     const jobs = [...this.jobs.values()];
@@ -425,6 +527,7 @@ export class Executor {
       paused: this.paused,
       running: this.running.size,
       queued: this.queue.length,
+      waiting: this.waiting,
       counts,
       jobs,
     };
@@ -432,9 +535,8 @@ export class Executor {
   private emit(e: Omit<ExecutorEvent, "t">) {
     const event = { t: Date.now(), ...e };
     this.listeners.forEach((l) => l(event));
-    void mkdir(this.dir, { recursive: true }).then(() =>
-      appendFile(join(this.dir, "events.jsonl"), JSON.stringify({ ...event, job: undefined }) + "\n"),
-    );
+    // One write after another, so the lines of events.jsonl stay in the order of their times.
+    void appendLine(join(this.dir, "events.jsonl"), JSON.stringify({ ...event, job: undefined }) + "\n", join(this.dir, "..", "..", "campaigns", this.campaign.id)).catch(() => undefined);
   }
   private update(jobId: string, patch: Partial<JobState>) {
     const job = Object.assign(this.jobs.get(jobId)!, patch);
@@ -534,6 +636,7 @@ export class Executor {
    * wait or run adds to the queue; it never drops what is already queued.
    */
   async start(mode: "agent" | "simulate", jobIds?: string[]) {
+    requireThat(!shuttingDown, "The workbench is shutting down; start the sessions again after it restarts.");
     const candidates = this.runnable(jobIds ?? [...this.jobs.keys()]).filter((id) => !this.running.has(id));
     requireThat(candidates.length > 0, "Nothing to run: every selected session is finished, reused or already running.");
     const busy = this.queue.length + this.running.size > 0;
@@ -561,6 +664,7 @@ export class Executor {
   }
   pause() {
     this.paused = true;
+    this.waiting = null;
     this.emit({ type: "state", text: "Paused: running sessions finish, no new ones start." });
     return this.snapshot();
   }
@@ -581,57 +685,332 @@ export class Executor {
     return this.snapshot();
   }
   /**
-   * Stop everything: waiting sessions go back to "not started"; running ones (real and simulated)
-   * end at once as "stopped" and can be run again right away. A stopped real session still
-   * records its tokens; its cost is unknown, since Claude Code reports it only at the end.
+   * Stop everything: running sessions (real and simulated) end at once as "stopped", with a
+   * receipt, and can be run again right away. A stopped real session still records its tokens; its
+   * cost is unknown, since Claude Code reports it only at the end. Waiting sessions are not started
+   * (back to "not started"); the message says how many, so they are not lost from sight.
    */
   stop() {
+    const dropped = this.halt("stop");
+    const them = dropped === 1 ? "it" : "them";
+    this.emit({
+      type: "state",
+      text: dropped ? `Stopped. ${dropped} waiting session${dropped === 1 ? " was" : "s were"} not started; select ${them} and Start ${them} again to run ${them}.` : "Stopped.",
+    });
+    return this.snapshot();
+  }
+  /** Workbench shutdown: running sessions end as interrupted (each with a receipt). Returns their runs. */
+  interrupt(): Promise<void>[] {
+    this.halt("shutdown");
+    return [...this.runs];
+  }
+  /** Ends every running session and empties the queue; returns how many waiting sessions were not started. */
+  private halt(reason: "stop" | "shutdown") {
     this.paused = true;
-    for (const id of this.queue) if (this.jobs.get(id)?.status === "queued") this.update(id, { status: "not-started" });
+    let dropped = 0;
+    for (const id of this.queue)
+      if (this.jobs.get(id)?.status === "queued") {
+        this.update(id, { status: "not-started" });
+        dropped++;
+      }
     this.queue = [];
     for (const [id, proc] of this.running) {
       const handle = this.handles.get(id);
-      if (handle) handle.stopped = true;
+      if (handle) Object.assign(handle, { stopped: true, reason });
       proc?.kill("SIGTERM");
-      this.update(id, { status: "stopped", error: STOPPED, endedAt: new Date().toISOString(), lastTool: null });
+      this.update(id, { status: reason === "stop" ? "stopped" : "failed", error: reason === "stop" ? STOPPED : INTERRUPTED, endedAt: new Date().toISOString(), lastTool: null });
     }
     this.running.clear();
     this.handles.clear();
-    this.emit({ type: "state", text: "Stopped." });
-    return this.snapshot();
+    this.waiting = null;
+    // The slots are free for other campaigns now.
+    void schedule();
+    return dropped;
   }
-  private async pump() {
-    const settings = await readSettings();
-    // Simulated sessions call no model and no app, so they are not held to the real-session limit.
-    const limit = this.mode === "agent" ? settings.concurrency : Math.max(settings.concurrency, 8);
-    // Real sessions also respect each runtime's own limit (one Unreal/Unity editor = one session at a time).
-    const busy = (runtime: string) => [...this.running.keys()].filter((r) => this.jobs.get(r)?.runtime === runtime).length;
-    const fits = (id: string) => this.mode !== "agent" || busy(this.jobs.get(id)!.runtime) < runtimeLimits(settings, this.jobs.get(id)!.runtime).maxParallel;
-    while (!this.paused && this.queue.length && this.running.size < limit) {
-      const next = this.queue.findIndex(fits);
-      if (next < 0) break; // the rest wait for their runtime; pump() runs again when a session ends
-      const [id] = this.queue.splice(next, 1);
-      const handle: RunHandle = { stopped: false };
-      this.running.set(id, null);
-      this.handles.set(id, handle);
-      const run = this.mode === "agent" ? this.runAgent(id, settings, handle) : this.simulate(id, handle);
-      void run
-        .catch((e) => {
-          if (!handle.stopped) this.update(id, { status: "failed", error: (e as Error).message });
-        })
-        .finally(() => {
-          // A stopped run was already taken out; a rerun of the same session may hold the slot now.
-          if (this.handles.get(id) === handle) {
-            this.running.delete(id);
-            this.handles.delete(id);
-          }
-          if (!this.queue.length && !this.running.size && !this.paused) {
-            this.paused = true;
-            this.emit({ type: "state", text: "Queue finished." });
-          }
-          void this.pump();
-        });
+  /** Sessions start through the workbench's one scheduler (scheduler.ts), across all campaigns. */
+  private pump() {
+    return schedule();
+  }
+
+  // ---------- the scheduler's view of this campaign (Schedulable) ----------
+  waitingSessions() {
+    return this.paused ? [] : this.queue.map((id) => ({ id, runtime: this.jobs.get(id)!.runtime }));
+  }
+  runningRuntimes() {
+    return [...this.running.keys()].map((id) => this.jobs.get(id)!.runtime);
+  }
+  setWaiting(text: string | null) {
+    if (text === this.waiting) return;
+    this.waiting = text;
+    this.emit({ type: "state" });
+  }
+  launch(id: string, settings: Settings) {
+    const i = this.queue.indexOf(id);
+    if (i >= 0) this.queue.splice(i, 1);
+    const handle: RunHandle = { stopped: false };
+    this.running.set(id, null);
+    this.handles.set(id, handle);
+    const run = this.mode === "agent" ? this.runAgent(id, settings, handle) : this.simulate(id, handle);
+    const settled: Promise<void> = run
+      .then(
+        () => null,
+        (e: Error) => {
+          if (!handle.stopped) this.update(id, { status: "failed", error: e.message });
+          return e.message;
+        },
+      )
+      // An attempt that ended without writing its receipt (stopped, or an error) gets one now.
+      .then((error) => this.closeAttempt(id, handle, error))
+      .catch((e) => console.error(`Session ${id}: could not record its end:`, (e as Error).message))
+      .finally(() => {
+        this.runs.delete(settled);
+        // A stopped run was already taken out; a rerun of the same session may hold the slot now.
+        if (this.handles.get(id) === handle) {
+          this.running.delete(id);
+          this.handles.delete(id);
+        }
+        if (!this.queue.length && !this.running.size && !this.paused) {
+          this.paused = true;
+          this.emit({ type: "state", text: "Queue finished." });
+        }
+        void schedule();
+      });
+    this.runs.add(settled);
+  }
+
+  // ---------- attempts: a new folder each, a marker at the start, a receipt at the end ----------
+  /** A fresh attempt folder (attemptFolder) with its marker; from here on the attempt ends with a receipt. */
+  private async newAttempt(jobId: string, handle: RunHandle, mode: "agent" | "simulate") {
+    const { attempt, jobDir } = await this.attemptFolder(jobId);
+    Object.assign(handle, { attempt, dir: jobDir });
+    activeAttempts.add(jobDir);
+    await writeMarker(jobDir, { jobId, attempt, mode, startedAt: new Date().toISOString(), pid: null });
+    return { attempt, jobDir };
+  }
+  private async appendReceipt(receipt: CampaignReceipt, attemptDir: string) {
+    await appendLine(join(this.dir, "receipts.jsonl"), JSON.stringify(receipt) + "\n");
+    activeAttempts.delete(attemptDir);
+    for (const f of receiptsChanged)
+      try {
+        f(this.workspaceId, this.campaign.id);
+      } catch {
+        // a listener's problem is not the session's
+      }
+  }
+  /** A failed receipt for an attempt that ended without a result of its own. */
+  private async closingReceipt(jobId: string, attempt: number, attemptDir: string, error: string, usage: CampaignReceipt["usage"], extra: Partial<CampaignReceipt> = {}) {
+    await this.appendReceipt(
+      {
+        campaignDigest: this.campaign.digest,
+        jobId,
+        attempt,
+        status: "failed",
+        actualModel: null,
+        sessionId: `${jobId}-a${attempt}`,
+        freshSession: true,
+        freshPIE: true,
+        freshScreenshots: true,
+        assetHashes: {},
+        output: null,
+        executionManifest: null,
+        usage,
+        error,
+        ...extra,
+      },
+      attemptDir,
+    );
+  }
+  /** After a run: the receipt of an attempt that has none yet (stopped before or while it ran, or failed with an error). */
+  private async closeAttempt(jobId: string, handle: RunHandle, error: string | null) {
+    const dir = handle.dir;
+    if (!dir || handle.attempt === undefined || !activeAttempts.has(dir)) return;
+    const why = handle.stopped ? (handle.reason === "shutdown" ? INTERRUPTED : STOPPED) : (error ?? "The session ended without a result.");
+    await this.closingReceipt(jobId, handle.attempt, dir, why, await liveUsage(dir), handle.reason === "shutdown" ? { interrupted: true } : {});
+  }
+
+  // ---------- after a crash: attempts left without a receipt ----------
+  /**
+   * Attempts a crashed or killed workbench left without a receipt (a marker, attempt.json, but no
+   * receipt). Processes still running for them are stopped first (only those whose command line
+   * names the attempt folder). One whose forecast was accepted and whose files are complete is
+   * finished from its files and marked as completed after a restart; any other gets an
+   * "interrupted" receipt with its usage so far. Attempts this process or another running
+   * workbench still runs are left alone. A rerun gets a new folder.
+   */
+  private async recover() {
+    const receipts = await readReceipts(this.workspaceId, [this.campaign.id]);
+    for (const u of await unfinishedAttempts(this.dir, new Set(receipts.map((r) => `${r.jobId}|${r.attempt}`)))) {
+      if (activeAttempts.has(u.dir) || !this.plan.jobs.some((j) => j.id === u.jobId)) continue;
+      if (u.marker.server.instance !== SERVER.instance && (await serverAlive(u.marker.server))) continue;
+      const stopped = await stopLeftovers(u.dir, u.marker.pid);
+      if (stopped.length) console.log(`Stopped ${stopped.length} process(es) left running by session ${u.jobId} (attempt ${u.attempt}).`);
+      activeAttempts.add(u.dir);
+      try {
+        await this.finishLeftover(u.jobId, u.attempt, u.dir, u.marker);
+      } finally {
+        activeAttempts.delete(u.dir);
+      }
     }
+  }
+  private async finishLeftover(jobId: string, attempt: number, dir: string, marker: AttemptMarker) {
+    const interrupted = (usage: CampaignReceipt["usage"], extra: Partial<CampaignReceipt> = {}) => this.closingReceipt(jobId, attempt, dir, INTERRUPTED, usage, { interrupted: true, ...extra });
+    if (marker.mode === "simulate") return interrupted({ inputTokens: null, outputTokens: null });
+    const job = this.planJob(jobId);
+    const a = this.agent(job.agentId);
+    const study = this.plan.study;
+    const text = async (f: string) => (existsSync(join(dir, f)) ? await readFile(join(dir, f), "utf8") : "");
+    const parse = <T>(s: string): T | null => {
+      try {
+        return JSON.parse(s) as T;
+      } catch {
+        return null;
+      }
+    };
+    // The session's stream as far as it was recorded: who answered, and its tokens until then.
+    const meter = new UsageMeter();
+    let sessionId = "",
+      actualModel = "",
+      cliVersion = "",
+      submitted = false,
+      atSubmit: number | null = null,
+      result: Record<string, any> | null = null;
+    for (const line of (await text("stream.jsonl")).split("\n")) {
+      const m = parse<Record<string, any>>(line);
+      if (!m || typeof m !== "object") continue;
+      // As while running: the forecast counts from the turn after the one that submitted it.
+      if (submitted && atSubmit === null && meter.startsTurn(m)) atSubmit = meter.totals().total;
+      if (m.type === "system" && m.subtype === "init") {
+        sessionId = m.session_id ?? "";
+        actualModel = m.model ?? "";
+        cliVersion = m.claude_code_version ?? "";
+      } else if (m.type === "stream_event" || m.type === "assistant") {
+        meter.add(m);
+        if (m.type === "assistant" && (m.message?.content ?? []).some((c: Record<string, unknown>) => c?.type === "tool_use" && /submit_forecast$/.test(String(c.name)))) submitted = true;
+      } else if (m.type === "result") result = m;
+    }
+    const live = meter.totals();
+    const usage: Record<string, any> = result?.usage ?? (meter.modelRan ? { input_tokens: live.uncached, cache_read_input_tokens: live.cacheRead, cache_creation_input_tokens: live.cacheWrite, output_tokens: live.output } : {});
+    const costUsd = typeof result?.total_cost_usd === "number" ? result.total_cost_usd : null;
+    const noted = parse<{ tokensAtSubmit?: number | null }>(await text("usage.json"))?.tokensAtSubmit;
+    const full: FullUsage = {
+      inputTokens: usage.input_tokens ?? null,
+      outputTokens: usage.output_tokens ?? null,
+      cacheReadTokens: usage.cache_read_input_tokens ?? null,
+      cacheWriteTokens: usage.cache_creation_input_tokens ?? null,
+      reasoningTokens: null,
+      costUsd,
+      source: result?.usage ? "final" : "live",
+      tokensAtSubmit: null,
+    };
+    // Only the forecast the study server accepted in this attempt (it carries the attempt's ID from job.json).
+    const attemptId = parse<{ attemptId?: string }>(await text("job.json"))?.attemptId;
+    const written = parse<{ attemptId?: string; measurements?: unknown[] }>(await text("forecast.json"));
+    const forecast = attemptId && written?.attemptId === attemptId ? written : null;
+    const xr = a.tools.includes("xr-interact");
+    // Complete: an accepted forecast with values, the session's start in the stream, and the app's trace for app sessions.
+    const complete = !!forecast && Array.isArray(forecast.measurements) && forecast.measurements.length > 0 && !!sessionId && (!xr || existsSync(join(dir, "trace.jsonl")));
+    if (!complete) return interrupted(full, sessionId ? { sessionId } : {});
+
+    // As noted while it ran; else from the recorded stream; unknown when the stream ends before the submission.
+    full.tokensAtSubmit = typeof noted === "number" ? noted : (atSubmit ?? (submitted ? live.total : null));
+    const traceLines = (await text("trace.jsonl")).split("\n").map((l) => parse<{ event?: TraceEvent }>(l)).filter((l): l is { event?: TraceEvent } => !!l);
+    const trace: TraceEvent[] = [...(marker.sourceEvents ?? []), ...traceLines.filter((l) => l.event).map((l) => l.event as TraceEvent)];
+    // As runAgent records it: the runtime's own report, else "not reported" (nothing copied from study.json or Settings).
+    const reported = [...trace].reverse().find((e): e is Extract<TraceEvent, { type: "runtime" }> => e.type === "runtime");
+    const NOT_REPORTED = "not reported";
+    const runtime = runtimeFor(study, a);
+    const servers = parse<{ mcpServers?: Record<string, unknown> }>(await text("mcp.json"))?.mcpServers ?? {};
+    const bridged = existsSync(join(dir, "bridge.jsonl"));
+    const runtimeStarts = bridged ? (await jsonLines(join(dir, "bridge.jsonl"))).filter((x) => x.type === "start").length : 0;
+    const calls = (await text("calls.log")).trim().split("\n").filter((l) => l && l !== "submit_forecast").length;
+    const model = a.model;
+    const outputTokens = Number(usage.output_tokens ?? 0);
+    const run: RunResult = {
+      jobId,
+      planDigest: this.campaign.digest,
+      status: "completed",
+      sessionId: sessionId || `${jobId}-a${attempt}`,
+      execution: {
+        synthetic: false,
+        engine: reported?.engine ?? (xr ? NOT_REPORTED : "none"),
+        backend: reported?.backend ?? (xr ? NOT_REPORTED : "none"),
+        observation: xr ? (reported?.observation ?? "none") : "none",
+        deviceProfile: reported?.deviceProfile ?? (xr ? NOT_REPORTED : "none"),
+        provider: model.provider,
+        model: model.model,
+        reasoning: model.reasoning,
+        versions: {
+          engine: reported?.engineVersion ? `${reported.engine} ${reported.engineVersion}` : xr ? `${runtime} (${NOT_REPORTED})` : "none",
+          runtime: runtime === "none" ? "none" : `${runtime}-mcp`,
+          connector: "xr-study-sim executor 0.4",
+          provider: `Claude Code ${cliVersion || "CLI"}`,
+        },
+        startedAt: marker.startedAt,
+        capabilities: Array.isArray(reported?.capabilities) ? reported!.capabilities : [],
+        toolCalls: calls,
+        outputTokens,
+        inputTokens: usage.input_tokens ?? null,
+        cacheReadTokens: usage.cache_read_input_tokens ?? null,
+        cacheWriteTokens: usage.cache_creation_input_tokens ?? null,
+        reasoningTokens: null,
+        inferenceWallTimeMs: Math.max(0, (existsSync(join(dir, "forecast.json")) ? statSync(join(dir, "forecast.json")).mtimeMs : Date.now()) - Date.parse(marker.startedAt)),
+        simulationTimeMs: simulationTime(trace),
+        humanTimeEstimateMs: null,
+        technicalRetries: 0,
+        ...(bridged ? { runtimeStarts } : {}),
+        ...(full.tokensAtSubmit !== null ? { tokensAtSubmit: full.tokensAtSubmit } : {}),
+        recovered: RECOVERED,
+      },
+      measurements: forecast!.measurements as RunResult["measurements"],
+      trace,
+    };
+    const total = (totalInput(run.execution) ?? 0) + outputTokens;
+    const manifestBody = JSON.stringify(
+      {
+        requestedModel: model,
+        effort: effortArgs(model.reasoning)[1] ?? "default",
+        actualModel: actualModel || null,
+        cliVersion,
+        runtime,
+        runtimeCommand: runtime === "webxr" || runtime === "none" ? "built in" : (servers[runtime] ?? null),
+        ...(bridged ? { runtimeStarts } : {}),
+        mcp: Object.keys(servers),
+        costUsd,
+        ...(costUsd === null ? { cost: COST_UNKNOWN } : {}),
+        turns: result?.num_turns ?? null,
+        exitCode: null,
+        usage: full,
+        tokensAtSubmit: full.tokensAtSubmit,
+        tokensAfterSubmit: full.tokensAtSubmit === null ? null : Math.max(0, total - full.tokensAtSubmit),
+        recovered: RECOVERED,
+      },
+      null,
+      2,
+    );
+    await writeFile(join(dir, "execution-manifest.json"), manifestBody);
+    const requested = conditionModel(this.campaign, job.agentId);
+    const effective = !actualModel || actualModel === requested.model || actualModel.startsWith(requested.model) ? { ...requested } : { ...requested, model: actualModel };
+    await this.finish(
+      job,
+      attempt,
+      run,
+      {
+        campaignDigest: this.campaign.digest,
+        jobId,
+        attempt,
+        status: "completed",
+        actualModel: effective,
+        sessionId: run.sessionId,
+        freshSession: true,
+        freshPIE: true,
+        freshScreenshots: true,
+        assetHashes: {},
+        executionManifest: { path: `jobs/${jobId}/a${attempt}/execution-manifest.json`, sha256: sha(manifestBody) },
+        usage: full,
+        recovered: RECOVERED,
+      },
+      dir,
+    );
   }
 
   // ---------- shared result writing ----------
@@ -647,7 +1026,7 @@ export class Executor {
       ...receipt,
       output: result.status === "completed" ? { path: `results/${job.id}.json`, sha256: sha(body) } : null,
     };
-    await appendFile(join(this.dir, "receipts.jsonl"), JSON.stringify(full) + "\n");
+    await this.appendReceipt(full, jobDir);
     void attempt;
   }
   private planJob(jobId: string) {
@@ -679,7 +1058,7 @@ export class Executor {
   private async simulate(jobId: string, handle: RunHandle) {
     const job = this.planJob(jobId);
     const a = this.agent(job.agentId);
-    const { attempt, jobDir } = await this.attemptFolder(jobId);
+    const { attempt, jobDir } = await this.newAttempt(jobId, handle, "simulate");
     if (handle.stopped) return;
     this.update(jobId, { status: "running", attempts: attempt, simulated: true, startedAt: new Date().toISOString(), toolCalls: 0, lastTool: null, warning: null });
     // Tool calls are counted as in real sessions: the forecast submission is not one of them.
@@ -731,7 +1110,7 @@ export class Executor {
   private async runAgent(jobId: string, settings: Settings, handle: RunHandle) {
     const job = this.planJob(jobId);
     const a = this.agent(job.agentId);
-    const { attempt, jobDir } = await this.attemptFolder(jobId);
+    const { attempt, jobDir } = await this.newAttempt(jobId, handle, "agent");
     const cwd = join(jobDir, "session");
     await mkdir(cwd);
     // The study server writes this ID into the forecast it accepts: only that forecast counts.
@@ -937,6 +1316,15 @@ export class Executor {
     const claude = claudeCommand(settings);
     const proc = spawn(claude.command, [...claude.prefix, ...args], { cwd, stdio: ["ignore", "pipe", "pipe"], env: process.env });
     this.running.set(jobId, proc);
+    // The marker names the claude process, so a workbench restarted after a crash can stop it (and finish this attempt from its files).
+    void writeMarker(jobDir, {
+      jobId,
+      attempt,
+      mode: "agent",
+      startedAt: startedAt.toISOString(),
+      pid: proc.pid ?? null,
+      sourceEvents,
+    }).catch(() => undefined);
     const box: { result: Record<string, any> | null } = { result: null };
     let sessionId = "",
       actualModel = "",
@@ -1130,7 +1518,9 @@ export class Executor {
     const error = ok
       ? null
       : handle.stopped
-      ? STOPPED
+      ? handle.reason === "shutdown"
+        ? INTERRUPTED
+        : STOPPED
       : startupFailed
       ? startupFailed
       : unknownModel
@@ -1245,6 +1635,7 @@ export class Executor {
         executionManifest: { path: `jobs/${jobId}/a${attempt}/execution-manifest.json`, sha256: sha(manifestBody) },
         usage: receiptUsage,
         ...(error ? { error } : {}),
+        ...(error === INTERRUPTED ? { interrupted: true } : {}),
       },
       jobDir,
     );
@@ -1291,6 +1682,17 @@ async function acceptedForecast(path: string, attemptId: string): Promise<{ meas
     return null;
   }
 }
+/** An attempt's tokens as its usage.json last recorded them (live counts), for a receipt written without the session's own totals. */
+async function liveUsage(dir: string): Promise<CampaignReceipt["usage"]> {
+  try {
+    const u = JSON.parse(await readFile(join(dir, "usage.json"), "utf8"));
+    const n = (x: unknown) => (typeof x === "number" ? x : null);
+    const usage: FullUsage = { inputTokens: n(u.uncachedInput), outputTokens: n(u.output), cacheReadTokens: n(u.cacheRead), cacheWriteTokens: n(u.cacheWrite), reasoningTokens: null, costUsd: null, source: "live", tokensAtSubmit: n(u.tokensAtSubmit) };
+    return usage;
+  } catch {
+    return { inputTokens: null, outputTokens: null };
+  }
+}
 /** All input tokens of a session: uncached input plus cache writes and cache reads. */
 function totalInput(e: { inputTokens: number | null; cacheReadTokens: number | null; cacheWriteTokens: number | null }): number | null {
   const parts = [e.inputTokens, e.cacheReadTokens, e.cacheWriteTokens].filter((x): x is number => typeof x === "number");
@@ -1333,4 +1735,10 @@ function describeInputs(human: HumanData | null, study: Plan["study"], a: AgentP
   }
   return lines.join("\n") || "(no measured data for the declared inputs)";
 }
-export const _test = { hash };
+export const _test = {
+  hash,
+  /** Lets one test process start sessions again after testing shutdownExecutors. */
+  afterShutdown: () => {
+    shuttingDown = false;
+  },
+};
