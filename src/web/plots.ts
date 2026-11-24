@@ -26,7 +26,14 @@ export interface Bracket {
 /** Dash pattern for everything drawn from simulated (invented) runs. */
 const SIM_DASH = ' stroke-dasharray="4 3"';
 /** The legend line every figure with simulated configurations carries. */
-const SIMULATED_LEGEND = "Dashed, hollow, “(simulated)”: invented forecasts that test the pipeline; never tested against real configurations or the human data.";
+const SIMULATED_LEGEND = [
+  "Dashed and hollow, “(simulated)”: invented forecasts that only test",
+  "the pipeline; never tested against real configurations or human data.",
+];
+/** The two legend lines from y on (each short enough for the narrowest figure); height SIM_LEGEND_HEIGHT. */
+const simLegend = (x: number, y: number) =>
+  SIMULATED_LEGEND.map((line, i) => `<text x="${x}" y="${y + i * 13}" font-size="10" fill="#666">${esc(line)}</text>`).join("");
+const SIM_LEGEND_HEIGHT = 28;
 const PALETTE = ["#4C78A8", "#E6AD70", "#7EAE98", "#B392B4", "#E45756", "#72B7B2", "#9D755D", "#EECA3B", "#FF9DA6", "#739DC0", "#727D88", "#54A24B"];
 const HUMAN = "#6B7280";
 export function colorFor(id: string, order: string[]): string {
@@ -142,7 +149,7 @@ export function agreementPlot(fig: { groups: Group[]; brackets: Bracket[]; chanc
     width = left + slot * n + 30;
   const simulated = fig.groups.some((g) => g.simulated);
   const top = 50 + shown * 14 + 18,
-    height = top + 300 + 104 + (simulated ? 14 : 0);
+    height = top + 300 + 104 + (simulated ? SIM_LEGEND_HEIGHT : 0);
   const ax: Axis = { lo: 0, hi: 1, log: false, top, bottom: top + 300 };
   let body = yAxis(ax, left, slot * n + 10, fig.yLabel, true);
   const cy = project(ax, fig.chance);
@@ -154,9 +161,12 @@ export function agreementPlot(fig: { groups: Group[]; brackets: Bracket[]; chanc
     const color = colorFor(g.id, order);
     body += distribution(g, cx, slot * 0.8, ax, color, true, violin);
     body += `<text x="${cx}" y="${top - 6}" font-size="11" text-anchor="middle" fill="${color}">${fmt(g.stats.mean * 100, 1)}${g.vsChance?.holm != null && g.vsChance.holm < 0.05 ? " †" : ""}</text>`;
-    const words = g.label.split(" ");
-    const lines: string[] = [];
+    // At most three lines; a simulated group's last line is always "(simulated)".
+    const marked = g.simulated && g.label.endsWith(" (simulated)");
+    const words = (marked ? g.label.slice(0, -" (simulated)".length) : g.label).split(" ");
+    let lines: string[] = [];
     words.forEach((w) => (lines.length && (lines.at(-1)! + " " + w).length <= 16 ? (lines[lines.length - 1] += " " + w) : lines.push(w)));
+    if (marked) lines = [...(lines.length > 2 ? [lines[0], lines[1] + "…"] : lines), "(simulated)"];
     body += lines
       .slice(0, 3)
       .map((l, k) => `<text x="${cx}" y="${ax.bottom + 18 + k * 13}" font-size="11" text-anchor="middle" fill="#1f2a24"${g.simulated ? ' font-style="italic"' : ""}>${esc(l)}</text>`)
@@ -164,8 +174,9 @@ export function agreementPlot(fig: { groups: Group[]; brackets: Bracket[]; chanc
     body += `<text x="${cx}" y="${ax.bottom + 18 + Math.min(3, lines.length) * 13}" font-size="10" text-anchor="middle" fill="#888">n=${g.stats.n}${g.units[0]?.startsWith("rep") ? " repetition(s)" : g.level === "individual" ? " people" : g.level === "population" ? " runs" : ""}</text>`;
   });
   body += bracketLayer(fig.brackets, xs, top - 14);
-  body += `<text x="${left}" y="${height - 22 - (simulated ? 14 : 0)}" font-size="10" fill="#666">Above boxes: mean (%); † above chance (Wilcoxon vs 50%, Holm).</text><text x="${left}" y="${height - 8 - (simulated ? 14 : 0)}" font-size="10" fill="#666">Brackets: * p&lt;.05, ** p&lt;.01, *** p&lt;.001 (Holm).</text>`;
-  if (simulated) body += `<text x="${left}" y="${height - 8}" font-size="10" fill="#666">${esc(SIMULATED_LEGEND)}</text>`;
+  const shift = simulated ? SIM_LEGEND_HEIGHT : 0;
+  body += `<text x="${left}" y="${height - 22 - shift}" font-size="10" fill="#666">Above boxes: mean (%); † above chance (Wilcoxon vs 50%, Holm).</text><text x="${left}" y="${height - 8 - shift}" font-size="10" fill="#666">Brackets: * p&lt;.05, ** p&lt;.01, *** p&lt;.001 (Holm).</text>`;
+  if (simulated) body += simLegend(left, height - 8 - shift + 15);
   return svg(Math.max(width, 420), height + 8, body, title);
 }
 
@@ -204,14 +215,22 @@ export function agentVsHumanPlot(
     body += `<text x="${x0 + (per * slot) / 2}" y="${ax.bottom + 20}" font-size="12" font-weight="600" text-anchor="middle">${esc(d.label.length > 28 ? d.label.slice(0, 27) + "…" : d.label)}</text>`;
   });
   const legend = fig.designs[0]?.groups ?? [];
-  // Legend labels keep their "(simulated)" ending; simulated swatches are hollow and dashed.
+  // Legend in rows that fit the figure; labels keep their "(simulated)" ending; simulated swatches are hollow and dashed.
+  const figureWidth = Math.max(width, 520);
+  const step = 170;
+  const perRow = Math.max(1, Math.floor((figureWidth - left - 10) / step));
+  const extra = (Math.ceil(legend.length / perRow) - 1) * 16;
   body += legend
-    .map((g, i) => `<rect x="${left + i * 150}" y="${ax.bottom + 36}" width="10" height="10" ${g.simulated ? `fill="#fff" stroke="${colorFor(g.id, order)}"${SIM_DASH}` : `fill="${colorFor(g.id, order)}"`}/><text x="${left + i * 150 + 14}" y="${ax.bottom + 45}" font-size="11"${g.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(g.label, 22))}</text>`)
+    .map((g, i) => {
+      const x = left + (i % perRow) * step,
+        y = ax.bottom + 36 + Math.floor(i / perRow) * 16;
+      return `<rect x="${x}" y="${y}" width="10" height="10" ${g.simulated ? `fill="#fff" stroke="${colorFor(g.id, order)}"${SIM_DASH}` : `fill="${colorFor(g.id, order)}"`}/><text x="${x + 14}" y="${y + 9}" font-size="11"${g.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(g.label, 26))}</text>`;
+    })
     .join("");
-  body += `<text x="${left}" y="${ax.bottom + 66}" font-size="10" fill="#666">Stars above a box: config differs from humans for that design (Wilcoxon signed-rank: paired by participant for individual configs, humans vs the mean forecast for population configs; Holm across the table).</text>`;
+  body += `<text x="${left}" y="${ax.bottom + 66 + extra}" font-size="10" fill="#666">Stars above a box: config differs from humans for that design (Wilcoxon signed-rank: paired by participant for</text><text x="${left}" y="${ax.bottom + 79 + extra}" font-size="10" fill="#666">individual configs, humans vs the mean forecast for population configs; Holm across the table).</text>`;
   const simulated = legend.some((g) => g.simulated);
-  if (simulated) body += `<text x="${left}" y="${ax.bottom + 80}" font-size="10" fill="#666">${esc(SIMULATED_LEGEND)}</text>`;
-  return svg(Math.max(width, 520), ax.bottom + 76 + (simulated ? 14 : 0), body, title);
+  if (simulated) body += simLegend(left, ax.bottom + 93 + extra);
+  return svg(figureWidth, ax.bottom + 89 + extra + (simulated ? SIM_LEGEND_HEIGHT : 0), body, title);
 }
 
 /** Shortens a label but keeps a "(simulated)" ending visible. */
@@ -240,8 +259,8 @@ export function correlationPlot(fig: { series: { id: string; label: string; simu
     .map((s, i) => `<rect x="${left + size + 24}" y="${top + 6 + i * 34}" width="10" height="10" ${s.simulated ? `fill="#fff" stroke="${colorFor(s.id, order)}"${SIM_DASH}` : `fill="${colorFor(s.id, order)}"`}/><text x="${left + size + 40}" y="${top + 15 + i * 34}" font-size="12"${s.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(s.label, 30))}</text><text x="${left + size + 40}" y="${top + 29 + i * 34}" font-size="11" fill="#55635a">r = ${fmt(s.pearson ?? NaN)}, ρ = ${fmt(s.spearman ?? NaN)}, n = ${s.points.length}</text>`)
     .join("");
   const simulated = fig.series.some((s) => s.simulated);
-  if (simulated) body += `<text x="${left}" y="${ax.bottom + 52}" font-size="10" fill="#666">${esc(SIMULATED_LEGEND)}</text>`;
-  return svg(left + size + 300, ax.bottom + 48 + (simulated ? 14 : 0), body, title);
+  if (simulated) body += simLegend(left, ax.bottom + 52);
+  return svg(left + size + 300, ax.bottom + 48 + (simulated ? SIM_LEGEND_HEIGHT : 0), body, title);
 }
 
 /** Participant trajectories across individual configs + Spearman heatmap (as in the paper). */
@@ -275,7 +294,7 @@ export function trajectoryPlot(
   fig.configs.forEach((c, i) => (body += `<text x="${x(i)}" y="${ax.bottom + 18}" font-size="11" text-anchor="middle"${c.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(c.label, 18))}</text>`));
   body += `<text x="${left}" y="${ax.bottom + 40}" font-size="10" fill="#666">Each line is one participant (green: gained from the first to the second config, red: lost). Black: mean.</text>`;
   const simulated = fig.configs.some((c) => c.simulated);
-  if (simulated) body += `<text x="${left}" y="${ax.bottom + 54}" font-size="10" fill="#666">${esc(SIMULATED_LEGEND)}</text>`;
+  if (simulated) body += simLegend(left, ax.bottom + 54);
   // heatmap
   const hx = left + w + 140,
     cell = Math.min(54, 300 / Math.max(1, k));
@@ -294,7 +313,7 @@ export function trajectoryPlot(
     body += `<text x="${hx - 6}" y="${top + i * cell + cell / 2 + 4}" font-size="10" text-anchor="end"${c.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(c.label, 20))}</text>`;
   });
   body += `<text x="${hx}" y="${top - 10}" font-size="11">Spearman ρ between configs</text>`;
-  return svg(Math.max(hx + k * cell + 30, hx + 190), ax.bottom + 50 + (simulated ? 14 : 0), body, title);
+  return svg(Math.max(hx + k * cell + 30, hx + 190), ax.bottom + 50 + (simulated ? SIM_LEGEND_HEIGHT : 0), body, title);
 }
 
 /** Download helpers. */

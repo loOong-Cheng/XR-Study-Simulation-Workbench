@@ -1488,7 +1488,8 @@ test("figures: simulated configurations are marked and never tested against real
   assert.doesNotMatch(realOnly.note, /simulated/);
   const svg = agreementPlot(fig, "t", ids);
   assert.match(svg, /stroke-dasharray="4 3"/);
-  assert.match(svg, /invented forecasts that test the pipeline/);
+  assert.match(svg, /invented forecasts that only test/);
+  assert.equal(svg.match(/>\(simulated\)</g)?.length, 2, "both simulated labels keep their (simulated) line, also a long one");
   assert.doesNotMatch(agreementPlot(realOnly, "t", ids), /stroke-dasharray="4 3"|invented/);
 
   // Agent vs human: simulated configurations are described, not tested, and outside the Holm family.
