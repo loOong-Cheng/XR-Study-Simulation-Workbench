@@ -16,7 +16,7 @@ import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
 import { briefOverview, saveBrief } from "./brief.js";
 import { closeExecutor, Executor, liveStatuses } from "./executor/runner.js";
-import { exportRuns, importRuns } from "./executor/archive.js";
+import { exportRunsReport, importRuns } from "./executor/archive.js";
 import { runtimeFor, runtimeStatus } from "./executor/runtimes.js";
 import { approvalState, approve } from "./review.js";
 import { readSettings, writeSettings, type Settings } from "./settings.js";
@@ -243,10 +243,12 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
       return true;
     }
     case "/api/runs/export": {
-      const zip = await exportRuns(id, campaignId);
+      // Links and other entries that are not plain files are left out (counted in the zip's manifest.json).
+      const { zip, skipped } = await exportRunsReport(id, campaignId);
       res.writeHead(200, {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="runs-${campaignId}.zip"`,
+        "X-Runs-Skipped": String(skipped.notFiles + skipped.unfinished + skipped.names),
       });
       res.end(zip);
       return true;

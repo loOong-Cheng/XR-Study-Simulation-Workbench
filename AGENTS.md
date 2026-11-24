@@ -107,11 +107,15 @@ private/studies/<name>/            (or examples/<name>/ for synthetic studies)
 
 **Study IDs** are exactly `examples/<name>` or `private/studies/<name>`, with the folder's own letter case. Other spellings (`./`, `//`, a trailing `/`) are refused.
 
-**The website** answers only requests addressed to `localhost`, `127.0.0.1` or `[::1]`. It accepts changes (POST) only from its own page. Runs zips are checked completely before anything is written:
+**The website** answers only requests addressed to `localhost`, `127.0.0.1` or `[::1]`. It accepts changes (POST) only from its own page. Runs zips are checked completely before anything is written, and are then written all or nothing (through a staging folder in the study):
 - Sizes: at most 2 GB unpacked in total and 500 MB per file.
-- Names: no `..`, backslashes, drive letters or absolute names.
-- Contents: only the files *Save runs as zip* writes. Each campaign must be in the folder named after its ID and belong to this study.
-- Merging: `receipts.jsonl` and `events.jsonl` gain the lines they lack. A different record for the same session attempt refuses the zip.
+- Names: no `..`, backslashes, drive letters, absolute names, device names (`CON`, `NUL`…) or parts over 200 characters. Two names that one disk would store as one file (letter case, accents in NFC/NFD, a file and a folder of the same name) are refused on every system, within the zip and against the study.
+- Kinds: only the files *Save runs as zip* writes: never an agent working folder (`session/`), `.claude/`, `CLAUDE.md` or `human.json`, in any letter case. Files of attempts without a receipt (in the zip or in the study) are not loaded. Each campaign must be in the folder named after its ID, in lower case, and belong to this study.
+- Contents: receipts, events, results and the JSON records of attempt folders must have the types the workbench writes; files a receipt names stay inside the campaign's run folder.
+- Merging: `receipts.jsonl` and `events.jsonl` gain the lines they lack. A different record for the same session attempt (keys in any order) refuses the zip.
+- Saving leaves out links, anything that is not a plain file, and attempts without a receipt; the zip's `manifest.json` counts them.
+
+**Attempts** always start in a fresh, empty folder `jobs/<job>/a<n>/` (never one that exists); only the forecast the study MCP server accepted in that attempt counts.
 
 Templates: `examples/graphics-quality/` (WebXR, runnable), `examples/ecolar/` (Unreal; mixed levels, measured inputs, movement data), `examples/selection/` (Unity app and bridge; participant background). Contracts: `src/core/types.ts`, `docs/data-contract.md`.
 

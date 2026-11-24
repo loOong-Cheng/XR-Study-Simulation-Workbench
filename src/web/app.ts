@@ -1635,7 +1635,7 @@ async function action(name: string) {
       const r = await api("runs/import", { id: ws!.id, base64: await toBase64(f) });
       await refreshWorkspace();
       showCampaign(r.campaign);
-      toast(`Loaded runs: ${r.written} file(s) added, ${r.updated ? `${r.updated} brought up to date, ` : ""}${r.kept} already present${r.receipts ? `; ${r.receipts} new session record(s)` : ""}.`);
+      toast(`Loaded runs: ${r.written} file(s) added, ${r.updated ? `${r.updated} brought up to date, ` : ""}${r.kept} already present${r.receipts ? `; ${r.receipts} new session record(s)` : ""}.${r.skipped ? ` ${r.skipped} file(s) of unfinished attempts were not loaded.` : ""}${r.skippedAtSave ? ` When these runs were saved, ${r.skippedAtSave} entry(ies) were left out (links, unfinished attempts or names a zip cannot carry).` : ""}`);
       break;
     }
     case "k-add":
