@@ -223,6 +223,11 @@ export interface RunResult {
     simulationTimeMs: number;
     humanTimeEstimateMs: number | null;
     technicalRetries: number;
+    /**
+     * All tokens (input including cache, plus output) used up to the moment the forecast was
+     * accepted; the turn that closes the session afterwards is not included. Absent when unknown.
+     */
+    tokensAtSubmit?: number;
   };
   measurements: Measurement[];
   trace: TraceEvent[];

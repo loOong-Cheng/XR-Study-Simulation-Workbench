@@ -405,6 +405,8 @@
       "kind": "trajectory",
       "description": "data/raw/trajectories_main.csv: the person's movement summary in each design's main task.",
       "fields": [
+        "design",
+        "phase",
         "duration_s",
         "head_path_m",
         "head_turn_deg",
@@ -418,6 +420,7 @@
       "kind": "trajectory",
       "description": "data/raw/trajectories.csv: the person's movement summary in each design's practice and main tasks.",
       "fields": [
+        "design",
         "phase",
         "duration_s",
         "head_path_m",

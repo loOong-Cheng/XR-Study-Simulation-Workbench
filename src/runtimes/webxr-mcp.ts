@@ -12,7 +12,7 @@ import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/pro
 import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { agentPath } from "./guard.js";
-import { serveMcp, text, ToolError, type Tool } from "./mcp.js";
+import { budgetNearlyUsed, serveMcp, text, ToolError, type Tool } from "./mcp.js";
 
 interface WebXRSpec {
   jobId: string;
@@ -30,15 +30,8 @@ const spec = (JSON.parse(await readFile(join(jobDir, "job.json"), "utf8")) as { 
 const sha = (x: string | Buffer) => createHash("sha256").update(x).digest("hex");
 const log = (entry: Record<string, unknown>) =>
   appendFile(join(jobDir, "trace.jsonl"), JSON.stringify({ t: Date.now(), server: "webxr", ...entry }) + "\n");
-async function tokensUsed(): Promise<number> {
-  try {
-    return Number(JSON.parse(await readFile(join(jobDir, "usage.json"), "utf8")).tokens) || 0;
-  } catch {
-    return 0;
-  }
-}
 async function countCall(tool: string) {
-  if (spec.tokenBudget && (await tokensUsed()) >= spec.tokenBudget * 0.9)
+  if (spec.tokenBudget && (await budgetNearlyUsed(jobDir, spec.tokenBudget)))
     throw new ToolError(`Token budget of ${spec.tokenBudget} tokens is nearly used up. Submit your forecast now.`);
   await appendFile(join(jobDir, "calls.log"), tool + "\n");
   const used = (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").length;

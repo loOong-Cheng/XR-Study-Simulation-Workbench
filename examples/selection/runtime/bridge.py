@@ -84,14 +84,16 @@ class Session:
         self.log({"event": ev})
 
     def count_call(self, tool):
-        # Token budget: the executor keeps <job>/usage.json current; the last 10% is kept for the forecast.
+        # Token budget: the executor keeps <job>/usage.json current and sets submitNow once what is left
+        # is smaller than 10% of the budget or 1.5 x the last turn; then only the forecast may follow.
         token_budget = int(self.job.get("tokenBudget") or 0)
         if token_budget:
             try:
-                used_tokens = int(json.loads((self.job_dir / "usage.json").read_text(encoding="utf-8")).get("tokens") or 0)
+                usage = json.loads((self.job_dir / "usage.json").read_text(encoding="utf-8"))
             except (OSError, ValueError):
-                used_tokens = 0
-            if used_tokens >= 0.9 * token_budget:
+                usage = {}
+            used_tokens = int(usage.get("tokens") or 0)
+            if usage.get("submitNow") or used_tokens >= 0.9 * token_budget:
                 raise ToolError(f"Token budget of {token_budget} tokens is nearly used up. Submit your forecast now.")
         calls = self.job_dir / "calls.log"
         with open(calls, "a", encoding="utf-8") as fh:

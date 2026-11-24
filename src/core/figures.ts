@@ -98,6 +98,47 @@ function group(id: string, label: string, level: Group["level"], values: number[
   return { id, label, level, values, units, stats: describe(values) };
 }
 
+/**
+ * Which of the chosen configurations a figure shows, by the same rule as the summaries: an
+ * individual configuration is left out until every participant has a primary forecast (it is
+ * not scored before), and a configuration is left out of a measure (or domain) it does not
+ * predict, for example one it gets as a measured input. `omitted` says why, for the figure's notes.
+ */
+export function figureSelection(
+  study: Study,
+  report: AnalysisReport,
+  agentIds: string[],
+  configs: Record<string, { level: "population" | "individual"; targets: string[] }>,
+  labels: Record<string, string> = {},
+  scope: { outcomeId?: string; domain?: Domain } = {},
+) {
+  const people = study.participants.length;
+  const omitted: string[] = [];
+  const ids = agentIds.filter((id) => {
+    const label = labelOf(labels, id);
+    const own = configs[id]?.targets ?? study.outcomes.map((o) => o.id);
+    if (scope.outcomeId && !own.includes(scope.outcomeId)) {
+      const o = study.outcomes.find((x) => x.id === scope.outcomeId);
+      omitted.push(`${label} is left out: it does not predict ${o?.label ?? scope.outcomeId} (it is a measured input or not one of its targets).`);
+      return false;
+    }
+    if (scope.domain && !study.outcomes.some((o) => o.domain === scope.domain && own.includes(o.id))) {
+      omitted.push(`${label} is left out: it predicts no ${scope.domain} measure.`);
+      return false;
+    }
+    const rows = (report.values ?? []).filter((v) => v.agentId === id && v.level === "individual" && v.repetition === 1);
+    if (configs[id]?.level === "individual" || rows.length) {
+      const have = new Set(rows.map((v) => v.participantId ?? v.unit)).size;
+      if (have < people) {
+        omitted.push(`${label} is left out until every participant has a forecast (${have} of ${people} so far); it is not scored before, as in the summaries.`);
+        return false;
+      }
+    }
+    return true;
+  });
+  return { ids, omitted };
+}
+
 /** (1) Agreement per run / participant for the selected configs, with brackets and tests against chance (50%). */
 export function agreementFigure(
   report: AnalysisReport,

@@ -1,4 +1,4 @@
-import type { AgentProtocol, HumanData, Measurement, Study } from "./types.js";
+import type { AgentProtocol, Comparison, Domain, HumanData, Measurement, Study } from "./types.js";
 
 export function requireThat(
   condition: unknown,
@@ -530,10 +530,19 @@ export function validateAgents(
         a.maxToolCalls >= 0 &&
         a.maxToolCalls <= 100000 &&
         Number.isInteger(a.maxOutputTokens) &&
-        a.maxOutputTokens > 0 &&
-        (a.maxTokens === undefined || (Number.isInteger(a.maxTokens) && a.maxTokens >= 1000 && a.maxTokens <= 1_000_000_000)),
-      `Invalid resource limits for ${a.id}. A token budget needs at least 1000 tokens.`,
+        a.maxOutputTokens > 0,
+      `Invalid resource limits for ${a.id}.`,
     );
+    // Empty (null) means no limit. Frozen campaigns keep the older lower bound of 1000 tokens.
+    const budget = a.maxTokens as unknown;
+    if (budget !== undefined && budget !== null) {
+      requireThat(
+        typeof budget === "number" && Number.isInteger(budget),
+        `The token budget of ${a.label} must be a whole number of tokens, such as 200000 (not ${JSON.stringify(budget)}). Leave it empty for no limit.`,
+      );
+      requireThat(budget >= 1000, budgetTooLow(a.label));
+      requireThat(budget <= 1_000_000_000, budgetTooHigh(a.label));
+    }
     requireThat(
       typeof a.forecastInstruction === "string" &&
         a.forecastInstruction.length > 0,
@@ -559,7 +568,7 @@ export function validateAgents(
         requireThat(
           s.predictionTiming === "after-experience" ||
             !["objective-records", "trajectory"].includes(kind),
-          "Target-experience records cannot be used for a before-experience forecast.",
+          `${a.label} gets ${sources.get(id)!.label}, recorded during the study, which a before-experience forecast cannot use. Remove it from ${a.label}, or set the forecast timing to after the experience.`,
         );
       }
     }
@@ -572,7 +581,84 @@ export function validateAgents(
     ),
     "Every contrast must refer to two declared agents.",
   );
-  return structuredClone(agents);
+  // An empty budget (null) is no limit, as when the field is left out.
+  return structuredClone(agents).map((a) => {
+    if ((a.maxTokens as unknown) === null) delete a.maxTokens;
+    return a;
+  });
+}
+
+/** Smallest and largest token budget for configurations saved or frozen now. */
+export const MIN_TOKEN_BUDGET = 20_000;
+export const MAX_TOKEN_BUDGET = 50_000_000;
+const budgetTooLow = (label: string) =>
+  `The token budget of ${label} must be at least ${MIN_TOKEN_BUDGET.toLocaleString("en-US")} tokens: the first turn alone (instructions, brief and tools) uses several thousand, and every later turn re-reads it. Leave it empty for no limit.`;
+const budgetTooHigh = (label: string) => `The token budget of ${label} must be at most ${MAX_TOKEN_BUDGET.toLocaleString("en-US")} tokens. Leave it empty for no limit.`;
+
+/**
+ * Claude Code's --effort level for a reasoning setting: null for "default" (nothing is passed),
+ * "high" for "high" or "effort=high" (low, medium, high, xhigh, max), undefined when Claude Code
+ * would not understand it.
+ */
+export function claudeEffort(reasoning: string): string | null | undefined {
+  const r = String(reasoning ?? "").trim().toLowerCase();
+  if (!r || r === "default") return null;
+  return /^(?:effort\s*[=:]\s*)?(low|medium|high|xhigh|max)$/.exec(r)?.[1];
+}
+export const effortProblem = (reasoning: unknown, label?: string) =>
+  `Reasoning setting "${String(reasoning)}"${label ? ` of ${label}` : ""} is not understood by Claude Code. Use default, or effort=low|medium|high|xhigh|max.`;
+/** A model for a Claude Code session: refused here when Claude Code would refuse it at run time. */
+export function checkModelSettings(model: { provider?: unknown; model?: unknown; reasoning?: unknown } | null | undefined, label: string) {
+  if (!model || model.provider !== "claude-code") return;
+  requireThat(claudeEffort(String(model.reasoning ?? "")) !== undefined, effortProblem(model.reasoning, label));
+}
+
+/**
+ * Rules for configurations that are saved or frozen now. Older frozen campaigns are read without
+ * them, so they stay open: a budget of 20,000–50,000,000 tokens, an app runtime exactly when the
+ * configuration uses the app, and movement recordings only for individual forecasts.
+ */
+export function checkNewConfigurations(s: Study, agents: AgentProtocol[]): void {
+  for (const a of agents) {
+    if (typeof a.maxTokens === "number") {
+      requireThat(a.maxTokens >= MIN_TOKEN_BUDGET, budgetTooLow(a.label));
+      requireThat(a.maxTokens <= MAX_TOKEN_BUDGET, budgetTooHigh(a.label));
+    }
+    // Model settings Claude Code would refuse at run time are refused here.
+    checkModelSettings(a.model, a.label);
+    const app = a.tools.includes("xr-interact");
+    requireThat(
+      !(app && a.runtime === "none"),
+      `${a.label} uses the running app, but its runtime is "none". Choose the study's runtime (for example webxr), or untick "the running app".`,
+    );
+    requireThat(
+      app || a.runtime === undefined || a.runtime === "none",
+      `${a.label} has the runtime "${a.runtime}" but does not use the running app. Tick "the running app", or set its runtime to none.`,
+    );
+    const level = a.level ?? s.predictionLevel;
+    const movement = a.sourceIds.map((id) => s.sources.find((x) => x.id === id)).filter((x) => x?.kind === "trajectory");
+    requireThat(
+      level === "individual" || !movement.length,
+      `${a.label} predicts the population but gets ${movement.map((x) => x!.label).join(", ")}: movement recordings are per participant, so a population forecast would get none. Remove ${movement.length === 1 ? "it" : "them"}, or make ${a.label} an individual configuration.`,
+    );
+  }
+}
+
+/** Saved comparisons (comparisons.json): pairs of configuration IDs and a domain, nothing else. */
+export function validateComparisons(value: unknown): Comparison[] {
+  requireThat(Array.isArray(value) && value.length <= 200, "Comparisons must be a list (at most 200).");
+  return (value as unknown[]).map((c, i) => {
+    requireThat(c && typeof c === "object" && !Array.isArray(c), `Comparison ${i + 1} must be an object with candidate, baseline and domain.`);
+    const x = c as Record<string, unknown>;
+    requireThat(Object.keys(x).every((k) => ["id", "candidate", "baseline", "domain"].includes(k)), `Comparison ${i + 1} has unknown properties; only id, candidate, baseline and domain are kept.`);
+    requireThat(
+      typeof x.candidate === "string" && typeof x.baseline === "string" && identifier.test(x.candidate) && identifier.test(x.baseline) && x.candidate !== x.baseline,
+      `Comparison ${i + 1} needs two different configuration IDs (candidate and baseline).`,
+    );
+    requireThat(x.domain === "objective" || x.domain === "subjective", `Comparison ${i + 1} needs the domain objective or subjective.`);
+    requireThat(x.id === undefined || (typeof x.id === "string" && identifier.test(x.id)), `Comparison ${i + 1} has an invalid ID.`);
+    return { ...(x.id !== undefined ? { id: x.id as string } : {}), candidate: x.candidate as string, baseline: x.baseline as string, domain: x.domain as Domain };
+  });
 }
 export function measurementKey(r: Measurement): string {
   return `${r.participantId ?? "*"}|${r.conditionId}|${r.outcomeId}`;

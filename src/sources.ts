@@ -7,12 +7,13 @@ import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import type { Study } from "./core/types.js";
 import { measurementValue, requireThat } from "./core/validation.js";
-import { readHuman, readWorkspace, sourceLocation, studyWriteTarget, type WorkspaceManifest } from "./workspace.js";
-import { backgroundText, columnGaps, idColumn, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS } from "./participant-knowledge.js";
+// The study and its sources only: knowledge stays readable while saved configurations disagree with the study.
+import { readHuman, readStudyFolder as readWorkspace, sourceLocation, studyWriteTarget, type WorkspaceManifest } from "./workspace.js";
+import { backgroundText, columnGaps, idColumn, outcomeNamed, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS, plural, strangerNote, strangers, toCsv } from "./participant-knowledge.js";
 import { draftKnowledge } from "./assistant.js";
 import { extractProposal } from "./core/proposal.js";
 import type { AgentProtocol } from "./core/types.js";
-import { validateAgents, validateStudy } from "./core/validation.js";
+import { checkNewConfigurations, validateAgents, validateStudy } from "./core/validation.js";
 
 const READABLE = ["brief", "project", "evidence"];
 const sha = (x: string | Buffer) => createHash("sha256").update(x).digest("hex");
@@ -121,6 +122,7 @@ export async function participantKnowledgeOverview(id: string, agents: { id: str
     const isFile = exists && !(await stat(path!)).isDirectory();
     const text = isFile ? await readFile(path!, "utf8") : "";
     const example = ws.study.participants[0]?.id ?? null;
+    const people = ws.study.participants.map((p) => p.id);
     out.push({
       id: src.id,
       label: src.label,
@@ -133,19 +135,16 @@ export async function participantKnowledgeOverview(id: string, agents: { id: str
       participants: ws.study.participants.length,
       problems,
       columns: src.kind === "demographics" && isFile ? participantColumns(ws.study, text).columns : [],
-      population: src.kind === "demographics" && isFile && !problems.length ? backgroundText(text, src.fields ?? []) : null,
+      population: src.kind === "demographics" && isFile && !problems.length ? backgroundText(text, src.fields ?? [], undefined, people) : null,
       individual: src.kind === "demographics" && isFile && !problems.length && example ? { participantId: example, text: backgroundText(text, src.fields ?? [], example) } : null,
+      // Rows of people outside the study are never delivered or counted; say which.
+      notes: isFile ? strangerNote(strangers(ws.study, text)) : "",
       configs: agents.filter((a) => a.sourceIds.includes(src.id)).map((a) => a.id),
     });
   }
   return out;
 }
 
-/** Columns named like a measured outcome are results, never participant knowledge. */
-function outcomeColumns(study: { outcomes: { id: string; label: string }[] }, names: string[]) {
-  const outcome = new Set(study.outcomes.flatMap((o) => [o.id.toLowerCase(), o.label.toLowerCase()]));
-  return names.filter((n) => outcome.has(n.toLowerCase()));
-}
 /** A short ID from a name, cut at a word boundary (at most 40 characters). */
 const slug = (text: string) => {
   const full = text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
@@ -153,23 +152,41 @@ const slug = (text: string) => {
   const cut = full.slice(0, 41).replace(/-[^-]*$/, "");
   return cut || full.slice(0, 40);
 };
-/** A source ID and file name not used yet in this study. */
-function freshId(ws: { study: { sources: { id: string }[] }; manifest: WorkspaceManifest }, base: string) {
+/** Files a write must never replace: every mapped source's file, and any file already in the study folder. */
+const taken = (ws: { dir: string; manifest: WorkspaceManifest }, rel: string) =>
+  Object.values(ws.manifest.sources ?? {}).includes(rel) || existsSync(join(ws.dir, rel));
+/** A source ID not used yet in this study, whose files (data/<id>.csv, evidence/<id>.md) do not exist yet either. */
+function freshId(ws: { dir: string; study: { sources: { id: string }[] }; manifest: WorkspaceManifest }, base: string) {
   let id = /^[a-z]/.test(slug(base)) ? slug(base) : `k-${slug(base)}`,
     n = 2;
   const first = id;
-  while (ws.study.sources.some((x) => x.id === id) || ws.manifest.sources?.[id]) id = `${first}-${n++}`;
+  while (ws.study.sources.some((x) => x.id === id) || ws.manifest.sources?.[id] || taken(ws, `data/${id}.csv`) || taken(ws, `evidence/${id}.md`)) id = `${first}-${n++}`;
   return id;
+}
+/** The path itself if it is free, else the same name with -2, -3 … (a kept file of a deleted source is never overwritten). */
+function freePath(ws: { dir: string; manifest: WorkspaceManifest }, rel: string, also: Set<string>) {
+  const m = /^(.*?)(\.[a-z0-9]+)$/i.exec(rel) ?? [rel, rel, ""];
+  let path = rel,
+    n = 2;
+  while (taken(ws, path) || also.has(path)) path = `${m[1]}-${n++}${m[2]}`;
+  return path;
 }
 
 /** Columns that may become fields (outcome-named ones are left out, and the notes say so). */
 function participantColumns(study: Parameters<typeof columnGaps>[0], csv: string, notes = "") {
   const all = columnGaps(study, csv);
-  const results = outcomeColumns(study, all.map((c) => c.name));
+  const results = outcomeNamed(study, all.map((c) => c.name));
   return {
     columns: all.filter((c) => !results.includes(c.name)),
-    notes: [notes, results.length ? `Left out ${results.join(", ")}: named like a measure, and results are never participant knowledge.` : ""].filter(Boolean).join(" "),
+    notes: [notes, results.length ? `Left out ${results.join(", ")}: named like ${plural(results.length, "a measure", "measures")}, and results are never participant knowledge.` : "", strangerNote(strangers(study, csv))].filter(Boolean).join(" "),
   };
+}
+/** A participant table as comma-separated text without columns named like a measure (unchanged if a quote is never closed). */
+function withoutOutcomeColumns(study: Parameters<typeof columnGaps>[0], text: string) {
+  const table = parseCsv(text);
+  if (table.openQuoteLine !== null) return text;
+  const keep = table.head.map((h, i) => (outcomeNamed(study, [h]).length ? -1 : i)).filter((i) => i >= 0);
+  return toCsv(keep.map((i) => table.head[i]), table.rows.map((r) => keep.map((i) => r[i] ?? "")));
 }
 /**
  * A reviewed-before-saving draft of new knowledge from an uploaded file. A table with this
@@ -184,10 +201,19 @@ export async function knowledgeDraft(id: string, name: string, data: Buffer) {
   const base = basename(name).replace(/\.[a-z0-9]+$/i, "");
   if (/\.(csv|tsv)$/i.test(name)) {
     const text = data.toString("utf8").replace(/^\uFEFF/, "");
-    const csv = /\.tsv$/i.test(name) ? text.split(/\r?\n/).map((l) => l.split("\t").map((c) => (/[",]/.test(c) ? `"${c.replace(/"/g, '""')}"` : c)).join(",")).join("\n") : text;
-    const { head, rows } = parseCsv(csv);
+    // Semicolon- and tab-separated files (as spreadsheet programs often save them) are read and kept comma-separated.
+    const table = parseCsv(text, /\.tsv$/i.test(name) ? "\t" : undefined);
+    const { head, rows } = table;
+    const csv = table.openQuoteLine === null ? toCsv(head, rows) : text;
     const idCol = idColumn(head);
     const matched = idCol >= 0 ? rows.filter((r) => people.has(r[idCol]?.trim())).length : 0;
+    // A table with an ID column is about people: if none of them is in this study, say so instead of drafting it.
+    const ids = idCol >= 0 ? [...new Set(rows.map((r) => r[idCol]?.trim()).filter(Boolean))] : [];
+    const some = (xs: string[]) => `${xs.slice(0, 5).join(", ")}${xs.length > 5 ? " \u2026" : ""}`;
+    requireThat(
+      !ids.length || matched > 0,
+      `${basename(name)} has one row per person (column ${head[idCol]}), but none of its IDs (${some(ids)}) is a participant of this study (${some([...people])}). Check the IDs in the file, or the participants on Study & variables.`,
+    );
     if (matched > 0) {
       const sourceId = freshId(ws, base);
       return {
@@ -197,7 +223,7 @@ export async function knowledgeDraft(id: string, name: string, data: Buffer) {
         label: base,
         description: `${basename(name)}: information about each participant.`,
         path: `data/${sourceId}.csv`,
-        text: csv.trim() + "\n",
+        text: withoutOutcomeColumns(ws.study, csv).trim() + "\n",
         ...participantColumns(ws.study, csv),
         problems: participantProblemsText(ws.study, "demographics", csv, []),
         check: null,
@@ -222,7 +248,7 @@ export async function knowledgeDraft(id: string, name: string, data: Buffer) {
       label: draft.label,
       description: draft.description,
       path: `data/${sourceId}.csv`,
-      text: draft.csv,
+      text: withoutOutcomeColumns(ws.study, draft.csv),
       ...participantColumns(ws.study, draft.csv, draft.notes),
       problems: participantProblemsText(ws.study, "demographics", draft.csv, []),
       check: null,
@@ -255,35 +281,51 @@ export async function saveKnowledge(
   const ws = await readWorkspace(id);
   const study = validateStudy(change.study);
   const agents = validateAgents(study, change.agents as AgentProtocol[]);
+  checkNewConfigurations(study, agents);
   const writes = change.write ?? [];
   for (const src of study.sources.filter((x) => (PARTICIPANT_KINDS as readonly string[]).includes(x.kind))) {
-    const results = outcomeColumns(study, src.fields ?? []);
-    requireThat(!results.length, `${results.join(", ")} look like measured outcomes and must not be participant information (${src.label}).`);
+    const results = outcomeNamed(study, src.fields ?? []);
+    requireThat(
+      !results.length,
+      `${results.join(", ")} ${plural(results.length, "is named like a measure", "are named like measures")}, so ${plural(results.length, "it", "they")} cannot be a field of ${src.label}: results are never participant knowledge.`,
+    );
   }
+  // Where each write goes: its own mapped file, or a free name (never another source's file, nor a file kept from a deleted source).
+  const used = new Set<string>();
+  const targets: string[] = [];
   for (const w of writes) {
     const src = study.sources.find((x) => x.id === w.sourceId);
     requireThat(src && ["evidence", "demographics", "trajectory"].includes(src.kind), `Unknown knowledge source ${w.sourceId}.`);
     const mapped = ws.manifest.sources?.[w.sourceId];
     const fresh = /^(evidence|data)\/[a-z0-9][a-z0-9._-]*\.(md|txt|csv)$/.test(w.path);
     requireThat(fresh || mapped === w.path, `Knowledge is written to evidence/ or data/ in the study folder, not to ${w.path}.`);
+    const path = mapped === w.path && !used.has(w.path) ? w.path : freePath(ws, w.path, used);
+    used.add(path);
+    targets.push(path);
     // Symlinks on the way (e.g. a linked evidence/ folder) must not lead out of the study folder.
-    studyWriteTarget(ws.dir, w.path);
+    studyWriteTarget(ws.dir, path);
     requireThat(typeof w.text === "string" && w.text.length <= 2_000_000, "Knowledge text must be at most 2 MB.");
     if (src!.kind !== "evidence") {
+      // Every column counts, not only the declared fields: a file holding results is refused as a whole.
+      const results = outcomeNamed(study, parseCsv(w.text).head);
+      requireThat(
+        !results.length,
+        `${src!.label} has ${plural(results.length, "a column", "columns")} named like ${plural(results.length, "a measure", "measures")} (${results.join(", ")}). Results are never participant knowledge: remove ${plural(results.length, "that column", "those columns")} from the file and add it again.`,
+      );
       const problems = participantProblemsText(study, src!.kind, w.text, src!.fields ?? []);
-      requireThat(!problems.length, `${src!.label} is incomplete: ${problems.join("; ")}. Participant-specific knowledge must exist for every participant.`);
+      requireThat(!problems.length, `${src!.label} ${problems.join("; ")}. Participant-specific knowledge needs exactly one complete entry per participant: fix the file and add it again.`);
     }
   }
-  for (const w of writes) {
-    const target = studyWriteTarget(ws.dir, w.path);
+  for (const [i, w] of writes.entries()) {
+    const target = studyWriteTarget(ws.dir, targets[i]);
     await mkdir(dirname(target), { recursive: true });
     await writeFile(target, w.text);
   }
   const sources = { ...(ws.manifest.sources ?? {}) };
-  for (const w of writes) sources[w.sourceId] = w.path;
+  writes.forEach((w, i) => (sources[w.sourceId] = targets[i]));
   for (const u of change.unmap ?? []) if (!study.sources.some((x) => x.id === u)) delete sources[u];
   await saveManifest(ws.dir, { ...ws.manifest, sources });
   await writeFile(join(ws.dir, "study.json"), JSON.stringify(study, null, 2) + "\n");
   await writeFile(join(ws.dir, "agents.json"), JSON.stringify(agents, null, 2) + "\n");
-  return { saved: true, written: writes.map((w) => w.path) };
+  return { saved: true, written: targets };
 }

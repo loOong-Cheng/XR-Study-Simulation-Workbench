@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import type { AgentProtocol, Job, Plan, Study } from "./types.js";
-import { requireThat, validateAgents, validateStudy } from "./validation.js";
+import { checkNewConfigurations, requireThat, validateAgents, validateStudy } from "./validation.js";
 
 export function canonical(value: unknown): string {
   if (Array.isArray(value)) return "[" + value.map(canonical).join(",") + "]";
@@ -71,6 +71,7 @@ export function freezePlan(
 ): Plan {
   const s = validateStudy(study);
   const agents = validateAgents(s, protocols);
+  checkNewConfigurations(s, agents);
   requireThat(
     s.synthetic ||
       agents.every(
@@ -297,6 +298,12 @@ export function methodGets(agent: AgentProtocol, study: Study): string[] {
   if (agent.tools.includes("xr-interact"))
     gets.push(
       `the running app (${agent.observation === "stereo-pair" ? "left/right eye" : "single"} screenshots, can do the tasks)`,
+    );
+  // Measured outcomes given as predictors: the framework attaches them from the human data.
+  const inputs = (agent.inputs ?? []).map((id) => study.outcomes.find((o) => o.id === id)?.label ?? id);
+  if (inputs.length)
+    gets.push(
+      `measured ${inputs.join(", ")} ${(agent.level ?? study.predictionLevel) === "individual" ? "of this person" : "as the cohort means"}, from the human data`,
     );
   return gets;
 }

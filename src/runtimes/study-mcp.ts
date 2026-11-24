@@ -7,7 +7,7 @@ import { existsSync, realpathSync } from "node:fs";
 import { appendFile, readFile, readdir, stat, writeFile } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { agentPath, hiddenFromAgents, within } from "./guard.js";
-import { serveMcp, text, ToolError, type Tool } from "./mcp.js";
+import { budgetNearlyUsed, serveMcp, text, ToolError, type Tool } from "./mcp.js";
 
 export interface JobSpec {
   jobId: string;
@@ -32,17 +32,9 @@ const log = (entry: Record<string, unknown>) =>
   appendFile(join(jobDir, "trace.jsonl"), JSON.stringify({ t: Date.now(), server: "study", ...entry }) + "\n");
 let submitted = false;
 
-/** Tokens the session has used so far (the executor keeps <job>/usage.json current). */
-async function tokensUsed(): Promise<number> {
-  try {
-    return Number(JSON.parse(await readFile(join(jobDir, "usage.json"), "utf8")).tokens) || 0;
-  } catch {
-    return 0;
-  }
-}
 async function countCall(tool: string): Promise<void> {
-  // The last 10% of the token budget is kept for submitting the forecast.
-  if (tool !== "submit_forecast" && spec.tokenBudget && (await tokensUsed()) >= spec.tokenBudget * 0.9)
+  // The end of the token budget is kept for submitting the forecast (see budgetNearlyUsed).
+  if (tool !== "submit_forecast" && spec.tokenBudget && (await budgetNearlyUsed(jobDir, spec.tokenBudget)))
     throw new ToolError(`Token budget of ${spec.tokenBudget} tokens is nearly used up. Submit your forecast now with submit_forecast.`);
   await appendFile(join(jobDir, "calls.log"), tool + "\n");
   const used = (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").length;

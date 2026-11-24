@@ -15,6 +15,7 @@ import {
   proposeAgents,
 } from "./core/planner.js";
 import {
+  checkNewConfigurations,
   requireThat,
   validateAgents,
   validateHumanData,
@@ -178,6 +179,12 @@ async function main(): Promise<void> {
           ),
         )
         .forEach((a) => problems.push(`Agent ${a.id} still has a placeholder model.`));
+    if (agents)
+      try {
+        checkNewConfigurations(study, agents);
+      } catch (e) {
+        problems.push((e as Error).message);
+      }
     if (humanFile) {
       const human = await load<HumanData>(humanFile);
       const cov = humanCoverage(study, human);

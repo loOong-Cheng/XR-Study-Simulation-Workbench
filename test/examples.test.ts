@@ -356,11 +356,12 @@ test("synthetic Ecolar suite: valid, complete, mixed levels, inputs and movement
   assert.deepEqual([...new Set(result.report.summaries.map((s) => s.level))].sort(), ["individual", "population"]);
   // UDO and later predict only subjective measures; their objective measures are inputs.
   assert.deepEqual([...new Set(result.report.summaries.filter((s) => s.agentId === "UDO").map((s) => s.domain))], ["subjective"]);
-  const compact = await trajectory(join(dir, "data/raw/trajectories_main.csv"), "P03");
+  const fields = study.sources.find((s) => s.id === "trajectory")!.fields!;
+  const compact = await trajectory(join(dir, "data/raw/trajectories_main.csv"), "P03", fields);
   assert.match(compact, /^participant,design,phase/);
   assert.ok(compact.split("\n").slice(1).every((l) => l.startsWith("P03,") && l.includes(",main,")));
   assert.equal(compact.split("\n").length, 1 + 4);
-  assert.match(await trajectory(join(dir, "data/raw/trajectories.csv"), undefined), /none for population/);
+  assert.match(await trajectory(join(dir, "data/raw/trajectories.csv"), undefined, fields), /none for population/);
 });
 
 test("executor: a source without a file blocks the configurations that read it; nothing is substituted", async () => {
@@ -665,10 +666,10 @@ console.log(JSON.stringify({ result: JSON.stringify(draft) }));`,
     assert.match(table.notes, /Left out presence/);
     // Incomplete tables are drafted with their problems, and refused on saving.
     const partial = await knowledgeDraft(a.id, "partial.csv", Buffer.from(`participant,age_band\n${ids[0]},18-24\n`));
-    assert.ok(partial.problems.some((p) => /^no entry for /.test(p)));
+    assert.ok(partial.problems.some((p) => /^has no entry for /.test(p)));
     const s2 = structuredClone(ws.study);
     s2.sources.push({ id: partial.sourceId, label: "Partial", kind: "demographics", description: "x", fields: ["age_band"] });
-    await assert.rejects(saveKnowledge(a.id, { study: s2, agents: ws.agents, write: [{ sourceId: partial.sourceId, path: partial.path, text: partial.text }] }), /incomplete: no entry for/);
+    await assert.rejects(saveKnowledge(a.id, { study: s2, agents: ws.agents, write: [{ sourceId: partial.sourceId, path: partial.path, text: partial.text }] }), /Partial has no entry for .*exactly one complete entry per participant/);
     assert.equal(existsSync(join(a.dir, partial.path)), false, "nothing written when refused");
     // Rename and edit text.
     const s3 = structuredClone(ws.study);
@@ -821,7 +822,7 @@ test("token budget: validated, enforced by the study server at 90%, and audited"
   const { campaignPlan } = await import("../src/core/campaign.js");
   const study = validateStudy(await json("study.json"));
   const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json"));
-  assert.throws(() => validateAgents(study, agents.map((a) => (a.id === "text-only" ? { ...a, maxTokens: 500 } : a))), /at least 1000 tokens/);
+  assert.throws(() => validateAgents(study, agents.map((a) => (a.id === "text-only" ? { ...a, maxTokens: 500 } : a))), /at least 20,000 tokens: the first turn alone/);
   // Templates come with a budget sized to what the configuration does.
   const proposed = await proposeAgents(study);
   assert.ok(proposed.every((a) => a.maxTokens! >= 100_000));
@@ -855,13 +856,13 @@ test("token budget: validated, enforced by the study server at 90%, and audited"
     await removeDir(dir);
   }
   // The audit flags a real session above its token budget.
-  const withBudget = agents.map((a) => (a.id === "text-only" ? { ...a, maxTokens: 5_000 } : a));
+  const withBudget = agents.map((a) => (a.id === "text-only" ? { ...a, maxTokens: 20_000 } : a));
   const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, withBudget, 1), 1), undefined, "tokens", new Date(Date.now() - 1000).toISOString());
   const plan = campaignPlan(c);
   const run = syntheticCampaignExecution(c).results.runs.find((r) => c.jobs.find((j) => j.id === r.jobId)!.conditionId === "text-only")!;
-  Object.assign(run.execution, { synthetic: false, inputTokens: 1_000, cacheReadTokens: 6_000, cacheWriteTokens: 0, outputTokens: 500 });
+  Object.assign(run.execution, { synthetic: false, inputTokens: 1_000, cacheReadTokens: 21_000, cacheWriteTokens: 0, outputTokens: 500 });
   const audit = auditRun(plan, plan.jobs.find((j) => j.id === run.jobId)!, run);
-  assert.ok(audit.issues.some((i) => /Token budget exceeded: 7500 of 5000/.test(i)), JSON.stringify(audit.issues));
+  assert.ok(audit.issues.some((i) => /Token budget exceeded: 22500 of 20000/.test(i)), JSON.stringify(audit.issues));
 });
 
 test("human data only: per-design values with the design's test, matching the analyzer's human pairs", async () => {
@@ -946,10 +947,10 @@ test("participant-specific knowledge: complete for everyone, or the configuratio
     first[head.indexOf("xr_experience")] = " ";
     await writeFile(path, [lines[0], first.join(","), ...lines.slice(3)].join("\n") + "\n");
     const problems = participantProblems(ws.study, "demographics", path, src.fields ?? []);
-    assert.ok(problems.some((p) => /^no entry for /.test(p)), JSON.stringify(problems));
-    assert.ok(problems.some((p) => /^empty xr_experience for /.test(p)), JSON.stringify(problems));
+    assert.ok(problems.some((p) => /^has no entry for /.test(p)), JSON.stringify(problems));
+    assert.ok(problems.some((p) => /^has an empty xr_experience for /.test(p)), JSON.stringify(problems));
     const blocked = missingSources(a.dir, ws.study, ws.manifest, [src.id]);
-    assert.match(blocked[0].message, /is incomplete: .*must exist for every participant/);
+    assert.match(blocked[0].message, /has no entry for .*exactly one complete entry per participant/);
     // "none" is an answer, not a missing value.
     assert.equal(backgroundText("participant,xr\np1,none\np2,some\n", ["xr"], "p1"), "xr: none");
   } finally {

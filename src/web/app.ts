@@ -7,16 +7,18 @@ import { agentVsHumanPlot, agreementPlot, correlationPlot, downloadPng, download
 type Page = "home" | "study" | "evidence" | "configs" | "freeze" | "compare" | "executor" | "analyzer" | "continue" | "settings";
 interface WorkspaceInfo { id: string; title: string; suite: string | null; description: string | null; synthetic: boolean; engine: string; hasAgents: boolean; hasHuman: boolean; campaigns: number }
 interface CampaignInfo { id: string; digest: string; createdAt: string; parentDigest: string | null; parentId: string | null; label: string | null; note: string | null; jobs: number; reused: number; done: number; failed: number; notStarted: number; real: number; simulated: number; costUsd: number | null; models: Record<string, { provider: string; model: string; reasoning: string }>; designKey: string }
-interface Attempt { attempt: number; status: string; error: string | null; toolCalls: number; costUsd: number | null; simulated: boolean | null; counts: boolean }
+interface Attempt { attempt: number; status: string; error: string | null; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; cost: string | null; simulated: boolean | null; counts: boolean }
 interface WorkspaceView {
   id: string; study: Study; agents: AgentProtocol[]; agentsSaved: boolean; comparisons: Comparison[];
   manifest: { title?: string; suite?: string; description?: string; app?: unknown; sources?: Record<string, string> };
   hasHuman: boolean; approval: { approved: boolean; current: boolean; approval: { approvedAt: string; note: string } | null };
   gets: Record<string, string[]>; runtimes: Record<string, string>; missingSources: Record<string, string[]>; campaigns: CampaignInfo[];
+  /** The saved study and configurations disagree: what to fix (the study still opens). */
+  problem: string | null;
 }
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
 interface RuntimeStatus { id: string; label: string; available: boolean; builtIn: boolean; message: string }
-interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; lastTool: string | null; screenshot: string | null; error: string | null }
+interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null }
 interface Snapshot { campaignId: string; mode: string; paused: boolean; running: number; queued: number; counts: Record<string, number>; jobs: JobState[] }
 interface AnalysisView {
   campaignId: string; configs: { id: string; label: string; level: string; model: { model: string }; targets: string[] }[];
@@ -43,7 +45,7 @@ let runtimes: RuntimeStatus[] = [];
 let showAllRuntimes = false;
 interface EvidenceItem { id: string; label: string; description: string; path: string | null; problem: string | null; exists: boolean; bytes: number; sha256: string | null; preview: string; truncated: boolean; configs: string[]; check: { participantIds: number; humanMeanMatches: number; checkedAgainstHuman: boolean } | null }
 let evidence: EvidenceItem[] | null = null;
-interface ParticipantItem { id: string; label: string; kind: string; description: string; fields: string[]; path: string | null; exists: boolean; sha256: string | null; participants: number; problems: string[]; columns: { name: string; missing: string[] }[]; population: string | null; individual: { participantId: string; text: string } | null; configs: string[] }
+interface ParticipantItem { id: string; label: string; kind: string; description: string; fields: string[]; path: string | null; exists: boolean; sha256: string | null; participants: number; problems: string[]; columns: { name: string; missing: string[] }[]; population: string | null; individual: { participantId: string; text: string } | null; notes: string; configs: string[] }
 let participantKnowledge: ParticipantItem[] = [];
 /** A new or replacement source, drafted on the server (by the assistant for documents) and reviewed here. */
 interface KnowledgeDraft { kind: "general" | "participant"; via: "assistant" | "table" | "raw"; sourceId: string; label: string; description: string; path: string; text: string; columns: { name: string; missing: string[] }[] | null; problems: string[]; check: { participantIds: number; humanMeanMatches: number; checkedAgainstHuman: boolean } | null; notes: string; replaces?: string }
@@ -338,7 +340,10 @@ function render() {
   $("data-label").textContent = ws ? (study?.synthetic ? "SYNTHETIC STUDY" : "RESEARCH STUDY") : "—";
   $("data-label").className = "pill" + (ws && !study?.synthetic ? " real" : "");
   const pages: Record<Page, () => string> = { home: renderHome, study: renderStudy, evidence: renderEvidence, compare: renderCompareAgents, configs: renderConfigs, freeze: renderFreeze, executor: renderExecutor, analyzer: renderAnalyzer, continue: renderContinue, settings: renderSettings };
-  $("content").innerHTML = (unsaved() && !["home", "study", "evidence", "configs", "freeze", "settings"].includes(page) ? `<div class="notice">Unsaved planner changes. Save them on the Study or Agent configurations page.</div>` : "") + pages[page]();
+  $("content").innerHTML =
+    (ws?.problem && page !== "home" && page !== "settings" ? `<div class="notice"><strong>The saved files disagree.</strong> ${esc(ws.problem)}</div>` : "") +
+    (unsaved() && !["home", "study", "evidence", "configs", "freeze", "settings"].includes(page) ? `<div class="notice">Unsaved planner changes. Save them on the Study or Agent configurations page.</div>` : "") +
+    pages[page]();
 }
 const withheld = `<div class="notice neutral"><strong>Reference answers are withheld.</strong> Neither you nor the agents see the human results while planning. Measured values are used only for inputs you declare per configuration, and in the analyzer.</div>`;
 
@@ -415,7 +420,7 @@ function participantSection() {
       const status = !k.exists
         ? `<div class="notice">No file on this machine${k.path ? ` (${esc(k.path)} is missing)` : ""}. Configurations that get it cannot run.</div>`
         : k.problems.length
-        ? `<div class="notice">Incomplete: ${esc(k.problems.join("; "))}. Participant-specific knowledge must exist for every participant, so configurations that get it cannot run until this is fixed.</div>`
+        ? `<div class="notice">This file ${esc(k.problems.join("; "))}. Participant-specific knowledge needs exactly one complete entry per participant, so configurations that get it cannot run until this is fixed.</div>`
         : `<p class="caption ok">Complete: all ${k.participants} participants have an entry${k.fields.length ? ` for ${esc(k.fields.join(", "))}` : ""}.</p>`;
       const fieldsForm =
         knowledgeEdit?.id === k.id && knowledgeEdit.mode === "fields"
@@ -430,9 +435,9 @@ function participantSection() {
       const shown =
         k.kind === "demographics"
           ? `${k.population ? `<h3>A population configuration gets</h3><pre class="preview">${esc(k.population)}</pre>` : ""}${k.individual ? `<h3>An individual configuration gets (for example ${esc(k.individual.participantId)})</h3><pre class="preview">${esc(k.individual.text)}</pre>` : ""}`
-          : `<p class="caption">Movement recordings were measured during the study, so their values are not shown while planning. Individual configurations get each person's own rows (${esc(k.fields.join(", ") || "all columns")}); population configurations get none.</p>`;
+          : `<p class="caption">Movement recordings were measured during the study, so their values are not shown while planning. Individual configurations get each person's own rows: the ID column and ${esc(k.fields.join(", "))} only (other columns never reach the agent); population configurations get none.</p>`;
       return `<div class="card"><div class="card-heading"><div><h3>${esc(k.label)}</h3><p class="caption">${esc(k.description)}</p></div><span class="tag">${esc(k.kind === "demographics" ? "background" : "movement")}</span></div><p class="caption">${k.path ? esc(k.path) : "not mapped"}${k.sha256 ? ` · sha256 ${esc(k.sha256.slice(0, 16))}…` : ""} · ${usedText(k.id)}</p>
-        ${k.kind === "demographics" ? knowledgeActions(k.id, "participant") : `<div class="actions">${btn(`k-rename:${k.id}`, "Rename")}${btn(`k-delete:${k.id}`, "Delete")}</div>`}${renameForm(k.id, k.label, k.description)}${fieldsForm}${status}${shown}</div>`;
+        ${k.kind === "demographics" ? knowledgeActions(k.id, "participant") : `<div class="actions">${btn(`k-rename:${k.id}`, "Rename")}${btn(`k-delete:${k.id}`, "Delete")}</div>`}${renameForm(k.id, k.label, k.description)}${fieldsForm}${status}${k.notes ? `<p class="caption">${esc(k.notes)}</p>` : ""}${shown}</div>`;
     })
     .join("");
   return `<h2 class="group-title">Participant-specific knowledge</h2><p class="group-caption">What is known about each participant apart from the measured results, for example background. Like general knowledge, both population configurations (a summary of the cohort) and individual configurations (the person's own entry) can use it. It must exist for every participant: no missing person and no empty field.</p>
@@ -450,7 +455,7 @@ function addKnowledgeCard() {
   const body =
     d.kind === "general"
       ? `<label class="field">Text (Markdown; edit as needed)<textarea id="kd-text" rows="16">${esc(d.text)}</textarea></label>${check}`
-      : `${d.problems.length ? `<div class="notice">Cannot be added yet: ${esc(d.problems.join("; "))}. Participant-specific knowledge must exist for every participant.</div>` : ""}<p class="caption">Fields agents may see. A field that is empty for anyone cannot be chosen.</p><div class="config-picks">${(d.columns ?? [])
+      : `${d.problems.length ? `<div class="notice">Cannot be added yet: this file ${esc(d.problems.join("; "))}. Participant-specific knowledge needs exactly one complete entry per participant.</div>` : ""}<p class="caption">Fields agents may see. A field that is empty for anyone cannot be chosen.</p><div class="config-picks">${(d.columns ?? [])
           .map((c) =>
             c.missing.length
               ? `<label class="check disabled"><input type="checkbox" disabled> ${esc(c.name)} <small class="warn">(empty for ${esc(c.missing.slice(0, 5).join(", "))}${c.missing.length > 5 ? " …" : ""})</small></label>`
@@ -583,10 +588,15 @@ function renderConfigs() {
         const tg = targetsOf(a);
         const level = a.level ?? study!.predictionLevel;
         return `<article class="card config-card"><div class="card-heading"><div><div class="eyebrow">${esc(a.id)}</div><input class="title-input" aria-label="Configuration name" data-cfg="${esc(a.id)}" data-field="label" value="${esc(a.label)}"></div><div class="actions">${btn(`duplicate-config:${a.id}`, "Duplicate")}${btn(`remove-config:${a.id}`, "Remove")}</div></div><p class="caption">${esc(a.rationale)}</p>
-        <div class="row4"><label class="field">Level<select data-cfg="${esc(a.id)}" data-field="level"><option value="population" ${level === "population" ? "selected" : ""}>Population</option><option value="individual" ${level === "individual" ? "selected" : ""} ${study!.design === "between-subjects" ? "disabled" : ""}>Individual${study!.design === "between-subjects" ? " (needs within-subjects)" : ""}</option></select></label><label class="field">Runs${level === "individual" ? " per person" : ""}<input type="number" min="1" max="${level === "individual" ? 50 : 1000}" data-cfg="${esc(a.id)}" data-field="repetitions" value="${a.repetitions ?? ""}" placeholder="${level === "individual" ? `default ${newRepetitions}` : `default ${Math.max(1, study!.participants.length)} × ${newRepetitions}`}"></label><label class="field">Runtime<select data-cfg="${esc(a.id)}" data-field="runtime">${runtimeOptions(a)}</select></label><label class="field">Token budget per session<input type="number" min="1000" step="1000" data-cfg="${esc(a.id)}" data-field="maxTokens" value="${a.maxTokens ?? ""}" placeholder="no limit"></label></div><p class="caption">All tokens a session uses: input (including cache) and output. At 90% the tools stop and the agent submits; a session above 150% is stopped. ${a.maxTokens ? `${fmtTokensLong(a.maxTokens)} tokens.` : "Empty = no limit."}</p>
+        <div class="row4"><label class="field">Level<select data-cfg="${esc(a.id)}" data-field="level"><option value="population" ${level === "population" ? "selected" : ""}>Population</option><option value="individual" ${level === "individual" ? "selected" : ""} ${study!.design === "between-subjects" ? "disabled" : ""}>Individual${study!.design === "between-subjects" ? " (needs within-subjects)" : ""}</option></select></label><label class="field">Runs${level === "individual" ? " per person" : ""}<input type="number" min="1" max="${level === "individual" ? 50 : 1000}" data-cfg="${esc(a.id)}" data-field="repetitions" value="${a.repetitions ?? ""}" placeholder="${level === "individual" ? `default ${newRepetitions}` : `default ${Math.max(1, study!.participants.length)} × ${newRepetitions}`}"></label><label class="field">Runtime<select data-cfg="${esc(a.id)}" data-field="runtime">${runtimeOptions(a)}</select></label><label class="field">Token budget per session<input type="number" min="20000" max="50000000" step="1000" data-cfg="${esc(a.id)}" data-field="maxTokens" value="${a.maxTokens ?? ""}" placeholder="no limit"></label></div><p class="caption">All tokens a session uses: input (including cache) and output; at least 20,000. When what is left is under 10% of it, or under 1.5 × the last turn (every turn re-reads the context), the tools stop and the agent submits; a session above 150% is stopped, but never after its forecast was accepted. ${a.maxTokens ? `${fmtTokensLong(a.maxTokens)} tokens.` : "Empty = no limit."}</p>
         <div class="row3"><label class="field">Provider<input data-cfg="${esc(a.id)}" data-field="provider" value="${esc(a.model.provider)}"></label><label class="field">Model<input data-cfg="${esc(a.id)}" data-field="model" value="${esc(a.model.model)}"></label><label class="field">Effort${effortSelect(`data-cfg="${esc(a.id)}" data-field="reasoning"`, a.model.reasoning)}</label></div>
         <div class="mini-title">The agent gets</div><div class="config-picks">${study!.sources
-          .map((src) => `<label class="check"><input type="checkbox" data-src="${esc(a.id)}|${esc(src.id)}" ${a.sourceIds.includes(src.id) ? "checked" : ""}> ${esc(src.label)} <small>(${esc(src.kind)}${src.fields?.length ? `: ${esc(src.fields.join(", "))}` : ""})</small></label>`)
+          .map((src) =>
+            // Movement recordings are per participant: a population forecast would get none.
+            src.kind === "trajectory" && level !== "individual" && !a.sourceIds.includes(src.id)
+              ? `<label class="check disabled"><input type="checkbox" disabled> ${esc(src.label)} <small>(movement recordings: individual configurations only)</small></label>`
+              : `<label class="check"><input type="checkbox" data-src="${esc(a.id)}|${esc(src.id)}" ${a.sourceIds.includes(src.id) ? "checked" : ""}> ${esc(src.label)} <small>(${esc(src.kind)}${src.fields?.length ? `: ${esc(src.fields.join(", "))}` : ""})</small></label>`,
+          )
           .join("")}${study!.cases.length ? `<label class="check"><input type="checkbox" data-app="${esc(a.id)}" ${a.tools.includes("xr-interact") ? "checked" : ""}> the running app <small>(${esc(study!.runtime.observation)} screenshots, does the tasks)</small></label>` : ""}</div>${ws!.missingSources?.[a.id]?.length ? `<p class="caption warn">Cannot run as an agent yet: ${esc(ws!.missingSources[a.id].join(", "))} is missing or incomplete (see Evidence &amp; knowledge).</p>` : ""}${a.inputs?.length ? `<p class="caption">Also measured ${a.inputs.map(outcomeName).map(esc).join(", ")} from the human data (you do not see the values).</p>` : ""}
         <details><summary>Advanced: tool-call limit</summary><label class="field">Tool-call limit (safety cap; the forecast is not counted)<input type="number" min="0" data-cfg="${esc(a.id)}" data-field="maxToolCalls" value="${a.maxToolCalls}"></label>${budgetNote(a)}</details>
         ${r && !r.available && a.tools.includes("xr-interact") ? `<div class="notice">${esc(r.message)}</div>` : ""}
@@ -771,18 +781,24 @@ function tokenCell(j: JobState) {
   if (j.tokensIn == null && j.tokensOut == null) return "";
   return `${fmtTokens(j.tokensIn)} / ${fmtTokens(j.tokensOut)}${j.status === "running" ? ' <span class="small">live</span>' : ""}`;
 }
+/** Cost of a real session; one stopped or killed before Claude Code reported it has an unknown cost. */
+function costCell(j: JobState) {
+  if (j.simulated) return "";
+  if (j.costUsd != null) return money(j.costUsd);
+  return (j.status === "stopped" || j.status === "failed") && (j.tokensIn != null || j.tokensOut != null) ? '<span class="small">cost unknown (stopped before the end)</span>' : "";
+}
 /** One previewed session: status, live tokens, latest screenshot and messages; details when it is the only one. */
 function previewTile(j: JobState, single: boolean) {
   const lines = logs.get(j.jobId) ?? [];
   const shown = single ? lines : lines.slice(-4);
   const attempts =
     single && attemptsOf?.jobId === j.jobId && attemptsOf.attempts.length
-      ? `<table class="attempts"><thead><tr><th>Attempt</th><th>Result</th><th>Tools</th><th>Cost</th></tr></thead><tbody>${attemptsOf.attempts
-          .map((x) => `<tr><td>a${x.attempt}${x.counts ? " <strong>counts</strong>" : ""}</td><td>${esc(x.status)}${x.simulated ? " · sim" : ""}${x.error ? `<br><span class="small">${esc(x.error.slice(0, 160))}</span>` : ""}</td><td>${x.toolCalls || ""}</td><td>${money(x.costUsd)}</td></tr>`)
-          .join("")}</tbody></table><p class="caption">The first completed attempt counts; the others are kept in the job folder.</p>`
+      ? `<table class="attempts"><thead><tr><th>Attempt</th><th>Result</th><th>Tools</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${attemptsOf.attempts
+          .map((x) => `<tr><td>a${x.attempt}${x.counts ? " <strong>counts</strong>" : ""}</td><td>${esc(x.status)}${x.simulated ? " · sim" : ""}${x.error ? `<br><span class="small">${esc(x.error.slice(0, 160))}</span>` : ""}</td><td>${x.toolCalls || ""}</td><td>${x.tokensIn != null || x.tokensOut != null ? `${fmtTokens(x.tokensIn)} / ${fmtTokens(x.tokensOut)}` : ""}</td><td>${x.cost ? `<span class="small">cost ${esc(x.cost)}</span>` : money(x.costUsd)}</td></tr>`)
+          .join("")}</tbody></table><p class="caption">The first completed attempt counts; the others are kept in the job folder. Tools: calls before the forecast (submitting it is not counted).</p>`
       : "";
   return `<div class="card preview-tile"><div class="card-heading"><div><h3>${esc(j.label)}</h3><p class="caption">${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition} · ${esc(j.runtime)} · <span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status}${j.simulated ? " · sim" : ""}</span></p></div>${btn(`preview-close:${j.jobId}`, "×", false, 'aria-label="Close this preview"')}</div>
-    <p class="caption">${j.toolCalls ? `${j.toolCalls} tool calls · ` : ""}${j.simulated ? "simulated, no tokens" : j.tokensIn != null || j.tokensOut != null ? `tokens ${fmtTokens(j.tokensIn)} in / ${fmtTokens(j.tokensOut)} out${j.status === "running" ? " (live)" : ""}` : "no tokens yet"}${j.costUsd != null ? ` · ${money(j.costUsd)}` : ""}</p>
+    <p class="caption">${j.toolCalls ? `${j.toolCalls} tool calls (the forecast not counted) · ` : ""}${j.simulated ? "simulated, no tokens" : j.tokensIn != null || j.tokensOut != null ? `tokens ${fmtTokens(j.tokensIn)} in / ${fmtTokens(j.tokensOut)} out${j.status === "running" ? " (live)" : ""}` : "no tokens yet"}${costCell(j) ? ` · ${costCell(j)}` : ""}${j.warning ? ` · <span class="warn">${esc(j.warning)}</span>` : ""}</p>
     ${attempts}${single && canRun(j) && !snapshot?.running ? `<div class="actions">${btn(`exec-one:${j.jobId}`, "Run this session only")}</div>` : ""}${j.screenshot ? `<img class="shot" alt="Latest screenshot the agent saw" src="/api/workspace/file?id=${encodeURIComponent(ws!.id)}&campaign=${encodeURIComponent(campaignId!)}&path=${encodeURIComponent(j.screenshot)}">` : ""}<div class="log">${shown.map((l) => `<p>${esc(l)}</p>`).join("") || '<p class="caption">Live messages appear here while the session runs.</p>'}</div></div>`;
 }
 
@@ -821,13 +837,13 @@ function renderExecutor() {
     <div class="actions">${btn("exec-start", chosenRunnable().length ? `Start selected (${chosenRunnable().length})` : `Start all not run yet (${s?.jobs.filter(canRun).length ?? 0})`, true)}${btn("exec-pause", "Pause")}${btn("exec-resume", "Resume")}${btn("exec-stop", "Stop")}${btn("exec-rerun", "Rerun failed")}${btn("exec-export", "Save runs as zip")}${btn("exec-import", "Load runs zip")}</div>
     <p class="caption">Simulated runs are labelled and cannot be scored against a real study. Agent runs use your Claude usage; the start button asks first.</p></div>
     <div class="preview-bar"><label class="check"><input type="checkbox" id="watch-running" ${watchRunning ? "checked" : ""}> Preview all running sessions</label>${shownJobs().length ? btn("preview-none", "Close previews") : ""}<span class="small">Click a session to preview it; Ctrl/⌘-click (or Shift-click) to preview several; click it again to close.</span></div>
-    <div class="exec-layout ${shownJobs().length ? (shownJobs().length > 1 ? "multi" : "") : "no-preview"}"><div class="card job-table"><div class="table-scroll"><table><thead><tr><th><span class="sr-only">Choose</span></th><th>Configuration</th><th>Job</th><th>Status</th><th>Tools</th><th>Last step</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${[...byConfig]
+    <div class="exec-layout ${shownJobs().length ? (shownJobs().length > 1 ? "multi" : "") : "no-preview"}"><div class="card job-table"><div class="table-scroll"><table><thead><tr><th><span class="sr-only">Choose</span></th><th>Configuration</th><th>Job</th><th>Status</th><th title="Tool calls before the forecast; submitting the forecast is not counted">Tools</th><th>Last step</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${[...byConfig]
       .map(([, list]) =>
         configSum(list) +
         list
           .map(
             (j, i) =>
-              `<tr class="${shownJobs().some((x) => x.jobId === j.jobId) ? "selected-row" : ""}" data-job="${esc(j.jobId)}"><td>${canRun(j) ? `<input type="checkbox" data-pick-job="${esc(j.jobId)}" ${chosen.has(j.jobId) ? "checked" : ""} aria-label="Choose ${esc(j.label)} ${esc(j.jobId)}">` : ""}</td><td>${i === 0 ? esc(j.label) : ""}</td><td>${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition}${j.attempts > 1 ? ` (a${j.attempts})` : ""}</td><td><span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status === "queued" ? "waiting" : j.status}${j.simulated ? " · sim" : ""}</span></td><td>${j.toolCalls || ""}</td><td class="wrap small">${esc(j.error ?? j.lastTool ?? "")}</td><td>${j.simulated ? '<span class="small">— (simulated)</span>' : tokenCell(j)}</td><td>${j.simulated ? "" : j.costUsd != null ? money(j.costUsd) : ""}</td></tr>`,
+              `<tr class="${shownJobs().some((x) => x.jobId === j.jobId) ? "selected-row" : ""}" data-job="${esc(j.jobId)}"><td>${canRun(j) ? `<input type="checkbox" data-pick-job="${esc(j.jobId)}" ${chosen.has(j.jobId) ? "checked" : ""} aria-label="Choose ${esc(j.label)} ${esc(j.jobId)}">` : ""}</td><td>${i === 0 ? esc(j.label) : ""}</td><td>${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition}${j.attempts > 1 ? ` (a${j.attempts})` : ""}</td><td><span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status === "queued" ? "waiting" : j.status}${j.simulated ? " · sim" : ""}</span></td><td>${j.toolCalls || ""}</td><td class="wrap small">${j.warning ? `<span class="warn">${esc(j.warning)}</span>${j.error || j.lastTool ? "<br>" : ""}` : ""}${esc(j.error ?? j.lastTool ?? "")}</td><td>${j.simulated ? '<span class="small">— (simulated)</span>' : tokenCell(j)}</td><td>${costCell(j)}</td></tr>`,
           )
           .join(""),
       )
@@ -992,7 +1008,7 @@ function renderHumans() {
     <div class="row"><label class="field">Domain<select id="an-domain"><option value="subjective" ${domain === "subjective" ? "selected" : ""}>Subjective</option><option value="objective" ${domain === "objective" ? "selected" : ""}>Objective</option></select></label>${view === "agent-vs-human" ? `<label class="field">Measure<select id="an-outcome">${outcomeOptions}</select></label>` : ""}</div>
     <div class="actions">${btn("draw", "Draw figure", true)}${figureSvg ? btn("save-svg", "Save SVG") + btn("save-png", "Save PNG") : ""}${btn("analyze", "Re-analyze")}${btn("explain", "Explain with assistant")}${btn("exec-import", "Load runs zip")}</div>
     ${view === "trajectories" && [...selected].some((id) => level(id) !== "individual") ? '<p class="caption">Participant lines use individual configurations only; population configurations are ignored here.</p>' : ""}
-    <div class="figure">${figureSvg || '<p class="caption">Choose configurations and a view, then draw the figure.</p>'}</div>${figureData?.note ? `<p class="caption">${esc(figureData.note)}</p>` : ""}
+    <div class="figure">${figureSvg || '<p class="caption">Choose configurations and a view, then draw the figure.</p>'}</div>${figureData?.omitted?.length ? `<div class="notice">${figureData.omitted.map((n: string) => esc(n)).join("<br>")}</div>` : ""}${figureData?.note ? `<p class="caption">${esc(figureData.note)}</p>` : ""}
     ${
       figureData?.discrepancies
         ? `<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Design</th><th>Human</th><th>Agent</th><th>Discrepancy</th><th>Holm p</th></tr></thead><tbody>${figureData.discrepancies
@@ -1800,9 +1816,24 @@ document.addEventListener("change", (e) => {
     const a = agents.find((x) => x.id === el.dataset.cfg)!;
     const f = el.dataset.field!;
     if (f === "label") a.label = el.value;
-    else if (f === "level") a.level = el.value as AgentProtocol["level"];
+    else if (f === "level") {
+      a.level = el.value as AgentProtocol["level"];
+      // Movement recordings are per participant: a population configuration cannot get them.
+      const movement = a.sourceIds.filter((id) => study!.sources.find((x) => x.id === id)?.kind === "trajectory");
+      if (a.level === "population" && movement.length) {
+        setAccess(a, a.sourceIds.filter((id) => !movement.includes(id)), a.tools.includes("xr-interact"));
+        toast(`Movement recordings are per participant, so ${a.label} no longer gets them.`);
+      }
+    }
     else if (f === "repetitions") el.value ? (a.repetitions = Number(el.value)) : delete a.repetitions;
-    else if (f === "runtime") a.runtime = el.value;
+    else if (f === "runtime") {
+      // A runtime is what plays the app: "none" unticks the app, another runtime ticks it.
+      if (el.value === "none") setAccess(a, a.sourceIds, false);
+      else {
+        if (!a.tools.includes("xr-interact")) setAccess(a, a.sourceIds, true);
+        a.runtime = el.value;
+      }
+    }
     else if (f === "maxToolCalls") a.maxToolCalls = Number(el.value);
     else if (f === "maxTokens") el.value ? (a.maxTokens = Math.round(Number(el.value))) : delete a.maxTokens;
     else if (f === "provider" || f === "model" || f === "reasoning") a.model = { ...a.model, [f]: el.value };

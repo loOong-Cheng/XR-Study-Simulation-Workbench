@@ -1,5 +1,7 @@
 // Minimal MCP server over stdio (JSON-RPC 2.0, one message per line). Only
 // protocol messages may go to stdout; diagnostics go to stderr.
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { createInterface } from "node:readline";
 
 export type Content =
@@ -66,3 +68,17 @@ export function serveMcp(name: string, version: string, tools: Tool[], onExit?: 
   });
 }
 export const text = (t: string): Content[] => [{ type: "text", text: t }];
+
+/**
+ * Whether a session's token budget is nearly used, from <job>/usage.json, which the executor keeps
+ * current: it sets submitNow once what is left is smaller than 10% of the budget or 1.5 × the last
+ * turn's input (every turn re-reads the context). 90% used always counts, for older executors.
+ */
+export async function budgetNearlyUsed(jobDir: string, budget: number): Promise<boolean> {
+  try {
+    const usage = JSON.parse(await readFile(join(jobDir, "usage.json"), "utf8")) as { tokens?: number; submitNow?: boolean };
+    return usage.submitNow === true || (Number(usage.tokens) || 0) >= budget * 0.9;
+  } catch {
+    return false;
+  }
+}

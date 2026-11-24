@@ -8,11 +8,11 @@ import { campaignFromPlan, campaignPlan, continueFromStatus, lineageJobIndex, ty
 import { analyzeCampaign, mergeCampaignResults, simulatedJobIds, type CampaignAnalysis } from "./core/campaign-study.js";
 import { compareAgents } from "./core/agent-comparison.js";
 import { compareCampaignScores } from "./core/campaign-comparison.js";
-import { agentVsHumanFigure, agreementFigure, correlationFigure, humanFigure, populationVsIndividualFigure, trajectoryFigure } from "./core/figures.js";
+import { agentVsHumanFigure, agreementFigure, correlationFigure, figureSelection, humanFigure, populationVsIndividualFigure, trajectoryFigure } from "./core/figures.js";
 import { agentLevel, agentTargets, freezePlan, methodGets, proposeAgents, withDefaultRuns } from "./core/planner.js";
 import { extractProposal } from "./core/proposal.js";
 import type { AgentProtocol, Comparison, Domain, Study } from "./core/types.js";
-import { requireThat } from "./core/validation.js";
+import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
 import { closeExecutor, Executor } from "./executor/runner.js";
 import { exportRuns, importRuns } from "./executor/archive.js";
@@ -26,8 +26,11 @@ import {
   readHuman,
   readReceipts,
   readResults,
+  readStudyFolder,
   readWorkspace,
+  readWorkspaceForEditing,
   saveCampaign,
+  saveSourceFingerprints,
   saveWorkspace,
   missingSources,
   runDir,
@@ -131,9 +134,20 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
       json(await listWorkspaces());
       return true;
     case "/api/workspace": {
-      const ws = await readWorkspace(id);
+      // Opens even when the saved study and configurations disagree: the problem is returned to show and fix.
+      const ws = await readWorkspaceForEditing(id);
       const settings = await readSettings();
       const agents = await configs(ws.study, ws.agents, settings);
+      const each = <T>(f: (a: AgentProtocol) => T, fallback: T) =>
+        Object.fromEntries(
+          agents.map((a) => {
+            try {
+              return [a.id, f(a)];
+            } catch {
+              return [a.id, fallback];
+            }
+          }),
+        );
       json({
         id,
         study: ws.study,
@@ -142,11 +156,12 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
         comparisons: ws.comparisons,
         manifest: ws.manifest,
         hasHuman: existsSync(join(ws.dir, "human.json")),
-        approval: await approvalState(join(ws.dir, "study.json"), ws.study, ws.agents ?? undefined),
-        gets: Object.fromEntries(agents.map((a) => [a.id, methodGets(a, ws.study)])),
-        runtimes: Object.fromEntries(agents.map((a) => [a.id, runtimeFor(ws.study, a)])),
-        missingSources: Object.fromEntries(agents.map((a) => [a.id, missingSources(ws.dir, ws.study, ws.manifest, a.sourceIds).map((m) => m.label)])),
+        approval: await approvalState(join(ws.dir, "study.json"), ws.study, (!ws.problem && ws.agents) || undefined).catch(() => ({ approved: false, current: false, approval: null })),
+        gets: each((a) => methodGets(a, ws.study), [] as string[]),
+        runtimes: each((a) => runtimeFor(ws.study, a), "none"),
+        missingSources: each((a) => missingSources(ws.dir, ws.study, ws.manifest, a.sourceIds).map((m) => m.label), [] as string[]),
         campaigns: await campaignSummaries(id),
+        problem: ws.problem,
       });
       return true;
     }
@@ -154,7 +169,7 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
       json(await readSettings());
       return true;
     case "/api/runtimes": {
-      const ws = await readWorkspace(id);
+      const ws = await readStudyFolder(id);
       const settings = await readSettings();
       json(["none", "webxr", "unreal", "unity", "visionos"].map((r) => runtimeStatus(r, settings, ws.manifest)));
       return true;
@@ -167,7 +182,7 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
       return true;
     }
     case "/api/workspace/evidence": {
-      const ws = await readWorkspace(id);
+      const ws = await readWorkspaceForEditing(id);
       json({ general: await evidenceOverview(id, ws.agents ?? []), participants: await participantKnowledgeOverview(id, ws.agents ?? []) });
       return true;
     }
@@ -243,6 +258,8 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
         return true;
       }
       await saveCampaign(id, campaign);
+      // What the sources hold now, beside the campaign: the executor refuses sessions whose source changed since.
+      await saveSourceFingerprints(id, campaign);
       if (label.trim()) await writeLabel(id, campaign.id, label);
       json({ campaignId: campaign.id, jobs: campaign.jobs.length });
       return true;
@@ -324,6 +341,10 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       // Failed, stopped and never-started sessions run again, and so do simulated ones unless
       // body.keepSimulated. (body.useReceipts is no longer needed; receipts are always read.)
       const receipts = await readReceipts(id, chain.map((c) => c.id));
+      // Model settings Claude Code would refuse at run time are refused now.
+      checkModelSettings(changes?.model, "the new default model");
+      for (const [c, m] of Object.entries(changes?.conditionModels ?? {})) checkModelSettings(m, c);
+      for (const c of changes?.cloneConditions ?? []) checkModelSettings(c?.model, c?.label ?? c?.id ?? "the added model");
       const bundles = previous.suite.study ? await readResults(id, previous.suite.study, chain.map((c) => c.id)) : [];
       const simulatedBefore = simulatedJobIds(previous, bundles);
       const next = continueFromStatus(previous, receipts, changes, undefined, undefined, {
@@ -353,6 +374,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
         return true;
       }
       await saveCampaign(id, next);
+      await saveSourceFingerprints(id, next);
       json({ campaignId: next.id, reused, jobs: next.jobs.length, reusedSimulated: totals.reused, simulatedRunAgain: totals.runAgain });
       return true;
     }
@@ -419,8 +441,14 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
         humanPairs: a.report.humanPairs ?? [],
         absoluteFit: a.report.absoluteFit ?? [],
         significantOnly: a.report.significantOnly ?? null,
-        // Sessions never run are counted in progress, not listed as lost runs.
-        audits: a.report.audits.filter((x) => (!x.compliant || !x.scoreable) && !notStarted.has(x.jobId)).slice(0, 200),
+        // Sessions never run are counted in progress, not listed as lost runs; a failed one says why it failed.
+        audits: a.report.audits
+          .filter((x) => (!x.compliant || !x.scoreable) && !notStarted.has(x.jobId))
+          .slice(0, 200)
+          .map((x) => {
+            const failed = mine.filter((r) => r.jobId === x.jobId && r.status === "failed" && r.error).at(-1);
+            return failed && !completed.has(x.jobId) ? { ...x, issues: x.issues.map((i) => (i === "Scheduled job was not returned." ? `Failed (attempt ${failed.attempt}): ${failed.error}` : i)) } : x;
+          }),
         progress,
         assigned: a.report.audits.length,
         notes: a.report.notes,
@@ -440,21 +468,30 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       const { campaign, analysis: a } = await analysis(id, campaignId(), comparisonsOf(body));
       const study = campaign.suite.study!;
       const labels = Object.fromEntries(campaign.suite.conditions.map((c) => [c.id, c.label]));
-      json(
+      // Figures follow the summaries: unscored partial configurations and measures a configuration does not predict are left out, with a note.
+      const protocols = Object.fromEntries(
+        campaign.suite.conditions.map((c) => {
+          const p = { ...c.recipe.protocol!, model: a.models[c.id] } as AgentProtocol;
+          return [c.id, { level: agentLevel(study, p), targets: agentTargets(study, p) }];
+        }),
+      );
+      const shown = figureSelection(study, a.report, ids, protocols, labels, kind === "agent-vs-human" ? { outcomeId } : kind === "correlation" ? {} : { domain });
+      requireThat(shown.ids.length, `None of the chosen configurations can be shown here. ${shown.omitted.join(" ")}`);
+      const figure =
         kind === "agreement"
-          ? agreementFigure(a.report, ids, domain, labels)
+          ? agreementFigure(a.report, shown.ids, domain, labels)
           : kind === "agent-vs-human"
-          ? agentVsHumanFigure(study, a.report, ids, outcomeId, labels)
+          ? agentVsHumanFigure(study, a.report, shown.ids, outcomeId, labels)
           : kind === "correlation"
-          ? correlationFigure(study, a.report, ids, labels)
+          ? correlationFigure(study, a.report, shown.ids, labels)
           : kind === "population-vs-individual"
-          ? populationVsIndividualFigure(study, a.report, ids, domain, labels)
+          ? populationVsIndividualFigure(study, a.report, shown.ids, domain, labels)
           : kind === "trajectories"
-          ? trajectoryFigure(a.report, ids, domain, labels)
+          ? trajectoryFigure(a.report, shown.ids, domain, labels)
           : (() => {
               throw new Error("Unknown figure.");
-            })(),
-      );
+            })();
+      json({ ...figure, omitted: shown.omitted });
       return true;
     }
     case "/api/workspace/compare": {
@@ -469,7 +506,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       const name = text(body, "name", { max: 300 });
       const participantsCsv = text(body, "participantsCsv", { optional: true, max: 20_000_000 }) || null;
       const document = await extractProposal(name, Buffer.from(text(body, "base64", { max: 400 * 1024 * 1024 }), "base64"));
-      const current = id ? (await readWorkspace(id)).study : null;
+      const current = id ? (await readStudyFolder(id)).study : null;
       json(await understandStudy(document, participantsCsv, current));
       return true;
     }

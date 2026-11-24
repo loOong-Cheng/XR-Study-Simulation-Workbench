@@ -109,7 +109,11 @@ export async function campaignSummaries(id: string): Promise<CampaignSummary[]> 
   return out;
 }
 
-/** Every attempt of one session, including stopped ones that left no receipt, and which one counts. */
+/**
+ * Every attempt of one session, including stopped ones, and which one counts. Tool calls exclude
+ * the forecast submission (as in the executor); a real attempt that ended before Claude Code
+ * reported its cost shows its tokens and an unknown cost.
+ */
 export async function sessionAttempts(id: string, campaign: Campaign, jobId: string) {
   requireThat(campaign.jobs.some((j) => j.id === jobId), "Unknown session.");
   const dir = runDir(id, campaign.id);
@@ -125,13 +129,23 @@ export async function sessionAttempts(id: string, campaign: Campaign, jobId: str
     const calls = existsSync(join(a, "calls.log")) ? (await readFile(join(a, "calls.log"), "utf8")).split("\n").filter((l) => l && l !== "submit_forecast").length : 0;
     const manifest = await json<{ costUsd?: number | null }>(join(a, "execution-manifest.json"));
     const result = await json<RunResult>(join(a, "result.json"));
+    // Tokens: the session's totals, else the live count the executor kept (usage.json).
+    const live = await json<{ input?: number; output?: number }>(join(a, "usage.json"));
+    const e = result?.execution;
+    const real = e ? !e.synthetic : !!live;
+    const tokensIn = e && !e.synthetic ? [e.inputTokens, e.cacheReadTokens, e.cacheWriteTokens].reduce<number | null>((s, x) => (typeof x === "number" ? (s ?? 0) + x : s), null) : live?.input ?? null;
+    const tokensOut = e && !e.synthetic ? e.outputTokens : live?.output ?? null;
+    const costUsd = typeof manifest?.costUsd === "number" ? manifest.costUsd : null;
     attempts.push({
       attempt: n,
-      status: r ? r.status : "stopped",
+      status: !r || r.error === "Stopped by you." ? "stopped" : r.status,
       error: r?.error ?? (r ? null : "Stopped before it finished; no result was recorded."),
       toolCalls: calls,
-      costUsd: typeof manifest?.costUsd === "number" ? manifest.costUsd : null,
-      simulated: result?.execution?.synthetic ?? null,
+      tokensIn,
+      tokensOut,
+      costUsd,
+      cost: costUsd !== null ? null : real && (tokensIn !== null || tokensOut !== null) ? "unknown (stopped before the end)" : null,
+      simulated: e?.synthetic ?? null,
       counts: n === selected,
     });
   }

@@ -4,14 +4,16 @@
 //   study.json  agents.json  comparisons.json  workspace.json
 //   human.json                       (read only by the executor for declared inputs, and the analyzer)
 //   campaigns/<campaign-id>/campaign.json
+//   campaigns/<campaign-id>/sources.json   (fingerprints of the source files at freeze; beside, never inside, campaign.json)
 //   runs/<campaign-id>/{receipts.jsonl, events.jsonl, results/<job>.json, jobs/<job>/…}
-import { existsSync, lstatSync, readdirSync, realpathSync } from "node:fs";
+import { createHash } from "node:crypto";
+import { existsSync, lstatSync, readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AgentProtocol, Comparison, HumanData, ResultBundle, RunResult, Study } from "./core/types.js";
 import type { Campaign, CampaignReceipt } from "./core/campaign.js";
-import { requireThat, validateAgents, validateStudy } from "./core/validation.js";
+import { checkNewConfigurations, requireThat, validateAgents, validateComparisons, validateStudy } from "./core/validation.js";
 import { PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
 
 // dist/workspace.js or .test-build/src/workspace.js: walk up to the folder holding package.json.
@@ -116,9 +118,69 @@ export function missingSources(dir: string, study: Study, manifest: WorkspaceMan
     // Participant-specific knowledge must exist for every participant, with no empty field.
     if ((PARTICIPANT_KINDS as readonly string[]).includes(s.kind)) {
       const problems = participantProblems(study, s.kind, path, s.fields ?? []);
-      if (problems.length) return [{ id, label: s.label, message: `Source '${id}' (${s.label}) is incomplete: ${problems.join("; ")}. Participant-specific knowledge must exist for every participant.` }];
+      const shown = String(manifest.sources?.[id] ?? "");
+      if (problems.length) return [{ id, label: s.label, message: `Source '${id}' (${s.label}, ${isAbsolute(shown) ? `…/${basename(shown)}` : shown}) ${problems.join("; ")}. Participant-specific knowledge needs exactly one complete entry per participant: fix it on Evidence & knowledge.` }];
     }
     return [];
+  });
+}
+
+// ---------- what a campaign froze: source fingerprints ----------
+/** Kinds whose content reaches the agent as it was frozen. Project folders are read live (engines rewrite them when opened). */
+const FINGERPRINTED = ["brief", "evidence", "demographics", "trajectory"];
+export interface SourceFingerprint {
+  path: string;
+  sha256: string | null;
+}
+/** sha256 of a file, or of a folder's files (relative path and content, sorted; dot files left out). */
+export function sourceHash(path: string): string | null {
+  if (!existsSync(path)) return null;
+  const h = createHash("sha256");
+  if (!statSync(path).isDirectory()) return h.update(readFileSync(path)).digest("hex");
+  const walk = (rel: string): string[] =>
+    readdirSync(join(path, rel), { withFileTypes: true })
+      .filter((e) => !e.name.startsWith("."))
+      .flatMap((e) => (e.isDirectory() ? walk(join(rel, e.name)) : [join(rel, e.name)]));
+  for (const f of walk("").sort()) h.update(f.split(sep).join("/")).update("\0").update(createHash("sha256").update(readFileSync(join(path, f))).digest("hex")).update("\n");
+  return h.digest("hex");
+}
+/** Fingerprints of the sources the configurations read, as they are on disk now (null where a source may not be used). */
+export function sourceFingerprints(dir: string, study: Study, manifest: WorkspaceManifest, sourceIds?: string[]): Record<string, SourceFingerprint> {
+  const ids = sourceIds ?? study.sources.map((s) => s.id);
+  return Object.fromEntries(
+    study.sources
+      .filter((s) => ids.includes(s.id) && FINGERPRINTED.includes(s.kind) && typeof manifest.sources?.[s.id] === "string")
+      .map((s) => {
+        const where = sourceLocation(dir, s.kind, manifest.sources![s.id]);
+        return [s.id, { path: manifest.sources![s.id], sha256: where.path ? sourceHash(where.path) : null }];
+      }),
+  );
+}
+const fingerprintFile = (id: string, campaignId: string) => join(workspaceDir(id), "campaigns", campaignId, "sources.json");
+/** Records the sources a campaign freezes (written beside campaign.json, whose digest it does not touch). */
+export async function saveSourceFingerprints(id: string, campaign: Campaign) {
+  const { dir, manifest } = await readStudyFolder(id);
+  const study = campaign.suite.study;
+  if (!study) return;
+  const used = [...new Set(campaign.suite.conditions.flatMap((c) => c.recipe.protocol?.sourceIds ?? []))];
+  await writeFile(fingerprintFile(id, campaign.id), pretty({ campaignId: campaign.id, recordedAt: new Date().toISOString(), sources: sourceFingerprints(dir, study, manifest, used) }));
+}
+/**
+ * Sources whose file changed since the campaign was frozen, with the message for the researcher.
+ * Campaigns frozen before fingerprints were recorded have none, and nothing is refused for them.
+ */
+export async function changedSources(id: string, campaign: Campaign, manifest: WorkspaceManifest): Promise<{ id: string; message: string }[]> {
+  const file = fingerprintFile(id, campaign.id);
+  const study = campaign.suite.study;
+  if (!existsSync(file) || !study) return [];
+  const frozen = JSON.parse(await readFile(file, "utf8")) as { sources: Record<string, SourceFingerprint> };
+  const now = sourceFingerprints(workspaceDir(id), study, manifest, Object.keys(frozen.sources));
+  return Object.entries(frozen.sources).flatMap(([sid, f]) => {
+    const current = now[sid];
+    if (current && current.path === f.path && current.sha256 === f.sha256) return [];
+    const label = study.sources.find((s) => s.id === sid)?.label ?? sid;
+    const where = current && current.path !== f.path ? `${f.path}, now ${current.path}` : f.path;
+    return [{ id: sid, message: `${label} (${where}) changed after this campaign was frozen. Freeze a new campaign, or Continue / rerun to use the new version.` }];
   });
 }
 export interface WorkspaceInfo {
@@ -181,25 +243,68 @@ export async function listWorkspaces(): Promise<WorkspaceInfo[]> {
   }
   return out.sort((a, b) => (a.suite ?? a.title).localeCompare(b.suite ?? b.title));
 }
-export async function readWorkspace(id: string) {
+/** The study, its sources and comparisons, without checking the configurations against it. */
+export async function readStudyFolder(id: string) {
   const dir = workspaceDir(id);
   const study = validateStudy(await load(join(dir, "study.json")));
-  const agents = existsSync(join(dir, "agents.json"))
-    ? validateAgents(study, await load<AgentProtocol[]>(join(dir, "agents.json")))
-    : null;
   const comparisons = existsSync(join(dir, "comparisons.json")) ? await load<Comparison[]>(join(dir, "comparisons.json")) : [];
   const manifest = existsSync(join(dir, "workspace.json")) ? await load<WorkspaceManifest>(join(dir, "workspace.json")) : {};
-  return { dir, study, agents, comparisons, manifest };
+  return { dir, study, comparisons, manifest };
 }
+export async function readWorkspace(id: string) {
+  const folder = await readStudyFolder(id);
+  const agents = existsSync(join(folder.dir, "agents.json"))
+    ? validateAgents(folder.study, await load<AgentProtocol[]>(join(folder.dir, "agents.json")))
+    : null;
+  return { ...folder, agents };
+}
+/**
+ * The workspace for the website, even when its saved files disagree (for example configurations
+ * that no longer fit an edited study): the configurations as saved, and a problem that says what
+ * to fix. Saving again is refused until they fit.
+ */
+export async function readWorkspaceForEditing(id: string) {
+  const folder = await readStudyFolder(id);
+  const path = join(folder.dir, "agents.json");
+  if (!existsSync(path)) return { ...folder, agents: null, problem: null as string | null };
+  const raw = await load<unknown>(path);
+  try {
+    return { ...folder, agents: validateAgents(folder.study, raw as AgentProtocol[]), problem: null as string | null };
+  } catch (e) {
+    const usable = Array.isArray(raw) && raw.every((a) => a && typeof a === "object" && Array.isArray(a.sourceIds) && Array.isArray(a.tools) && a.model && typeof a.id === "string");
+    return {
+      ...folder,
+      agents: usable ? (raw as AgentProtocol[]) : null,
+      problem: `The saved agent configurations (agents.json) do not fit the saved study (study.json): ${(e as Error).message} Fix this on Agent configurations and save${usable ? "" : "; agents.json could not be read, so templates are shown instead"}.`,
+    };
+  }
+}
+/**
+ * Save the study, configurations and comparisons in one step: whatever is not sent is taken as
+ * saved, and all of them are checked together before anything is written, so a refused save
+ * leaves every file as it was.
+ */
 export async function saveWorkspace(
   id: string,
   update: { study?: Study; agents?: AgentProtocol[]; comparisons?: Comparison[] },
 ) {
   const dir = workspaceDir(id);
   const study = validateStudy(update.study ?? (await load(join(dir, "study.json"))));
+  const savedAgents = !update.agents && existsSync(join(dir, "agents.json")) ? await load<AgentProtocol[]>(join(dir, "agents.json")) : null;
+  let agents: AgentProtocol[] | null = null;
+  if (update.agents) {
+    agents = validateAgents(study, update.agents);
+    checkNewConfigurations(study, agents);
+  } else if (savedAgents)
+    try {
+      agents = validateAgents(study, savedAgents);
+    } catch (e) {
+      throw new Error(`This change does not fit the saved agent configurations: ${(e as Error).message} Change those configurations on Agent configurations and save the study and configurations together.`);
+    }
+  const comparisons = update.comparisons === undefined ? null : validateComparisons(update.comparisons);
   if (update.study) await writeFile(join(dir, "study.json"), pretty(study));
-  if (update.agents) await writeFile(join(dir, "agents.json"), pretty(validateAgents(study, update.agents)));
-  if (update.comparisons) await writeFile(join(dir, "comparisons.json"), pretty(update.comparisons));
+  if (update.agents) await writeFile(join(dir, "agents.json"), pretty(agents));
+  if (comparisons) await writeFile(join(dir, "comparisons.json"), pretty(comparisons));
 }
 /** Human reference: never sent to the planner UI; only the executor (inputs) and analyzer read it. */
 export async function readHuman(id: string): Promise<HumanData | null> {
