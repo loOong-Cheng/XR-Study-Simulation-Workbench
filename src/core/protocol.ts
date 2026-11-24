@@ -19,9 +19,9 @@ import { casesInOrder, validOrder } from "./fairness.js";
 export function scoredAction(e: Extract<TraceEvent, { type: "action" }>, marked: boolean): boolean {
   return e.completed === true && (marked ? e.scored === true : e.action !== "complete-task");
 }
-/** Project files the session opened (read_file calls recorded as `source` events with delivery "read"). */
+/** Distinct project files the session opened (read_file calls recorded as `source` events with delivery "read", by content hash; as filesRead in agent-comparison.ts). */
 export function filesRead(trace: TraceEvent[]): number {
-  return (Array.isArray(trace) ? trace : []).filter((e) => e?.type === "source" && e.delivery === "read").length;
+  return new Set((Array.isArray(trace) ? trace : []).filter((e) => e?.type === "source" && e.delivery === "read").map((e) => (e as { sha256: string }).sha256)).size;
 }
 export function exposureIssues(
   plan: Plan,

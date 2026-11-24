@@ -245,10 +245,10 @@ test("tool-call cap: refused calls are not counted, also in parallel; submit_for
     await ev({ type: "case-start", caseId: "d-practice", phaseId: "practice" });
     await ev({ type: "case-end", caseId: "d-practice", phaseId: "practice", submitted: true });
     await ev({ type: "case-start", caseId: "d-main", phaseId: "main" });
-    assert.match((await s.tool("submit_forecast", forecast)).content[0].text, /Not done yet: the task of design D \(d-main\)\./);
+    assert.match((await s.tool("submit_forecast", forecast)).content[0].text, /Not done yet: the task of design D \(d-main\), started but not finished\./);
     await ev({ type: "case-end", caseId: "d-main", phaseId: "main", submitted: false });
     // A task left unfinished (the agent opened the next design first) is not finished either.
-    assert.match((await s.tool("submit_forecast", forecast)).content[0].text, /not been started and finished: d-main \(designs d\)\. Started but not finished: d-main\./);
+    assert.match((await s.tool("submit_forecast", forecast)).content[0].text, /Not done yet: the task of design D \(d-main\), started but not finished\./);
     await ev({ type: "case-start", caseId: "d-main", phaseId: "main" });
     await ev({ type: "case-end", caseId: "d-main", phaseId: "main", submitted: true });
     assert.match((await s.tool("submit_forecast", forecast)).content[0].text, /Forecast accepted/);
