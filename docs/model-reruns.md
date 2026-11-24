@@ -134,7 +134,7 @@ node dist/cli.js campaign-rerun artifacts/my-new-model/campaign.json artifacts/n
 **Output packages:**
 - Every output directory must be new.
 - Each package includes `campaign.json`, `queue.jsonl`, all condition recipes, checksums, a workload summary and worker instructions.
-- The `campaign-…` commands write these files into the new folder; `campaign-verify <folder>` checks `campaign.json` and every file listed in `manifest.json`. The website has no package download. A single-file package container `{"files": {…}}` (as the local API's `/api/campaign/handoff` returns it) is unpacked with `node dist/cli.js unpack package.json artifacts/unpacked-campaign`, which verifies checksums and campaign integrity before writing files.
+- The `campaign-…` commands write these files into the new folder; `campaign-verify <folder>` checks `campaign.json` and every file listed in `manifest.json`. The website has no package download. A single-file package container `{"files": {…}}` (made by an earlier version's local API) is unpacked with `node dist/cli.js unpack package.json artifacts/unpacked-campaign`, which verifies checksums and campaign integrity before writing files.
 
 Check integrity before execution and inspect returned progress:
 

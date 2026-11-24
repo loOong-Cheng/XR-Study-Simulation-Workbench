@@ -22,7 +22,7 @@ The draft does not reproduce a full factorial trial schedule, questionnaire scor
 
 ## Reader model for `proposal --agent`
 
-Only the command `proposal --agent` reads these variables; the website uses the Settings assistant instead. (The local API route `/api/proposal/read` reads them too, but the website does not call it.) Set them in the shell that runs the command:
+Only the command `proposal --agent` reads these variables; the website uses the Settings assistant instead. Set them in the shell that runs the command:
 
 | Variable              | Meaning                                                                          |
 | --------------------- | -------------------------------------------------------------------------------- |

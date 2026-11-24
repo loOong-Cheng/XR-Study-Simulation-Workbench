@@ -118,6 +118,7 @@ test("server: every request must name this machine as host; POSTs need the local
       ["/api/settings", "not json", /not valid JSON/],
       ["/api/settings", "[1]", /must be a JSON object/],
       ["/api/workspace/human-figure", { id: a.id, campaignId: "campaign-does-not-exist" }, /Unknown campaign/],
+      ["/api/propose", {}, /"study" must be an object/],
     ];
     for (const [path, body, expected] of cases) {
       const r = await post(path, body);
@@ -140,6 +141,19 @@ test("server: every request must name this machine as host; POSTs need the local
     const probe = await call(port, `/api/workspace/file?id=${encodeURIComponent(a.id)}&campaign=${encodeURIComponent("../../..")}&path=screenshots/probe.png`);
     assert.equal(probe.status, 400);
     assert.match(JSON.parse(probe.body).error, /Invalid campaign ID/);
+    // A screenshot that is not there (or may not be served) is 404, nothing more.
+    for (const path of ["jobs/x/a1/screenshots/none.png", "../study.json"]) {
+      const missing = await call(port, `/api/workspace/file?id=${encodeURIComponent(a.id)}&campaign=${encodeURIComponent(c.id)}&path=${encodeURIComponent(path)}`);
+      assert.equal(missing.status, 404, path);
+      assert.equal(JSON.parse(missing.body).error, "Not found.");
+    }
+    // Routes no page uses are gone (they answered {} with "Cannot read properties of undefined").
+    for (const path of ["/api/demo", "/api/report", "/api/analyze", "/api/freeze", "/api/brief", "/api/handoff", "/api/proposal/read", "/api/proposal/extract", "/api/proposal/compile", "/api/campaign/continue", "/api/campaign/handoff", "/api/campaign/new", "/api/review/save"])
+      assert.equal((await post(path, {})).status, 404, path);
+    for (const path of ["/api/example", "/api/review", "/api/campaign/suite"]) assert.equal((await call(port, path)).status, 404, path);
+    // The server names itself: server.pid beside its settings file, with its process ID and port.
+    const pid = JSON.parse(await readFile(join(cfg, "server.pid"), "utf8")) as { pid: number; port: number; url: string };
+    assert.deepEqual([pid.pid, pid.port, pid.url], [proc.pid, port, `http://127.0.0.1:${port}`]);
     // 5. Non-canonical study IDs are refused, so a study never gets a second executor.
     for (const spelling of [a.id.replace("studies/", "studies/./"), a.id.replace("private/", "private//"), a.id + "/"]) {
       const r = await call(port, `/api/executor/state?id=${encodeURIComponent(spelling)}&campaign=${c.id}`);
@@ -147,6 +161,11 @@ test("server: every request must name this machine as host; POSTs need the local
       assert.match(JSON.parse(r.body).error, /Invalid study ID/);
     }
     assert.equal((await call(port, `/api/executor/state?id=${encodeURIComponent(a.id)}&campaign=${c.id}`)).status, 200);
+    // Ended with a plain kill (SIGTERM), the server removes its server.pid.
+    const ended = new Promise((ok) => proc.once("exit", ok));
+    proc.kill();
+    await ended;
+    if (process.platform !== "win32") assert.equal(existsSync(join(cfg, "server.pid")), false);
   } finally {
     proc.kill();
     await removeDir(a.dir);

@@ -1,86 +1,18 @@
 import { createServer } from "node:http";
-import { readFile, writeFile } from "node:fs/promises";
+import { readFileSync, rmSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
-import { dirname, join, relative, sep } from "node:path";
-import { analyze } from "./core/analyzer.js";
-import {
-  exampleStudy,
-  syntheticHumanData,
-  syntheticResults,
-} from "./core/example.js";
-import {
-  freezePlan,
-  handoffFiles,
-  planningBrief,
-  proposeAgents,
-} from "./core/planner.js";
-import { validateAgents, validateStudy } from "./core/validation.js";
-import { hash } from "./core/planner.js";
-import { approvalState, approve, readReviewFiles } from "./review.js";
+import { dirname, join } from "node:path";
+import { proposeAgents } from "./core/planner.js";
+import { object } from "./request.js";
 import { handleGet, handlePost } from "./routes.js";
-import { recoverLeftovers, shutdownExecutors } from "./executor/runner.js";
 import { hostAllowed, originAllowed, publicError } from "./http-guard.js";
+import { settingsFile } from "./settings.js";
+import { removeStaleProfiles } from "./executor/processes.js";
+import { recoverLeftovers, shutdownExecutors } from "./executor/runner.js";
 
-// Review mode: `cli review <study.json> [--agents agents.json]` sets these. The
-// server only ever writes to these two files (and the study's approval record).
-const reviewStudy = process.env.XR_REVIEW_STUDY;
-let reviewAgents = process.env.XR_REVIEW_AGENTS;
-// Paths inside the working directory are shown relative to it (with "/" on every system); others in full.
-const display = (p: string) => {
-  const r = relative(process.cwd(), p);
-  return r.startsWith("..") ? p : r.split(sep).join("/");
-};
-async function reviewState() {
-  if (!reviewStudy) return { active: false };
-  const { study, agents } = await readReviewFiles(reviewStudy, reviewAgents);
-  return {
-    active: true,
-    studyPath: display(reviewStudy),
-    agentsPath: reviewAgents ? display(reviewAgents) : null,
-    study,
-    agents: agents ?? null,
-    ...(await approvalState(reviewStudy, study, agents)),
-  };
-}
-import { reportCSV, reportHTML } from "./core/report.js";
-import {
-  campaignFiles,
-  campaignFromPlan,
-  campaignStatus,
-  campaignSummary,
-  continueCampaign,
-  continueFromStatus,
-  freezeCampaign,
-  rerunCampaign,
-  type Campaign,
-  type CampaignContinuation,
-  type CampaignModel,
-  type CampaignReceipt,
-} from "./core/campaign.js";
-import { syntheticCampaignSuite } from "./core/campaign-presets.js";
-import {
-  analyzeCampaign,
-  syntheticCampaignExecution,
-} from "./core/campaign-study.js";
-import { compareCampaignScores } from "./core/campaign-comparison.js";
-import {
-  extractProposal,
-  textDocument,
-  localReading,
-  agentReading,
-  readerConfig,
-  compileProposal,
-  type ProposalReview,
-} from "./core/proposal.js";
-import type {
-  AgentProtocol,
-  Comparison,
-  AnalysisReport,
-  HumanData,
-  Plan,
-  ResultBundle,
-} from "./core/types.js";
-
+// The website and its API (src/routes.ts; docs/api.md lists the routes). Everything a page does
+// goes through the study-folder routes there; this file serves the page and guards every request.
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const port = Number(process.env.XR_STUDY_PORT ?? 4317);
 const server = createServer(async (req, res) => {
@@ -103,35 +35,10 @@ const server = createServer(async (req, res) => {
     return;
   }
   try {
-    const path = new URL(req.url ?? "/", `http://127.0.0.1:${port}`).pathname;
+    const url = new URL(req.url ?? "/", `http://127.0.0.1:${port}`);
+    const path = url.pathname;
     if (req.method === "GET") {
-      if (path.startsWith("/api/") && (await handleGet(path, new URL(req.url ?? "/", `http://127.0.0.1:${port}`), res, json))) return;
-      if (path === "/api/campaign/suite") {
-        json(syntheticCampaignSuite());
-        return;
-      }
-      if (path === "/api/review") {
-        json(await reviewState());
-        return;
-      }
-      if (path === "/api/example") {
-        const reader = readerConfig();
-        json({
-          study: exampleStudy(),
-          version: "0.3.0",
-          reader: reader
-            ? {
-                available: true,
-                provider: reader.provider,
-                model: reader.model,
-                endpoint: new URL(reader.baseURL).origin,
-              }
-            : { available: false },
-          runtimeStatus:
-            "Synthetic worker only; Unreal/Unity adapters execute externally.",
-        });
-        return;
-      }
+      if (path.startsWith("/api/") && (await handleGet(path, url, res, json))) return;
       const routes: Record<string, [string, string]> = {
         "/": [join(root, "public/index.html"), "text/html"],
         "/app.css": [join(root, "public/app.css"), "text/css"],
@@ -180,184 +87,9 @@ const server = createServer(async (req, res) => {
       return;
     }
     if (path.startsWith("/api/") && (await handlePost(path, body, json))) return;
-    if (path === "/api/review/save" || path === "/api/review/approve") {
-      if (!reviewStudy) throw new Error("Start the workbench with `node dist/cli.js review <study.json>` to save a reviewed study.");
-      const study = validateStudy(body.study);
-      const agents = Array.isArray(body.agents)
-        ? validateAgents(study, body.agents as AgentProtocol[])
-        : undefined;
-      if (path === "/api/review/save") {
-        await writeFile(reviewStudy, JSON.stringify(study, null, 2) + "\n");
-        if (agents) {
-          reviewAgents ??= reviewStudy.replace(/\.json$/i, "") + ".agents.json";
-          await writeFile(reviewAgents, JSON.stringify(agents, null, 2) + "\n");
-        }
-      } else {
-        const onDisk = await readReviewFiles(reviewStudy, reviewAgents);
-        if (
-          hash(onDisk.study) !== hash(study) ||
-          (agents && (!onDisk.agents || hash(onDisk.agents) !== hash(agents)))
-        )
-          throw new Error("Save your changes to the files before approving.");
-        await approve(reviewStudy, study, onDisk.agents, typeof body.note === "string" ? body.note.slice(0, 2000) : "");
-      }
-      json(await reviewState());
-      return;
-    }
-    if (path === "/api/campaign/new") {
-      json(freezeCampaign(body.suite, body.model as CampaignModel));
-      return;
-    }
-    if (path === "/api/campaign/rerun") {
-      json(
-        rerunCampaign(body.campaign as Campaign, body.model as CampaignModel),
-      );
-      return;
-    }
-    if (path === "/api/campaign/from-plan") {
-      json(
-        campaignFromPlan(
-          body.plan as Plan,
-          (body.model as CampaignModel | undefined) ?? undefined,
-        ),
-      );
-      return;
-    }
-    if (path === "/api/campaign/continue") {
-      json(
-        Array.isArray(body.receipts)
-          ? continueFromStatus(
-              body.campaign as Campaign,
-              body.receipts as CampaignReceipt[],
-              body.changes as CampaignContinuation,
-            )
-          : continueCampaign(
-              body.campaign as Campaign,
-              body.changes as CampaignContinuation,
-            ),
-      );
-      return;
-    }
-    if (path === "/api/campaign/summary") {
-      json(campaignSummary(body.campaign as Campaign));
-      return;
-    }
-    if (path === "/api/campaign/mock") {
-      const c = body.campaign as Campaign;
-      const run = syntheticCampaignExecution(c);
-      // Mock runs are synthetic only, so the invented human reference is safe to return with them.
-      json({ ...run, human: syntheticHumanData(c.suite.study!) });
-      return;
-    }
-    if (path === "/api/campaign/analyze") {
-      json(
-        analyzeCampaign(
-          body.campaign as Campaign,
-          body.human as HumanData,
-          body.results as ResultBundle[],
-          body.comparisons as Comparison[] | undefined,
-        ),
-      );
-      return;
-    }
-    if (path === "/api/campaign/compare") {
-      json(
-        compareCampaignScores(
-          body.before as Campaign,
-          body.beforeScores as Parameters<typeof compareCampaignScores>[1],
-          body.after as Campaign,
-          body.afterScores as Parameters<typeof compareCampaignScores>[3],
-        ),
-      );
-      return;
-    }
-    if (path === "/api/campaign/handoff") {
-      json({ files: campaignFiles(body.campaign as Campaign) });
-      return;
-    }
-    if (path === "/api/campaign/status") {
-      json(
-        campaignStatus(
-          body.campaign as Campaign,
-          body.receipts as CampaignReceipt[],
-        ),
-      );
-      return;
-    }
-    if (path === "/api/proposal/extract") {
-      if (typeof body.name !== "string" || typeof body.base64 !== "string")
-        throw new Error("Choose a proposal document.");
-      json(
-        await extractProposal(body.name, Buffer.from(body.base64, "base64")),
-      );
-      return;
-    }
-    if (path === "/api/proposal/read") {
-      const source = body.document as { name: string; text: string };
-      const document = textDocument(source.name, source.text);
-      if (body.mode === "agent") {
-        const config = readerConfig();
-        if (!config)
-          throw new Error(
-            "Configure XR_PLANNER_PROVIDER, XR_PLANNER_MODEL and XR_PLANNER_API_KEY on the local server, or use the local helper.",
-          );
-        json(await agentReading(document, config));
-      } else if (body.mode === "local") json(localReading(document));
-      else throw new Error("Choose agent or local reader mode.");
-      return;
-    }
-    if (path === "/api/proposal/compile") {
-      const study = compileProposal(body.review as ProposalReview);
-      json({ study, agents: await proposeAgents(study) });
-      return;
-    }
     if (path === "/api/propose") {
-      json({ agents: await proposeAgents(body.study) });
-      return;
-    }
-    if (path === "/api/brief") {
-      json(planningBrief(validateStudy(body.study)));
-      return;
-    }
-    if (path === "/api/freeze") {
-      json(
-        freezePlan(
-          body.study,
-          body.agents as AgentProtocol[],
-          body.repetitions === undefined ? 3 : Number(body.repetitions),
-        ),
-      );
-      return;
-    }
-    if (path === "/api/handoff") {
-      json({ files: handoffFiles(body.plan as Plan) });
-      return;
-    }
-    if (path === "/api/demo") {
-      const plan = body.plan as Plan;
-      const human = syntheticHumanData(plan.study),
-        results = syntheticResults(plan, body.includeViolation === true);
-      json({
-        human,
-        results,
-        report: analyze(plan, human, results, body.comparisons as Comparison[] | undefined),
-      });
-      return;
-    }
-    if (path === "/api/analyze") {
-      json(
-        analyze(
-          body.plan as Plan,
-          body.human as HumanData,
-          body.results as ResultBundle,
-          body.comparisons as Comparison[] | undefined,
-        ),
-      );
-      return;
-    }
-    if (path === "/api/report") {
-      const r = body.report as AnalysisReport;
-      json({ html: reportHTML(r), csv: reportCSV(r) });
+      // Configuration templates for a study (Agent configurations → templates).
+      json({ agents: await proposeAgents(object(body, "study")) });
       return;
     }
     json({ error: "Not found" }, 404);
@@ -370,25 +102,26 @@ const server = createServer(async (req, res) => {
     else res.end();
   }
 });
-server.on("error", (error) => {
-  console.error(
-    `Could not open the local workbench on port ${port}: ${error.message}\nChoose another port with XR_STUDY_PORT if it is already in use.`,
-  );
-  process.exitCode = 1;
+
+// How to find this server among other Node processes (AGENTS.md → "Find and stop this workbench's
+// processes"): its title, and server.pid beside the settings file with its process ID and port.
+process.title = `xr-study-sim :${port} ${root}`;
+const pidFile = join(dirname(settingsFile()), "server.pid");
+const ownPidFile = () => {
+  try {
+    return (JSON.parse(readFileSync(pidFile, "utf8")) as { pid?: number }).pid === process.pid;
+  } catch {
+    return false;
+  }
+};
+process.on("exit", () => {
+  if (ownPidFile()) rmSync(pidFile, { force: true });
 });
-server.listen(port, "127.0.0.1", () => {
-  console.log(
-    `XR Study Sim — http://127.0.0.1:${port}\nLocal planning and analysis. Optional proposal-reader calls occur only when requested. XR execution remains external.`,
-  );
-  // Sessions a crashed or killed workbench left behind: stop their processes, record how they ended.
-  void recoverLeftovers()
-    .then((n) => n && console.log(`Closed the sessions a previous run of the workbench left unfinished, in ${n} campaign(s).`))
-    .catch((e) => console.error("Could not check for sessions left unfinished:", (e as Error).message));
-});
-// Ctrl+C or a stop signal: running sessions are stopped and recorded as interrupted before the
-// workbench exits (a second signal exits at once).
+// Ctrl+C or a stop signal: running sessions are stopped (their whole process trees; they lead their
+// own process groups, so the terminal's Ctrl+C does not reach them) and recorded as interrupted
+// before the workbench exits. A second signal exits at once; "exit" ends any tree still running.
 let closing = false;
-for (const signal of ["SIGINT", "SIGTERM"] as const)
+for (const signal of ["SIGINT", "SIGTERM", "SIGHUP"] as const)
   process.on(signal, () => {
     if (closing) process.exit(1);
     closing = true;
@@ -396,3 +129,27 @@ for (const signal of ["SIGINT", "SIGTERM"] as const)
     server.close();
     void shutdownExecutors().finally(() => process.exit(0));
   });
+
+server.on("error", (error) => {
+  console.error(
+    `Could not open the local workbench on port ${port}: ${error.message}\nChoose another port with XR_STUDY_PORT if it is already in use.`,
+  );
+  process.exitCode = 1;
+});
+server.listen(port, "127.0.0.1", () => {
+  try {
+    mkdirSync(dirname(pidFile), { recursive: true });
+    writeFileSync(pidFile, JSON.stringify({ pid: process.pid, port, url: `http://127.0.0.1:${port}`, root, startedAt: new Date().toISOString() }, null, 2) + "\n");
+  } catch {
+    // a read-only folder: the title still names the server
+  }
+  // Sessions a crashed or killed workbench left behind: stop their processes, record how they ended.
+  void recoverLeftovers()
+    .then((n) => n && console.log(`Closed the sessions a previous run of the workbench left unfinished, in ${n} campaign(s).`))
+    .catch((e) => console.error("Could not check for sessions left unfinished:", (e as Error).message));
+  // Chrome profiles that sessions ended by force left in the temporary folder (older than a day).
+  void removeStaleProfiles().then((n) => n && console.log(`Removed ${n} Chrome profile(s) of earlier WebXR sessions from the temporary folder.`));
+  console.log(
+    `XR Study Sim — http://127.0.0.1:${port}\nLocal planning, execution and analysis. Stop with Ctrl+C (running sessions end with the server).`,
+  );
+});

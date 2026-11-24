@@ -113,19 +113,18 @@ async function analysis(id: string, campaignId: string, comparisons?: Comparison
  */
 export function screenshotFile(id: string, campaignId: string, rel: string): string {
   const base = runDir(id, campaignId);
-  requireThat(
-    /^jobs\/[A-Za-z0-9_.-]{1,300}\/a\d{1,6}\/screenshots\/[^/\\:\0-\x1f]{1,200}\.(jpg|png)$/.test(rel) && !rel.split("/").some((s) => s === "." || s === ".."),
-    "Not found.",
-  );
+  // Answered with 404, whatever the reason, so a request learns nothing about other files.
+  const notFound = () => Object.assign(new Error("Not found."), { status: 404 });
+  if (!/^jobs\/[A-Za-z0-9_.-]{1,300}\/a\d{1,6}\/screenshots\/[^/\\:\0-\x1f]{1,200}\.(jpg|png)$/.test(rel) || rel.split("/").some((s) => s === "." || s === "..")) throw notFound();
   let root: string, real: string;
   try {
     root = realPath(base);
     real = realPath(join(base, ...rel.split("/")));
   } catch {
-    throw new Error("Not found.");
+    throw notFound();
   }
   const st = statSync(real);
-  requireThat(real.startsWith(root + sep) && st.isFile() && st.nlink === 1, "Not found.");
+  if (!real.startsWith(root + sep) || !st.isFile() || st.nlink !== 1) throw notFound();
   return real;
 }
 /** Session IDs of a request, each a session of this campaign. */

@@ -1126,7 +1126,7 @@ async function main(): Promise<void> {
     const kind = kindOf(pack);
     requireThat(
       kind === "package" && Object.values(pack.files!).every((x) => typeof x === "string") && typeof pack.files!["manifest.json"] === "string",
-      `${args[0]} is not a package container${kind !== "unknown" && kind !== "package" ? ` (it looks like ${kindName[kind]})` : ""}. unpack expects one JSON file {"files": {"manifest.json": "…", "plan.json" or "campaign.json": "…", …}}, as the local API returns it; plan and the campaign-… commands already write their files into a folder.`,
+      `${args[0]} is not a package container${kind !== "unknown" && kind !== "package" ? ` (it looks like ${kindName[kind]})` : ""}. unpack expects one JSON file {"files": {"manifest.json": "…", "plan.json" or "campaign.json": "…", …}} (a package made by an earlier version or another tool); plan and the campaign-… commands already write their files into a folder.`,
     );
     const files = pack.files!;
     let manifest: { files?: Record<string, string>; campaignDigest?: string };

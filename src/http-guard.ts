@@ -49,7 +49,9 @@ const REASONS: Record<string, string> = {
 export function publicError(error: unknown): { status: number; message: string; unexpected: boolean } {
   const e = error instanceof Error ? error : new Error(String(error));
   const code = (e as NodeJS.ErrnoException).code;
-  if (e.constructor === Error && !code) return { status: 400, message: scrubPaths(e.message).slice(0, 4000), unexpected: false };
+  // An expected error may carry its own status (404 for a file that is not there).
+  const status = (e as { status?: unknown }).status;
+  if (e.constructor === Error && !code) return { status: status === 404 ? 404 : 400, message: scrubPaths(e.message).slice(0, 4000), unexpected: false };
   const reason = (code && REASONS[code]) || scrubPaths(e.message).split("\n")[0].slice(0, 300) || e.name;
   return { status: 500, message: `Something went wrong: ${reason}. The full error is in the terminal running the workbench.`, unexpected: true };
 }
