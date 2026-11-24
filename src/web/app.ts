@@ -6,7 +6,7 @@ import { agentVsHumanPlot, agreementPlot, correlationPlot, downloadPng, download
 
 type Page = "home" | "study" | "evidence" | "configs" | "freeze" | "compare" | "executor" | "analyzer" | "continue" | "settings";
 interface WorkspaceInfo { id: string; title: string; suite: string | null; description: string | null; synthetic: boolean; engine: string; hasAgents: boolean; hasHuman: boolean; campaigns: number }
-interface CampaignInfo { id: string; digest: string; createdAt: string; parentDigest: string | null; parentId: string | null; label: string | null; note: string | null; jobs: number; reused: number; done: number; failed: number; notStarted: number; running?: number; dropped?: string[]; real: number; simulated: number; costUsd: number | null; models: Record<string, { provider: string; model: string; reasoning: string }>; designKey: string }
+interface CampaignInfo { id: string; digest: string; createdAt: string; parentDigest: string | null; parentId: string | null; label: string | null; note: string | null; jobs: number; reused: number; done: number; failed: number; notStarted: number; running?: number; dropped?: string[]; real: number; simulated: number; costUsd: number | null; models: Record<string, { provider: string; model: string; reasoning: string }>; configs?: { id: string; label: string; individual: boolean; runs: number }[]; designKey: string }
 interface Attempt { attempt: number; status: string; error: string | null; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; cost: string | null; simulated: boolean | null; counts: boolean }
 interface WorkspaceView {
   id: string; study: Study; agents: AgentProtocol[]; agentsSaved: boolean; comparisons: Comparison[];
@@ -20,7 +20,7 @@ interface WorkspaceView {
 }
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
 interface RuntimeStatus { id: string; label: string; available: boolean; builtIn: boolean; message: string }
-interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null }
+interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; noResult?: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null }
 interface Snapshot { campaignId: string; mode: string; paused: boolean; running: number; queued: number; counts: Record<string, number>; jobs: JobState[] }
 interface AnalysisView {
   campaignId: string; configs: { id: string; label: string; level: string; model: { model: string }; targets: string[] }[];
@@ -30,7 +30,7 @@ interface AnalysisView {
   design?: string; pairRule?: "means" | "significant";
   humanPairs?: HumanPairView[]; absoluteFit?: { agentId: string; outcomeId: string; conditionId: string; human: number; low: number; high: number; n: number; agent: number; error: number; inside: boolean; degenerate?: boolean; note?: string }[];
   significantOnly?: { summaries: AnalysisView["summaries"]; exclusions: string[]; humanPairs: HumanPairView[] } | null;
-  audits: { jobId: string; issues: string[] }[]; assigned: number; progress?: { sessions: number; finished: number; failed: number; notStarted: number }; notes: string[]; exclusions: string[]; reused: number; synthetic: boolean;
+  audits: { jobId: string; issues: string[] }[]; assigned: number; progress?: { sessions: number; finished: number; failed: number; notStarted: number; reusedNeverRan?: number }; notes: string[]; exclusions: string[]; reused: number; synthetic: boolean;
 }
 interface HumanPairView { outcomeId: string; a: string; b: string; meanA: number; meanB: number; test: string; p: number | null; pHolm: number | null; significant: boolean; used: boolean }
 let showSignificantOnly = false;
@@ -94,11 +94,20 @@ function usedRuntimes(): Set<string> {
   if (!used.size) agents.forEach((a) => used.add(a.runtime ?? ws!.runtimes[a.id] ?? "none"));
   return used;
 }
+/** How many reused sessions rest on simulated runs, and how many never ran, for the executor's header. */
+function reusedNote(s: { jobs: JobState[] } | null | undefined): string {
+  const reused = (s?.jobs ?? []).filter((j) => j.status === "reused");
+  const sim = reused.filter((j) => j.simulated).length,
+    none = reused.filter((j) => j.noResult).length;
+  const parts = [sim ? `${sim} simulated` : "", none ? `<span class="warn">${none} never ran</span>` : ""].filter(Boolean);
+  return parts.length ? ` (${parts.join(", ")})` : "";
+}
 /** A per-configuration sum row: sessions, real usage and cost so far. */
 function configSum(list: JobState[]) {
   const real = list.filter((j) => (j.status === "done" || j.status === "failed") && !j.simulated);
-  const sim = list.filter((j) => j.simulated && j.status === "done").length;
-  const done = list.filter((j) => j.status === "done" || j.status === "reused").length;
+  // Reused sessions count with the run they reuse (simulated or real); one that never ran is not done.
+  const sim = list.filter((j) => j.simulated && (j.status === "done" || j.status === "reused")).length;
+  const done = list.filter((j) => j.status === "done" || (j.status === "reused" && !j.noResult)).length;
   const sum = (f: (j: JobState) => number | null) => real.reduce((s, j) => s + (f(j) ?? 0), 0);
   const cost = real.some((j) => j.costUsd != null) ? sum((j) => j.costUsd) : null;
   // Reused runs were paid in the campaign they ran in: shown per row, not added to this campaign's cost.
@@ -185,6 +194,8 @@ let newRepetitions = 1;
 // continuation draft
 let contBase: string | null = null;
 let contRows: Record<string, { repetitions: number; arm: boolean; rerun: boolean; drop: boolean }> = {};
+/** The campaign the continuation rows were made for. */
+let contRowsFor: string | null = null;
 /**
  * Effort: how much the model thinks before answering, passed to Claude Code as --effort.
  * Stored in a configuration's model as "default" or "effort=<level>" (see effortArgs in the executor).
@@ -1025,7 +1036,7 @@ function renderExecutor() {
       .map((r) => `<div class="card runtime ${r.available ? "ok" : "off"}"><strong>${esc(r.label)}</strong><p class="caption">${esc(r.message)}</p></div>`)
       .join("")}</div><p class="caption">${showAllRuntimes ? "All runtimes. " : "The runtimes this campaign uses. "}${btn("toggle-runtimes", showAllRuntimes ? "Show only this study's" : "Show all runtimes")}</p>
     ${studyInputs()}
-    <div class="card"><div class="card-heading"><div><h2>${esc(campaignName(campaignOf(campaignId)))}</h2><p>${total} sessions · ${counts.done ?? 0} done · ${counts.reused ?? 0} reused · ${counts.running ?? 0} running · ${counts.queued ?? 0} waiting to start · ${counts.failed ?? 0} failed · ${counts.stopped ?? 0} stopped · ${counts["not-started"] ?? 0} not started${queueState(s)}</p></div>${s && (s.running || counts.queued) ? `<span class="tag">${s.mode === "agent" ? "agents running" : "simulating"}</span>` : ""}</div>${bar}
+    <div class="card"><div class="card-heading"><div><h2>${esc(campaignName(campaignOf(campaignId)))}</h2><p>${total} sessions · ${counts.done ?? 0} done · ${counts.reused ?? 0} reused${reusedNote(s)} · ${counts.running ?? 0} running · ${counts.queued ?? 0} waiting to start · ${counts.failed ?? 0} failed · ${counts.stopped ?? 0} stopped · ${counts["not-started"] ?? 0} not started${queueState(s)}</p></div>${s && (s.running || counts.queued) ? `<span class="tag">${s.mode === "agent" ? "agents running" : "simulating"}</span>` : ""}</div>${bar}
     ${modeChoice()}
     <div class="row"><label class="field">Parallel sessions<input type="number" id="exec-concurrency" min="1" max="8" value="${settings?.concurrency ?? 1}"></label></div>
     ${chooser(byConfig)}
@@ -1218,7 +1229,7 @@ function renderHumans() {
     `<p class="caption">Select the configurations to compare. Brackets use rank tests with Holm correction: Mann–Whitney U between independent population runs, Wilcoxon signed-rank for participants paired across individual configurations.</p>` +
     (a.synthetic ? `<div class="notice">Synthetic study: no result is evidence about real people or agents.</div>` : "") +
     (a.progress && a.progress.finished < a.progress.sessions
-      ? `<div class="notice"><strong>Interim analysis:</strong> ${a.progress.finished} of ${a.progress.sessions} sessions finished (${a.progress.failed} failed or stopped, ${a.progress.notStarted} not run yet). Numbers change as more sessions finish. Saved figures are marked as interim. The analysis is final when every session is finished or has failed for good.</div>`
+      ? `<div class="notice"><strong>Interim analysis:</strong> ${a.progress.finished} of ${a.progress.sessions} sessions finished (${a.progress.failed} failed or stopped, ${a.progress.notStarted} not run yet${a.progress.reusedNeverRan ? `, of which ${a.progress.reusedNeverRan} ${a.progress.reusedNeverRan === 1 ? "was" : "were"} marked reused by an earlier continuation but never ran: continue the campaign to run ${a.progress.reusedNeverRan === 1 ? "it" : "them"}` : ""}). Numbers change as more sessions finish. Saved figures are marked as interim. The analysis is final when every session is finished or has failed for good.</div>`
       : "") +
     (a.audits.length ? `<div class="notice">${a.audits.length} session(s) that ran are not scoreable or deviated from their protocol (for example simulated runs on a real study, simulated runs left out next to real ones, or failed runs).</div>` : "") +
     `<div class="card"><div class="config-picks">${a.configs
@@ -1252,10 +1263,14 @@ function renderContinue() {
   if (!ws) return "";
   const base = contBase ?? campaignId;
   if (!base) return heading("7 · PLANNER", "Continue or rerun.", "") + `<div class="notice">Freeze a campaign first.</div>`;
-  const rows = agents
+  // The rows belong to the campaign continued from: another campaign starts them afresh.
+  if (contRowsFor !== base) (contRows = {}), (contRowsFor = base);
+  const models = campaignOf(base)?.models ?? {};
+  const rows = contConfigs(base)
     .map((a) => {
-      const r = (contRows[a.id] ??= { repetitions: runsOf(a), arm: false, rerun: false, drop: false });
-      return `<tr><td>${esc(a.label)}</td><td><input type="number" min="1" max="${isIndividual(a) ? 50 : 1000}" data-cont="${esc(a.id)}" data-field="repetitions" value="${r.repetitions}"></td><td><input type="checkbox" data-cont="${esc(a.id)}" data-field="arm" ${r.arm ? "checked" : ""} aria-label="Add a model next to ${esc(a.label)}"></td><td><input type="checkbox" data-cont="${esc(a.id)}" data-field="rerun" ${r.rerun ? "checked" : ""}></td><td><input type="checkbox" data-cont="${esc(a.id)}" data-field="drop" ${r.drop ? "checked" : ""}></td></tr>`;
+      const r = (contRows[a.id] ??= { repetitions: a.runs, arm: false, rerun: false, drop: false });
+      const added = !agents.some((x) => x.id === a.id);
+      return `<tr><td>${esc(a.label)}${models[a.id] ? `<br><span class="small">${esc(modelText(models[a.id]))}${added ? " · model added by a continuation" : ""}</span>` : ""}</td><td><input type="number" min="1" max="${a.individual ? 50 : 1000}" data-cont="${esc(a.id)}" data-field="repetitions" value="${r.repetitions}" aria-label="Runs of ${esc(a.label)}"></td><td><input type="checkbox" data-cont="${esc(a.id)}" data-field="arm" ${r.arm ? "checked" : ""} aria-label="Add a model next to ${esc(a.label)}"></td><td><input type="checkbox" data-cont="${esc(a.id)}" data-field="rerun" ${r.rerun ? "checked" : ""} aria-label="Rerun ${esc(a.label)}"></td><td><input type="checkbox" data-cont="${esc(a.id)}" data-field="drop" ${r.drop ? "checked" : ""} aria-label="Drop ${esc(a.label)}"></td></tr>`;
     })
     .join("");
   const p = contPreview;
@@ -1293,6 +1308,16 @@ function renderContinue() {
     }</div>`
   );
 }
+/**
+ * The configurations of the campaign continued from, including model copies that earlier
+ * continuations added (they are not in agents.json), with their runs in that campaign. A campaign
+ * summary from before this list existed falls back to agents.json.
+ */
+function contConfigs(baseId: string | null): { id: string; label: string; individual: boolean; runs: number }[] {
+  const listed = campaignOf(baseId)?.configs;
+  if (listed?.length) return listed;
+  return agents.map((a) => ({ id: a.id, label: a.label, individual: isIndividual(a), runs: runsOf(a) }));
+}
 /** Configurations whose model (provider, model or effort) differs from the campaign continued from. */
 function modelChanges(baseId: string | null) {
   const c = campaignOf(baseId);
@@ -1306,17 +1331,19 @@ function modelChanges(baseId: string | null) {
 }
 function continuationChanges() {
   const changes: Record<string, any> = {};
-  const live = agents.filter((a) => !contRows[a.id]?.drop);
+  // Every configuration of the campaign continued from, model copies added earlier included.
+  const configs = contConfigs(contBase ?? campaignId);
+  const live = configs.filter((a) => !contRows[a.id]?.drop);
   // Models changed on Agent configurations since the campaign continued from.
   const changed = modelChanges(contBase ?? campaignId).filter((m) => live.some((a) => a.id === m.id));
   if (changed.length) changes.conditionModels = Object.fromEntries(changed.map((m) => [m.id, { ...agents.find((a) => a.id === m.id)!.model }]));
-  const drop = agents.filter((a) => contRows[a.id]?.drop).map((a) => a.id);
+  const drop = configs.filter((a) => contRows[a.id]?.drop).map((a) => a.id);
   if (drop.length) changes.dropConditions = drop;
   const rerun = live.filter((a) => contRows[a.id]?.rerun).map((a) => a.id);
   if (rerun.length) changes.rerunConditions = rerun;
   const reps: Record<string, number> = {};
   live.forEach((a) => {
-    if (contRows[a.id] && contRows[a.id].repetitions > runsOf(a)) reps[a.id] = contRows[a.id].repetitions;
+    if (contRows[a.id] && contRows[a.id].repetitions > a.runs) reps[a.id] = contRows[a.id].repetitions;
   });
   const arms = live.filter((a) => contRows[a.id]?.arm);
   if (arms.length) {

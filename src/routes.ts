@@ -471,23 +471,49 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
     case "/api/runs/import": {
       requireThat(typeof body.base64 === "string", "Choose a runs zip.");
       // Loading into a campaign whose sessions are running is refused; otherwise its executor reloads from disk.
-      json(await importRuns(id, Buffer.from(body.base64, "base64"), (campaignIds) => campaignIds.forEach((c) => closeExecutor(id, c))));
+      let changed: string[] = [];
+      const loaded = await importRuns(id, Buffer.from(body.base64, "base64"), (campaignIds) => {
+        changed = campaignIds;
+        campaignIds.forEach((c) => closeExecutor(id, c));
+      });
+      // Continuations of a campaign that gained records show their reused sessions from it
+      // (simulated or real, tokens, cost): once the zip is written, their executors reload too,
+      // unless sessions of theirs are running.
+      if (loaded.written + loaded.updated > 0) {
+        const all = await listCampaigns(id);
+        const digests = new Set(all.filter((c) => changed.includes(c.id)).map((c) => c.digest));
+        for (const c of all)
+          if (!changed.includes(c.id) && (c.lineage ?? []).some((d) => digests.has(d)))
+            try {
+              closeExecutor(id, c.id);
+            } catch {
+              // running: it keeps what it showed until its sessions end and it is opened again
+            }
+      }
+      json(loaded);
       return true;
     }
     case "/api/workspace/analyze": {
       const { campaign, analysis: a, receipts } = await analysis(id, campaignId(), comparisonsOf(body));
       const study = campaign.suite.study!;
-      // Interim or final: a session with no receipt in this campaign (and not reused) was never run.
+      // Interim or final: only sessions with an accepted result count as finished, their own or the
+      // run they reuse (a completed receipt where it ran, or its result in the lineage). A session
+      // an early continuation marked as reused without one never ran, like a session never started.
       const llmJobs = campaign.jobs.filter((j) => j.kind === "llm");
       const mine = receipts.filter((r) => r.campaignDigest === campaign.digest);
       const completed = new Set(mine.filter((r) => r.status === "completed").map((r) => r.jobId));
       const tried = new Set(mine.map((r) => r.jobId));
-      const notStarted = new Set(llmJobs.filter((j) => !j.inheritedFrom && !tried.has(j.id)).map((j) => j.id));
+      const completedWhereRan = new Set(receipts.filter((r) => r.status === "completed").map((r) => `${r.campaignDigest}/${r.jobId}`));
+      const returned = new Set(a.report.audits.filter((x) => x.completed).map((x) => x.jobId));
+      const accepted = (j: (typeof llmJobs)[number]) =>
+        returned.has(j.id) || completedWhereRan.has(j.inheritedFrom ? `${j.inheritedFrom.campaignDigest}/${j.inheritedFrom.jobId}` : `${campaign.digest}/${j.id}`);
+      const notStarted = new Set(llmJobs.filter((j) => !accepted(j) && (j.inheritedFrom || !tried.has(j.id))).map((j) => j.id));
       const progress = {
         sessions: llmJobs.length,
-        finished: llmJobs.filter((j) => j.inheritedFrom || completed.has(j.id)).length,
-        failed: llmJobs.filter((j) => !j.inheritedFrom && tried.has(j.id) && !completed.has(j.id)).length,
+        finished: llmJobs.filter(accepted).length,
+        failed: llmJobs.filter((j) => !j.inheritedFrom && tried.has(j.id) && !accepted(j)).length,
         notStarted: notStarted.size,
+        reusedNeverRan: llmJobs.filter((j) => j.inheritedFrom && !accepted(j)).length,
       };
       json({
         campaignId: campaign.id,

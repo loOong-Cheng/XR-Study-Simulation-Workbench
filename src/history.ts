@@ -8,9 +8,10 @@ import { conditionModel, type Campaign, type CampaignModel } from "./core/campai
 import { hash } from "./core/planner.js";
 import type { RunResult } from "./core/types.js";
 import { requireThat } from "./core/validation.js";
-import { listCampaigns, readReceipts, runDir, workspaceDir } from "./workspace.js";
+import { listCampaigns, readReceipts, readResults, runDir, workspaceDir } from "./workspace.js";
 import { runRecordPath } from "./executor/archive.js";
 import { readJsonFile } from "./files.js";
+import { mergeCampaignResults, simulatedJobIds } from "./core/campaign-study.js";
 
 const labelsPath = (id: string) => join(workspaceDir(id), "campaign-labels.json");
 export async function readLabels(id: string): Promise<Record<string, string>> {
@@ -68,6 +69,12 @@ export interface CampaignSummary {
   /** Total of real sessions' reported cost (all attempts), null when none reported one. */
   costUsd: number | null;
   models: Record<string, CampaignModel>;
+  /**
+   * The campaign's configurations, including model copies added by continuations (which are not
+   * in agents.json): label, whether they forecast each participant, and runs (the highest
+   * repetition: per participant for individual configurations, in total for population ones).
+   */
+  configs: { id: string; label: string; individual: boolean; runs: number }[];
   designKey: string;
 }
 /**
@@ -126,6 +133,12 @@ export async function campaignSummaries(id: string, live?: (campaignId: string) 
       simulated,
       costUsd: cost,
       models: Object.fromEntries(c.suite.conditions.map((x) => [x.id, conditionModel(c, x.id)])),
+      configs: c.suite.conditions
+        .filter((x) => x.kind === "llm")
+        .map((x) => {
+          const jobs = llm.filter((j) => j.conditionId === x.id);
+          return { id: x.id, label: x.label, individual: jobs.some((j) => j.participantId), runs: Math.max(0, ...jobs.map((j) => j.repetition)) };
+        }),
       designKey: sameDesignKey(c),
     });
   }
@@ -165,6 +178,30 @@ export async function reusedUsage(id: string, campaign: Campaign) {
     });
   }
   return out;
+}
+
+/**
+ * Which sessions of a campaign have an accepted result anywhere in its lineage (their own run, or
+ * the run they reuse) and which of those runs are simulated, from the result files the analysis
+ * reads. A continuation made before reuse required an accepted forecast could mark a session as
+ * reused although it never ran; such a session has no result here. Null when the lineage's
+ * results cannot be combined (the analysis then says why).
+ */
+export async function lineageRuns(id: string, campaign: Campaign): Promise<{ accepted: Set<string>; simulated: Set<string> } | null> {
+  if (!campaign.suite.study) return null;
+  const all = await listCampaigns(id);
+  const ids = [...(campaign.lineage ?? []).flatMap((d) => all.filter((c) => c.digest === d).map((c) => c.id)), campaign.id];
+  try {
+    const bundles = await readResults(id, campaign.suite.study, ids);
+    if (!bundles.length) return { accepted: new Set(), simulated: new Set() };
+    const merged = mergeCampaignResults(campaign, bundles);
+    return {
+      accepted: new Set(merged.bundle.runs.filter((r) => r.status === "completed").map((r) => r.jobId)),
+      simulated: simulatedJobIds(campaign, bundles),
+    };
+  } catch {
+    return null;
+  }
 }
 
 /**

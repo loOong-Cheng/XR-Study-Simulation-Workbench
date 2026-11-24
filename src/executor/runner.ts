@@ -10,7 +10,7 @@ import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { campaignPlan, conditionModel, type Campaign, type CampaignReceipt } from "../core/campaign.js";
 import { simulatedResults } from "../core/example.js";
-import { reusedUsage } from "../history.js";
+import { lineageRuns, reusedUsage } from "../history.js";
 import { agentLevel, agentTargets, hash, jobPacket, protocolForJob } from "../core/planner.js";
 import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent } from "../core/types.js";
 import { claudeEffort, effortProblem, requireThat } from "../core/validation.js";
@@ -60,7 +60,10 @@ export interface JobState {
   runtime: string;
   status: JobStatus;
   attempts: number;
+  /** The run that counts is simulated (invented); for a reused session, the run it reuses. */
   simulated: boolean;
+  /** A reused session without any result in the lineage: it never ran, so it is not done. */
+  noResult?: boolean;
   toolCalls: number;
   /** Real sessions: all input tokens (uncached + cache writes + cache reads). Simulated: null. */
   tokensIn: number | null;
@@ -399,6 +402,18 @@ export class Executor {
       }
     // Reused sessions show the tokens and cost of the run they reuse (from the campaign it ran in).
     for (const [jobId, usage] of await reusedUsage(this.workspaceId, this.campaign)) if (this.jobs.has(jobId)) Object.assign(this.jobs.get(jobId)!, usage);
+    // Whether a reused session's run is simulated, from the lineage's results (as the analysis
+    // reads them); one that never ran (an early continuation marked it reused) says so.
+    const lineage = await lineageRuns(this.workspaceId, this.campaign);
+    if (lineage)
+      for (const s of this.jobs.values()) {
+        if (s.status !== "reused") continue;
+        s.simulated = lineage.simulated.has(s.jobId);
+        if (!lineage.accepted.has(s.jobId)) {
+          s.noResult = true;
+          s.warning = "marked reused, but it never ran: no result to reuse; a continuation runs it again";
+        }
+      }
   }
   snapshot() {
     const jobs = [...this.jobs.values()];

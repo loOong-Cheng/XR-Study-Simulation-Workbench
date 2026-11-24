@@ -1460,6 +1460,8 @@ test("figures: simulated configurations are marked and never tested against real
   const simulatedIds = new Set(["uses-app", "reads-evidence"]);
   const results = syntheticCampaignExecution(c).results;
   for (const r of results.runs) r.execution.synthetic = simulatedIds.has(config.get(r.jobId)!);
+  // The simulated app configuration's invented app actions are marked unchecked; it counts as simulated.
+  assert.ok(results.runs.some((r) => config.get(r.jobId) === "uses-app" && r.trace.some((e) => e.type === "action" && e.checked === false)));
   const comparisons: Comparison[] = [
     { candidate: "uses-app", baseline: "text-only", domain: "subjective" },
     { candidate: "reads-project", baseline: "text-only", domain: "subjective" },
@@ -1571,5 +1573,63 @@ test("submit_forecast refuses values outside a declared range and negative count
     await new Promise((ok) => child.on("exit", ok));
   } finally {
     await removeDir(dir);
+  }
+});
+
+test("reused sessions: simulated ones say so; ones an early continuation reused without a result never ran and are not finished; added models are listed for Continue", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { continueCampaign } = await import("../src/core/campaign.js");
+  const { readWorkspace, saveCampaign } = await import("../src/workspace.js");
+  const { campaignSummaries } = await import("../src/history.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, withDefaultRuns(ws.study, ws.agents!, 1), 1), undefined, "reuse-kinds", new Date(Date.now() - 2000).toISOString());
+    await saveCampaign(a.id, c);
+    const llm = c.jobs.filter((j) => j.kind === "llm");
+    const text = llm.filter((j) => j.conditionId === "text-only");
+    // Every session was simulated except text-only r2 and r3 (never ran); text-only r1 ran for real.
+    const runs: Record<string, { kind: "real" | "simulated" }> = Object.fromEntries(llm.filter((j) => j.id !== text[1].id && j.id !== text[2].id).map((j) => [j.id, { kind: "simulated" as const }]));
+    runs[text[0].id] = { kind: "real" };
+    await writeRuns(a.id, c, runs);
+    // A continuation as made before reuse needed an accepted forecast: every unchanged session is
+    // marked reused, also the two that never ran. It also adds a model copy of text-only.
+    const early = continueCampaign(c, { cloneConditions: [{ from: "text-only", id: "text-only-fable", model: { provider: "claude-code", model: "fable-5", reasoning: "default" } }] }, undefined, new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, early);
+    const ex = await Executor.open(a.id, early.id);
+    const row = (from: { templateJobId: string }) => [...ex.jobs.values()].find((j) => j.status === "reused" && early.jobs.find((x) => x.id === j.jobId)!.templateJobId === from.templateJobId)!;
+    assert.deepEqual([row(text[0]).simulated, !!row(text[0]).noResult], [false, false], "the reused real run");
+    const sim = llm.find((j) => j.conditionId !== "text-only")!;
+    assert.deepEqual([row(sim).simulated, !!row(sim).noResult], [true, false], "a reused simulated run shows it is simulated");
+    // Also a simulated app session (its invented app actions are marked checked: false).
+    const app = llm.find((j) => j.conditionId === "uses-app")!;
+    assert.deepEqual([row(app).simulated, !!row(app).noResult], [true, false], "a reused simulated app run shows it is simulated");
+    for (const never of [text[1], text[2]]) {
+      assert.equal(row(never).noResult, true);
+      assert.match(row(never).warning!, /never ran/);
+    }
+    // Analysis progress counts only sessions with an accepted result.
+    const analysed = await post("/api/workspace/analyze", { id: a.id, campaignId: early.id });
+    const sessions = early.jobs.filter((j) => j.kind === "llm").length;
+    const copies = early.jobs.filter((j) => j.conditionId === "text-only-fable").length;
+    assert.equal(analysed.progress.sessions, sessions);
+    assert.equal(analysed.progress.finished, llm.length - 2);
+    assert.equal(analysed.progress.reusedNeverRan, 2);
+    assert.equal(analysed.progress.notStarted, copies + 2);
+    const neverIds = early.jobs.filter((j) => j.inheritedFrom && [text[1], text[2]].some((t) => t.templateJobId === j.templateJobId)).map((j) => j.id);
+    assert.equal(neverIds.length, 2);
+    assert.ok(analysed.audits.every((x: { jobId: string }) => !neverIds.includes(x.jobId)), "never-ran sessions are not listed as lost runs");
+    // Continue / rerun lists the campaign's configurations, the added model copy included.
+    const summary = (await campaignSummaries(a.id)).find((x) => x.id === early.id)!;
+    const copy = summary.configs.find((x) => x.id === "text-only-fable")!;
+    const original = summary.configs.find((x) => x.id === "text-only")!;
+    assert.ok(copy, JSON.stringify(summary.configs));
+    assert.notEqual(copy.label, original.label);
+    assert.deepEqual([copy.individual, copy.runs], [original.individual, original.runs]);
+    assert.equal(original.runs, text.length);
+    assert.ok(!ws.agents!.some((x) => x.id === "text-only-fable"), "the copy is not in agents.json");
+    assert.ok(summary.configs.find((x) => x.id === "knows-participant")!.individual);
+  } finally {
+    await removeDir(a.dir);
   }
 });
