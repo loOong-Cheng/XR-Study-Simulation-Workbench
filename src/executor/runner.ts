@@ -649,9 +649,13 @@ export class Executor implements Schedulable {
     const byRuntime = new Map<string, Set<string>>();
     // Every agent session is a Claude Code session: a Claude Code that cannot start blocks them all.
     const cliProblem = claudeProblem(settings);
+    // Every session of a configuration has the same sources, runtime and model, so each
+    // configuration is checked once (its first session stands for the others, in their order).
+    const seen = new Set<string>();
     for (const id of jobIds) {
       const j = this.jobs.get(id);
-      if (!j) continue;
+      if (!j || seen.has(j.agentId)) continue;
+      seen.add(j.agentId);
       if (cliProblem) byRuntime.set(cliProblem, (byRuntime.get(cliProblem) ?? new Set()).add(this.agent(j.agentId).label));
       // A source without a file blocks the configuration (never substitute its description).
       for (const m of missingSources(wsDir, study, this.manifest, this.agent(j.agentId).sourceIds))

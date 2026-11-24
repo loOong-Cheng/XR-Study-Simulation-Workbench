@@ -139,6 +139,46 @@ const isTable = (f: string) => /\.(csv|tsv)$/i.test(f);
  * Empty list = complete.
  */
 export function participantProblems(study: Study, kind: string, path: string, fields: string[], phases?: string[]): string[] {
+  // Checked once per version of the files: a folder of recordings takes long to read, and the
+  // executor checks every configuration before each Start and every session before it runs.
+  const stamp = filesStamp(path);
+  const key = JSON.stringify([kind, path, fields, phases ?? null, study.participants.map((p) => p.id), study.outcomes.map((o) => [o.id, o.label])]);
+  const kept = stamp === null ? undefined : problemCache.get(key);
+  if (kept && kept.stamp === stamp) {
+    problemCache.delete(key);
+    problemCache.set(key, kept);
+    return [...kept.problems];
+  }
+  participantChecks.reads++;
+  const problems = readParticipantProblems(study, kind, path, fields, phases);
+  if (stamp !== null) {
+    problemCache.set(key, { stamp, problems: [...problems] });
+    while (problemCache.size > 64) problemCache.delete(problemCache.keys().next().value!);
+  }
+  return problems;
+}
+/** For the tests: how often participantProblems read the files (instead of its cache). */
+export const participantChecks = { reads: 0 };
+const problemCache = new Map<string, { stamp: string; problems: string[] }>();
+/**
+ * What participantProblems depends on in a file or folder: path, size, modification time and
+ * inode of the file, or of the folder and each entry in it. Null when it cannot be read (no cache).
+ */
+function filesStamp(path: string): string | null {
+  try {
+    const st = statSync(path);
+    if (!st.isDirectory()) return `f ${st.size} ${st.mtimeMs} ${st.ino}`;
+    const parts = [`d ${st.mtimeMs} ${st.ino}`];
+    for (const f of readdirSync(path).sort()) {
+      const s = statSync(join(path, f));
+      parts.push(`${f} ${s.isFile() ? "f" : "o"} ${s.size} ${s.mtimeMs} ${s.ino}`);
+    }
+    return parts.join("\n");
+  } catch {
+    return null;
+  }
+}
+function readParticipantProblems(study: Study, kind: string, path: string, fields: string[], phases?: string[]): string[] {
   if (!existsSync(path)) return [`does not exist (${path})`];
   const people = study.participants.map((p) => p.id);
   if (kind === "trajectory" && statSync(path).isDirectory()) {
@@ -219,7 +259,9 @@ function rowsByPerson(rows: string[][], idCol: number) {
   const byPerson = new Map<string, string[][]>();
   for (const r of rows) {
     const id = r[idCol]?.trim() ?? "";
-    byPerson.set(id, [...(byPerson.get(id) ?? []), r]);
+    const mine = byPerson.get(id);
+    if (mine) mine.push(r);
+    else byPerson.set(id, [r]);
   }
   return byPerson;
 }
