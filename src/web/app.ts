@@ -1371,7 +1371,7 @@ async function action(name: string) {
   agentCmp = null;
   humanFig = null;
   humanSvg = "";
-      toast(`Loaded runs: ${r.written} file(s) added, ${r.kept} already present.`);
+      toast(`Loaded runs: ${r.written} file(s) added, ${r.updated ? `${r.updated} brought up to date, ` : ""}${r.kept} already present${r.receipts ? `; ${r.receipts} new session record(s)` : ""}.`);
       break;
     }
     case "k-add":
