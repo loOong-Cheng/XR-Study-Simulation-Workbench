@@ -13,10 +13,15 @@ import { casesInOrder, validOrder } from "./fairness.js";
 /**
  * Whether an action event is a scored action (a task answer): marked `scored: true` when the
  * runtime marks any action in the trace (the WebXR runtime does), otherwise every completed action
- * except the runtime's own complete-task.
+ * except the runtime's own complete-task. A refused action (`completed: false`) never counts, also
+ * when a runtime marked it scored: it was not an answer the app took.
  */
 export function scoredAction(e: Extract<TraceEvent, { type: "action" }>, marked: boolean): boolean {
-  return marked ? e.scored === true : e.completed && e.action !== "complete-task";
+  return e.completed === true && (marked ? e.scored === true : e.action !== "complete-task");
+}
+/** Project files the session opened (read_file calls recorded as `source` events with delivery "read"). */
+export function filesRead(trace: TraceEvent[]): number {
+  return (Array.isArray(trace) ? trace : []).filter((e) => e?.type === "source" && e.delivery === "read").length;
 }
 export function exposureIssues(
   plan: Plan,
@@ -174,9 +179,11 @@ export function exposureIssues(
     if (blind.get(id))
       issues.push(`${blind.get(id)} of ${n} scored actions in ${id} came without an observation since the previous one (the task requires one before each action).`);
   }
-  // A configuration that reads the project gets only its file list injected: it must open a file.
+  // A configuration whose ingredient is reading the project (read-files without the app) gets only
+  // its file list injected: it must open a file. For app configurations the project is extra
+  // material; how many files they opened is information (filesRead), not a deviation.
   const projects = agent.sourceIds.filter((id) => plan.study.sources.find((s) => s.id === id)?.kind === "project");
-  if (agent.tools.includes("read-files") && projects.length && !projects.some((id) => readSources.has(id)))
+  if (agent.tools.includes("read-files") && !agent.tools.includes("xr-interact") && projects.length && !projects.some((id) => readSources.has(id)))
     issues.push("Did not open any project file (no read_file call), although this configuration reads the project.");
   return [...new Set(issues)];
 }
@@ -463,6 +470,8 @@ export function auditRun(
     scoreable,
     compliant: scoreable && issues.length === 0,
     issues: [...new Set(issues)],
+    // Information, not a deviation: how many project files a configuration with project access opened.
+    ...(agent.tools.includes("read-files") && trace ? { filesRead: filesRead(trace) } : {}),
   };
 }
 

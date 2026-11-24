@@ -4,7 +4,9 @@
 // what the executor cannot see from Claude Code's stream:
 //   {"type": "start", "proxyPid", "pid"}   each start of the bridge (Claude Code may start a crashed one again)
 //   {"type": "ready"}                       the bridge answered tools/list (or a tool call) for the first time
+//   {"type": "stop", "by"}                  the session ended the bridge (stdin closed, or a signal to the wrapper)
 //   {"type": "exit", "code", "signal", "closed"}  the bridge ended; closed = after its stdin was closed
+//                                           (written by the wrapper on its own exit, code null, if it ends first)
 // The bridge's stderr is passed on and kept in <job-dir>/bridge-stderr.log. When the bridge ends,
 // whatever it started and left behind in its process group (an engine) is ended too.
 import { spawn, spawnSync, type ChildProcess } from "node:child_process";
@@ -57,6 +59,11 @@ function start(shell: boolean): ChildProcess {
 let child = start(false);
 let closed = false;
 let ready = false;
+/** Whether the bridge's exit is in bridge.jsonl; if the wrapper ends first, it writes one (code null). */
+let exitRecorded = false;
+process.on("exit", () => {
+  if (!exitRecorded) record({ type: "exit", code: null, signal: null, closed, wrapper: "ended before the bridge's exit was seen" });
+});
 const listIds = new Set<string>();
 const callIds = new Set<string>();
 
@@ -96,11 +103,13 @@ function attach(c: ChildProcess) {
       wire();
       return;
     }
+    exitRecorded = true;
     record({ type: "exit", code: null, signal: null, closed, error: e.message });
     stderrLog(Buffer.from(`Could not start ${command}: ${e.message}\n`));
     process.exit(1);
   });
   c.on("exit", (code, signal) => {
+    if (c === child) exitRecorded = true;
     record({ type: "exit", code, signal, closed });
     // Whatever the bridge left running (an engine) ends with it.
     killTree(c, "SIGKILL");
@@ -142,6 +151,8 @@ process.stdin.on("data", (d: Buffer) => {
 function finish(signal?: NodeJS.Signals) {
   if (closed) return;
   closed = true;
+  // Recorded at once: the wrapper may itself be ended by force before the bridge's exit is seen.
+  record({ type: "stop", by: signal ? "signal" : "stdin-closed" });
   child.stdin!.end();
   if (signal) killTree(child, signal);
   setTimeout(() => {

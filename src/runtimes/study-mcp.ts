@@ -7,7 +7,7 @@ import { existsSync } from "node:fs";
 import { appendFile, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { agentFolderEntries, agentPath, readChecked, ReadRefused, realPath, windowsAliasProblem, within } from "./guard.js";
-import { traceEvents, unfinishedCases } from "./exposure.js";
+import { caseProgress, flushRuntime, traceEvents } from "./exposure.js";
 import { acceptedCalls, budgetNearlyUsed, serveMcp, takeToolCall, text, ToolError, type Tool } from "./mcp.js";
 import { checkForecast, submitDescription } from "../core/forecast-format.js";
 
@@ -26,9 +26,12 @@ export interface JobSpec {
   designs: { id: string; label: string }[];
   /** Configurations that use the app: the cases the protocol requires (bridge contract). */
   app?: {
+    runtime?: string;
     designs?: { id: string; label?: string; practice?: { caseId: string } | null; main?: { caseId: string } | null }[];
     cases?: { caseId: string; conditionId: string; phaseId?: string }[];
   };
+  /** The WebXR runtime's part of the job (only settleMs is read here: how long a flush may wait). */
+  webxr?: { settleMs?: number };
   targets: {
     id: string;
     label: string;
@@ -58,14 +61,23 @@ async function countCall(tool: string): Promise<void> {
 }
 /**
  * The forecast comes after the app: for a configuration that uses it, every required case must
- * have been started and ended in the trace. Refused with the missing cases named, unless the
+ * have been started and finished (a case-end with submitted: true) in the trace; a case left
+ * unfinished does not count. Before judging, the WebXR runtime is asked to record a transition
+ * still pending after the agent's last action. Refused with the missing cases named, unless the
  * token budget is nearly used up or less than 10% of the tool budget is left; then the forecast
  * is accepted and the audit records the missing exposure.
  */
 async function exposureGate(): Promise<void> {
   const required = (spec.app?.cases ?? []).map((c) => c.caseId);
   if (!required.length) return;
-  const missing = unfinishedCases(required, await traceEvents(join(jobDir, "trace.jsonl")));
+  const progress = async () => caseProgress(required, await traceEvents(join(jobDir, "trace.jsonl")));
+  let { missing, started } = await progress();
+  // Only a task still open can finish late: ask the runtime when one of the missing tasks was started.
+  if (started.length && spec.app?.runtime === "webxr") {
+    const settle = typeof spec.webxr?.settleMs === "number" ? spec.webxr.settleMs : 3000;
+    await flushRuntime(jobDir, Math.min(30_000, settle) + 8000);
+    ({ missing, started } = await progress());
+  }
   if (!missing.length) return;
   const left = spec.budget - (await acceptedCalls(jobDir));
   const forced = (!!spec.tokenBudget && (await budgetNearlyUsed(jobDir, spec.tokenBudget))) || left < Math.max(1, Math.ceil(spec.budget * 0.1));
@@ -75,7 +87,8 @@ async function exposureGate(): Promise<void> {
   }
   await log({ tool: "submit_forecast", ok: false, missingCases: missing });
   throw new ToolError(
-    `Forecast not accepted yet: experience the app first. Not done yet: ${missing.map(taskInWords).join("; ")}. Open each design in your order and complete its tasks, then submit your forecast.`,
+    // A task begun and then left (or still open) is named as such: it counts only once finished.
+    `Forecast not accepted yet: experience the app first. Not done yet: ${missing.map((id) => (started.includes(id) ? `${taskInWords(id)}, started but not finished` : taskInWords(id))).join("; ")}. Open each design in your order and complete its tasks, then submit your forecast.`,
   );
 }
 /** A required task in plain words: "the main task of design Large (large-main)". */
@@ -224,7 +237,8 @@ tools.push({
     await writeFile(
       join(jobDir, "forecast.json"),
       JSON.stringify(
-        { attemptId: spec.attemptId ?? null, measurements, uncertainty: args.uncertainty ?? null, reasoning: args.reasoning ?? null, submittedAt: new Date().toISOString() },
+        // toolCalls: the calls counted up to this moment (calls.log); the audit's tool budget covers these, later calls are reported apart.
+        { attemptId: spec.attemptId ?? null, measurements, uncertainty: args.uncertainty ?? null, reasoning: args.reasoning ?? null, submittedAt: new Date().toISOString(), toolCalls: await acceptedCalls(jobDir) },
         null,
         2,
       ),

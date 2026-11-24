@@ -229,6 +229,7 @@ export type TraceEvent =
        * A task answer (a selection, a click, an app action) rather than looking or pointing. When
        * a runtime marks it on any action, only scored actions count for minActions and
        * observeBeforeEachAction; otherwise every completed action except complete-task counts.
+       * A refused action (completed: false) is logged with scored: false and never counts.
        */
       scored?: boolean;
       /** The app's reply, as far as documented (accepted, correct, hit, reason); null when the app gave none. */
@@ -280,6 +281,8 @@ export interface RunResult {
     tokensAtSubmit?: number;
     /** Times the session's external runtime (study bridge) was started; more than 1 is a restart. */
     runtimeStarts?: number;
+    /** Tool calls made after the forecast was accepted: not part of toolCalls or the budget, reported apart. */
+    toolCallsAfterForecast?: number;
     /** Set when the session was finished from its files after a workbench restart (its end was never seen). */
     recovered?: string;
     /**
@@ -304,6 +307,8 @@ export interface Audit {
   scoreable: boolean;
   compliant: boolean;
   issues: string[];
+  /** Project files the session opened (configurations with project access); information, not a deviation. */
+  filesRead?: number;
 }
 export interface Interval {
   low: number;

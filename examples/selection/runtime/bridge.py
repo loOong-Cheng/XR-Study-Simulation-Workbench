@@ -71,6 +71,9 @@ class Session:
         self.trace_path = Path(os.environ.get("XR_STUDY_TRACE") or self.app.get("trace") or self.job_dir / "trace.jsonl")
         self.shots = Path(self.app.get("screenshots") or self.job_dir / "screenshots")
         self.server = self.app.get("runtime") or "unity"
+        # The app renders a stereo pair; a configuration that asks for mono gets one image (the left eye).
+        self.observation = "stereo-pair" if self.app.get("observation") == "stereo-pair" else "mono"
+        self.view_words = "left and right eye" if self.observation == "stereo-pair" else "one image"
         self.budget = int(self.job.get("budget") or 0)
         self.job_id = self.job.get("jobId") or self.job_dir.parent.name
         self.order = [d["id"] for d in self.app["designs"]]
@@ -173,11 +176,13 @@ class Session:
         if c:
             self.event({"type": "case-end", "caseId": c["caseId"], "phaseId": c["phaseId"], "submitted": bool(complete)})
 
-    def action(self, name, completed=True):
+    def action(self, name, completed=True, scored=False):
+        """One action event. scored: a task answer (select, place); looking, walking and teleporting are not.
+        A refused action (completed false) is never scored (docs/runtime-adapters.md, "action")."""
         c = self.case()
         if c:
             self.event({"type": "action", "caseId": c["caseId"], "phaseId": c["phaseId"], "action": name,
-                        "completed": bool(completed)})
+                        "completed": bool(completed), "scored": bool(scored and completed)})
 
     # ------------------------------------------------------------------ the app
     def http(self, port, path, body=None, timeout=None):
@@ -231,8 +236,10 @@ class Session:
         # The runtime's own identity for the audit (docs/runtime-adapters.md, "runtime" event): what this
         # bridge and app really provide, compared there with study.json's frozen runtime recipe.
         # A bridge started again within the session reports itself again: the audit counts the restart.
+        # The observation follows the job (stereo only when the configuration asks for it; the app can render
+        # both eyes, so stereo-capture is among what it provides either way).
         self.event({"type": "runtime", "engine": "unity", "engineVersion": str(st.get("unity") or "unknown"),
-                    "backend": "editor", "deviceProfile": "quest-3", "observation": "stereo-pair",
+                    "backend": "editor", "deviceProfile": "quest-3", "observation": self.observation,
                     "capabilities": ["head-pose", "hand-poses", "controller-input", "stereo-capture", "phase-events"],
                     "pid": os.getpid()})
         if self.design and self.stage in ("practice", "main"):
@@ -243,7 +250,8 @@ class Session:
             self.resume_note = f"The app was restarted: the {part} again with {self.design['label']}. "
 
     def view(self):
-        """Capture the stereo pair, save both eyes, log one observation, return both images."""
+        """Capture the view, save it, log one observation, return the images: both eyes in stereo sessions,
+        the left eye alone as the mono image otherwise."""
         cap = self.api("/capture")
         # The frame counter lives in bridge-state.json, so frame IDs and file names stay unique within the job
         # even when the bridge (and the app's own frame counter) starts again.
@@ -251,14 +259,19 @@ class Session:
         self.save_state()
         self.shots.mkdir(parents=True, exist_ok=True)
         content, captures = [], []
-        for eye in cap["eyes"]:
+        stereo = self.observation == "stereo-pair"
+        eyes = cap["eyes"] if stereo else [e for e in cap["eyes"] if e["eye"] == "left"][:1] or cap["eyes"][:1]
+        for eye in eyes:
             data = base64.b64decode(eye["jpegBase64"])
-            (self.shots / f"{self.frames:03d}-{self.design['id'] if self.design else 'none'}-{eye['eye']}.jpg").write_bytes(data)
-            captures.append({"eye": eye["eye"], "sha256": hashlib.sha256(data).hexdigest(),
-                             "frameId": f"{self.job_id}-{self.frames}", "simulationTimeMs": round(cap["simulationTimeMs"]),
-                             "eyeSeparationM": eye["eyeSeparationM"], "viewMatrix": eye["viewMatrix"],
-                             "projectionMatrix": eye["projectionMatrix"]})
-            content.append({"type": "text", "text": f"{eye['eye'].capitalize()} eye:"})
+            name = eye["eye"] if stereo else "mono"
+            (self.shots / f"{self.frames:03d}-{self.design['id'] if self.design else 'none'}-{name}.jpg").write_bytes(data)
+            capture = {"eye": name, "sha256": hashlib.sha256(data).hexdigest(),
+                       "frameId": f"{self.job_id}-{self.frames}", "simulationTimeMs": round(cap["simulationTimeMs"])}
+            if stereo:
+                capture.update({"eyeSeparationM": eye["eyeSeparationM"], "viewMatrix": eye["viewMatrix"],
+                                "projectionMatrix": eye["projectionMatrix"]})
+                content.append({"type": "text", "text": f"{eye['eye'].capitalize()} eye:"})
+            captures.append(capture)
             content.append({"type": "image", "data": eye["jpegBase64"], "mimeType": "image/jpeg"})
         c = self.case()
         if c:
@@ -305,7 +318,7 @@ class Session:
         self.begin_case(stage)
         head = (f"You now use {d['label']}: first a guided practice task, then the scored tasks. " if stage == "practice"
                 else f"You now use {d['label']}. ")
-        return [{"type": "text", "text": head + self.describe(st) + " Your view (left and right eye):"}] + self.view()
+        return [{"type": "text", "text": head + self.describe(st) + f" Your view ({self.view_words}):"}] + self.view()
 
     def look(self, a):
         self.need_task()
@@ -346,7 +359,7 @@ class Session:
         self.need_task()
         out = self.api("/select", {"id": str(a.get("object", ""))})
         res = out.get("result")
-        self.action("select", res == "picked-up")
+        self.action("select", res == "picked-up", scored=True)
         msg = {"picked-up": f"You picked up {out.get('selected')} ({'with the ray' if out.get('via') == 'ray' else 'by hand'}).",
                "wrong-object": f"You picked up {out.get('selected')}, which is not the glowing object; you put it back.",
                "out-of-reach": "Your hand cannot reach it from here: move closer first.",
@@ -360,12 +373,12 @@ class Session:
         if not out.get("placed"):
             self.action("place", False)
             return [{"type": "text", "text": f"Not placed: {out.get('reason')}. Your view:"}] + self.view()
-        self.action("place", True)
+        self.action("place", True, scored=True)
         if not out.get("blockDone"):
             st = self.api("/state")
             return [{"type": "text", "text": "Placed. Next: " + self.describe(st) + " Your view:"}] + self.view()
         self.event({"type": "action", "caseId": self.case()["caseId"], "phaseId": self.case()["phaseId"],
-                    "action": "complete-task", "completed": True})
+                    "action": "complete-task", "completed": True, "scored": False})
         self.end_case(True)
         if self.stage == "practice" and self.design.get("main"):
             st = self.api("/start", {"design": self.design["id"], "phase": "main", "logDir": str(self.job_dir / "app_logs")})
@@ -380,7 +393,7 @@ class Session:
 
     def screenshot(self, a):
         self.need_task()
-        return [{"type": "text", "text": "Your current view (left and right eye):"}] + self.view()
+        return [{"type": "text", "text": f"Your current view ({self.view_words}):"}] + self.view()
 
     def task_state(self, a):
         out = {"techniques_in_order": self.order, "techniques_done": [d for d in self.opened if not (self.design and d == self.design["id"] and self.stage != "done")],
@@ -410,7 +423,7 @@ def tools_for(s):
     num = {"type": "number"}
     return [
         ("open_design", f"Start using the next selection technique, in your order: {order}. First a guided practice task, "
-                        "then the scored tasks. Returns the panel's instruction and your view (left and right eye).",
+                        "then the scored tasks. Returns the panel's instruction and your view (left and right eye in stereo sessions).",
          {"design": {"type": "string", "enum": s.order}}, ["design"]),
         ("look", "Turn your head to an absolute direction: yaw in degrees (0 = towards the long table, + right) and "
                  "pitch in degrees (+ up, - down).", {"yaw": num, "pitch": num}, ["yaw", "pitch"]),
@@ -427,7 +440,7 @@ def tools_for(s):
          {"object": {"type": "string"}}, ["object"]),
         ("place", "Put the object you hold into the green zone: point the ray at it, or reach it with your hand (it must be "
                   "within arm's reach). Ends the task when it rests in the zone.", {}, []),
-        ("screenshot", "See your current view again (left and right eye).", {}, []),
+        ("screenshot", "See your current view again (left and right eye in stereo sessions).", {}, []),
         ("task_state", "The panel's instruction and your progress, as text (no image).", {}, []),
     ]
 

@@ -251,15 +251,16 @@ const tools = [
       const target = object === undefined ? undefined : state.shownToEngine[String(object)];
       if (object !== undefined && !target) throw new ToolError(`Unknown object ${object}. Use an ID from list_objects for this design.`);
       const r = await call("act", () => engine.act(String(action), target));
-      // Completed only when the engine confirms it; one scored action per answer. `result` holds only
-      // what the participant perceives; `args` the neutral object ID.
+      // Completed only when the engine confirms it; one scored action per answer. A refused action
+      // (a wall in the way, no active trial) is completed: false and scored: false: it was no answer.
+      // `result` holds only what the participant perceives; `args` the neutral object ID.
       trace({
         type: "action",
         caseId: c.caseId,
         phaseId: c.phaseId,
         action: String(action),
         completed: !!r.completed,
-        scored: true,
+        scored: !!r.completed,
         result: { accepted: !!r.completed },
         ...(object !== undefined ? { args: { object: String(object) } } : {}),
       });

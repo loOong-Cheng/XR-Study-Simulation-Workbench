@@ -462,9 +462,22 @@ test("audit: too few actions, actions without a fresh view, and a project never 
   // A runtime that marks its scored actions: only those count (looking around is not an answer).
   const marked = trace.map((e) => (e.type === "action" ? { ...e, scored: e.caseId !== "low-main" || e.action === "look-around" } : e));
   assert.ok(issues(marked).includes("Too few actions in low-main: 1 scored action, at least 12 required."), issues(marked).join(" "));
-  // Reading the project means opening one of its files, not only getting the list injected.
+  // A refused action is no answer, also when a runtime marked it scored (the template once did).
+  const answers = trace.filter((e) => e.type === "action" && e.caseId === "low-main" && e.action === "select-target").length;
+  const firstAnswer = trace.findIndex((e) => e.type === "action" && e.caseId === "low-main" && e.action === "select-target");
+  const refused = trace.map((e, i) => (e.type === "action" ? { ...e, scored: e.action === "select-target", ...(i === firstAnswer ? { completed: false } : {}) } : e));
+  assert.ok(issues(refused).includes(`Too few actions in low-main: ${answers - 1} scored actions, at least 12 required.`), issues(refused).join(" "));
+  // For an app configuration the project is extra material: not opening a file is information, not a deviation.
   const unread = trace.filter((e) => !(e.type === "source" && e.delivery === "read"));
-  assert.ok(issues(unread).includes("Did not open any project file (no read_file call), although this configuration reads the project."));
+  assert.ok(!issues(unread).some((i) => /Did not open any project file/.test(i)), issues(unread).join(" "));
+  // A configuration whose ingredient is reading the project must open one of its files, not only get the list injected.
+  const reader = freezePlan(study, agents.filter((x) => x.id === "reads-project").map((x) => ({ ...x, repetitions: 1 })), 1);
+  const readerAgent = protocolForJob(reader, reader.jobs[0]);
+  const readerTrace = simulatedResults(reader).runs[0].trace as E[];
+  assert.deepEqual(exposureIssues(reader, readerAgent, readerTrace as never), []);
+  assert.ok(
+    exposureIssues(reader, readerAgent, readerTrace.filter((e) => !(e.type === "source" && e.delivery === "read")) as never).includes("Did not open any project file (no read_file call), although this configuration reads the project."),
+  );
 });
 
 test("folder fingerprints: paths become / before sorting (same on Windows and POSIX); OS clutter is left out", async () => {

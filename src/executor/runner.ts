@@ -17,7 +17,7 @@ import { claudeEffort, effortProblem, requireThat } from "../core/validation.js"
 import { claudeCommand, claudeProblem, readSettings, runtimeLimits, type Settings } from "../settings.js";
 import { claudeFeatures, killTree, spawnTree } from "./processes.js";
 import { changedApp, changedSources, listCampaigns, listWorkspaces, missingSources, readCampaign, readHuman, readReceipts, readSourceText, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
-import { appActions, runtimeFor, runtimeStatus, webxrCapabilities } from "./runtimes.js";
+import { appActions, runtimeFor, runtimeStatus, webxrCapabilities, webxrPointer, webxrSettleMs } from "./runtimes.js";
 import { runRecordPath } from "./archive.js";
 import { activeAttempts, appendLine, SERVER, serverAlive, stopLeftovers, unfinishedAttempts, writeMarker, type AttemptMarker } from "./attempts.js";
 import { joinScheduler, leaveScheduler, schedule, type Schedulable } from "./scheduler.js";
@@ -26,7 +26,7 @@ import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
 import { agentFileList, ReadRefused } from "../runtimes/guard.js";
 import { readText } from "../files.js";
-import { unfinishedCases } from "../runtimes/exposure.js";
+import { caseProgress } from "../runtimes/exposure.js";
 import { casesInOrder, designOrder } from "../core/fairness.js";
 import { buildPrompt, READ_FILES_LINE, type PromptSection } from "./prompt.js";
 
@@ -207,20 +207,35 @@ export function runtimeName(runtime: string): string {
   return `the ${names[runtime] ?? runtime} bridge`;
 }
 /**
+ * The session's tool calls as the budget and the audit count them: those up to the accepted
+ * forecast (forecast.json → toolCalls, written by the study server), and the calls made after it.
+ * Without that record (older study servers, no forecast) all calls count.
+ */
+export function callsUntilForecast(total: number, forecast: { toolCalls?: unknown } | null): { calls: number; afterForecast: number } {
+  const at = forecast?.toolCalls;
+  const calls = typeof at === "number" && Number.isInteger(at) && at >= 0 && at <= total ? at : total;
+  return { calls, afterForecast: total - calls };
+}
+/**
  * What the row of a finished real session says besides the token budget: a forecast accepted
- * before every required case was started and ended (allowed only when a budget was nearly used
- * up), and a runtime that was started more than once (bridge.jsonl starts or repeated runtime
- * reports in the trace).
+ * before every required case was started and finished (allowed only when a budget was nearly used
+ * up; a case left unfinished counts as not finished), a runtime that was started more than once
+ * (bridge.jsonl starts or repeated runtime reports in the trace), and tool calls made after the
+ * forecast was accepted (not counted).
  */
 export function sessionWarnings(requiredCaseIds: string[], runtime: string, run: RunResult): string[] {
   if (run.status !== "completed" || run.execution?.synthetic) return [];
   const trace = Array.isArray(run.trace) ? run.trace : [];
   const out: string[] = [];
-  const missing = unfinishedCases(requiredCaseIds, trace);
+  const { missing, started } = caseProgress(requiredCaseIds, trace);
   if (missing.length)
-    out.push(`submitted without required exposure (${missing.length} of ${requiredCaseIds.length} required tasks not finished: ${missing.slice(0, 4).join(", ")}${missing.length > 4 ? ", …" : ""})`);
+    out.push(
+      `submitted without required exposure (${missing.length} of ${requiredCaseIds.length} required tasks not finished: ${missing.slice(0, 4).join(", ")}${missing.length > 4 ? ", …" : ""}${started.length ? `; ${started.length} of them started but left unfinished` : ""})`,
+    );
   const reports = trace.filter((e) => e?.type === "runtime").length;
   if (Math.max(reports, run.execution?.runtimeStarts ?? 0) > 1) out.push(`${runtimeName(runtime)} restarted during the session`);
+  const after = run.execution?.toolCallsAfterForecast ?? 0;
+  if (after > 0) out.push(`${after} tool call${after === 1 ? "" : "s"} after the forecast was accepted (not counted)`);
   return out;
 }
 /**
@@ -961,7 +976,7 @@ export class Executor implements Schedulable {
     const attemptId = jobSpec?.attemptId;
     // The design order the session was given at launch (the audit checks the visits against it).
     const designOrder = Array.isArray(jobSpec?.designOrder) && jobSpec!.designOrder.every((x) => typeof x === "string") ? (jobSpec!.designOrder as string[]) : null;
-    const written = parse<{ attemptId?: string; measurements?: unknown[] }>(await text("forecast.json"));
+    const written = parse<{ attemptId?: string; measurements?: unknown[]; toolCalls?: unknown }>(await text("forecast.json"));
     const forecast = attemptId && written?.attemptId === attemptId ? written : null;
     const xr = a.tools.includes("xr-interact");
     // Complete: an accepted forecast with values, the session's start in the stream, and the app's trace for app sessions.
@@ -979,7 +994,7 @@ export class Executor implements Schedulable {
     const servers = parse<{ mcpServers?: Record<string, unknown> }>(await text("mcp.json"))?.mcpServers ?? {};
     const bridged = existsSync(join(dir, "bridge.jsonl"));
     const runtimeStarts = bridged ? (await jsonLines(join(dir, "bridge.jsonl"))).filter((x) => x.type === "start").length : 0;
-    const calls = (await text("calls.log")).trim().split("\n").filter((l) => l && l !== "submit_forecast").length;
+    const { calls, afterForecast } = callsUntilForecast((await text("calls.log")).trim().split("\n").filter((l) => l && l !== "submit_forecast").length, forecast);
     const model = a.model;
     const outputTokens = Number(usage.output_tokens ?? 0);
     const run: RunResult = {
@@ -1005,6 +1020,7 @@ export class Executor implements Schedulable {
         startedAt: marker.startedAt,
         capabilities: Array.isArray(reported?.capabilities) ? reported!.capabilities : [],
         toolCalls: calls,
+        ...(afterForecast ? { toolCallsAfterForecast: afterForecast } : {}),
         outputTokens,
         inputTokens: usage.input_tokens ?? null,
         cacheReadTokens: usage.cache_read_input_tokens ?? null,
@@ -1282,6 +1298,9 @@ export class Executor implements Schedulable {
                   actions: appActions(this.manifest),
                   // {participant} in the app query: that person's trial layouts for individual jobs.
                   participant: job.participantId ?? null,
+                  // How long a transition may follow an action, and the study's motor-noise model with this job's seed.
+                  settleMs: webxrSettleMs(this.manifest),
+                  pointer: webxrPointer(this.manifest, jobId),
                   designs: ordered.map((id) => ({ id, label: study.conditions.find((c) => c.id === id)!.label, practice: caseOf(id, "practice"), main: caseOf(id, "main") })),
                 }
               : undefined,
@@ -1643,7 +1662,8 @@ export class Executor implements Schedulable {
     const forecast = await acceptedForecast(forecastPath, attemptId);
     // The tool budget covers what the agent does before forecasting; submitting the forecast is not
     // part of it (a configuration without tools has budget 0 and still submits).
-    const calls = existsSync(join(jobDir, "calls.log")) ? (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").filter((l) => l && l !== "submit_forecast").length : 0;
+    // Counted up to the accepted forecast; calls after it are reported apart (toolCallsAfterForecast).
+    const { calls, afterForecast } = callsUntilForecast(existsSync(join(jobDir, "calls.log")) ? (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").filter((l) => l && l !== "submit_forecast").length : 0, forecast);
     const ok = !!forecast;
     const unknownModel = /unrecognized_model|issue with the selected model/i.test(`${stderr} ${JSON.stringify(result ?? "")}`);
     const error = ok
@@ -1695,6 +1715,7 @@ export class Executor implements Schedulable {
         startedAt: startedAt.toISOString(),
         capabilities: Array.isArray(reported?.capabilities) ? reported!.capabilities : [],
         toolCalls: calls,
+        ...(afterForecast ? { toolCallsAfterForecast: afterForecast } : {}),
         outputTokens: Number(usage.output_tokens ?? 0),
         inputTokens: usage.input_tokens ?? null,
         cacheReadTokens: usage.cache_read_input_tokens ?? null,
@@ -1811,7 +1832,7 @@ async function jsonLines(path: string): Promise<Record<string, any>[]> {
 }
 
 /** The forecast in forecast.json if the study server wrote it for this attempt (its attemptId), else null. */
-async function acceptedForecast(path: string, attemptId: string): Promise<{ measurements?: RunResult["measurements"] } | null> {
+async function acceptedForecast(path: string, attemptId: string): Promise<{ measurements?: RunResult["measurements"]; toolCalls?: unknown } | null> {
   try {
     const f = JSON.parse(await readFile(path, "utf8"));
     return f && typeof f === "object" && f.attemptId === attemptId ? f : null;
