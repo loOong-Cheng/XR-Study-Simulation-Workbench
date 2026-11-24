@@ -4,7 +4,7 @@ import { existsSync, realpathSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join, sep } from "node:path";
 import { choice, flag, int, object, objects, text, texts, type Body } from "./request.js";
-import { campaignFromPlan, campaignPlan, continueFromStatus, lineageJobIndex, type Campaign, type CampaignContinuation } from "./core/campaign.js";
+import { campaignFromPlan, campaignPlan, conditionModel, continueFromStatus, lineageJobIndex, type Campaign, type CampaignContinuation } from "./core/campaign.js";
 import { analyzeCampaign, mergeCampaignResults, simulatedJobIds, type CampaignAnalysis } from "./core/campaign-study.js";
 import { compareAgents } from "./core/agent-comparison.js";
 import { compareCampaignScores } from "./core/campaign-comparison.js";
@@ -14,7 +14,8 @@ import { extractProposal } from "./core/proposal.js";
 import type { AgentProtocol, Comparison, Domain, Study } from "./core/types.js";
 import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
-import { closeExecutor, Executor } from "./executor/runner.js";
+import { briefOverview, saveBrief } from "./brief.js";
+import { closeExecutor, Executor, liveStatuses } from "./executor/runner.js";
 import { exportRuns, importRuns } from "./executor/archive.js";
 import { runtimeFor, runtimeStatus } from "./executor/runtimes.js";
 import { approvalState, approve } from "./review.js";
@@ -37,7 +38,7 @@ import {
   createStudy,
 } from "./workspace.js";
 import { campaignSummaries, deleteCampaign, sameDesignKey, sessionAttempts, writeLabel } from "./history.js";
-import { evidenceOverview, knowledgeDraft, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
+import { evidenceOverview, knowledgeDraft, leakCheck, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
 
 type Json = (value: unknown, status?: number) => void;
 const analysisCache = new Map<string, CampaignAnalysis>();
@@ -160,9 +161,48 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
         gets: each((a) => methodGets(a, ws.study), [] as string[]),
         runtimes: each((a) => runtimeFor(ws.study, a), "none"),
         missingSources: each((a) => missingSources(ws.dir, ws.study, ws.manifest, a.sourceIds).map((m) => m.label), [] as string[]),
-        campaigns: await campaignSummaries(id),
+        // Whether each source has a usable (complete) file on this machine, for the configuration templates.
+        sourceFiles: Object.fromEntries(
+          ws.study.sources.map((s) => {
+            try {
+              return [s.id, !missingSources(ws.dir, ws.study, ws.manifest, [s.id]).length];
+            } catch {
+              return [s.id, false];
+            }
+          }),
+        ),
+        // Open executors count as their table shows.
+        campaigns: await campaignSummaries(id, (c) => liveStatuses(id, c)),
         problem: ws.problem,
       });
+      return true;
+    }
+    case "/api/workspace/campaigns":
+      // Progress of every campaign; open executors count as their table shows.
+      json(await campaignSummaries(id, (c) => liveStatuses(id, c)));
+      return true;
+    case "/api/workspace/campaign-inputs": {
+      // What the agents of a frozen campaign get: its own frozen sources, not the study as it is now.
+      const ws = await readStudyFolder(id);
+      const campaign = await readCampaign(id, campaignId);
+      const frozen = campaign.suite.study!;
+      const protocols = campaign.suite.conditions.flatMap((c) => (c.kind === "llm" && c.recipe.protocol ? [c.recipe.protocol] : []));
+      json(
+        frozen.sources
+          .filter((s) => ["brief", "project", "evidence"].includes(s.kind))
+          .map((s) => ({
+            id: s.id,
+            label: s.label,
+            kind: s.kind,
+            configs: protocols.filter((p) => p.sourceIds.includes(s.id)).length,
+            path: ws.manifest.sources?.[s.id] ?? null,
+            // Deleted from the study after this campaign was frozen.
+            removed: !ws.study.sources.some((x) => x.id === s.id && x.kind === s.kind),
+            // Still a source of the study with a file here, so it can be opened.
+            readable: ws.study.sources.some((x) => x.id === s.id && x.kind === s.kind) && !!ws.manifest.sources?.[s.id],
+          }))
+          .filter((s) => s.configs > 0),
+      );
       return true;
     }
     case "/api/settings":
@@ -183,7 +223,7 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
     }
     case "/api/workspace/evidence": {
       const ws = await readWorkspaceForEditing(id);
-      json({ general: await evidenceOverview(id, ws.agents ?? []), participants: await participantKnowledgeOverview(id, ws.agents ?? []) });
+      json({ brief: await briefOverview(id, ws.agents ?? []), general: await evidenceOverview(id, ws.agents ?? []), participants: await participantKnowledgeOverview(id, ws.agents ?? []) });
       return true;
     }
     case "/api/executor/attempts":
@@ -321,6 +361,9 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       );
       return true;
     }
+    case "/api/workspace/brief-save":
+      json(await saveBrief(id, text(body, "text", { max: 2_000_000 })));
+      return true;
     case "/api/workspace/campaign-delete": {
       const c = campaignId();
       // The study ID is canonical (workspaceDir), so this finds the executor that runs its sessions.
@@ -507,18 +550,31 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       const participantsCsv = text(body, "participantsCsv", { optional: true, max: 20_000_000 }) || null;
       const document = await extractProposal(name, Buffer.from(text(body, "base64", { max: 400 * 1024 * 1024 }), "base64"));
       const current = id ? (await readStudyFolder(id)).study : null;
-      json(await understandStudy(document, participantsCsv, current));
+      const r = await understandStudy(document, participantsCsv, current);
+      // The drafted brief goes through the same outcome-blind check as knowledge (counts only).
+      json({ ...r, brief: r.brief ? { text: r.brief, check: id ? await leakCheck(id, r.study, r.brief) : null } : null });
       return true;
     }
     case "/api/assistant/explain": {
-      const { analysis: a } = await analysis(id, campaignId(), comparisonsOf(body));
+      const { campaign, analysis: a } = await analysis(id, campaignId(), comparisonsOf(body));
+      const study = campaign.suite.study!;
+      // Every configuration by name, with what it gets, its level, model and effort, so the answer uses names and invents no differences.
+      const configurations = campaign.suite.conditions.flatMap((c) => {
+        if (!c.recipe.protocol) return [];
+        const model = a.models[c.id] ?? conditionModel(campaign, c.id);
+        const protocol = { ...c.recipe.protocol, model } as AgentProtocol;
+        return [{ id: c.id, name: c.label, level: agentLevel(study, protocol), model: model.model, effort: model.reasoning, gets: methodGets(protocol, study) }];
+      });
       json({
-        text: await explainResults({
-          summaries: a.report.summaries,
-          contrasts: a.report.contrasts,
-          exclusions: a.report.exclusions,
-          notes: a.report.notes,
-        }),
+        text: await explainResults(
+          {
+            summaries: a.report.summaries,
+            contrasts: a.report.contrasts,
+            exclusions: a.report.exclusions,
+            notes: a.report.notes,
+          },
+          configurations,
+        ),
       });
       return true;
     }
