@@ -1,6 +1,6 @@
 // Minimal MCP server over stdio (JSON-RPC 2.0, one message per line). Only
 // protocol messages may go to stdout; diagnostics go to stderr.
-import { readFile } from "node:fs/promises";
+import { appendFile, mkdir, readFile, rm, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { createInterface } from "node:readline";
 
@@ -68,6 +68,48 @@ export function serveMcp(name: string, version: string, tools: Tool[], onExit?: 
   });
 }
 export const text = (t: string): Content[] => [{ type: "text", text: t }];
+
+/** Accepted calls in <job>/calls.log: one line per call; submit_forecast lines never count. */
+export async function acceptedCalls(jobDir: string): Promise<number> {
+  try {
+    return (await readFile(join(jobDir, "calls.log"), "utf8")).split("\n").filter((l) => l.trim() && l.trim() !== "submit_forecast").length;
+  } catch {
+    return 0;
+  }
+}
+/**
+ * The tool-call cap shared by every MCP server of a session (bridge contract, "Tool-call limit").
+ * A call is checked first and written to <job>/calls.log only when accepted, so a refused call
+ * never counts. Returns false when the cap is reached (the caller refuses the call).
+ * submit_forecast is written but never counted or refused. The check and the append happen under
+ * the lock folder <job>/calls.lock (mkdir is atomic), so parallel calls on several servers cannot
+ * pass the cap together; a lock older than 2 s is left by a crashed holder and is removed.
+ */
+export async function takeToolCall(jobDir: string, tool: string, budget: number | null | undefined): Promise<boolean> {
+  const lock = join(jobDir, "calls.lock");
+  let held = false;
+  for (let i = 0; i < 400 && !held; i++) {
+    try {
+      await mkdir(lock);
+      held = true;
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== "EEXIST") break; // no lock possible here: count without it
+      try {
+        if (Date.now() - (await stat(lock)).mtimeMs > 2000) await rm(lock, { recursive: true, force: true });
+      } catch {
+        // removed by its holder meanwhile
+      }
+      await new Promise((r) => setTimeout(r, 5 + Math.random() * 10));
+    }
+  }
+  try {
+    if (tool !== "submit_forecast" && typeof budget === "number" && (await acceptedCalls(jobDir)) >= budget) return false;
+    await appendFile(join(jobDir, "calls.log"), tool + "\n");
+    return true;
+  } finally {
+    if (held) await rm(lock, { recursive: true, force: true }).catch(() => undefined);
+  }
+}
 
 /**
  * Whether a session's token budget is nearly used, from <job>/usage.json, which the executor keeps

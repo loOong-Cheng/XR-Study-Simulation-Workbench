@@ -14,7 +14,7 @@ import { tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { normalAction, type AppAction } from "../executor/runtimes.js";
 import { agentPath } from "./guard.js";
-import { budgetNearlyUsed, serveMcp, text, ToolError, type Tool } from "./mcp.js";
+import { budgetNearlyUsed, serveMcp, takeToolCall, text, ToolError, type Tool } from "./mcp.js";
 
 interface WebXRSpec {
   jobId: string;
@@ -41,9 +41,8 @@ const log = (entry: Record<string, unknown>) =>
 async function countCall(tool: string) {
   if (spec.tokenBudget && (await budgetNearlyUsed(jobDir, spec.tokenBudget)))
     throw new ToolError(`Token budget of ${spec.tokenBudget} tokens is nearly used up. Submit your forecast now.`);
-  await appendFile(join(jobDir, "calls.log"), tool + "\n");
-  const used = (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").length;
-  if (used > spec.budget) throw new ToolError(`Tool budget of ${spec.budget} calls is used up. Submit your forecast now.`);
+  // Checked before it is written: a refused call is not counted (calls.log holds accepted calls only).
+  if (!(await takeToolCall(jobDir, tool, spec.budget))) throw new ToolError(`Tool budget of ${spec.budget} calls is used up. Submit your forecast now.`);
 }
 
 // ---------- static app server ----------

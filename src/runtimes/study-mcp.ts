@@ -1,13 +1,14 @@
 // Study MCP server given to every forecasting session (stdio).
 //   node dist/runtimes/study-mcp.js <job-dir>
 // Tools: list_files/read_file (only the permitted project folder), submit_forecast.
-// Every call is appended to <job-dir>/trace.jsonl and counted against the budget.
+// Every call is logged in <job-dir>/trace.jsonl; accepted calls are counted in calls.log against the budget.
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { appendFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
 import { agentFolderEntries, agentPath, realPath, windowsAliasProblem, within } from "./guard.js";
-import { budgetNearlyUsed, serveMcp, text, ToolError, type Tool } from "./mcp.js";
+import { traceEvents, unfinishedCases } from "./exposure.js";
+import { acceptedCalls, budgetNearlyUsed, serveMcp, takeToolCall, text, ToolError, type Tool } from "./mcp.js";
 import { checkForecast, submitDescription } from "../core/forecast-format.js";
 
 export interface JobSpec {
@@ -23,6 +24,8 @@ export interface JobSpec {
   projectSourceId?: string | null;
   participantId: string | null;
   designs: { id: string; label: string }[];
+  /** Configurations that use the app: the cases the protocol requires (bridge contract). */
+  app?: { designs?: { id: string }[]; cases?: { caseId: string; conditionId: string }[] };
   targets: {
     id: string;
     label: string;
@@ -43,10 +46,34 @@ async function countCall(tool: string): Promise<void> {
   // The end of the token budget is kept for submitting the forecast (see budgetNearlyUsed).
   if (tool !== "submit_forecast" && spec.tokenBudget && (await budgetNearlyUsed(jobDir, spec.tokenBudget)))
     throw new ToolError(`Token budget of ${spec.tokenBudget} tokens is nearly used up. Submit your forecast now with submit_forecast.`);
-  await appendFile(join(jobDir, "calls.log"), tool + "\n");
-  const used = (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").length;
-  if (tool !== "submit_forecast" && used > spec.budget)
+  // Checked before it is written: a refused call is not counted (calls.log holds accepted calls only).
+  if (!(await takeToolCall(jobDir, tool, spec.budget)))
     throw new ToolError(`Tool budget of ${spec.budget} calls is used up. Submit your forecast now with submit_forecast.`);
+}
+/**
+ * The forecast comes after the app: for a configuration that uses it, every required case must
+ * have been started and ended in the trace. Refused with the missing cases named, unless the
+ * token budget is nearly used up or less than 10% of the tool budget is left; then the forecast
+ * is accepted and the audit records the missing exposure.
+ */
+async function exposureGate(): Promise<void> {
+  const required = (spec.app?.cases ?? []).map((c) => c.caseId);
+  if (!required.length) return;
+  const missing = unfinishedCases(required, await traceEvents(join(jobDir, "trace.jsonl")));
+  if (!missing.length) return;
+  const left = spec.budget - (await acceptedCalls(jobDir));
+  const forced = (!!spec.tokenBudget && (await budgetNearlyUsed(jobDir, spec.tokenBudget))) || left < Math.max(1, Math.ceil(spec.budget * 0.1));
+  if (forced) {
+    await log({ tool: "submit_forecast", note: "accepted without required exposure (budget nearly used up)", missingCases: missing });
+    return;
+  }
+  await log({ tool: "submit_forecast", ok: false, missingCases: missing });
+  const designs = [...new Set(missing.map((id) => spec.app?.cases?.find((c) => c.caseId === id)?.conditionId).filter(Boolean))];
+  throw new ToolError(
+    `Forecast not accepted yet: experience the app first. These required tasks have not been started and finished: ${missing.join(", ")}` +
+      (designs.length ? ` (designs ${designs.join(", ")})` : "") +
+      ". Open each design in your order and complete its tasks, then submit your forecast.",
+  );
 }
 // The permitted folder as it is on disk (symlinks resolved, on-disk names); every path is checked against it after resolving its own.
 const projectRoot = (() => {
@@ -139,6 +166,7 @@ tools.push({
   async handler(args) {
     await countCall("submit_forecast");
     if (submitted) throw new ToolError("The forecast was already accepted. End the session.");
+    await exposureGate();
     const rows = Array.isArray(args.predictions) ? (args.predictions as Record<string, unknown>[]) : [];
     // Everything to fix at once, per measure (see checkForecast).
     const { problems, measurements } = checkForecast(
