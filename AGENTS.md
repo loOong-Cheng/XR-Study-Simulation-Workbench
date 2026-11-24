@@ -142,7 +142,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
    1. Create `private/studies/<name>/`.
    2. Run `proposal <doc> <dir>` to extract the text locally.
    3. Complete `reading.json`: eight facts (`title`, `researchQuestion`, `design`, `participantCount`, `conditions`, `task`, `objectiveOutcomes`, `subjectiveOutcomes`), each `{"value", "quote"}` with the quote copied exactly from the document (both empty if it does not say). Then run `proposal-check <doc> reading.json`, which lists every quote it cannot find.
-   4. Draft `study.json`. RQs about designs become conditions and measures; RQs about agents become configurations.
+   4. Draft `study.json`. RQs about designs become conditions and measures, and stay in `researchQuestion` (every agent gets it); RQs about agents become configurations, and their text goes to `agentQuestions`, which agents never see. Agents see a neutral title (`agentTitle`, default "An XR user study"), never `title`.
 
    Alternatively, the researcher can press **Understand study** in the website, which uses the configured assistant.
 3. **Draft agent configurations.**

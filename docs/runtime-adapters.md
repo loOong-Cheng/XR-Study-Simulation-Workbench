@@ -173,12 +173,12 @@ The bridge is the runtime's command in Settings, for example `node` with argumen
 
 - `budget` is the tool-call cap and `tokenBudget` the token budget (or null); see [Budgets](#budgets).
 - `app.observation` is `mono` or `stereo-pair`.
-- `app.designs` come in the participant's order for individual configurations, and in study order otherwise. `practice` or `main` is null when the design has no such case.
+- `app.designs` come in the session's design order (`designOrder`): the participant's order for individual configurations, the human orders in rotation over repetitions for population configurations. `practice` or `main` is null when the design has no such case.
 - `app.cases` are the cases the protocol requires, each with the action names it requires, and optionally `minActions` (the fewest scored actions, for example one answer per trial) and `observeBeforeEachAction` (an observation is needed in the case before each scored action: no answering from memory).
 
 ### Session rules
 
-- **Designs only in the job's order**, each once; refuse any other with a short reason. Refuse anything that would reveal results (which object is the target, correctness beyond what a participant sees, other participants' data).
+- **Designs only in the job's order**, each once; refuse any other with a short reason. That order is the session's design order (also `job.json` → `designOrder`): the participant's order for individual configurations, and for population configurations the human participants' orders in rotation over repetitions (see "Prompts and fairness" in methodology.md). Refuse anything that would reveal results (which object is the target, correctness beyond what a participant sees, other participants' data).
 - **Object IDs shown to the agent are neutral and drawn afresh for every design** (for example `obj-1 … obj-N` in a random order). With the same IDs in every design, the agent selects from memory after the first one and its later task experience says nothing about the design. Log the mapping in the job folder for the audit (`object-ids.jsonl`, one line per design).
 - **The forecast comes after the app.** For a configuration that uses the app, `submit_forecast` refuses until every case in `app.cases` has a `case-start` and a `case-end` in the trace, and names the missing ones. Only when the token budget is nearly used up, or less than 10% of the tool budget is left, is a forecast accepted without them; the audit then lists the missing exposure and the executor's row says "submitted without required exposure".
 
