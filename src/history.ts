@@ -53,8 +53,13 @@ export interface CampaignSummary {
   jobs: number;
   reused: number;
   done: number;
+  /** Failed or stopped sessions (every attempt failed, simulated or real). */
   failed: number;
   notStarted: number;
+  /** Running or waiting to start (only while the campaign's executor is open). */
+  running: number;
+  /** Configurations a continuation in this campaign's lineage left out on purpose. */
+  dropped: string[];
   real: number;
   simulated: number;
   /** Total of real sessions' reported cost (all attempts), null when none reported one. */
@@ -62,7 +67,13 @@ export interface CampaignSummary {
   models: Record<string, CampaignModel>;
   designKey: string;
 }
-export async function campaignSummaries(id: string): Promise<CampaignSummary[]> {
+/**
+ * Progress, results and cost of every campaign. `live` gives the session statuses of a campaign
+ * whose executor is open (see liveStatuses in the executor), so these counts match the executor
+ * table exactly, also for attempts that failed before they could write a receipt. Otherwise the
+ * receipts count: a session with only failed attempts is failed, one without any is not run yet.
+ */
+export async function campaignSummaries(id: string, live?: (campaignId: string) => Map<string, string> | null): Promise<CampaignSummary[]> {
   const campaigns = await listCampaigns(id);
   const labels = await readLabels(id);
   const byDigest = new Map(campaigns.map((c) => [c.digest, c.id]));
@@ -73,6 +84,13 @@ export async function campaignSummaries(id: string): Promise<CampaignSummary[]> 
     const llm = c.jobs.filter((j) => j.kind === "llm");
     const completed = new Set(receipts.filter((r) => r.status === "completed").map((r) => r.jobId));
     const tried = new Set(receipts.map((r) => r.jobId));
+    const statuses = live?.(c.id) ?? null;
+    const status = (jobId: string) => statuses?.get(jobId) ?? (completed.has(jobId) ? "done" : tried.has(jobId) ? "failed" : "not-started");
+    const fresh = llm.filter((j) => !j.inheritedFrom).map((j) => status(j.id));
+    // Configurations dropped on purpose by a continuation of this campaign or of an ancestor.
+    const chain = [...(c.lineage ?? []).map((d) => campaigns.find((x) => x.digest === d)), c];
+    const present = new Set(c.suite.conditions.map((x) => x.id));
+    const dropped = [...new Set(chain.flatMap((x) => x?.continuation?.dropConditions ?? []))].filter((x) => !present.has(x));
     let real = 0,
       simulated = 0;
     if (existsSync(join(dir, "results")))
@@ -96,14 +114,51 @@ export async function campaignSummaries(id: string): Promise<CampaignSummary[]> 
       note: c.continuation?.note ?? null,
       jobs: llm.length,
       reused: llm.filter((j) => j.inheritedFrom).length,
-      done: llm.filter((j) => !j.inheritedFrom && completed.has(j.id)).length,
-      failed: llm.filter((j) => !j.inheritedFrom && tried.has(j.id) && !completed.has(j.id)).length,
-      notStarted: llm.filter((j) => !j.inheritedFrom && !tried.has(j.id)).length,
+      done: fresh.filter((s) => s === "done").length,
+      failed: fresh.filter((s) => s === "failed" || s === "stopped").length,
+      notStarted: fresh.filter((s) => s === "not-started").length,
+      running: fresh.filter((s) => s === "running" || s === "queued").length,
+      dropped,
       real,
       simulated,
       costUsd: cost,
       models: Object.fromEntries(c.suite.conditions.map((x) => [x.id, conditionModel(c, x.id)])),
       designKey: sameDesignKey(c),
+    });
+  }
+  return out;
+}
+
+/**
+ * What each reused session of a campaign cost where it ran: whether it was simulated, its tokens
+ * (input including cache, and output) and the cost of the attempt that counts, from the result and
+ * receipt in the campaign named by inheritedFrom. Sessions whose run is not on this machine are left out.
+ */
+export async function reusedUsage(id: string, campaign: Campaign) {
+  const out = new Map<string, { simulated: boolean; tokensIn: number | null; tokensOut: number | null; costUsd: number | null }>();
+  const receiptsOf = new Map<string, Awaited<ReturnType<typeof readReceipts>>>();
+  for (const j of campaign.jobs) {
+    const o = j.inheritedFrom;
+    if (!o || j.kind !== "llm") continue;
+    let dir: string;
+    try {
+      dir = runDir(id, o.campaignId);
+    } catch {
+      continue;
+    }
+    const run = await json<RunResult>(join(dir, "results", `${o.jobId}.json`));
+    if (!run) continue;
+    const e = run.execution;
+    const synthetic = !!e?.synthetic;
+    const parts = [e?.inputTokens, e?.cacheReadTokens, e?.cacheWriteTokens].filter((x): x is number => typeof x === "number");
+    if (!receiptsOf.has(o.campaignId)) receiptsOf.set(o.campaignId, await readReceipts(id, [o.campaignId]).catch(() => []));
+    const r = receiptsOf.get(o.campaignId)!.filter((x) => x.jobId === o.jobId && x.status === "completed").sort((a, b) => a.attempt - b.attempt)[0];
+    const manifest = !synthetic && r?.executionManifest?.path.endsWith("execution-manifest.json") ? await json<{ costUsd?: number | null }>(join(dir, r.executionManifest.path)) : null;
+    out.set(j.id, {
+      simulated: synthetic,
+      tokensIn: synthetic || !parts.length ? null : parts.reduce((s, x) => s + x, 0),
+      tokensOut: synthetic ? null : e?.outputTokens ?? null,
+      costUsd: typeof manifest?.costUsd === "number" ? manifest.costUsd : null,
     });
   }
   return out;

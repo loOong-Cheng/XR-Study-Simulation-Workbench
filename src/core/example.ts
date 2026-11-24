@@ -281,6 +281,19 @@ export function syntheticHumanData(study: Study): HumanData {
     measurements,
   };
 }
+/**
+ * The range a measure's values lie in, from its scale and unit: a unit such as "1-7", "1–7 item
+ * mean", "0 to 100" or "score (0–100)" names its own range, a proportion is 0–1 and "%" is 0–100.
+ * Null when nothing says (for example "seconds", or a rank).
+ */
+export function measureRange(outcome: Study["outcomes"][number]): [number, number] | null {
+  if (outcome.scale === "rank") return null;
+  const m = /(-?\d+(?:\.\d+)?)\s*(?:-|–|—|to)\s*(-?\d+(?:\.\d+)?)/i.exec(outcome.unit ?? "");
+  if (m && Number(m[2]) > Number(m[1])) return [Number(m[1]), Number(m[2])];
+  if (outcome.scale === "proportion") return [0, 1];
+  if (/%|percent/i.test(outcome.unit ?? "")) return [0, 100];
+  return null;
+}
 export function syntheticResults(
   plan: Plan,
   includeViolation = false,
@@ -288,6 +301,17 @@ export function syntheticResults(
 ): ResultBundle {
   if (!plan.study.synthetic)
     throw new Error("Synthetic results cannot be labeled as real execution.");
+  return inventedResults(plan, includeViolation, seed);
+}
+/**
+ * Simulated runs for trying the pipeline on any study, research studies included. Every run is
+ * labelled synthetic (execution.synthetic), so it is never presented as a real execution, and the
+ * analyzer never scores it against a research study's human data.
+ */
+export function simulatedResults(plan: Plan, seed = 7801): ResultBundle {
+  return inventedResults(plan, false, seed);
+}
+function inventedResults(plan: Plan, includeViolation: boolean, seed: number): ResultBundle {
   const rng = random(seed);
   const runs = plan.jobs.map((job, ji) => {
     const agent = protocolForJob(plan, job);
@@ -404,10 +428,15 @@ export function syntheticResults(
     const targets = agentTargets(plan.study, agent);
     const measurements = plan.study.outcomes.filter((o) => targets.includes(o.id)).flatMap((o) =>
       plan.study.conditions.map((c, ci) => {
+        // Invented values lie on the measure's own range (e.g. 0–100 for a TLX score, 1–7 for a rating).
+        const range = values[o.id] || preferences.has(o.id) ? null : measureRange(o);
         let v =
           preferences.get(o.id)?.[ci] ??
-          (values[o.id]?.[ci % 3] ?? ci + 2) +
-            (rng() - 0.5) * (o.scale === "proportion" ? 0.1 : 1.3);
+          (range
+            ? range[0] + (range[1] - range[0]) * (0.35 + 0.3 * ((ci * 0.618) % 1) + (rng() - 0.5) * 0.15)
+            : (values[o.id]?.[ci % 3] ?? ci + 2) +
+              (rng() - 0.5) * (o.scale === "proportion" ? 0.1 : 1.3));
+        if (range) v = Math.max(range[0], Math.min(range[1], v));
         if (o.scale === "proportion") v = Math.max(0, Math.min(1, v));
         if (o.aggregation === "geometric") v = Math.max(0.01, v);
         return o.components

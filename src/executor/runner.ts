@@ -9,7 +9,8 @@ import { appendFile, mkdir, readFile, readdir, writeFile } from "node:fs/promise
 import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { campaignPlan, conditionModel, type Campaign, type CampaignReceipt } from "../core/campaign.js";
-import { syntheticResults } from "../core/example.js";
+import { simulatedResults } from "../core/example.js";
+import { reusedUsage } from "../history.js";
 import { agentLevel, agentTargets, hash, jobPacket, protocolForJob } from "../core/planner.js";
 import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent } from "../core/types.js";
 import { claudeEffort, effortProblem, requireThat } from "../core/validation.js";
@@ -86,6 +87,11 @@ export function closeExecutor(workspaceId: string, campaignId: string) {
   const ex = registry.get(`${workspaceId}::${campaignId}`);
   requireThat(!ex || ex.running.size === 0, "Sessions of this campaign are running. Stop them first.");
   registry.delete(`${workspaceId}::${campaignId}`);
+}
+/** Session statuses of a campaign whose executor is open (what the executor table shows), else null. */
+export function liveStatuses(workspaceId: string, campaignId: string): Map<string, JobStatus> | null {
+  const ex = registry.get(`${workspaceId}::${campaignId}`);
+  return ex ? new Map([...ex.jobs.values()].map((j) => [j.jobId, j.status])) : null;
 }
 
 /**
@@ -264,6 +270,8 @@ export class Executor {
           // manifest not here
         }
       }
+    // Reused sessions show the tokens and cost of the run they reuse (from the campaign it ran in).
+    for (const [jobId, usage] of await reusedUsage(this.workspaceId, this.campaign)) if (this.jobs.has(jobId)) Object.assign(this.jobs.get(jobId)!, usage);
   }
   snapshot() {
     const jobs = [...this.jobs.values()];
@@ -515,7 +523,7 @@ export class Executor {
       this.update(jobId, { toolCalls: tools.indexOf(step) + 1 || tools.length, lastTool: `${step} (simulated)` });
     }
     const sub: Plan = { ...this.plan, jobs: [job], frozenAt: this.campaign.createdAt };
-    const run = syntheticResults(sub, false, parseInt(sha(jobId + attempt).slice(0, 8), 16)).runs[0];
+    const run = simulatedResults(sub, parseInt(sha(jobId + attempt).slice(0, 8), 16)).runs[0];
     run.sessionId = `${this.campaign.jobs.find((j) => j.id === jobId)!.sessionKey}-a${attempt}`;
     run.execution.startedAt = new Date().toISOString();
     run.execution.toolCalls = tools.length;

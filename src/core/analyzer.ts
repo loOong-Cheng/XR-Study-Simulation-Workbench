@@ -563,8 +563,12 @@ function analyzeLevel(
       poolingNotes.push(`${labelOf(agentId)}: ${k.real} real + ${k.simulated} simulated run(s). Scored on the ${k.real} real run(s) only; the simulated ones are left out.`);
     }
   const simulatedOnly = [...kinds].filter(([, k]) => k.simulated && !k.real).map(([id]) => labelOf(id));
-  if (simulatedOnly.length && [...kinds.values()].some((k) => k.real))
+  if (plan.study.synthetic && simulatedOnly.length && [...kinds.values()].some((k) => k.real))
     poolingNotes.push(`Scored on simulated (invented) runs only: ${simulatedOnly.join(", ")}. Comparisons between these and configurations with real runs compare invented with real forecasts.`);
+  // A research study never scores invented forecasts (the audit marks them); the notes say so.
+  const simulatedRuns = bundle.runs.filter(isSimulated).length;
+  if (!plan.study.synthetic && simulatedRuns)
+    poolingNotes.push(`${simulatedRuns} simulated (invented) run(s) left out: this is a research study, so only real agent runs are scored against the human data. Simulated runs only test the pipeline.`);
   const auditMap = new Map(audits.map((a) => [a.jobId, a]));
   const targetSets = new Map(
     plan.agents.map((a) => [a.id, new Set(agentTargets(plan.study, a))]),
