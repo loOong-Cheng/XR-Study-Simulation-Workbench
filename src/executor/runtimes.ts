@@ -1,4 +1,5 @@
 // MCP runtimes a forecasting session can use to experience the XR app.
+import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { AgentProtocol, Study } from "../core/types.js";
 import type { Settings } from "../settings.js";
@@ -97,30 +98,95 @@ export function webxrActionWarnings(study: Study, agents: AgentProtocol[], manif
   );
 }
 
+/** How long the WebXR runtime waits for a transition after an action (workspace.json → app.settleMs), in ms: default 3000, at most 30000. */
+export function webxrSettleMs(manifest: WorkspaceManifest): number {
+  const v = manifest.app?.settleMs;
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.min(30_000, Math.round(v)) : 3000;
+}
+/** The motor-noise model of workspace.json → app.pointer as the runtime reads it (docs/runtime-adapters.md → "Motor noise"). */
+export type PointerModel = { scatter: "gaussian" | "fitts"; sdPx?: number | Record<string, number>; effectiveWidthPx?: number | Record<string, number> };
+/** Why workspace.json → app.pointer is not a motor-noise model the runtime can apply, or null (also null without one). */
+export function webxrPointerProblem(manifest: WorkspaceManifest): string | null {
+  const p = manifest.app?.pointer as Record<string, unknown> | undefined | null;
+  if (p === undefined || p === null) return null;
+  const px = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0) || (!!v && typeof v === "object" && !Array.isArray(v) && Object.values(v).every((x) => typeof x === "number" && Number.isFinite(x) && x >= 0));
+  if (typeof p !== "object" || Array.isArray(p)) return "workspace.json → app.pointer must be an object, e.g. {\"scatter\": \"gaussian\", \"sdPx\": 4}.";
+  if (p.scatter === "gaussian") return px(p.sdPx) ? null : "workspace.json → app.pointer: \"gaussian\" scatter needs sdPx, the per-axis SD in CSS pixels (a number, or one per design ID).";
+  if (p.scatter === "fitts") return px(p.effectiveWidthPx) ? null : "workspace.json → app.pointer: \"fitts\" scatter needs effectiveWidthPx, the effective target width in CSS pixels (a number, or one per design ID).";
+  return "workspace.json → app.pointer.scatter must be \"gaussian\" or \"fitts\".";
+}
+/**
+ * The motor-noise model for one job, with its seed (from the job ID, so every attempt of a job
+ * draws the same scatter), as job.json → webxr.pointer records it; null without a (valid) model.
+ */
+export function webxrPointer(manifest: WorkspaceManifest, jobId: string): (PointerModel & { seed: number }) | null {
+  if (!manifest.app?.pointer || webxrPointerProblem(manifest)) return null;
+  const p = manifest.app.pointer as PointerModel;
+  const seed = parseInt(createHash("sha256").update(`pointer:${jobId}`).digest("hex").slice(0, 8), 16);
+  return { scatter: p.scatter, ...(p.sdPx !== undefined ? { sdPx: p.sdPx } : {}), ...(p.effectiveWidthPx !== undefined ? { effectiveWidthPx: p.effectiveWidthPx } : {}), seed };
+}
+/**
+ * Capabilities the study requires (study.json → runtime.requiredCapabilities) that the runtime of
+ * an app configuration does not declare: such configurations cannot run as agents (Start refuses
+ * them). One warning per runtime, naming the configurations.
+ */
+export function capabilityWarnings(study: Study, agents: AgentProtocol[], manifest: WorkspaceManifest, settings?: Settings): string[] {
+  const required = study.runtime.requiredCapabilities ?? [];
+  if (!required.length) return [];
+  const byRuntime = new Map<string, string[]>();
+  for (const a of agents.filter((x) => x.tools.includes("xr-interact"))) {
+    const r = runtimeFor(study, a);
+    byRuntime.set(r, [...(byRuntime.get(r) ?? []), a.id]);
+  }
+  const out: string[] = [];
+  for (const [r, ids] of byRuntime) {
+    const caps = r === "webxr" ? (manifest.app ? webxrCapabilities(manifest) : null) : settings ? (settings.runtimes[r]?.capabilities ?? []) : null;
+    if (!caps) continue;
+    const lacking = required.filter((c) => !caps.includes(c));
+    if (!lacking.length) continue;
+    out.push(
+      r === "webxr"
+        ? `The study requires ${lacking.join(", ")}, which the WebXR app does not declare (workspace.json → app.capabilities: ${caps.join(", ")}). ${ids.join(", ")} cannot run as agents until the app declares ${lacking.length === 1 ? "it" : "them"} or the study's required capabilities change.`
+        : `The study requires ${lacking.join(", ")}, which ${r} in Settings does not declare. ${ids.join(", ")} cannot run as agents until it does.`,
+    );
+  }
+  return out;
+}
+
 /** Which runtime a config needs: its own setting, else none for configs that never use the app, else the study's engine. */
 export function runtimeFor(study: Study, a: Pick<AgentProtocol, "runtime" | "tools">): string {
   if (a.runtime) return a.runtime;
   if (!a.tools.includes("xr-interact")) return "none";
   return study.runtime.engine === "unreal" ? "unreal" : study.runtime.engine === "unity" ? "unity" : "webxr";
 }
-export function runtimeStatus(id: string, settings: Settings, manifest: WorkspaceManifest): RuntimeStatus {
+/**
+ * Whether a runtime can run sessions on this machine, and what it provides. With `required` (the
+ * study's required capabilities), a ready runtime that does not declare all of them says so in its
+ * message: app configurations on it cannot start as agents.
+ */
+export function runtimeStatus(id: string, settings: Settings, manifest: WorkspaceManifest, required: string[] = []): RuntimeStatus {
   if (id === "none")
     return { id, label: labels.none, available: true, builtIn: true, observations: [], capabilities: [], message: "Always available." };
+  const lackingNote = (caps: string[], what: string) => {
+    const lacking = required.filter((c) => !caps.includes(c));
+    return lacking.length ? `, but the study requires ${lacking.join(", ")}, which ${what} does not declare: app configurations cannot run as agents until it does.` : "";
+  };
   if (id === "webxr") {
     const chrome = existsSync(settings.chromePath);
     const app = !!manifest.app;
+    const capabilities = webxrCapabilities(manifest);
     return {
       id,
       label: labels.webxr,
       available: chrome && app,
       builtIn: true,
       observations: ["mono"],
-      capabilities: webxrCapabilities(manifest),
+      capabilities,
       message: !app
         ? "This study has no WebXR app declared in workspace.json."
         : !chrome
         ? `Chrome not found at ${settings.chromePath}. Set the Chrome path in Settings.`
-        : "Ready. Mono screenshots only: WebXR on a desktop page provides no stereo pair.",
+        : `${lackingNote(capabilities, "the app (workspace.json → app.capabilities)") ? `Ready${lackingNote(capabilities, "the app (workspace.json → app.capabilities)")} ` : "Ready. "}Mono screenshots only: WebXR on a desktop page provides no stereo pair.`,
     };
   }
   const r = settings.runtimes[id];
@@ -133,6 +199,8 @@ export function runtimeStatus(id: string, settings: Settings, manifest: Workspac
     // Stereo only when the runtime declares it can capture a stereo pair.
     observations: r?.capabilities?.includes("stereo-capture") ? ["mono", "stereo-pair"] : ["mono"],
     capabilities: r?.capabilities ?? [],
-    message: ok ? `Configured: ${r!.command} ${(r!.args ?? []).join(" ")}` : missing[id] ?? `${id} runtime is not configured.`,
+    message: ok
+      ? `Configured: ${r!.command} ${(r!.args ?? []).join(" ")}${lackingNote(r?.capabilities ?? [], "its entry in Settings") ? `. Ready${lackingNote(r?.capabilities ?? [], "its entry in Settings")}` : ""}`
+      : missing[id] ?? `${id} runtime is not configured.`,
   };
 }

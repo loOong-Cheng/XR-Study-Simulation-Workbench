@@ -462,6 +462,42 @@ export function handoffFiles(plan: Plan): Record<string, string> {
 }
 
 /**
+ * The token estimate behind the budget warning (docs/methodology.md → "Budgets"), deliberately
+ * simple and on the safe side: every tool call is its own turn (agents that call tools in
+ * parallel need fewer turns); each turn re-reads the whole context, which starts at
+ * TOKEN_ESTIMATE.base (instructions, tool descriptions, the task) and grows by perCall with each
+ * tool result (a 1280 × 720 screenshot is about 1,200 tokens, a short text reply a few hundred);
+ * each turn writes about perTurnOutput. The forecast and the closing turn add two turns, and the
+ * last 10% of the budget is kept for submitting. Calibrated on WebXR pointing sessions (context
+ * about 5,400 tokens at the start and 68,000 after 85 calls in 51 turns, 1.9 million in total).
+ */
+export const TOKEN_ESTIMATE = { base: 6000, perCall: 800, perTurnOutput: 300, usable: 0.9 };
+/** Tokens a session with `calls` tool calls needs under TOKEN_ESTIMATE (one call per turn, plus the submission and closing turns). */
+export function tokensForCalls(calls: number): number {
+  const turns = Math.max(0, calls) + 2;
+  const e = TOKEN_ESTIMATE;
+  return Math.ceil((turns * (e.base + e.perTurnOutput) + (e.perCall * turns * (turns - 1)) / 2) / e.usable);
+}
+/** About how many tool calls a token budget allows under TOKEN_ESTIMATE (0 when it allows none). */
+export function callsForTokens(budget: number): number {
+  let calls = 0;
+  while (tokensForCalls(calls + 1) <= budget && calls < 100_000) calls++;
+  return tokensForCalls(0) <= budget ? calls : 0;
+}
+/**
+ * A warning when a configuration's token budget is below what its fewest tool calls need under
+ * TOKEN_ESTIMATE, else null. A warning only: agents that work in parallel or read little may manage.
+ */
+export function tokenBudgetWarning(study: Study, a: AgentProtocol): string | null {
+  if (!a.maxTokens) return null;
+  const { min } = minToolCalls(study, a);
+  if (!min) return null;
+  const needed = tokensForCalls(min);
+  if (a.maxTokens >= needed) return null;
+  const fmt = (n: number) => (n >= 1_000_000 ? `${(n / 1_000_000).toFixed(1)} million` : n.toLocaleString("en-US"));
+  return `${a.id}: the token budget of ${fmt(a.maxTokens)} allows about ${callsForTokens(a.maxTokens)} tool calls; the tasks need at least ${min} (about ${fmt(Math.ceil(needed / 100_000) * 100_000)} tokens; each call re-reads the growing context). Raise the token budget, or expect forecasts submitted without the required tasks.`;
+}
+/**
  * The fewest tool calls a configuration's protocol can be completed with: for app configurations,
  * opening each design, each required task's actions (its minActions, at least one per required
  * action) and one view per task; and one call per project source to read. Submitting the forecast

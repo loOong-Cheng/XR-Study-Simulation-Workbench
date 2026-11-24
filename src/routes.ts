@@ -21,7 +21,7 @@ import { briefOverview, saveBrief } from "./brief.js";
 import { closeExecutor, Executor, liveStatuses, receiptsChanged } from "./executor/runner.js";
 import { exportRunsReport, importRuns, runRecordPath } from "./executor/archive.js";
 import { LOADING, loadingInto } from "./executor/loading.js";
-import { runtimeFor, runtimeStatus } from "./executor/runtimes.js";
+import { capabilityWarnings, runtimeFor, runtimeStatus } from "./executor/runtimes.js";
 import { approvalState, approve } from "./review.js";
 import { readSettings, writeSettings, type Settings } from "./settings.js";
 import {
@@ -230,6 +230,14 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
         studyWarnings: studyWarnings(ws.study),
         // Per configuration: what it names that the study lacks, so the page can offer to remove it.
         problems: ws.problems,
+        // Required capabilities the app or a runtime does not declare (Start refuses those configurations).
+        capabilityWarnings: (() => {
+          try {
+            return capabilityWarnings(ws.study, agents, ws.manifest, settings);
+          } catch {
+            return [];
+          }
+        })(),
       });
       return true;
     }
@@ -267,7 +275,8 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
     case "/api/runtimes": {
       const ws = await readStudyFolder(id);
       const settings = await readSettings();
-      json(["none", "webxr", "unreal", "unity", "visionos"].map((r) => runtimeStatus(r, settings, ws.manifest)));
+      // The study's required capabilities: a ready runtime that lacks one says so on its card.
+      json(["none", "webxr", "unreal", "unity", "visionos"].map((r) => runtimeStatus(r, settings, ws.manifest, ws.study.runtime.requiredCapabilities ?? [])));
       return true;
     }
     case "/api/workspace/source": {

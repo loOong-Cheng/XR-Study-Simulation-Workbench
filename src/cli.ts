@@ -1,5 +1,5 @@
 import { existsSync, statSync } from "node:fs";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, dirname, join, resolve, isAbsolute, relative, sep } from "node:path";
 import { createHash } from "node:crypto";
 import { analyze } from "./core/analyzer.js";
@@ -13,6 +13,7 @@ import {
   withDefaultRuns,
   handoffFiles,
   planningBrief,
+  tokenBudgetWarning,
   proposeAgents,
   verifyPlan,
 } from "./core/planner.js";
@@ -35,7 +36,7 @@ import {
   explainStudy,
 } from "./core/explain.js";
 import { approvalState } from "./review.js";
-import { webxrActionWarnings } from "./executor/runtimes.js";
+import { capabilityWarnings, webxrActionWarnings, webxrPointerProblem } from "./executor/runtimes.js";
 import { fairnessWarnings } from "./core/fairness.js";
 import {
   extractProposal,
@@ -87,7 +88,9 @@ import {
   type CampaignScorecard,
 } from "./core/campaign-comparison.js";
 import { readSettings } from "./settings.js";
-import { changedAppIn, changedSourcesIn, repoRoot, rerunChangedApp, rerunChangedSources, workspaceDir, type WorkspaceManifest } from "./workspace.js";
+import { changedAppIn, changedSourcesIn, loadManifest, repoRoot, rerunChangedApp, rerunChangedSources, workspaceDir, type WorkspaceManifest } from "./workspace.js";
+import { appCheck } from "./app-check.js";
+import { tmpdir } from "node:os";
 import { decodeText } from "./files.js";
 
 // ---------- commands, usage and help ----------
@@ -98,6 +101,7 @@ const usage: Record<string, string> = {
   "proposal-check": "proposal-check <document.pdf|docx|md|txt> <reading.json>",
   "agents-draft": "agents-draft <study.json> <new-agents.json>",
   "study-check": "study-check <study.json> [--agents agents.json] [--human human.json]",
+  "app-check": "app-check <study-folder> [--design <design>]",
   explain: "explain <file>",
   brief: "brief <study.json> <new-brief.json>",
   plan: "plan <study.json> <new-directory> [--agents agents.json] [--repetitions N]",
@@ -128,6 +132,7 @@ const sections: [string, [string, string][]][] = [
       ["proposal-check", "check reading.json: every fact needs an exact quote from the document"],
       ["agents-draft", "draft agent configurations with the Settings forecasting model"],
       ["study-check", "check the study, its agent configurations and human data; list what to fix"],
+      ["app-check", "open each design of a WebXR app through the runtime without an agent and report problems"],
       ["explain", "summarise a study, agents, human, comparisons, plan, campaign or campaign-suite file"],
       ["brief", "export the planning brief (no model call)"],
     ],
@@ -206,6 +211,7 @@ const optionsOf: Record<string, { values?: string[]; lists?: string[]; switches?
   review: { values: ["--port"] },
   proposal: { switches: ["--agent"] },
   "study-check": { values: ["--agents", "--human"] },
+  "app-check": { values: ["--design"] },
   plan: { values: ["--agents", "--repetitions"] },
   analyze: { values: ["--comparisons"] },
   "campaign-analyze": { values: ["--comparisons"] },
@@ -215,6 +221,7 @@ const optionValue: Record<string, string> = {
   "--port": "port",
   "--agents": "agents.json",
   "--human": "human.json",
+  "--design": "design",
   "--repetitions": "N",
   "--comparisons": "comparisons.json",
   "--receipts": "receipts.jsonl",
@@ -628,7 +635,20 @@ async function main(): Promise<void> {
     const workspaceFile = join(dirname(resolve(args[0])), "workspace.json");
     const workspace = existsSync(workspaceFile) ? await readFile(workspaceFile, "utf8").then((t) => JSON.parse(t), () => ({})).catch(() => ({})) : {};
     // What agents get must be fair (fairness.ts): the research question, stand-ins, models of compared configurations.
-    const warnings = [...(agents ? webxrActionWarnings(study, agents, workspace) : []), ...fairnessWarnings(study, agents, await comparisonsBeside(args[0]))];
+    // Also: required capabilities the runtime does not declare (Start would refuse those configurations),
+    // token budgets below what the fewest tool calls need, and a motor-noise model the runtime cannot apply.
+    const pointerProblem = webxrPointerProblem(workspace);
+    const warnings = [
+      ...(agents
+        ? [
+            ...webxrActionWarnings(study, agents, workspace),
+            ...capabilityWarnings(study, agents, workspace, await readSettings().catch(() => undefined)),
+            ...agents.map((a) => tokenBudgetWarning(study, a)).filter((w): w is string => !!w),
+          ]
+        : []),
+      ...(pointerProblem ? [pointerProblem] : []),
+      ...fairnessWarnings(study, agents, await comparisonsBeside(args[0])),
+    ];
     if (warnings.length) console.log("## Warnings\n\n" + warnings.map((w) => `- ${w}`).join("\n") + "\n");
     // comparisons.json beside the study: a comparison across levels (population vs individual) is
     // refused here as on save, so the analysis never meets one it has to skip. The configurations
@@ -678,6 +698,29 @@ async function main(): Promise<void> {
       console.log("## Problems\n\n" + problems.map((p) => `- ${p}`).join("\n"));
       process.exitCode = 2;
     } else console.log(warnings.length ? "Study is valid, with the warnings above." : "Study is valid.");
+    return;
+  }
+  if (command === "app-check") {
+    need(args.length === 1);
+    const dir = resolve(args[0]);
+    const study = validateStudy((await loadAs(join(dir, "study.json"), "study")).value);
+    const manifest = await loadManifest(dir);
+    const out = await mkdtemp(join(tmpdir(), "xr-app-check-"));
+    const settings = await readSettings();
+    console.log(`Opening each design of ${args[0]} through the WebXR runtime (no agent). Job folders, screenshots and traces: ${out}\n`);
+    const checks = await appCheck(dir, study, manifest, { chromePath: settings.chromePath, out, design: values.get("--design") });
+    for (const c of checks) {
+      console.log(`## ${c.design}\n`);
+      for (const n of c.notes) console.log(`- ${n}`);
+      for (const p of c.problems) console.log(`- PROBLEM: ${p}`);
+      if (c.screenshots.length) console.log(`- Screenshot: ${c.screenshots[0]}`);
+      console.log("");
+    }
+    const n = checks.reduce((s, c) => s + c.problems.length, 0);
+    if (n) {
+      console.log(`${n} problem${n === 1 ? "" : "s"}: fix the app or workspace.json → app before the first real session.`);
+      process.exitCode = 2;
+    } else console.log("Every design opened, and the runtime could read the app. Look at the screenshots; then run one real session (Run this session only).");
     return;
   }
   if (command === "explain") {
@@ -1098,6 +1141,8 @@ async function main(): Promise<void> {
           ? "Warning: the study or agents changed after the researcher approved them. Run `review` again."
           : "Warning: this study has not been approved in `review`. Freezing anyway; the plan records the exact files used.",
       );
+    // Budgets that likely cannot finish the tasks (a warning: the plan is frozen anyway).
+    for (const w of agents.map((a) => tokenBudgetWarning(study, a)).filter(Boolean)) console.warn(`Warning: ${w}`);
     // --repetitions N = runs per participant (default 1); population configurations without their own count get participants × N.
     const perParticipant = values.has("--repetitions") ? Number(values.get("--repetitions")) : 1;
     const plan = freezePlan(study, withDefaultRuns(study, agents, perParticipant), perParticipant);

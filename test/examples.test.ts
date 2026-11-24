@@ -545,6 +545,40 @@ test("planner: the least tool calls a protocol needs, from the study's tasks", a
   assert.equal(minToolCalls(study, agents.find((a) => a.id === "A")!).min, 0);
 });
 
+test("planner: token budgets below what the fewest tool calls need are warned about, not refused", async () => {
+  const { callsForTokens, tokenBudgetWarning, tokensForCalls } = await import("../src/core/planner.js");
+  const dir = resolve("examples/ecolar");
+  const study = validateStudy(JSON.parse(await readFile(join(dir, "study.json"), "utf8")));
+  const agents = validateAgents(study, JSON.parse(await readFile(join(dir, "agents.json"), "utf8")));
+  const c = agents.find((a) => a.id === "C")!;
+  // Every call re-reads the growing context: 2 million tokens allow about 58 calls, not the 73 the tasks need.
+  assert.equal(callsForTokens(2_000_000), 58);
+  assert.ok(tokensForCalls(73) > 2_000_000 && tokensForCalls(73) < 3_500_000, String(tokensForCalls(73)));
+  assert.ok(callsForTokens(60_000) < 10);
+  assert.match(tokenBudgetWarning(study, { ...c, maxTokens: 2_000_000 }) ?? "", /^C: the token budget of 2\.0 million allows about 58 tool calls; the tasks need at least 73 \(about 3\.0 million tokens/);
+  assert.match(tokenBudgetWarning(study, { ...c, maxTokens: 60_000 }) ?? "", /allows about \d tool calls; the tasks need at least 73/);
+  assert.equal(tokenBudgetWarning(study, { ...c, maxTokens: 5_000_000 }), null);
+  assert.equal(tokenBudgetWarning(study, { ...c, maxTokens: undefined }), null, "no budget, no warning");
+  assert.equal(tokenBudgetWarning(study, { ...agents.find((a) => a.id === "A")!, maxTokens: 20_000 }), null, "no tool calls needed");
+});
+
+test("required capabilities the app does not declare are warned about before Start, and shown on the runtime card", async () => {
+  const { capabilityWarnings, runtimeStatus } = await import("../src/executor/runtimes.js");
+  const dir = resolve("examples/graphics-quality");
+  const study = validateStudy(JSON.parse(await readFile(join(dir, "study.json"), "utf8")));
+  const agents = validateAgents(study, JSON.parse(await readFile(join(dir, "agents.json"), "utf8")));
+  const manifest = JSON.parse(await readFile(join(dir, "workspace.json"), "utf8"));
+  assert.deepEqual(capabilityWarnings(study, agents, manifest), [], "the example declares what its study requires");
+  const strict = structuredClone(study);
+  strict.runtime.requiredCapabilities = ["pointer-xy"];
+  const [w] = capabilityWarnings(strict, agents, manifest);
+  assert.match(w, /^The study requires pointer-xy, which the WebXR app does not declare \(workspace\.json → app\.capabilities: screenshot, look, pointer-select/);
+  assert.match(w, /uses-app, uses-app-people cannot run as agents/);
+  const settings = { chromePath: process.execPath, runtimes: {} } as never;
+  assert.match(runtimeStatus("webxr", settings, manifest, ["pointer-xy"]).message, /^Ready, but the study requires pointer-xy, which the app \(workspace\.json → app\.capabilities\) does not declare/);
+  assert.match(runtimeStatus("webxr", settings, manifest, ["look"]).message, /^Ready\. Mono screenshots only/);
+});
+
 test("campaign history: labels, lineage, progress, duplicate designs and every attempt of a session", async () => {
   const { Executor } = await import("../src/executor/runner.js");
   const { readWorkspace, saveCampaign, runDir } = await import("../src/workspace.js");
@@ -1503,6 +1537,11 @@ test("figures: simulated configurations are marked and never tested against real
   assert.match(svg, /invented forecasts that only test/);
   assert.equal(svg.match(/>\(simulated\)</g)?.length, 2, "both simulated labels keep their (simulated) line, also a long one");
   assert.doesNotMatch(agreementPlot(realOnly, "t", ids), /stroke-dasharray="4 3"|invented/);
+  // A configuration without runs shows "no data" and no mean above it (not "0.0").
+  const empty = { ...realOnly, groups: [...realOnly.groups, { ...realOnly.groups[0], id: "none-ran", label: "None ran", values: [], units: [], stats: { ...realOnly.groups[0].stats, n: 0, mean: 0 } }] };
+  const emptySvg = agreementPlot(empty, "t", [...ids, "none-ran"]);
+  assert.match(emptySvg, /no data/);
+  assert.equal(emptySvg.match(/>0\.0</g), null, emptySvg.match(/>[\d.]+</g)?.join(" "));
 
   // Agent vs human: simulated configurations are described, not tested, and outside the Holm family.
   const vs = agentVsHumanFigure(study, report, ids, "search-time", labels);

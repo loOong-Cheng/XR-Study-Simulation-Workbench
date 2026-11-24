@@ -22,6 +22,8 @@ interface WorkspaceView {
   warnings?: string[];
   /** Per configuration: what it names that the saved study does not have, and why it does not fit. */
   problems?: ConfigProblem[];
+  /** Required capabilities that the app or a runtime does not declare (those configurations cannot start as agents). */
+  capabilityWarnings?: string[];
 }
 interface ConfigProblem { configId: string; label: string; unknownSources: string[]; unknownOutcomes: string[]; unknownCases: string[]; message: string | null }
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
@@ -1037,7 +1039,7 @@ function renderConfigs() {
     heading("2 · PLANNER", "Configure the agents.", "Each card is one agent configuration: what it gets, at which level it predicts, with which model and runtime, how often, and which measures it predicts or receives.") +
     `<div class="card"><div class="actions">${btn("apply-default-model", `Use default model for all (${esc(settings?.forecasting.model)})`)}<select id="template" aria-label="Template">${templates()
       .map((t) => `<option value="${t.id}" ${t.missing ? "disabled" : ""}>${t.id}${t.missing ? ` (needs ${t.missing})` : ""}</option>`)
-      .join("")}</select>${btn("add-config", "Add from template")}${btn("add-custom", "Add custom configuration")}</div><p class="caption">A template adds a ready-made configuration. A custom one starts from the brief only; choose below what it gets, for example a second evidence source. <strong>Duplicate</strong> copies a configuration so you can change one thing, such as which evidence it reads.</p></div>
+      .join("")}</select>${btn("add-config", "Add from template")}${btn("add-custom", "Add custom configuration")}</div><p class="caption">A template adds a ready-made configuration. A custom one starts from the brief only; choose below what it gets, for example a second evidence source. <strong>Duplicate</strong> copies a configuration so you can change one thing, such as which evidence it reads.</p></div>${capabilityNotice()}
     <div class="config-list">${agents
       .map((a) => {
         const r = rt(runtimeOf(a));
@@ -1050,7 +1052,7 @@ function renderConfigs() {
             ? `<div class="notice">In the saved files: ${esc(savedProblem(a.id))}</div>`
             : ""
         }
-        <div class="row4"><label class="field">Level<select data-cfg="${esc(a.id)}" data-field="level"><option value="population" ${level === "population" ? "selected" : ""}>Population</option><option value="individual" ${level === "individual" ? "selected" : ""} ${study!.design === "between-subjects" ? "disabled" : ""}>Individual${study!.design === "between-subjects" ? " (needs within-subjects)" : ""}</option></select></label><label class="field">Runs${level === "individual" ? " per person" : ""}<input type="number" min="1" max="${level === "individual" ? 50 : 1000}" data-cfg="${esc(a.id)}" data-field="repetitions" value="${a.repetitions ?? ""}" placeholder="${level === "individual" ? `default ${newRepetitions}` : `default ${Math.max(1, study!.participants.length)} × ${newRepetitions}`}"></label><label class="field">Runtime<select data-cfg="${esc(a.id)}" data-field="runtime">${runtimeOptions(a)}</select></label><label class="field">Token budget per session<input type="number" min="20000" max="50000000" step="1000" data-cfg="${esc(a.id)}" data-field="maxTokens" value="${a.maxTokens ?? ""}" placeholder="no limit"></label></div><p class="caption">All tokens a session uses: input (including cache) and output; at least 20,000. When what is left is under 10% of it, or under 3.5 × the last turn (the submission, a possible second one and the closing turn each re-read the context), the tools stop and the agent submits. A submitting session is never stopped for its budget (it has 3 attempts); one still calling other tools above 150% is stopped, and none after its forecast was accepted. ${a.maxTokens ? `${fmtTokensLong(a.maxTokens)} tokens.` : "Empty = no limit."}</p>
+        <div class="row4"><label class="field">Level<select data-cfg="${esc(a.id)}" data-field="level"><option value="population" ${level === "population" ? "selected" : ""}>Population</option><option value="individual" ${level === "individual" ? "selected" : ""} ${study!.design === "between-subjects" ? "disabled" : ""}>Individual${study!.design === "between-subjects" ? " (needs within-subjects)" : ""}</option></select></label><label class="field">Runs${level === "individual" ? " per person" : ""}<input type="number" min="1" max="${level === "individual" ? 50 : 1000}" data-cfg="${esc(a.id)}" data-field="repetitions" value="${a.repetitions ?? ""}" placeholder="${level === "individual" ? `default ${newRepetitions}` : `default ${Math.max(1, study!.participants.length)} × ${newRepetitions}`}"></label><label class="field">Runtime<select data-cfg="${esc(a.id)}" data-field="runtime">${runtimeOptions(a)}</select></label><label class="field">Token budget per session<input type="number" min="20000" max="50000000" step="1000" data-cfg="${esc(a.id)}" data-field="maxTokens" value="${a.maxTokens ?? ""}" placeholder="no limit"></label></div><p class="caption">All tokens a session uses: input (including cache) and output; at least 20,000. When what is left is under 10% of it, or under 3.5 × the last turn (the submission, a possible second one and the closing turn each re-read the context), the tools stop and the agent submits. A submitting session is never stopped for its budget (it has 3 attempts); one still calling other tools above 150% is stopped, and none after its forecast was accepted. ${a.maxTokens ? `${fmtTokensLong(a.maxTokens)} tokens.` : "Empty = no limit."}</p>${tokenNote(a)}
         <div class="row3"><label class="field">Provider<input data-cfg="${esc(a.id)}" data-field="provider" value="${esc(a.model.provider)}"></label><label class="field">Model<input data-cfg="${esc(a.id)}" data-field="model" value="${esc(a.model.model)}"></label><label class="field">Effort${effortSelect(`data-cfg="${esc(a.id)}" data-field="reasoning"`, a.model.reasoning)}</label></div>
         <div class="mini-title">The agent gets</div><div class="config-picks">${study!.sources
           .map((src) =>
@@ -1140,6 +1142,40 @@ function budgetNote(a: AgentProtocol) {
   if (!min) return `<p class="caption">Needs no tool calls besides submitting the forecast, which the budget does not count.</p>`;
   return `<p class="caption ${short ? "warn" : ""}">The protocol needs at least ${min} tool call${min === 1 ? "" : "s"} (${parts.join(", ")}); submitting the forecast is not counted.${short ? " The budget is too small to finish it." : tight ? " Little room is left to look around or read more." : ""}</p>`;
 }
+/** Required capabilities the app or a runtime does not declare (saved study and workspace.json; from the server). */
+const capabilityNotice = () => (ws?.capabilityWarnings?.length ? `<div class="notice">${ws.capabilityWarnings.map((w) => esc(w)).join("<br>")}</div>` : "");
+/** Configurations whose token budget is likely too small for their fewest tool calls. */
+const tokenShort = () => agents.filter((a) => a.maxTokens && minCalls(a) && a.maxTokens < tokensForCalls(minCalls(a)));
+/** Same estimate as tokensForCalls in core/planner.ts (TOKEN_ESTIMATE): one call per turn, a 6,000-token start, +800 per call, 300 out per turn, 90% usable. */
+const tokensForCalls = (calls: number) => {
+  const turns = Math.max(0, calls) + 2;
+  return Math.ceil((turns * 6300 + (800 * turns * (turns - 1)) / 2) / 0.9);
+};
+const callsForTokens = (budget: number) => {
+  let calls = 0;
+  while (tokensForCalls(calls + 1) <= budget && calls < 100_000) calls++;
+  return tokensForCalls(0) <= budget ? calls : 0;
+};
+/** Fewest tool calls of a configuration (same rule as budgetNote and minToolCalls). */
+function minCalls(a: AgentProtocol) {
+  const st = study!;
+  let min = a.tools.includes("read-files") ? a.sourceIds.filter((id) => st.sources.find((s) => s.id === id)?.kind === "project").length : 0;
+  if (a.tools.includes("xr-interact")) {
+    const cases = a.requiredCaseIds.map((id) => st.cases.find((c) => c.id === id)).filter((c): c is Study["cases"][number] => !!c);
+    min += new Set(cases.map((c) => c.conditionId)).size;
+    min += cases.reduce((n, c) => n + Math.max(c.minActions ?? 0, c.requiredActions.length), 0);
+    min += cases.reduce((n, c) => n + (c.observeBeforeEachAction ? Math.max(1, c.minActions ?? 0, c.requiredActions.length) : 1), 0);
+  }
+  return min;
+}
+/** Whether the token budget is likely too small for the fewest tool calls (a warning; see tokenBudgetWarning in core/planner.ts). */
+function tokenNote(a: AgentProtocol) {
+  const min = minCalls(a);
+  if (!a.maxTokens || !min) return "";
+  const needed = tokensForCalls(min);
+  if (a.maxTokens >= needed) return `<p class="caption">This budget allows about ${callsForTokens(a.maxTokens)} tool calls; the tasks need at least ${min}.</p>`;
+  return `<p class="caption warn">This budget allows about ${callsForTokens(a.maxTokens)} tool calls; the tasks need at least ${min} (about ${fmtTokensLong(Math.ceil(needed / 100_000) * 100_000)} tokens: every call re-reads the growing context). Raise it, or expect forecasts submitted without the required tasks.</p>`;
+}
 const isIndividual = (a: AgentProtocol) => (a.level ?? study!.predictionLevel) === "individual";
 const defaultRunsOf = (a: AgentProtocol) => (isIndividual(a) ? newRepetitions : Math.max(1, study!.participants.length) * newRepetitions);
 const runsOf = (a: AgentProtocol) => a.repetitions ?? defaultRunsOf(a);
@@ -1213,6 +1249,10 @@ function renderFreeze() {
     }${
       usesWebxr() && study!.runtime.deviceProfile !== WEBXR_PROFILE && study!.runtime.engine === "custom"
         ? `<div class="notice">The study's device is "${esc(study!.runtime.deviceProfile)}", but the WebXR runtime reports <code>${WEBXR_PROFILE}</code>. App sessions would be listed as protocol deviations. Set the device on the Study page (one click) before freezing.</div>`
+        : ""
+    }${capabilityNotice()}${
+      tokenShort().length
+        ? `<div class="notice">The token budget is likely too small for the fewest tool calls of ${esc(tokenShort().map((a) => `${a.label} (about ${callsForTokens(a.maxTokens!)} calls allowed, at least ${minCalls(a)} needed)`).join(", "))}. You can freeze; see Agent configurations → Token budget.</div>`
         : ""
     }${
       // Fairness of what agents get, as last saved (fairness.ts): a configuration comparison should change one ingredient.
