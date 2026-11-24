@@ -208,6 +208,8 @@ let contPreview: any = null;
 /** Reuse finished simulated runs in a continuation (default: run those sessions again). */
 let contKeepSimulated = false;
 let contPreviewSim: { reused: number; runAgain: number; byCondition: Record<string, { reused: number; runAgain: number }> } | null = null;
+/** Configurations the continuation runs again because a source they read changed since the freeze. */
+let contPreviewSources: string[] = [];
 // campaign comparison (Freeze & campaigns)
 let cmpBefore = "";
 let cmpAfter = "";
@@ -288,6 +290,7 @@ function showCampaign(id: string | null) {
   contBase = null;
   contPreview = null;
   contPreviewSim = null;
+  contPreviewSources = [];
   connect();
 }
 /** The study and configurations as the server has them: changes since then are unsaved edits (see beforeunload). */
@@ -1275,7 +1278,7 @@ function renderContinue() {
               ? ` ${sim.reused} of the reused runs ${sim.reused === 1 ? "is" : "are"} simulated (invented); they test the pipeline, not prediction quality.`
               : "";
             const againLine = sim?.runAgain ? ` ${sim.runAgain} session${sim.runAgain === 1 ? " was" : "s were"} only simulated and run${sim.runAgain === 1 ? "s" : ""} again.` : "";
-            return `<div class="divider"></div><p class="caption">${p.jobs.filter((j: any) => j.kind === "llm" && !j.inheritedFrom).length} new sessions, ${reused} reused (only sessions with an accepted forecast are reused).${simLine}${againLine}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Model</th><th>Sessions</th><th>Reused</th></tr></thead><tbody>${p.suite.conditions
+            return `<div class="divider"></div>${contPreviewSources.map((n) => `<div class="notice">${esc(n)}</div>`).join("")}<p class="caption">${p.jobs.filter((j: any) => j.kind === "llm" && !j.inheritedFrom).length} new sessions, ${reused} reused (only sessions with an accepted forecast are reused).${simLine}${againLine}</p><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Model</th><th>Sessions</th><th>Reused</th></tr></thead><tbody>${p.suite.conditions
               .map((c: any) => {
                 const jobs = p.jobs.filter((j: any) => j.conditionId === c.id);
                 const s = sim?.byCondition[c.id];
@@ -1836,6 +1839,7 @@ async function action(name: string) {
       const r = await api("workspace/continue", { id: ws!.id, campaignId: contBase ?? campaignId, changes: continuationChanges(), keepSimulated: contKeepSimulated, preview: true });
       contPreview = r.campaign;
       contPreviewSim = r.simulated ?? null;
+      contPreviewSources = r.sourceChanges ?? [];
       break;
     }
     case "cont-adopt": {
@@ -1844,7 +1848,7 @@ async function action(name: string) {
       showCampaign(r.campaignId);
       contRows = {};
       page = "executor";
-      toast(`Continuation created: ${r.reused} of ${r.jobs} sessions reused${r.reusedSimulated ? ` (${r.reusedSimulated} simulated)` : ""}. The executor now shows the new campaign.`);
+      toast(`Continuation created: ${r.reused} of ${r.jobs} sessions reused${r.reusedSimulated ? ` (${r.reusedSimulated} simulated)` : ""}.${r.sourceChanges?.length ? ` ${r.sourceChanges.join(" ")}` : ""} The executor now shows the new campaign.`);
       break;
     }
     case "save-settings": {
@@ -1891,6 +1895,7 @@ function enterContinue() {
   contBase = null;
   contPreview = null;
   contPreviewSim = null;
+  contPreviewSources = [];
 }
 function syncContinuation() {
   const v = (id: string) => $<HTMLInputElement>(id)?.value;

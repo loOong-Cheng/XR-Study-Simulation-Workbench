@@ -83,7 +83,7 @@ import {
   type CampaignScorecard,
 } from "./core/campaign-comparison.js";
 import { readSettings } from "./settings.js";
-import { repoRoot, workspaceDir } from "./workspace.js";
+import { changedSourcesIn, repoRoot, rerunChangedSources, workspaceDir, type WorkspaceManifest } from "./workspace.js";
 import { decodeText } from "./files.js";
 
 // ---------- commands, usage and help ----------
@@ -811,13 +811,23 @@ async function main(): Promise<void> {
   }
   if (command === "campaign-continue") {
     need(args.length === 3);
-    const previous = await loadCampaign(args[0]);
-    const changes = await readJson<CampaignContinuation>(args[1]);
+    const { value: previous, path: previousPath } = await loadAs<Campaign>(args[0], "campaign", "campaign.json");
+    const given = await readJson<CampaignContinuation>(args[1]);
     requireThat(
-      changes && typeof changes === "object" && !Array.isArray(changes),
+      given && typeof given === "object" && !Array.isArray(given),
       `${args[1]} must be a JSON object of changes, for example {"rerunConditions": ["<configuration>"]}.`,
     );
     requireNew(args[2]);
+    // A campaign the website froze (<study>/campaigns/<id>/campaign.json with sources.json beside it):
+    // configurations that read a source changed since then run again, as in the website.
+    const studyDir = resolve(dirname(previousPath), "..", "..");
+    const fingerprints = join(dirname(previousPath), "sources.json");
+    const manifest = existsSync(join(studyDir, "workspace.json")) ? await readJson<WorkspaceManifest>(join(studyDir, "workspace.json")) : {};
+    const { changes, notes } =
+      existsSync(fingerprints) && existsSync(join(studyDir, "study.json"))
+        ? rerunChangedSources(previous, await changedSourcesIn(studyDir, previous, manifest, fingerprints), given)
+        : { changes: given, notes: [] as string[] };
+    // The configurations it adds or changes are checked as when they are saved (continueCampaign).
     const receiptFiles = lists.get("--receipts");
     const campaign = receiptFiles
       ? continueFromStatus(previous, await loadReceipts(receiptFiles), changes)
@@ -825,7 +835,7 @@ async function main(): Promise<void> {
     const out = await freshDirectory(args[2]);
     await writeFiles(out, campaignFiles(campaign));
     console.log(
-      pretty({ directory: out, digest: campaign.digest, ...campaignSummary(campaign) }),
+      pretty({ directory: out, digest: campaign.digest, ...campaignSummary(campaign), ...(notes.length ? { sourceChanges: notes } : {}) }),
     );
     return;
   }

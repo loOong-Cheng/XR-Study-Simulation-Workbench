@@ -37,6 +37,8 @@ import {
   missingSources,
   runDir,
   createStudy,
+  changedSources,
+  rerunChangedSources,
 } from "./workspace.js";
 import { campaignSummaries, deleteCampaign, sameDesignKey, sessionAttempts, writeLabel } from "./history.js";
 import { evidenceOverview, knowledgeDraft, leakCheck, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
@@ -398,7 +400,11 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       for (const c of changes?.cloneConditions ?? []) checkModelSettings(c?.model, c?.label ?? c?.id ?? "the added model");
       const bundles = previous.suite.study ? await readResults(id, previous.suite.study, chain.map((c) => c.id)) : [];
       const simulatedBefore = simulatedJobIds(previous, bundles);
-      const next = continueFromStatus(previous, receipts, changes, undefined, undefined, {
+      // Configurations that read a source changed since the parent was frozen run again: their
+      // finished runs used the old version (recorded as rerunConditions in the change set).
+      const { manifest } = await readStudyFolder(id);
+      const sourceReruns = rerunChangedSources(previous, await changedSources(id, previous, manifest), changes);
+      const next = continueFromStatus(previous, receipts, sourceReruns.changes, undefined, undefined, {
         simulatedJobIds: simulatedBefore,
         keepSimulated,
         receiptsComplete: true,
@@ -421,12 +427,12 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       );
       const totals = Object.values(simulated).reduce((s, x) => ({ reused: s.reused + x.reused, runAgain: s.runAgain + x.runAgain }), { reused: 0, runAgain: 0 });
       if (preview) {
-        json({ preview: true, campaign: next, keepSimulated, simulated: { ...totals, byCondition: simulated } });
+        json({ preview: true, campaign: next, keepSimulated, simulated: { ...totals, byCondition: simulated }, sourceChanges: sourceReruns.notes });
         return true;
       }
       await saveCampaign(id, next);
       await saveSourceFingerprints(id, next);
-      json({ campaignId: next.id, reused, jobs: next.jobs.length, reusedSimulated: totals.reused, simulatedRunAgain: totals.runAgain });
+      json({ campaignId: next.id, reused, jobs: next.jobs.length, reusedSimulated: totals.reused, simulatedRunAgain: totals.runAgain, sourceChanges: sourceReruns.notes });
       return true;
     }
     case "/api/executor/start": {

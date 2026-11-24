@@ -1,6 +1,8 @@
 import { randomUUID, createHash } from "node:crypto";
 import { agentLevel, hash, jobPacket, verifyPlan } from "./planner.js";
 import {
+  checkModelSettings,
+  checkNewConfigurations,
   requireThat,
   validateAgents,
   validateStudy,
@@ -563,7 +565,41 @@ export function continueCampaign(
   id = "campaign-" + randomUUID(),
   createdAt = new Date().toISOString(),
 ): Campaign {
-  return deriveCampaign(previous, changes, id, createdAt, "create");
+  const next = deriveCampaign(previous, changes, id, createdAt, "create");
+  checkChangedConfigurations(previous, next, changes);
+  return next;
+}
+/**
+ * What a continuation adds or changes meets the rules for configurations saved or frozen now
+ * (checkNewConfigurations: token budget range, effort and model settings, combinations): every
+ * added or cloned configuration, and every one whose setup or model changes. Configurations that
+ * stay as they were frozen keep the rules of their time. Recorded continuations are replayed
+ * (verifyContinuation) without these checks.
+ */
+function checkChangedConfigurations(previous: Campaign, next: Campaign, changes: CampaignContinuation): void {
+  checkModelSettings(changes.model, "the new default model");
+  const before = new Map(previous.suite.conditions.map((c) => [c.id, c]));
+  const setup = (c: CampaignCondition) =>
+    hash({ ...c.recipe, protocol: c.recipe.protocol ? { ...c.recipe.protocol, label: null } : null, stage: c.stage, kind: c.kind });
+  for (const c of next.suite.conditions) {
+    if (c.kind !== "llm") continue;
+    const old = before.get(c.id);
+    const model = conditionModel(next, c.id);
+    const changed = !old || setup(old) !== setup(c) || hash(conditionModel(previous, c.id)) !== hash(model);
+    if (!changed) continue;
+    checkModelSettings(model, c.label);
+    // A configuration's model is the campaign's (conditionModels); one written into its protocol would not be used.
+    const own = (c.recipe.protocol as { model?: CampaignModel } | undefined)?.model;
+    if (own) {
+      checkModelSettings(own, c.label);
+      requireThat(
+        hash({ provider: own.provider, model: own.model, reasoning: own.reasoning }) === hash(model),
+        `${c.label} names the model ${own.model} (${own.reasoning}) in its protocol, but would run with ${model.model} (${model.reasoning}). Give an added configuration's model under conditionModels.`,
+      );
+    }
+    if (next.suite.study && c.recipe.protocol)
+      checkNewConfigurations(next.suite.study, [{ ...c.recipe.protocol, model } as AgentProtocol]);
+  }
 }
 /**
  * "create" makes a new continuation: it generates labels (model arms, labels that follow a model

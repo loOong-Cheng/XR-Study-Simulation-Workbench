@@ -59,6 +59,9 @@ Every field is optional; at least one change is required.
 - A reused job records `inheritedFrom`: the campaign that actually executed it, never an intermediate one. It is left out of `run-queue.jsonl` and the job packets.
 - A derived reference is reused only together with its source.
 - Rule-based conditions are reused even after a model change, because they make no model calls.
+- A configuration that reads a source changed since the parent was frozen (its `sources.json` beside `campaign.json`) runs again: it is added to `rerunConditions`, and the website's preview and `campaign-continue` name it ("Participant demographics changed since this campaign was frozen: … runs again").
+
+**Checks.** Every configuration a continuation adds (`addConditions`, `cloneConditions`) or changes (its setup or model) must meet the rules for configurations saved today: a token budget of 20,000–50,000,000, an effort Claude Code understands, the app runtime exactly when it uses the app, movement recordings only for individual forecasts. A model is given under `conditionModels`, not inside an added configuration's protocol. Configurations that stay as they were frozen keep the rules of their time.
 
 Pass the parent's receipts to make the continuation failure-aware:
 

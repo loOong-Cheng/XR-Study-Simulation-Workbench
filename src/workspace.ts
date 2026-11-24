@@ -12,7 +12,7 @@ import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
 import { basename, dirname, isAbsolute, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import type { AgentProtocol, Comparison, HumanData, ResultBundle, RunResult, Study } from "./core/types.js";
-import type { Campaign, CampaignReceipt } from "./core/campaign.js";
+import type { Campaign, CampaignContinuation, CampaignReceipt } from "./core/campaign.js";
 import { checkNewConfigurations, requireThat, validateAgents, validateComparisons, validateStudy } from "./core/validation.js";
 import { explainComparisons } from "./core/explain.js";
 import { measureNamedFieldProblem, PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
@@ -191,11 +191,14 @@ export async function saveSourceFingerprints(id: string, campaign: Campaign) {
  * Campaigns frozen before fingerprints were recorded have none, and nothing is refused for them.
  */
 export async function changedSources(id: string, campaign: Campaign, manifest: WorkspaceManifest): Promise<{ id: string; message: string }[]> {
-  const file = fingerprintFile(id, campaign.id);
+  return changedSourcesIn(workspaceDir(id), campaign, manifest, fingerprintFile(id, campaign.id));
+}
+/** changedSources for a study folder and the campaign's sources.json given as paths (the command line). */
+export async function changedSourcesIn(dir: string, campaign: Campaign, manifest: WorkspaceManifest, file: string): Promise<{ id: string; message: string }[]> {
   const study = campaign.suite.study;
   if (!existsSync(file) || !study) return [];
   const frozen = await load<{ sources: Record<string, SourceFingerprint> }>(file);
-  const now = sourceFingerprints(workspaceDir(id), study, manifest, Object.keys(frozen.sources));
+  const now = sourceFingerprints(dir, study, manifest, Object.keys(frozen.sources));
   return Object.entries(frozen.sources).flatMap(([sid, f]) => {
     const current = now[sid];
     if (current && current.path === f.path && current.sha256 === f.sha256) return [];
@@ -203,6 +206,33 @@ export async function changedSources(id: string, campaign: Campaign, manifest: W
     const where = current && current.path !== f.path ? `${f.path}, now ${current.path}` : f.path;
     return [{ id: sid, message: `${label} (${where}) changed after this campaign was frozen. Freeze a new campaign, or Continue / rerun to use the new version.` }];
   });
+}
+/**
+ * A continuation runs again every configuration that reads a source changed since the campaign it
+ * continues was frozen: its finished runs used the old version, so they are not reused. Returns the
+ * change set with those configurations in rerunConditions (dropped ones left out) and a line per
+ * configuration for the researcher.
+ */
+export function rerunChangedSources(
+  previous: Campaign,
+  changed: { id: string }[],
+  changes: CampaignContinuation,
+): { changes: CampaignContinuation; notes: string[]; conditionIds: string[] } {
+  const study = previous.suite.study;
+  const dropped = new Set(changes?.dropConditions ?? []);
+  const hit = study
+    ? previous.suite.conditions.flatMap((c) => {
+        const ids = (c.recipe.protocol?.sourceIds ?? []).filter((s) => changed.some((x) => x.id === s));
+        return c.kind === "llm" && ids.length && !dropped.has(c.id) ? [{ c, labels: ids.map((s) => study.sources.find((x) => x.id === s)?.label ?? s) }] : [];
+      })
+    : [];
+  if (!hit.length) return { changes, notes: [], conditionIds: [] };
+  const conditionIds = hit.map((h) => h.c.id);
+  return {
+    changes: { ...changes, rerunConditions: [...new Set([...(changes?.rerunConditions ?? []), ...conditionIds])] },
+    notes: hit.map((h) => `${h.labels.join(", ")} changed since this campaign was frozen: ${h.c.label} runs again (its finished runs used the old version).`),
+    conditionIds,
+  };
 }
 export interface WorkspaceInfo {
   id: string;
