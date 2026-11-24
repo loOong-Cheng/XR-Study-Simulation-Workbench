@@ -17,7 +17,7 @@ import type { AgentProtocol, Comparison, Domain, Study } from "./core/types.js";
 import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
 import { briefOverview, saveBrief } from "./brief.js";
-import { closeExecutor, Executor, liveStatuses } from "./executor/runner.js";
+import { closeExecutor, Executor, liveStatuses, receiptsChanged } from "./executor/runner.js";
 import { exportRunsReport, importRuns, runRecordPath } from "./executor/archive.js";
 import { runtimeFor, runtimeStatus } from "./executor/runtimes.js";
 import { approvalState, approve } from "./review.js";
@@ -47,7 +47,20 @@ import { campaignSummaries, deleteCampaign, sameDesignKey, sessionAttempts, writ
 import { evidenceOverview, knowledgeDraft, leakCheck, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
 
 type Json = (value: unknown, status?: number) => void;
-const analysisCache = new Map<string, CampaignAnalysis>();
+/**
+ * Recent analyses, so figures and views of one analysis do not recompute it: at most
+ * ANALYSES_KEPT (least recently used go first), one per study, campaign and comparisons, valid for
+ * the receipts it was made from. An entry is dropped as soon as a receipt of its campaign or of a
+ * campaign it reuses runs from is written, or runs are loaded into one of them.
+ */
+export const ANALYSES_KEPT = 8;
+const analysisCache = new Map<string, { id: string; chain: string[]; receipts: number; value: CampaignAnalysis }>();
+export function forgetAnalyses(id: string, campaignId: string) {
+  for (const [k, v] of analysisCache) if (v.id === id && v.chain.includes(campaignId)) analysisCache.delete(k);
+}
+receiptsChanged.add(forgetAnalyses);
+/** For the tests: how many analyses are kept now. */
+export const cachedAnalyses = () => analysisCache.size;
 
 /** Agent configs of a workspace, or templates with your default forecasting model when none exist yet. */
 async function configs(study: Study, saved: AgentProtocol[] | null, settings: Settings) {
@@ -66,8 +79,14 @@ async function analysis(id: string, campaignId: string, comparisons?: Comparison
   const campaign = await readCampaign(id, campaignId);
   const chain = await lineage(id, campaign);
   const receipts = await readReceipts(id, chain.map((c) => c.id));
-  const key = `${id}|${campaign.digest}|${receipts.length}|${JSON.stringify(comparisons ?? null)}`;
-  if (analysisCache.has(key)) return { campaign, analysis: analysisCache.get(key)!, receipts };
+  const key = `${id}|${campaign.digest}|${JSON.stringify(comparisons ?? null)}`;
+  const kept = analysisCache.get(key);
+  if (kept && kept.receipts === receipts.length) {
+    // Most recently used last.
+    analysisCache.delete(key);
+    analysisCache.set(key, kept);
+    return { campaign, analysis: kept.value, receipts };
+  }
   const human = await readHuman(id);
   requireThat(human, "This study has no human reference (human.json) yet; the analyzer needs it.");
   const bundles = await readResults(id, campaign.suite.study!, chain.map((c) => c.id));
@@ -81,7 +100,9 @@ async function analysis(id: string, campaignId: string, comparisons?: Comparison
     result.report.notes.push(
       `Skipped ${skipped.length} saved comparison(s) whose configurations are not in this campaign: ${skipped.map((c) => `${c.candidate} − ${c.baseline} (${c.domain})`).join("; ")}. The Holm family covers the remaining ${usable!.length}.`,
     );
-  analysisCache.set(key, result);
+  analysisCache.delete(key);
+  analysisCache.set(key, { id, chain: chain.map((c) => c.id), receipts: receipts.length, value: result });
+  while (analysisCache.size > ANALYSES_KEPT) analysisCache.delete(analysisCache.keys().next().value!);
   return { campaign, analysis: result, receipts };
 }
 /**
@@ -383,6 +404,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       const c = campaignId();
       // The study ID is canonical (workspaceDir), so this finds the executor that runs its sessions.
       closeExecutor(id, c);
+      forgetAnalyses(id, c);
       json(await deleteCampaign(id, c));
       return true;
     }
@@ -474,7 +496,11 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       let changed: string[] = [];
       const loaded = await importRuns(id, Buffer.from(body.base64, "base64"), (campaignIds) => {
         changed = campaignIds;
-        campaignIds.forEach((c) => closeExecutor(id, c));
+        campaignIds.forEach((c) => {
+          closeExecutor(id, c);
+          // Their analyses (and those of continuations from them) are out of date.
+          forgetAnalyses(id, c);
+        });
       });
       // Continuations of a campaign that gained records show their reused sessions from it
       // (simulated or real, tokens, cost): once the zip is written, their executors reload too,

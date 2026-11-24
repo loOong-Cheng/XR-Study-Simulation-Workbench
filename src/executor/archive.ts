@@ -119,6 +119,30 @@ async function finishedAttempts(dir: string): Promise<Set<string>> {
     }
   return out;
 }
+/** Whole lines only: a line still being appended is left for the next read. */
+const wholeLines = (text: string) => text.slice(0, text.lastIndexOf("\n") + 1);
+/**
+ * receipts.jsonl of a run folder as it is at one moment (whole lines only), with the attempts it
+ * finishes ("job|attempt") and the sessions it completes.
+ */
+async function receiptsSnapshot(dir: string): Promise<{ text: string | null; finished: Set<string>; completed: Set<string> }> {
+  const finished = new Set<string>(),
+    completed = new Set<string>();
+  const path = join(dir, "receipts.jsonl");
+  const st = await lstat(path).catch(() => null);
+  if (!st?.isFile()) return { text: null, finished, completed };
+  const text = wholeLines(await readFile(path, "utf8"));
+  for (const l of lines(text))
+    try {
+      const r = JSON.parse(l) as CampaignReceipt;
+      if (!r || typeof r.jobId !== "string" || !Number.isInteger(r.attempt)) continue;
+      finished.add(`${r.jobId}|${r.attempt}`);
+      if (r.status === "completed") completed.add(r.jobId);
+    } catch {
+      // not a receipt
+    }
+  return { text, finished, completed };
+}
 
 // ---------- saving ----------
 
@@ -169,11 +193,14 @@ export async function exportRunsReport(workspaceId: string, campaignId: string):
       skipped.notFiles++;
       continue;
     }
-    const finished = await finishedAttempts(dir);
+    // One moment per campaign: the receipts are read first, and the zip holds exactly those, with
+    // the results and attempt folders they name. A session that ends while the zip is written
+    // comes with the next zip; a loaded zip never shows a session done without its result.
+    const { text: receipts, finished, completed } = await receiptsSnapshot(dir);
     for (const rel of await regularFiles(dir, skipped)) {
       const name = `runs/${c.id}/${rel}`;
       const e = classify(name);
-      if (e?.kind === "job" && !finished.has(`${e.jobId}|${e.attempt}`)) {
+      if ((e?.kind === "job" && !finished.has(`${e.jobId}|${e.attempt}`)) || (e?.kind === "result" && !completed.has(e.jobId))) {
         skipped.unfinished++;
         continue;
       }
@@ -183,7 +210,8 @@ export async function exportRunsReport(workspaceId: string, campaignId: string):
         continue;
       }
       taken.add(foldName(name));
-      const data = await readFile(join(dir, ...rel.split("/")));
+      const data =
+        e.kind === "receipts" ? Buffer.from(receipts ?? "", "utf8") : e.kind === "events" ? Buffer.from(wholeLines(await readFile(join(dir, rel), "utf8")), "utf8") : await readFile(join(dir, ...rel.split("/")));
       zip.file(name, data);
       hashes[name] = sha(data);
     }
