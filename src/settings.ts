@@ -20,6 +20,8 @@ export interface RuntimeSetting {
   timeoutMinutes?: number;
   /** Sessions on this runtime at the same time (default: 1 for engine runtimes, since one editor hosts one session). */
   maxParallel?: number;
+  /** Seconds the bridge has to answer tools/list after the session starts; otherwise the session fails (default 60). */
+  startupSeconds?: number;
   note?: string;
 }
 export interface Settings {
@@ -50,12 +52,13 @@ export const defaultSettings = (): Settings => ({
 /** Engine runtimes run in one editor that hosts one Play session at a time and need long sessions. */
 const engineRuntimes = new Set(["unreal", "unity", "visionos"]);
 /** Per-runtime session time limit and how many sessions of it may run at once. */
-export function runtimeLimits(settings: Pick<Settings, "runtimes" | "jobTimeoutMinutes">, runtime: string): { timeoutMinutes: number; maxParallel: number } {
+export function runtimeLimits(settings: Pick<Settings, "runtimes" | "jobTimeoutMinutes">, runtime: string): { timeoutMinutes: number; maxParallel: number; startupSeconds: number } {
   const r = settings.runtimes?.[runtime] ?? {};
   const engine = engineRuntimes.has(runtime);
   return {
     timeoutMinutes: r.timeoutMinutes ?? (engine ? Math.max(90, settings.jobTimeoutMinutes) : settings.jobTimeoutMinutes),
     maxParallel: r.maxParallel ?? (engine ? 1 : Infinity),
+    startupSeconds: r.startupSeconds ?? 60,
   };
 }
 /**
@@ -109,7 +112,8 @@ export async function writeSettings(input: Settings): Promise<Settings> {
         (r.instructions === undefined || typeof r.instructions === "string") &&
         (r.capabilities === undefined || (Array.isArray(r.capabilities) && r.capabilities.every((x) => typeof x === "string"))) &&
         (r.timeoutMinutes === undefined || (Number.isFinite(r.timeoutMinutes) && r.timeoutMinutes >= 1)) &&
-        (r.maxParallel === undefined || (Number.isInteger(r.maxParallel) && r.maxParallel >= 1)),
+        (r.maxParallel === undefined || (Number.isInteger(r.maxParallel) && r.maxParallel >= 1)) &&
+        (r.startupSeconds === undefined || (Number.isFinite(r.startupSeconds) && r.startupSeconds >= 1)),
       `Invalid runtime ${id}.`,
     );
   await mkdir(dirname(path()), { recursive: true });

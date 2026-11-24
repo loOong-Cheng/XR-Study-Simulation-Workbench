@@ -23,6 +23,7 @@ import { backgroundText, trajectoryText } from "../participant-knowledge.js";
 import { agentFileList } from "../runtimes/guard.js";
 import { readText } from "../files.js";
 import { answerNeeds } from "../core/forecast-format.js";
+import { unfinishedCases } from "../runtimes/exposure.js";
 
 /** not-started: never asked to run; queued: asked to run and waiting for a free slot. */
 export type JobStatus = "not-started" | "queued" | "running" | "done" | "failed" | "stopped" | "reused";
@@ -84,6 +85,7 @@ export interface ExecutorEvent {
 const here = fileURLToPath(new URL(".", import.meta.url));
 const studyServer = resolve(here, "../runtimes/study-mcp.js");
 const webxrServer = resolve(here, "../runtimes/webxr-mcp.js");
+const bridgeProxy = resolve(here, "../runtimes/bridge-proxy.js");
 const sha = (x: string | Buffer) => createHash("sha256").update(x).digest("hex");
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const registry = new Map<string, Executor>();
@@ -116,6 +118,48 @@ export function budgetWarning(total: number | null, budget: number | undefined, 
   if (!budget || total === null || total <= budget) return null;
   return `over budget: ${fmt(total)} of ${fmt(budget)} tokens${atForecast !== null && atForecast !== total ? ` (${fmt(atForecast)} when the forecast was accepted)` : ""}`;
 }
+
+/** How messages name a runtime: "the Unity bridge", "the WebXR runtime". */
+export function runtimeName(runtime: string): string {
+  if (runtime === "webxr") return "the WebXR runtime";
+  const names: Record<string, string> = { unity: "Unity", unreal: "Unreal", visionos: "visionOS" };
+  return `the ${names[runtime] ?? runtime} bridge`;
+}
+/**
+ * What the row of a finished real session says besides the token budget: a forecast accepted
+ * before every required case was started and ended (allowed only when a budget was nearly used
+ * up), and a runtime that was started more than once (bridge.jsonl starts or repeated runtime
+ * reports in the trace).
+ */
+export function sessionWarnings(requiredCaseIds: string[], runtime: string, run: RunResult): string[] {
+  if (run.status !== "completed" || run.execution?.synthetic) return [];
+  const trace = Array.isArray(run.trace) ? run.trace : [];
+  const out: string[] = [];
+  const missing = unfinishedCases(requiredCaseIds, trace);
+  if (missing.length)
+    out.push(`submitted without required exposure (${missing.length} of ${requiredCaseIds.length} required tasks not finished: ${missing.slice(0, 4).join(", ")}${missing.length > 4 ? ", …" : ""})`);
+  const reports = trace.filter((e) => e?.type === "runtime").length;
+  if (Math.max(reports, run.execution?.runtimeStarts ?? 0) > 1) out.push(`${runtimeName(runtime)} restarted during the session`);
+  return out;
+}
+/**
+ * The simulated time a session's captures report: each observation's clock (simulationTimeMs),
+ * summed over the stretches in which it runs on (a clock that starts again, per design or after
+ * a restart, begins a new stretch). 0 without observations.
+ */
+export function simulationTime(trace: TraceEvent[]): number {
+  let total = 0,
+    last = 0;
+  for (const e of trace) {
+    if (e?.type !== "observation" || !Array.isArray(e.captures)) continue;
+    const t = Number(e.captures[0]?.simulationTimeMs);
+    if (!Number.isFinite(t) || t < 0) continue;
+    if (t < last) total += last;
+    last = t;
+  }
+  return Math.round(total + last);
+}
+const joinWarnings = (...w: (string | null | undefined)[]) => w.filter(Boolean).join("; ") || null;
 
 /** Live token use of a session from Claude Code's stream, per API message. */
 export class UsageMeter {
@@ -335,7 +379,12 @@ export class Executor {
         if (!run.execution.synthetic) {
           s.tokensIn = totalInput(run.execution);
           s.tokensOut = run.execution.outputTokens;
-          s.warning = budgetWarning(s.tokensIn === null ? null : s.tokensIn + (s.tokensOut ?? 0), this.agent(s.agentId).maxTokens, run.execution.tokensAtSubmit ?? null);
+          const job = this.plan.jobs.find((j) => j.id === run.jobId);
+          const required = job && this.agent(s.agentId).tools.includes("xr-interact") ? protocolForJob(this.plan, job).requiredCaseIds : [];
+          s.warning = joinWarnings(
+            budgetWarning(s.tokensIn === null ? null : s.tokensIn + (s.tokensOut ?? 0), this.agent(s.agentId).maxTokens, run.execution.tokensAtSubmit ?? null),
+            ...sessionWarnings(required, s.runtime, run),
+          );
         }
       }
     // Cost of the attempt that counts, from its execution manifest.
@@ -785,6 +834,8 @@ export class Executor {
       ),
     );
     const servers: Record<string, unknown> = { study: { type: "stdio", command: process.execPath, args: [studyServer, jobDir] } };
+    // The study bridge as configured in Settings (recorded in the execution manifest).
+    let bridge: { type: string; command: string; args: string[]; env: Record<string, string> } | null = null;
     if (runtime === "webxr") servers.webxr = { type: "stdio", command: process.execPath, args: [webxrServer, jobDir] };
     else if (runtime !== "none") {
       const r = settings.runtimes[runtime];
@@ -792,12 +843,15 @@ export class Executor {
       // Claude Code starts the server in the session folder, so a relative path from Settings
       // (e.g. examples/selection/runtime/bridge.py) is resolved against the repository here.
       const fromRepo = (x: string) => (!isAbsolute(x) && /[\\/]/.test(x) && existsSync(resolve(repoRoot, x)) ? resolve(repoRoot, x) : x);
-      servers[runtime] = {
+      bridge = {
         type: "stdio",
         command: fromRepo(r.command!),
         args: (r.args ?? []).map((x) => fromRepo(x.replace(/\{(jobDir|jobFile|trace)\}/g, (_, k: string) => vars[k]))),
         env: { XR_STUDY_JOB_DIR: vars.jobDir, XR_STUDY_JOB_FILE: vars.jobFile, XR_STUDY_TRACE: vars.trace },
       };
+      // Started through a wrapper that records each start of the bridge and its first answer to
+      // tools/list (bridge.jsonl), and ends what the bridge leaves running when it ends.
+      servers[runtime] = { ...bridge, command: process.execPath, args: [bridgeProxy, jobDir, bridge.command, ...bridge.args] };
     }
     await writeFile(join(jobDir, "mcp.json"), JSON.stringify({ mcpServers: servers }, null, 2));
     const system = [
@@ -874,12 +928,35 @@ export class Executor {
       stderr = "",
       buf = "",
       tools = 0;
-    const { timeoutMinutes } = runtimeLimits(settings, runtime);
+    const { timeoutMinutes, startupSeconds } = runtimeLimits(settings, runtime);
     let timedOut = false;
     const timer = setTimeout(() => {
       timedOut = true;
       proc.kill("SIGTERM");
     }, timeoutMinutes * 60_000);
+    // A study bridge that never answers tools/list leaves the agent without the app: the session
+    // is stopped as failed instead of running on without it.
+    const bridgeLog = join(jobDir, "bridge.jsonl");
+    let startupFailed: string | null = null;
+    const startup = bridge
+      ? setTimeout(() => {
+          void (async () => {
+            const records = await jsonLines(bridgeLog);
+            if (records.some((x) => x.type === "ready") || box.result || existsSync(join(jobDir, "forecast.json"))) return;
+            const exit = records.find((x) => x.type === "exit");
+            const stderrFile = join(jobDir, "bridge-stderr.log");
+            const errTail = existsSync(stderrFile) ? (await readFile(stderrFile, "utf8")).trim().split("\n").slice(-2).join(" ").slice(-300) : "";
+            const name = runtimeName(runtime);
+            startupFailed =
+              `${name[0].toUpperCase()}${name.slice(1)} did not start (no answer to tools/list within ${startupSeconds} s).` +
+              (!records.some((x) => x.type === "start") ? " It was never started." : exit ? ` It exited${exit.signal ? ` on ${exit.signal}` : ` with code ${exit.code}`}.` : "") +
+              (errTail ? ` Its last output: ${errTail}` : "") +
+              ` Check its command in Settings → Runtimes → ${runtime}.`;
+            if (mine()) this.emit({ type: "log", jobId, text: startupFailed });
+            proc.kill("SIGTERM");
+          })();
+        }, startupSeconds * 1000)
+      : undefined;
     // Token use so far, per API message (see UsageMeter), written to usage.json for the runtimes:
     // `submitNow` asks them to refuse further tools, and stays set. A session that then submits is
     // never stopped for its budget: it has SUBMIT_ATTEMPTS submissions and is stopped only once the
@@ -1007,15 +1084,21 @@ export class Executor {
     });
     const code = await new Promise<number | null>((ok) => proc.on("close", ok));
     clearTimeout(timer);
+    clearTimeout(startup);
     if (buf.trim()) lines = lines.then(() => handleLine(buf)).catch(() => undefined);
     await lines;
     await noteForecast();
     const traceLines = existsSync(join(jobDir, "trace.jsonl")) ? (await readFile(join(jobDir, "trace.jsonl"), "utf8")).trim().split("\n").filter(Boolean).map((l) => JSON.parse(l)) : [];
     const trace: TraceEvent[] = [...sourceEvents, ...traceLines.filter((l) => l.event).map((l) => l.event as TraceEvent)];
-    // The runtime's own report of what it is (bridge contract); the study's recipe only as a fallback.
+    // The runtime's own report of what it is (bridge contract). Without one, nothing is copied
+    // from study.json or Settings: the record says "not reported" and the audit flags it.
     const reported = [...trace].reverse().find((e): e is Extract<TraceEvent, { type: "runtime" }> => e.type === "runtime");
-    if (a.tools.includes("xr-interact") && !reported && mine())
+    const usesApp = a.tools.includes("xr-interact");
+    if (usesApp && !reported && mine())
       this.emit({ type: "log", jobId, text: "The runtime did not report itself (no 'runtime' trace event); the audit records this as a deviation." });
+    const NOT_REPORTED = "not reported";
+    // Each start of a wrapped bridge (Claude Code may start a crashed one again within the session).
+    const runtimeStarts = bridge ? (await jsonLines(bridgeLog)).filter((x) => x.type === "start").length : 0;
     const result = box.result;
     // Claude Code's own totals; a session that ended early (stopped, killed, timed out) has only the live count.
     const live = meter.totals();
@@ -1032,6 +1115,8 @@ export class Executor {
       ? null
       : handle.stopped
       ? STOPPED
+      : startupFailed
+      ? startupFailed
       : unknownModel
       ? `Claude Code does not know the model "${model.model}". Check the model ID on Agent configurations.`
       : outOfAttempts
@@ -1053,21 +1138,21 @@ export class Executor {
       ...(error ? { error } : {}),
       execution: {
         synthetic: false,
-        engine: reported?.engine ?? study.runtime.engine,
-        backend: reported?.backend ?? study.runtime.backend,
-        observation: a.tools.includes("xr-interact") ? (reported?.observation ?? a.observation) : "none",
-        deviceProfile: reported?.deviceProfile ?? study.runtime.deviceProfile,
+        engine: reported?.engine ?? (usesApp ? NOT_REPORTED : "none"),
+        backend: reported?.backend ?? (usesApp ? NOT_REPORTED : "none"),
+        observation: usesApp ? (reported?.observation ?? "none") : "none",
+        deviceProfile: reported?.deviceProfile ?? (usesApp ? NOT_REPORTED : "none"),
         provider: model.provider,
         model: model.model,
         reasoning: model.reasoning,
         versions: {
-          engine: reported?.engineVersion ? `${reported.engine} ${reported.engineVersion}` : runtime === "webxr" ? "Chrome (headless)" : runtime,
+          engine: reported?.engineVersion ? `${reported.engine} ${reported.engineVersion}` : usesApp ? `${runtime} (${NOT_REPORTED})` : "none",
           runtime: runtime === "none" ? "none" : `${runtime}-mcp`,
           connector: "xr-study-sim executor 0.4",
           provider: `Claude Code ${cliVersion || "CLI"}`,
         },
         startedAt: startedAt.toISOString(),
-        capabilities: reported?.capabilities ?? (runtime === "webxr" ? webxrCapabilities(this.manifest) : runtime === "none" ? [] : settings.runtimes[runtime]?.capabilities ?? []),
+        capabilities: Array.isArray(reported?.capabilities) ? reported!.capabilities : [],
         toolCalls: calls,
         outputTokens: Number(usage.output_tokens ?? 0),
         inputTokens: usage.input_tokens ?? null,
@@ -1075,15 +1160,18 @@ export class Executor {
         cacheWriteTokens: usage.cache_creation_input_tokens ?? null,
         reasoningTokens: Number.isSafeInteger(usage.output_tokens_details?.thinking_tokens) ? usage.output_tokens_details.thinking_tokens : null,
         inferenceWallTimeMs: Date.now() - startedAt.getTime(),
-        simulationTimeMs: 0,
+        simulationTimeMs: simulationTime(trace),
         humanTimeEstimateMs: null,
         technicalRetries: 0,
+        ...(bridge ? { runtimeStarts } : {}),
         // The audit checks the token budget up to here; the closing turn after acceptance is reported apart.
         ...(atForecast !== null ? { tokensAtSubmit: atForecast } : {}),
       },
       measurements: forecast?.measurements ?? [],
       trace,
     };
+    const warnings = sessionWarnings(usesApp ? protocol.requiredCaseIds : [], runtime, run);
+    if (mine()) for (const w of warnings) this.emit({ type: "log", jobId, text: `Warning: ${w[0].toUpperCase()}${w.slice(1)}.` });
     const full: FullUsage = {
       inputTokens: usage.input_tokens ?? null,
       outputTokens: usage.output_tokens ?? null,
@@ -1102,7 +1190,8 @@ export class Executor {
         actualModel: (meter.modelRan && !unknownModel) || ok ? actualModel : null,
         cliVersion,
         runtime,
-        runtimeCommand: runtime === "webxr" || runtime === "none" ? "built in" : servers[runtime],
+        runtimeCommand: runtime === "webxr" || runtime === "none" ? "built in" : bridge,
+        ...(bridge ? { runtimeWrapper: "bridge-proxy (records starts and readiness in bridge.jsonl)", runtimeStarts } : {}),
         mcp: Object.keys(servers),
         costUsd,
         ...(costUsd === null && meter.modelRan ? { cost: COST_UNKNOWN } : {}),
@@ -1158,10 +1247,23 @@ export class Executor {
       tokensIn: totalInput(run.execution),
       tokensOut: run.execution.outputTokens,
       costUsd,
-      warning: budgetWarning(total, a.maxTokens, atForecast),
+      warning: joinWarnings(budgetWarning(total, a.maxTokens, atForecast), ...warnings),
       error,
     });
   }
+}
+/** The JSON lines of a file (unreadable lines skipped); none when it does not exist. */
+async function jsonLines(path: string): Promise<Record<string, any>[]> {
+  if (!existsSync(path)) return [];
+  const out: Record<string, any>[] = [];
+  for (const l of (await readFile(path, "utf8")).split("\n"))
+    if (l.trim())
+      try {
+        out.push(JSON.parse(l));
+      } catch {
+        // a line being written
+      }
+  return out;
 }
 
 /** The forecast in forecast.json if the study server wrote it for this attempt (its attemptId), else null. */
