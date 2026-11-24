@@ -6,6 +6,14 @@ import {
   holmAdjust,
 } from "../src/core/analyzer.js";
 import {
+  holm,
+  mannWhitney,
+  ranks,
+  studentTQuantile,
+  t975,
+  wilcoxonSignedRank,
+} from "../src/core/rank-tests.js";
+import {
   exampleStudy,
   syntheticHumanData,
   syntheticResults,
@@ -453,4 +461,99 @@ test("malformed trace metadata produces an audit deviation instead of dropping a
   const r = analyze(x.plan, x.human, x.results);
   assert.equal(r.audits[0].scoreable, true);
   assert.equal(r.audits[0].compliant, false);
+});
+
+// ---------- statistics: exact rank tests, near-ties, Holm, t quantile, intervals, bootstrap streams ----------
+// Reference p-values: full enumeration of the conditional permutation distribution in R (midranks
+// for ties, two-sided p = min(1, 2 × smaller tail)); R's exact wilcox.test where there are no ties.
+const close = (actual: number | null, expected: number, tol = 1e-12) =>
+  assert.ok(actual !== null && Math.abs(actual - expected) <= tol, `${actual} vs ${expected}`);
+test("Mann–Whitney: exact conditional p-values with ties match a full permutation enumeration", () => {
+  const cases: [number[], number[], number][] = [
+    // Normal approximation gave .047, .013 and .137 here (anti-conservative).
+    [[1, 1, 1], [2, 2, 2], 0.1],
+    [[2, 2, 2, 2], [3, 3, 3, 3], 0.0285714285714286],
+    [[1, 2, 2, 3], [2, 3, 4, 5], 0.2],
+    [[4, 5, 5, 6, 7, 7], [2, 3, 3, 4, 4, 5], 0.0216450216450216],
+    [[1, 2, 3, 3, 4, 5, 5, 5], [3, 4, 5, 6, 6, 7], 0.0832500832500832],
+    [[5, 4, 3, 5, 5, 1, 5], [2, 1, 5, 1, 2], 0.133838383838384],
+    [[1, 1, 1, 4], [5, 4, 2, 3, 5, 3, 2, 2, 2, 4, 4, 3, 4, 2], 0.077124183006536],
+    [[5, 5], [5, 6], 1],
+    [[1, 2, 3, 4, 5, 6], [7, 8, 9, 10, 11, 12], 2 / 924],
+  ];
+  for (const [a, b, p] of cases) {
+    const r = mannWhitney(a, b);
+    assert.equal(r.exact, true);
+    close(r.p, p);
+    close(mannWhitney(b, a).p, p);
+  }
+  // 21 + 20 untied values: R's exact wilcox.test.
+  const x = [0.8, 0.83, 1.89, 1.04, 1.45, 1.38, 1.91, 1.64, 0.73, 1.46, 2.2, 2.31, 0.15, 3.3, 1.12, 0.47, 2.9, 1.7, 0.95, 1.51, 2.62],
+    y = [1.15, 0.88, 0.9, 0.74, 1.21, 0.31, 0.62, 1.33, 1.02, 0.55, 0.68, 1.42, 0.12, 0.99, 0.27, 1.27, 0.41, 0.835, 1.77, 0.21];
+  close(mannWhitney(x, y).p, 0.00220256083245124, 1e-14);
+  // Every value tied: no test.
+  assert.equal(mannWhitney([3, 3, 3], [3, 3, 3]).p, null);
+  // Above the cutoff (n1 + n2 > 80): normal approximation with tie and continuity correction.
+  const big = mannWhitney(Array.from({ length: 41 }, (_, i) => i % 7), Array.from({ length: 41 }, (_, i) => (i % 7) + 1));
+  assert.equal(big.exact, false);
+  assert.ok(big.p! > 0 && big.p! < 1);
+});
+test("Wilcoxon signed-rank: exact conditional p-values with ties, zeros dropped", () => {
+  const cases: [number[], number][] = [
+    // Normal approximation gave .037, .037, .073 and .020 for the first four.
+    [[1, 1, 1, 1, 1], 0.0625],
+    [[1, 1, 1, 1, 1, 0, 0], 0.0625],
+    [[1, 2, 2, 3, -1, 4], 0.09375],
+    [[1, 1, 1, 1, 1, 1], 0.03125],
+    // n = 4: the smallest possible two-sided p is 2/16 = .125 (the approximation gave .072–.098).
+    [[1, 2, 3, 4], 0.125],
+    [[1, 1, 1, 1], 0.125],
+    [[2, 3, -1, 4, 5, 0, 0], 0.125],
+    [[1, 2, 4, 4, 4, 1, 3, -2, -1, 1, 4, 2, -2, -1, 3, 3, 3], 0.00604248046875],
+    [[3, 2, 1, 3, 1, -2, -1, 4, 4, 4, 2, -1], 0.0302734375],
+    // 31 untied differences: R's exact wilcox.test.
+    [[-1, ...Array.from({ length: 29 }, (_, i) => i + 2), -31], 2.57417559623718e-6],
+  ];
+  for (const [d, p] of cases) {
+    const r = wilcoxonSignedRank(d);
+    assert.equal(r.exact, true);
+    close(r.p, p, Math.max(1e-12, p * 1e-10));
+  }
+  assert.equal(wilcoxonSignedRank([0, 0, 0]).p, null);
+  assert.equal(wilcoxonSignedRank([2]).p, null);
+});
+test("near-ties from floating-point noise are ties in the rank tests and in agent comparison", () => {
+  // 3.4 − 2.6, 4.2 − 3.4, ... are all 0.8 up to 4e-16: five tied positive differences.
+  const a = [3.4, 4.2, 2.6, 5.0, 3.8],
+    b = [2.6, 3.4, 1.8, 4.2, 3.0];
+  const d = a.map((x, i) => x - b[i]);
+  assert.ok(new Set(d).size > 1, "the fixture has floating-point noise");
+  assert.equal(wilcoxonSignedRank(d).p, wilcoxonSignedRank([1, 1, 1, 1, 1]).p);
+  assert.equal(wilcoxonSignedRank(d, 1e-8).p, 0.0625);
+  // |1/3 − 0.5| and |2/3 − 0.5| differ by 6e-17; agreement scores against chance.
+  const agreement = [1 / 3, 2 / 3, 2 / 3, 2 / 3, 1, 1, 1 / 3, 2 / 3].map((v) => v - 0.5);
+  close(wilcoxonSignedRank(agreement).p, 0.171875);
+  assert.deepEqual(ranks([0.1 + 0.2, 0.3, 1]).tieGroups, [2]);
+  assert.equal(mannWhitney([0.1 + 0.2, 0.3, 0.3], [0.6, 0.6, 0.1 * 6]).p, mannWhitney([1, 1, 1], [2, 2, 2]).p);
+  // The study's tolerance: a difference of 1e-10 is zero (dropped) at tieTolerance 1e-8.
+  assert.equal(wilcoxonSignedRank([1e-10, 2, 3], 1e-8).n, 2);
+});
+test("Holm: one function; untestable comparisons count in the family size", () => {
+  const ps = [0.01, 0.04, 0.03, null, 0.005];
+  const adjusted = holm(ps);
+  [0.04, 0.09, 0.09, null, 0.025].forEach((p, i) => (p === null ? assert.equal(adjusted[i], null) : close(adjusted[i], p)));
+  const rows = ps.map((p) => ({ p, holmP: null as number | null })) as unknown as ContrastScore[];
+  holmAdjust(rows);
+  assert.deepEqual(rows.map((r) => r.holmP), adjusted);
+});
+test("t quantile matches R's qt(0.975, df) for any df", () => {
+  const r: [number, number][] = [
+    [1, 12.706204736174692], [2, 4.302652729749462], [5, 2.570581835636314], [17, 2.109815577833317],
+    [29, 2.045229642132703], [30, 2.042272456301238], [31, 2.039513446396408], [45, 2.014103388880847],
+    [60, 2.00029782201426], [61, 1.999623584994939], [100, 1.983971518523552], [200, 1.971896223633908],
+    [1000, 1.962339080826408],
+  ];
+  for (const [df, q] of r) close(t975(df), q, 1e-12);
+  close(studentTQuantile(0.025, 10), -t975(10), 1e-14);
+  assert.ok(Number.isNaN(t975(0)));
 });

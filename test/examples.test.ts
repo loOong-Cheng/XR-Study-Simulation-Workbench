@@ -60,7 +60,9 @@ test("rank tests match R and Holm adjusts step-down", () => {
     y = [0.878, 0.647, 0.598, 2.05, 1.06, 1.29, 1.06, 3.14, 1.29];
   assert.ok(Math.abs(wilcoxonSignedRank(x.map((v, i) => v - y[i])).p! - 0.0390625) < 1e-9);
   assert.ok(Math.abs(mannWhitney([0.8, 0.83, 1.89, 1.04, 1.45, 1.38, 1.91, 1.64, 0.73, 1.46], [1.15, 0.88, 0.9, 0.74, 1.21]).p! - 0.2544122544) < 1e-6);
-  assert.deepEqual(holm([0.01, 0.04, 0.03, null, 0.005]), [0.03, 0.06, 0.06, null, 0.02]);
+  // The untestable comparison (null) counts in the family size (m = 5, not 4).
+  const adjusted = holm([0.01, 0.04, 0.03, null, 0.005]);
+  [0.04, 0.09, 0.09, null, 0.025].forEach((p, i) => assert.ok(p === null ? adjusted[i] === null : Math.abs(adjusted[i]! - p) < 1e-12, `${adjusted[i]} vs ${p}`));
 });
 
 test("agent-drafted readings need exact quotes; human data mismatches are named", async () => {
