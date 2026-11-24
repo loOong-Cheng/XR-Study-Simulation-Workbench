@@ -270,6 +270,77 @@ test("receipts satisfy the effective per-condition model, not only the campaign 
   assert.equal(s.jobs.find((j) => j.jobId === wrong.jobId)!.state, "audit-required");
 });
 
+test("model arms: labels name the model and effort, stay unique, and follow a model change", async () => {
+  const base = campaignFromPlan(await planned(), modelA, "base", t0);
+  const label = base.suite.conditions.find((c) => c.id === "text-only")!.label;
+  const sonnet = (reasoning: string, model = "claude-sonnet-5-5") => ({ provider: "claude-code", model, reasoning });
+  const c2 = continueCampaign(
+    base,
+    {
+      cloneConditions: [
+        { from: "text-only", id: "text-only-high", model: sonnet("effort=high") },
+        { from: "text-only", id: "text-only-max", model: sonnet("effort=max") },
+        { from: "text-only", id: "text-only-again", model: sonnet("high") },
+        { from: "text-only", id: "text-only-typo", model: sonnet("default", "claude-sonet-5-5") },
+        { from: "text-only", id: "text-only-mine", label: "  My sonnet arm ", model: sonnet("effort=low") },
+      ],
+    },
+    "c2",
+    t1,
+  );
+  const labelOf = (c: Campaign, id: string) => c.suite.conditions.find((x) => x.id === id)!.label;
+  assert.equal(labelOf(c2, "text-only-high"), `${label} — claude-sonnet-5-5, effort high`);
+  assert.equal(labelOf(c2, "text-only-max"), `${label} — claude-sonnet-5-5, effort max`);
+  assert.equal(labelOf(c2, "text-only-again"), `${label} — claude-sonnet-5-5, effort high (2)`, "unique within the campaign");
+  assert.equal(labelOf(c2, "text-only-typo"), `${label} — claude-sonet-5-5`, "default effort is not named");
+  assert.equal(labelOf(c2, "text-only-mine"), "My sonnet arm");
+  // The protocol carries the same label, and the generated labels are recorded in the change set.
+  assert.equal(c2.suite.conditions.find((x) => x.id === "text-only-max")!.recipe.protocol!.label, labelOf(c2, "text-only-max"));
+  assert.equal(c2.continuation!.cloneConditions![0].label, labelOf(c2, "text-only-high"));
+  verifyContinuation(base, c2);
+  // A typed label that another configuration already has is refused.
+  assert.throws(
+    () => continueCampaign(base, { cloneConditions: [{ from: "text-only", id: "dup", label: label.toUpperCase(), model: modelB }] }),
+    /already used by text-only/,
+  );
+  // Fixing the typo'd model updates its generated label; a typed label stays; other runs are still reused.
+  const c3 = continueCampaign(
+    c2,
+    { conditionModels: { "text-only-typo": sonnet("effort=high"), "text-only-mine": sonnet("effort=max") } },
+    "c3",
+    t2,
+  );
+  assert.equal(labelOf(c3, "text-only-typo"), `${label} — claude-sonnet-5-5, effort high (3)`);
+  assert.equal(labelOf(c3, "text-only-mine"), "My sonnet arm");
+  assert.deepEqual(c3.continuation!.labels, { "text-only-typo": labelOf(c3, "text-only-typo") });
+  assert.ok(c3.jobs.filter((j) => j.conditionId === "text-only-typo").every((j) => !j.inheritedFrom));
+  assert.ok(c3.jobs.filter((j) => j.conditionId === "text-only-high").every((j) => j.inheritedFrom));
+  verifyContinuation(c2, c3);
+  // A rename keeps the configuration's runs: a label is a name, not part of the setup.
+  const renamed = continueCampaign(c3, { labels: { "text-only-max": "Sonnet, max effort" } }, "c4", t2);
+  assert.equal(labelOf(renamed, "text-only-max"), "Sonnet, max effort");
+  assert.ok(renamed.jobs.every((j) => j.inheritedFrom));
+  assert.throws(() => continueCampaign(c3, { labels: { "text-only-max": label } }), /already used/);
+});
+
+test("continuations made before labels were recorded still verify", async () => {
+  const base = campaignFromPlan(await planned(), modelA, "base", t0);
+  const label = base.suite.conditions.find((c) => c.id === "uses-app")!.label;
+  // What an earlier version wrote: the label named only the model, and the change set had no label.
+  const made = continueCampaign(
+    base,
+    { cloneConditions: [{ from: "uses-app", id: "uses-app-b", label: `${label} — model-b`, model: modelB }] },
+    "old-child",
+    t1,
+  );
+  const legacy = structuredClone(made) as Campaign;
+  delete legacy.continuation!.cloneConditions![0].label;
+  const { digest: _d, ...body } = legacy;
+  legacy.digest = hash(body);
+  verifyCampaign(legacy);
+  verifyContinuation(base, legacy);
+});
+
 test("continuing from receipts: only accepted forecasts are reused; simulated runs run again unless kept", async () => {
   const base = campaignFromPlan(await planned(), modelA, "base", t0);
   const llm = base.jobs.filter((j) => j.kind === "llm");

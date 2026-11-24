@@ -17,6 +17,8 @@ Open a study, then go to **7 · Continue / rerun**:
 
 The website always continues from what actually happened: only sessions with an accepted forecast are reused. Failed, stopped and never-started sessions run again. A campaign made by an earlier version may list never-run sessions as reused; continuing from it runs them. To retry only failed sessions within the same campaign, use **Rerun failed** in the executor.
 
+**Names of added models.** A copy made by **Add model** is named after its model and effort ("Text only — claude-sonnet-5-5, effort high"; a default effort is not named) and gets "(2)", "(3)" … if that name is taken. A name you type must be unique. When a continuation changes the model of a configuration whose name ends with " — <old model>", the name follows the new model; other names stay. Names are not part of the setup, so a new name never stops runs from being reused.
+
 The API (`POST /api/workspace/continue`) takes `{ id, campaignId, changes, keepSimulated?, preview? }`. `useReceipts` is no longer needed: receipts and results are always read.
 
 ## Continue a campaign with new models or setups
@@ -50,9 +52,10 @@ Every field is optional; at least one change is required.
 | `rerunConditions` | Force fresh sessions even where nothing changed. |
 | `addContrasts` | New planned contrasts (planner-derived suites only). |
 | `retryJobs` | Parent template jobs to run again. Normally filled automatically from receipts. |
+| `labels` | New names for conditions (must be unique). Filled automatically when a model change updates a generated name; generated names of `cloneConditions` are recorded there too, so the change set replays exactly. |
 
 **When a job is reused:**
-- A job is reused only if all of these are identical: its condition recipe, job template, input-asset bytes, effective model and, for planner suites, the study outcomes.
+- A job is reused only if all of these are identical: its condition recipe (its name aside), job template, input-asset bytes, effective model and, for planner suites, the study outcomes.
 - A reused job records `inheritedFrom`: the campaign that actually executed it, never an intermediate one. It is left out of `run-queue.jsonl` and the job packets.
 - A derived reference is reused only together with its source.
 - Rule-based conditions are reused even after a model change, because they make no model calls.
