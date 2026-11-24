@@ -15,6 +15,8 @@ interface WorkspaceView {
   gets: Record<string, string[]>; runtimes: Record<string, string>; missingSources: Record<string, string[]>; sourceFiles?: Record<string, boolean>; campaigns: CampaignInfo[];
   /** The saved study and configurations disagree: what to fix (the study still opens). */
   problem: string | null;
+  /** Planning warnings for the saved study, e.g. too few people for any significant difference. */
+  studyWarnings?: string[];
 }
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
 interface RuntimeStatus { id: string; label: string; available: boolean; builtIn: boolean; message: string }
@@ -695,10 +697,10 @@ function renderStudy() {
         ? `<div class="table-scroll"><table><thead><tr><th>Participant information</th><th>Kind</th><th>Allowed fields</th></tr></thead><tbody>${covariates.map((c) => `<tr><td>${esc(c.label)}</td><td>${esc(c.kind)}</td><td>${esc(c.fields?.join(", ") ?? "—")}</td></tr>`).join("")}</tbody></table></div>`
         : ""
     }</div>
-    <div class="card"><h2>Dependent variables</h2><p class="caption">What was measured. Each agent configuration predicts some of these; with forecasts after the study, a configuration may also receive some of them as measured inputs (a dependent variable used as an independent one). Family weight is shared by the measures of a family.</p><div class="table-scroll"><table class="edit-table"><thead><tr><th>ID</th><th>Measure</th><th>Domain</th><th>Unit</th><th>Scale · mean</th><th>Family</th><th>Family weight</th><th>Weight</th><th></th></tr></thead><tbody>${s.outcomes
+    <div class="card"><h2>Dependent variables</h2><p class="caption">What was measured. Each agent configuration predicts some of these; with forecasts after the study, a configuration may also receive some of them as measured inputs (a dependent variable used as an independent one). Family weight is shared by the measures of a family. A range (for example 1–7) is optional: values outside it are refused and intervals are clipped to it. A count is a whole number per person (for example collisions).</p>${ws.studyWarnings?.length ? `<div class="notice">${ws.studyWarnings.map((w) => esc(w)).join("<br>")}</div>` : ""}<div class="table-scroll"><table class="edit-table"><thead><tr><th>ID</th><th>Measure</th><th>Domain</th><th>Unit · range</th><th>Scale · mean</th><th>Family</th><th>Family weight</th><th>Weight</th><th></th></tr></thead><tbody>${s.outcomes
       .map(
         (o) =>
-          `<tr><td>${esc(o.id)}</td><td>${input("outcome-label", o.id, o.label)}${o.components ? `<small class="items">items: ${esc(o.components.join(", "))}</small>` : ""}</td><td>${choice("outcome-domain", o.id, o.domain, ["objective", "subjective"])}</td><td>${input("outcome-unit", o.id, o.unit)}</td><td>${choice("outcome-scale", o.id, o.scale, ["continuous", "proportion", "ordinal", "rank"])} ${choice("outcome-aggregation", o.id, o.aggregation, ["arithmetic", "geometric"])}</td><td>${esc(o.family)}</td><td>${input("family-weight", o.family, s.analysis.familyWeights[o.family], "number")}</td><td>${input("outcome-weight", o.id, o.weight, "number")}</td><td>${btn(`remove-outcome:${o.id}`, "Remove")}</td></tr>`,
+          `<tr><td>${esc(o.id)}</td><td>${input("outcome-label", o.id, o.label)}${o.components ? `<small class="items">items (${o.componentWeights ? "weighted " : ""}${o.componentRule === "sum" ? "sum" : "mean"}): ${esc(o.components.join(", "))}</small>` : ""}</td><td>${choice("outcome-domain", o.id, o.domain, ["objective", "subjective"])}</td><td>${input("outcome-unit", o.id, o.unit)}${o.scale === "rank" ? "" : `<input type="text" class="range-input" data-edit="outcome-range" data-id="${esc(o.id)}" value="${o.range ? `${o.range[0]}–${o.range[1]}` : ""}" placeholder="range, e.g. 1–7" title="Lowest and highest possible value (optional). Values outside it are refused; intervals are clipped to it." aria-label="Range of ${esc(o.label)}">`}</td><td>${choice("outcome-scale", o.id, o.scale, ["continuous", "proportion", "ordinal", "rank", "count"])} ${choice("outcome-aggregation", o.id, o.aggregation, ["arithmetic", "geometric"])}</td><td>${esc(o.family)}</td><td>${input("family-weight", o.family, s.analysis.familyWeights[o.family], "number")}</td><td>${input("outcome-weight", o.id, o.weight, "number")}</td><td>${btn(`remove-outcome:${o.id}`, "Remove")}</td></tr>`,
       )
       .join("")}</tbody></table></div></div>
     <div class="card"><h2>Participants and orders</h2><p class="caption">${s.participants.length} people. IDs and design orders only.</p><div class="table-scroll"><table><thead><tr><th>Order</th><th>People</th><th>IDs</th></tr></thead><tbody>${[...orders]
@@ -2059,8 +2061,22 @@ document.addEventListener("change", (e) => {
         if (o && (v === "objective" || v === "subjective")) o.domain = v;
         break;
       case "outcome-scale":
-        if (o && ["continuous", "proportion", "ordinal", "rank"].includes(v)) o.scale = v as typeof o.scale;
+        if (o && ["continuous", "proportion", "ordinal", "rank", "count"].includes(v)) {
+          o.scale = v as typeof o.scale;
+          // A ranking's range is always 1 to the number of designs; counts are averaged arithmetically.
+          if (o.scale === "rank") delete o.range;
+          if (o.scale === "count") o.aggregation = "arithmetic";
+        }
         break;
+      case "outcome-range": {
+        // Optional: "1–7", "1-7", "0 to 100" or "0, 100". Empty removes the key (never set it to undefined).
+        if (!o) break;
+        const m = /^\s*(-?\d+(?:\.\d+)?)\s*(?:–|—|-|to|,)\s*(-?\d+(?:\.\d+)?)\s*$/i.exec(v);
+        if (!v.trim()) delete o.range;
+        else if (m && Number(m[1]) < Number(m[2])) o.range = [Number(m[1]), Number(m[2])];
+        else toast(`Write the range of ${o.label} as lowest–highest, for example 1–7.`, true);
+        break;
+      }
       case "outcome-aggregation":
         if (o && (v === "arithmetic" || v === "geometric")) o.aggregation = v;
         break;

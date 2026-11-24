@@ -179,7 +179,10 @@ export function validateStudy(value: unknown): Study {
         "family",
         "weight",
         "phaseIds",
+        "range",
         "components",
+        "componentRule",
+        "componentWeights",
         "description",
       ],
       "outcome",
@@ -322,7 +325,7 @@ export function validateStudy(value: unknown): Study {
   for (const o of s.outcomes) {
     requireThat(
       ["objective", "subjective"].includes(o.domain) &&
-        ["continuous", "proportion", "ordinal", "rank"].includes(o.scale),
+        (OUTCOME_SCALES as readonly string[]).includes(o.scale),
       `Invalid outcome ${o.id}.`,
     );
     // A preference ranking compares designs within one person; in a between-subjects study each
@@ -343,16 +346,43 @@ export function validateStudy(value: unknown): Study {
       o.phaseIds.length > 0 && o.phaseIds.every((p) => phases.has(p)),
       `Declare measurement windows for ${o.id}.`,
     );
+    // Counts (e.g. collisions) include zeros, which a geometric mean cannot take.
+    requireThat(
+      o.scale !== "count" || o.aggregation === "arithmetic",
+      `${o.label} is a count: counts are averaged arithmetically (a geometric mean fails on zeros). Set its aggregation to arithmetic.`,
+    );
+    checkRange(s, o);
     requireThat(
       o.components === undefined ||
         (o.components.length > 1 &&
           new Set(o.components).size === o.components.length),
-      `Invalid retained-item composite ${o.id}.`,
+      `${o.label} is computed from items: name at least two different items.`,
     );
     requireThat(
       o.components === undefined || o.aggregation === "arithmetic",
-      "Item composites use arithmetic item means.",
+      `${o.label} is computed from items: its values are averaged arithmetically across people. Set its aggregation to arithmetic.`,
     );
+    requireThat(
+      o.componentRule === undefined || (o.components !== undefined && ["mean", "sum"].includes(o.componentRule)),
+      o.components === undefined
+        ? `${o.label} has no items, so it needs no componentRule.`
+        : `${o.label}: componentRule is "mean" (the default) or "sum".`,
+    );
+    if (o.componentWeights !== undefined) {
+      const w = o.componentWeights as unknown;
+      requireThat(o.components !== undefined, `${o.label} has no items, so it needs no componentWeights.`);
+      requireThat(
+        !!w &&
+          typeof w === "object" &&
+          !Array.isArray(w) &&
+          Object.keys(w).length === o.components.length &&
+          o.components.every((id) => {
+            const x = (w as Record<string, unknown>)[id];
+            return typeof x === "number" && Number.isFinite(x) && x > 0;
+          }),
+        `${o.label}: componentWeights needs a positive number for every item (${o.components.join(", ")}) and nothing else, or leave it out for equal weights.`,
+      );
+    }
   }
   requireThat(
     s.analysis && ["relative", "both"].includes(s.analysis.mode),
@@ -676,6 +706,47 @@ export function validateComparisons(value: unknown, study?: Pick<Study, "predict
     return { ...(x.id !== undefined ? { id: x.id as string } : {}), candidate: x.candidate as string, baseline: x.baseline as string, domain: x.domain as Domain };
   });
 }
+/** The scales a measure can have (see Outcome.scale). */
+export const OUTCOME_SCALES = ["continuous", "proportion", "ordinal", "rank", "count"] as const;
+const numberText = (v: number) => (Number.isInteger(v) ? String(v) : String(Number(v.toPrecision(6))));
+/** A declared range: two finite numbers, lowest first, that fit the scale. */
+function checkRange(s: Study, o: Study["outcomes"][number]): void {
+  if (o.range === undefined) return;
+  const r = o.range as unknown;
+  requireThat(
+    Array.isArray(r) && r.length === 2 && r.every((x) => typeof x === "number" && Number.isFinite(x)) && r[0] < r[1],
+    `The range of ${o.label} must be [lowest, highest] with lowest below highest, for example [1, 7].`,
+  );
+  requireThat(
+    o.scale !== "rank",
+    `${o.label} is a ranking: its range is always 1 to the number of designs (${s.conditions.length}). Leave its range out.`,
+  );
+  requireThat(
+    o.scale !== "proportion" || (o.range[0] >= 0 && o.range[1] <= 1),
+    `${o.label} is a proportion, so its range lies within 0–1 (got ${numberText(o.range[0])}–${numberText(o.range[1])}). For 0–100 use scale continuous with range [0, 100].`,
+  );
+  requireThat(
+    o.scale !== "count" || o.range[0] >= 0,
+    `${o.label} is a count, so its range cannot go below 0.`,
+  );
+  requireThat(
+    o.aggregation !== "geometric" || o.range[1] > 0,
+    `${o.label} uses a geometric mean, so its values are positive; its range must reach above 0.`,
+  );
+}
+/** "mean", "weighted mean", "sum" or "weighted sum": how a composite follows from its items. */
+export function compositeRule(o: Study["outcomes"][number]): string {
+  return `${o.componentWeights ? "weighted " : ""}${o.componentRule === "sum" ? "sum" : "mean"}`;
+}
+/**
+ * A composite's value from its items: the mean (default) or the sum, each item times its weight
+ * (1 when no weights are declared). A weighted mean divides by the sum of the weights.
+ */
+export function compositeValue(o: Study["outcomes"][number], items: Record<string, number>): number {
+  const weight = (id: string) => o.componentWeights?.[id] ?? 1;
+  const total = o.components!.reduce((sum, id) => sum + weight(id) * items[id], 0);
+  return o.componentRule === "sum" ? total : total / o.components!.reduce((sum, id) => sum + weight(id), 0);
+}
 export function measurementKey(r: Measurement): string {
   return `${r.participantId ?? "*"}|${r.conditionId}|${r.outcomeId}`;
 }
@@ -686,18 +757,17 @@ export function measurementValue(s: Study, r: Measurement): number {
     "Unknown outcome or design in a measurement.",
   );
   let value = r.value;
+  const where = `${r.participantId ? `participant ${r.participantId}, ` : ""}design ${r.conditionId}`;
   if (o.components) {
+    const missing = o.components.filter((id) => !(r.components && typeof r.components[id] === "number" && Number.isFinite(r.components[id])));
     requireThat(
-      r.components &&
-        o.components.every((id) => Number.isFinite(r.components![id])),
-      `${o.label} requires all retained item predictions; a scaled six-item total is insufficient.`,
+      !missing.length,
+      `${o.label} is computed from its items (${o.components.join(", ")}), so every item needs a value; missing for ${where}: ${missing.join(", ")}.`,
     );
-    value =
-      o.components.reduce((sum, id) => sum + r.components![id], 0) /
-      o.components.length;
+    value = compositeValue(o, r.components!);
     requireThat(
-      r.value === undefined || Math.abs(r.value - value) <= 1e-7,
-      `Composite total disagrees with retained items for ${o.id}.`,
+      r.value === undefined || Math.abs(r.value - value) <= 1e-7 * Math.max(1, Math.abs(value)),
+      `${o.label} (${where}): the value ${r.value} does not match the ${compositeRule(o)} of its items (${numberText(value)}). Give the items alone, or a value that matches them.`,
     );
   }
   requireThat(
@@ -716,6 +786,15 @@ export function measurementValue(s: Study, r: Measurement): number {
     o.scale !== "rank" || (value >= 1 && value <= s.conditions.length),
     `Mean rank outside the design range: ${o.id}.`,
   );
+  requireThat(o.scale !== "count" || value >= 0, `${o.label} is a count and cannot be negative (${where}: ${numberText(value)}).`);
+  // A declared range (e.g. 1–7) bounds every value; a hair of floating-point slack for composites.
+  if (o.range) {
+    const slack = 1e-9 * Math.max(1, Math.abs(o.range[0]), Math.abs(o.range[1]));
+    requireThat(
+      value >= o.range[0] - slack && value <= o.range[1] + slack,
+      `${o.label} (${where}): ${numberText(value)} is outside its range ${numberText(o.range[0])}–${numberText(o.range[1])}.`,
+    );
+  }
   return value;
 }
 export function validateHumanData(s: Study, h: HumanData): void {
@@ -741,6 +820,12 @@ export function validateHumanData(s: Study, h: HumanData): void {
     const key = measurementKey(r);
     requireThat(!seen.has(key), `Duplicate human record: ${key}.`);
     seen.add(key);
-    measurementValue(s, r);
+    const value = measurementValue(s, r);
+    // A person's count is a whole number; forecasts of it (expected counts) may have decimals.
+    const o = s.outcomes.find((x) => x.id === r.outcomeId)!;
+    requireThat(
+      o.scale !== "count" || Number.isInteger(value),
+      `${o.label} is a count, so each person's value is a whole number (${r.participantId}, design ${r.conditionId}: ${value}). If it is an average over trials, use scale continuous with a range such as [0, 10].`,
+    );
   }
 }

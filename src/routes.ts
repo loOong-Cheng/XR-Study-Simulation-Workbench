@@ -12,6 +12,7 @@ import { compareCampaignScores } from "./core/campaign-comparison.js";
 import { agentVsHumanFigure, agreementFigure, correlationFigure, figureSelection, humanFigure, populationVsIndividualFigure, trajectoryFigure } from "./core/figures.js";
 import { agentLevel, agentTargets, freezePlan, methodGets, proposeAgents, withDefaultRuns } from "./core/planner.js";
 import { extractProposal } from "./core/proposal.js";
+import { studyWarnings } from "./core/explain.js";
 import type { AgentProtocol, Comparison, Domain, Study } from "./core/types.js";
 import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
@@ -181,6 +182,8 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
         // Open executors count as their table shows.
         campaigns: await campaignSummaries(id, (c) => liveStatuses(id, c)),
         problem: ws.problem,
+        // Planning warnings (no human values read), e.g. too few people for any significant difference.
+        studyWarnings: studyWarnings(ws.study),
       });
       return true;
     }

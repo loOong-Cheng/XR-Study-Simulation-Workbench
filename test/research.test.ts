@@ -11,6 +11,8 @@ import {
   holm,
   mannWhitney,
   ranks,
+  smallestMannWhitneyP,
+  smallestWilcoxonP,
   studentTQuantile,
   t975,
   wilcoxonSignedRank,
@@ -33,7 +35,8 @@ import {
   ProtocolGate,
   UnavailableRuntime,
 } from "../src/core/protocol.js";
-import { measurementValue, validateStudy } from "../src/core/validation.js";
+import { measurementValue, validateHumanData, validateStudy } from "../src/core/validation.js";
+import { explainStudy, studyWarnings } from "../src/core/explain.js";
 import { reportCSV, reportHTML } from "../src/core/report.js";
 import type {
   AgentProtocol,
@@ -266,9 +269,38 @@ test("exact retained-item workload ignores Performance and rejects 5/6 proxies",
         conditionId: "ray",
         value: 3,
       }),
-    /retained item/,
+    /computed from its items .*every item needs a value/,
   );
-  assert.throws(() => measurementValue(s, { ...r, value: 3.5 }), /disagrees/);
+  assert.throws(() => measurementValue(s, { ...r, value: 3.5 }), /does not match the mean of its items \(3\)/);
+});
+test("composites: item mean (default) or sum, with optional item weights, e.g. an SSQ total", () => {
+  const s = exampleStudy();
+  const base = s.outcomes.find((o) => o.id === "workload")!;
+  const items = { nausea: 2, oculomotor: 3, disorientation: 1 };
+  const ssq = { ...base, id: "ssq", label: "SSQ total", unit: "0–235.62", scale: "continuous" as const, range: [0, 235.62] as [number, number], components: Object.keys(items), componentRule: "sum" as const, componentWeights: { nausea: 3.74, oculomotor: 3.74, disorientation: 3.74 } };
+  s.outcomes.push(ssq);
+  s.analysis.familyWeights[ssq.family] ??= 1;
+  const study = validateStudy(s);
+  // The real SSQ total is (N + O + D) × 3.74 of the raw subscale sums.
+  assert.ok(Math.abs(measurementValue(study, { outcomeId: "ssq", conditionId: "ray", components: items }) - 6 * 3.74) < 1e-12);
+  assert.ok(Math.abs(measurementValue(study, { outcomeId: "ssq", conditionId: "ray", components: items, value: 22.44 }) - 22.44) < 1e-12);
+  assert.throws(() => measurementValue(study, { outcomeId: "ssq", conditionId: "ray", components: items, value: 6 }), /does not match the weighted sum of its items/);
+  assert.throws(() => measurementValue(study, { outcomeId: "ssq", conditionId: "ray", components: { nausea: 50, oculomotor: 10, disorientation: 10 } }), /outside its range 0–235\.62/);
+  // A weighted mean divides by the sum of the weights.
+  const mean = structuredClone(study);
+  delete mean.outcomes.at(-1)!.componentRule;
+  mean.outcomes.at(-1)!.componentWeights = { nausea: 1, oculomotor: 3, disorientation: 1 };
+  assert.equal(measurementValue(validateStudy(mean), { outcomeId: "ssq", conditionId: "ray", components: items }), (2 + 9 + 1) / 5);
+  // Plain messages for a wrong rule or wrong weights.
+  const bad = (change: (o: Study["outcomes"][number]) => void) => {
+    const x = structuredClone(study);
+    change(x.outcomes.at(-1)!);
+    return () => validateStudy(x);
+  };
+  assert.throws(bad((o) => ((o as { componentRule: string }).componentRule = "total")), /componentRule is "mean" \(the default\) or "sum"/);
+  assert.throws(bad((o) => (o.componentWeights = { nausea: 3.74 })), /componentWeights needs a positive number for every item/);
+  assert.throws(bad((o) => (o.componentWeights = { nausea: 1, oculomotor: 1, disorientation: 0 })), /componentWeights needs a positive number/);
+  assert.throws(bad((o) => (delete o.components, delete o.componentWeights)), /has no items, so it needs no componentRule/);
 });
 test("target-only ties do not become directional success and absolute diagnostics survive", async () => {
   const x = await known(3);
@@ -584,6 +616,90 @@ test("human intervals: bounded scales are clipped; identical values give a flagg
   assert.ok(fit.length > 0 && fit.every((f) => f.degenerate && f.low === 2 && f.high === 2 && /same value/.test(f.note!)));
   assert.ok(fit.every((f) => f.inside === (Math.abs(f.agent - 2) <= 1e-8)));
   assert.ok(fit.some((f) => f.inside) && fit.some((f) => !f.inside));
+});
+test("declared ranges and counts: validated, values outside refused, intervals clipped; old studies unchanged", () => {
+  const s = exampleStudy();
+  const appeal = s.outcomes.find((o) => o.id === "appeal")!;
+  const before = meanInterval(s, appeal, [6, 7, 7, 7, 6])!;
+  assert.ok(before.high > 7, "without a range nothing bounds the interval (as before)");
+  appeal.range = [1, 7];
+  const study = validateStudy(s);
+  const o = study.outcomes.find((x) => x.id === "appeal")!;
+  const after = meanInterval(study, o, [6, 7, 7, 7, 6])!;
+  assert.equal(after.high, 7, "a 1–7 rating's interval is clipped at 7");
+  close(after.low, before.low, 1e-15);
+  assert.equal(measurementValue(study, { outcomeId: "appeal", conditionId: "ray", participantId: "p1", value: 7 }), 7);
+  assert.throws(() => measurementValue(study, { outcomeId: "appeal", conditionId: "ray", participantId: "p1", value: 8 }), /\(participant p1, design ray\): 8 is outside its range 1–7/);
+  assert.throws(() => measurementValue(study, { outcomeId: "appeal", conditionId: "ray", participantId: "p1", value: 0 }), /outside its range 1–7/);
+  // Plain messages for ranges that cannot be.
+  const refused = (change: (x: Study) => void) => {
+    const x = exampleStudy();
+    change(x);
+    return () => validateStudy(x);
+  };
+  assert.throws(refused((x) => (x.outcomes.find((y) => y.id === "appeal")!.range = [7, 1])), /must be \[lowest, highest\]/);
+  assert.throws(refused((x) => ((x.outcomes.find((y) => y.id === "appeal") as { range: unknown }).range = [1, "7"])), /must be \[lowest, highest\]/);
+  assert.throws(refused((x) => (x.outcomes.find((y) => y.scale === "rank")!.range = [1, 3])), /ranking: its range is always 1 to the number of designs/);
+  assert.throws(refused((x) => (x.outcomes.find((y) => y.scale === "proportion")!.range = [0, 100])), /proportion, so its range lies within 0–1/);
+  // Counts: non-negative, whole numbers per person, averaged arithmetically, intervals clipped at 0.
+  const c = exampleStudy();
+  const teleports = c.outcomes.find((x) => x.id === "teleports")!;
+  teleports.scale = "count";
+  const counted = validateStudy(c);
+  const t = counted.outcomes.find((x) => x.id === "teleports")!;
+  assert.equal(meanInterval(counted, t, [0, 0, 0, 1, 0])!.low, 0, "a count interval does not go below 0");
+  assert.throws(() => measurementValue(counted, { outcomeId: "teleports", conditionId: "ray", value: -1 }), /count and cannot be negative/);
+  assert.equal(measurementValue(counted, { outcomeId: "teleports", conditionId: "ray", value: 1.5 }), 1.5, "a forecast may be an expected count");
+  const people = counted.participants.slice(0, 1);
+  const human: HumanData = { schemaVersion: "1.0", studyId: counted.id, synthetic: counted.synthetic, measurements: [{ participantId: people[0].id, conditionId: people[0].conditionOrder[0], outcomeId: "teleports", value: 1.5 }] };
+  assert.throws(() => validateHumanData(counted, human), /count, so each person's value is a whole number/);
+  human.measurements[0].value = 2;
+  validateHumanData(counted, human);
+  assert.throws(refused((x) => {
+    const y = x.outcomes.find((z) => z.id === "teleports")!;
+    y.scale = "count";
+    y.aggregation = "geometric";
+  }), /count: counts are averaged arithmetically/);
+});
+test("study warnings: too few people for any design difference to reach p < .05", () => {
+  // Smallest exact two-sided p: Wilcoxon 2/2^n, Mann–Whitney 2/C(n1+n2, n1).
+  assert.equal(smallestWilcoxonP(3), 0.25);
+  assert.equal(smallestWilcoxonP(6), 0.03125);
+  assert.equal(smallestWilcoxonP(1), 1);
+  assert.equal(smallestMannWhitneyP(2, 2), 2 / 6);
+  assert.equal(smallestMannWhitneyP(4, 4), 2 / 70);
+  assert.equal(smallestMannWhitneyP(3, 5), 2 / 56);
+  // They are reached: all differences on one side, complete separation.
+  assert.equal(wilcoxonSignedRank([1, 2, 3]).p, 0.25);
+  assert.ok(Math.abs(mannWhitney([1, 2, 3, 4], [5, 6, 7, 8]).p! - 2 / 70) < 1e-12);
+  const s = exampleStudy();
+  const pairs = (s.conditions.length * (s.conditions.length - 1)) / 2;
+  const within = (n: number) => {
+    const x = structuredClone(s);
+    x.participants = Array.from({ length: n }, (_, i) => ({ ...s.participants[i % s.participants.length], id: `p${i}` }));
+    return studyWarnings(x);
+  };
+  assert.match(within(3).join(" "), /With 3 people, no design difference can reach p < \.05: the smallest p the Wilcoxon signed-rank test can give is 0\.25.*significant-only view will be empty/);
+  // With k design pairs, Holm needs pairs × 2/2^n < .05.
+  let need = 2;
+  while (pairs * 2 / 2 ** need >= 0.05) need++;
+  assert.equal(within(need - 1).length, 1);
+  assert.match(within(need - 1)[0], new RegExp(`At least ${need} people`));
+  assert.deepEqual(within(need), []);
+  // Between subjects: per group.
+  const between = (perGroup: number) => {
+    const x = structuredClone(s);
+    x.design = "between-subjects";
+    x.outcomes = x.outcomes.filter((o) => o.scale !== "rank");
+    x.participants = Array.from({ length: perGroup * x.conditions.length }, (_, i) => ({ id: `p${i}`, stratum: `g${i % x.conditions.length}`, conditionOrder: [x.conditions[i % x.conditions.length].id] }));
+    return studyWarnings(x);
+  };
+  assert.match(between(2).join(" "), /With 2 people per design, no difference between the groups can reach p < \.05.*nothing can be scored/);
+  assert.deepEqual(between(6), []);
+  const three = structuredClone(s);
+  three.participants = three.participants.slice(0, 3);
+  assert.match(explainStudy(three), /## Warnings\n\n- With 3 people/);
+  assert.doesNotMatch(explainStudy(s), /## Warnings/);
 });
 test("bootstrap: each configuration resamples from its own stream", async () => {
   const x = await example();

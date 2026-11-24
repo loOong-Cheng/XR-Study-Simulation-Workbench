@@ -3,7 +3,8 @@
 // understood, not only whether the JSON validated.
 import type { AgentProtocol, Comparison, HumanData, Plan, Study } from "./types.js";
 import { agentLevel, agentTargets, methodGets } from "./planner.js";
-import { measurementValue, mixedLevelsMessage } from "./validation.js";
+import { compositeRule, measurementValue, mixedLevelsMessage } from "./validation.js";
+import { smallestMannWhitneyP, smallestWilcoxonP } from "./rank-tests.js";
 import {
   campaignSummary,
   conditionModel,
@@ -16,6 +17,43 @@ const table = (head: string[], rows: (string | number)[][]) =>
     `| ${head.map(() => "---").join(" | ")} |`,
     ...rows.map((r) => `| ${r.map((c) => String(c).replace(/\|/g, "/")).join(" | ")} |`),
   ].join("\n");
+
+const pText = (p: number) => String(Number(p.toPrecision(2)));
+/**
+ * Warnings about the study as planned (no human values are read): whether any human design
+ * difference can reach p < .05 at all with this many people, under the analyzer's rules (exact
+ * Wilcoxon signed-rank within subjects, exact Mann–Whitney U between independent groups, Holm
+ * over the design pairs of a measure). The smallest adjusted p is the number of pairs times the
+ * smallest p the test can give.
+ */
+export function studyWarnings(study: Study): string[] {
+  const alpha = 0.05;
+  const k = study.conditions.length;
+  const pairs = (k * (k - 1)) / 2;
+  if (pairs < 1 || !study.participants.length) return [];
+  const holmText = (p: number) => (pairs > 1 ? `; Holm over the ${pairs} design pairs of a measure makes it ${pText(Math.min(1, pairs * p))}` : "");
+  if (study.design === "within-subjects") {
+    const n = study.participants.length;
+    const p = smallestWilcoxonP(n);
+    if (pairs * p < alpha) return [];
+    let need = Math.max(2, n);
+    while (pairs * smallestWilcoxonP(need) >= alpha) need++;
+    return [
+      `With ${n} ${n === 1 ? "person" : "people"}, no design difference can reach p < .05: the smallest p the Wilcoxon signed-rank test can give is ${pText(p)}${holmText(p)}. The significant-only view will be empty; the main scores (every difference of the design means) are not affected. At least ${need} people are needed for a difference to be able to reach significance.`,
+    ];
+  }
+  const size = new Map(study.conditions.map((c) => [c.id, 0]));
+  for (const person of study.participants) for (const c of person.conditionOrder) size.set(c, (size.get(c) ?? 0) + 1);
+  let best = 1;
+  for (let i = 0; i < k; i++)
+    for (let j = i + 1; j < k; j++)
+      best = Math.min(best, smallestMannWhitneyP(size.get(study.conditions[i].id)!, size.get(study.conditions[j].id)!));
+  if (pairs * best < alpha) return [];
+  const sizes = [...new Set(size.values())].sort((a, b) => a - b);
+  return [
+    `With ${sizes.length === 1 ? sizes[0] : `${sizes[0]}–${sizes.at(-1)}`} ${sizes.at(-1) === 1 ? "person" : "people"} per design, no difference between the groups can reach p < .05: the smallest p the Mann–Whitney U test can give is ${pText(best)}${holmText(best)}. Agents are scored on significant group differences only, so nothing can be scored against the human data. Add people to the groups.`,
+  ];
+}
 
 export function explainStudy(study: Study, agents?: AgentProtocol[]): string {
   const orders = new Map<string, string[]>();
@@ -46,10 +84,10 @@ export function explainStudy(study: Study, agents?: AgentProtocol[]): string {
       ["ID", "Label", "Domain", "Unit", "Scale", "Family (weight)", "Phases"],
       study.outcomes.map((o) => [
         o.id,
-        o.label + (o.components ? ` [items: ${o.components.join(", ")}]` : ""),
+        o.label + (o.components ? ` [items, ${compositeRule(o)}: ${o.components.join(", ")}]` : ""),
         o.domain,
         o.unit,
-        o.scale,
+        o.scale + (o.range ? ` ${o.range[0]}–${o.range[1]}` : ""),
         `${o.family} (${study.analysis.familyWeights[o.family]})`,
         o.phaseIds.join(", "),
       ]),
@@ -71,6 +109,8 @@ export function explainStudy(study: Study, agents?: AgentProtocol[]): string {
         )
       : "",
   ];
+  const warnings = studyWarnings(study);
+  if (warnings.length) parts.push("## Warnings", warnings.map((w) => `- ${w}`).join("\n"));
   if (agents) parts.push(explainAgents(study, agents));
   return parts.join("\n\n") + "\n";
 }

@@ -32,7 +32,10 @@ export interface JobSpec {
     unit: string;
     scale: string;
     aggregation: string;
+    range?: [number, number];
     components?: string[];
+    componentRule?: "mean" | "sum";
+    componentWeights?: Record<string, number>;
   }[];
 }
 const jobDir = resolve(process.argv[2] ?? ".");

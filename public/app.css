@@ -1033,3 +1033,5 @@ label.check.disabled { color: #9aa39b; }
 .mode-option { flex: 1 1 240px; min-width: 0; display: flex; gap: 8px; align-items: flex-start; border: 1px solid #d6e0d6; border-radius: 8px; padding: 10px 12px; background: #fbfcfa; cursor: pointer; font-size: 13px; }
 .mode-option.chosen { border-color: #285e4b; box-shadow: inset 3px 0 0 #285e4b; background: #f3f7f1; }
 .mode-option input { margin-top: 3px; accent-color: #285e4b; }
+td input.range-input { display: block; min-width: 0; width: 110px; margin-top: 4px; }
+tr.simulated-row td { color: var(--muted); font-style: italic; }

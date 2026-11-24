@@ -57,6 +57,27 @@ A retained-item composite supplies the original item values, not an approximate 
 
 The same retained-item requirement applies to forecasts. An optional numeric `value` must equal the derived composite. Extra components are ignored rather than silently folded into it. Missing components make that output invalid.
 
+How the composite follows from its items is declared on the measure. `componentRule` is `"mean"` (the default, as above) or `"sum"`; optional `componentWeights` give every item a positive weight (a weighted mean divides by the sum of the weights). A Simulator Sickness Questionnaire total, for example, is the sum of the raw nausea, oculomotor and disorientation sums times 3.74:
+
+```json
+{
+  "id": "ssq",
+  "label": "SSQ total",
+  "unit": "0–235.62",
+  "scale": "continuous",
+  "range": [0, 235.62],
+  "components": ["nausea", "oculomotor", "disorientation"],
+  "componentRule": "sum",
+  "componentWeights": { "nausea": 3.74, "oculomotor": 3.74, "disorientation": 3.74 }
+}
+```
+
+Only the composite is scored; its items (subscales) are not scored separately. To score a subscale, declare it as a measure of its own (in the same family, so that the family's weight is shared rather than counted twice).
+
+**Scales and ranges.** `scale` is `continuous`, `proportion` (0–1), `ordinal` (ratings), `rank` (preference ranks, 1 = first) or `count` (a whole, non-negative number per person and design, for example collisions; averaged arithmetically, never geometrically, because counts include zeros). A forecast of a count may have decimals (an expected count); a human value may not. A per-trial average of a count is `continuous`, with a range.
+
+An optional `range: [lowest, highest]` declares the values a measure can take, for example `[1, 7]` for a 1–7 rating or `[0, 100]` for a 0–100 score. Lowest must be below highest; a proportion's range lies within 0–1, a count's starts at 0 or above, and a ranking takes none (its range is always 1 to the number of designs). Human values and forecasts outside the range are refused with a message naming the measure, the participant and the design (a composite is checked after its items are combined). The analyzer clips the human 95% intervals to it, simulated runs invent values on it, and the forecasting agents see it in their task. Studies without a range work as before. The examples declare it where the unit states it.
+
 Missing human values are absent records, never zero. Missing human condition summaries or all-tied profiles are disclosed; direction support is shared across agent methods. Within-subject resampling uses complete participant records, preserving cross-outcome dependence. Between-subject resampling keeps assigned groups intact through the declared strata.
 
 ## Result bundle

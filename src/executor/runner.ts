@@ -790,7 +790,7 @@ export class Executor {
           designs,
           targets: study.outcomes
             .filter((o) => targets.includes(o.id))
-            .map((o) => ({ id: o.id, label: o.label, unit: o.unit, scale: o.scale, aggregation: o.aggregation, ...(o.components ? { components: o.components } : {}) })),
+            .map((o) => ({ id: o.id, label: o.label, unit: o.unit, scale: o.scale, aggregation: o.aggregation, ...(o.range ? { range: o.range } : {}), ...(o.components ? { components: o.components, componentRule: o.componentRule ?? "mean", ...(o.componentWeights ? { componentWeights: o.componentWeights } : {}) } : {}) })),
           // Every app runtime (built in or external) gets the same description of the session to play.
           app: a.tools.includes("xr-interact")
             ? {
@@ -875,8 +875,9 @@ export class Executor {
           ...(job.participantId ? { participant: (packet.task as { orderContext?: unknown }).orderContext } : { cohort: (packet.task as { orderContext?: unknown }).orderContext }),
           designs,
           phases: study.phases,
-          // "answer" says exactly what submit_forecast needs per row (the item IDs of measures with items).
-          predict: study.outcomes.filter((o) => targets.includes(o.id)).map((o) => ({ outcome: o.id, label: o.label, domain: o.domain, unit: o.unit, scale: o.scale, items: o.components, answer: `give ${answerNeeds(o, designs.length)}`, description: o.description })),
+          // "answer" says exactly what submit_forecast needs per row (the item IDs of measures with
+          // items, the declared range); range is left out of the JSON when the measure declares none.
+          predict: study.outcomes.filter((o) => targets.includes(o.id)).map((o) => ({ outcome: o.id, label: o.label, domain: o.domain, unit: o.unit, scale: o.scale, range: o.range, items: o.components, answer: `give ${answerNeeds(o, designs.length)}`, description: o.description })),
         },
         null,
         2,

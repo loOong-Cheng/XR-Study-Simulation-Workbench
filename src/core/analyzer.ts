@@ -322,9 +322,16 @@ export function streamSeed(seed: number, name: string): number {
   }
   return h >>> 0;
 }
-/** Bounds a measure's values cannot leave: proportions [0, 1], mean ranks [1, number of designs]. */
+/**
+ * Bounds a measure's values cannot leave: proportions [0, 1], mean ranks [1, number of designs],
+ * counts [0, ∞), narrowed by a declared range (for example [1, 7] for a rating). Null when
+ * nothing bounds the measure.
+ */
 export function scaleBounds(study: Study, o: Outcome): [number, number] | null {
-  return o.scale === "proportion" ? [0, 1] : o.scale === "rank" ? [1, study.conditions.length] : null;
+  const fixed: [number, number] | null =
+    o.scale === "proportion" ? [0, 1] : o.scale === "rank" ? [1, study.conditions.length] : o.scale === "count" ? [0, Infinity] : null;
+  if (!o.range) return fixed;
+  return fixed ? [Math.max(fixed[0], o.range[0]), Math.min(fixed[1], o.range[1])] : [o.range[0], o.range[1]];
 }
 export interface MeanInterval {
   /** Mean (geometric mean for geometric measures) and its 95% t interval on the measure's scale. */
@@ -946,7 +953,7 @@ function analyzeLevel(
   );
   // Absolute values (population level): each configuration's mean prediction against the human
   // group's 95% t interval, per measure and design (geometric measures on the log scale; intervals
-  // of proportions and mean ranks clipped to their scale). When every person gave the same value
+  // of proportions, mean ranks, counts and declared ranges clipped to them). When every person gave the same value
   // the interval has zero width and "inside" means an exact match (within the tie tolerance).
   const absoluteFit: AbsoluteFit[] = [];
   if (plan.study.predictionLevel === "population")

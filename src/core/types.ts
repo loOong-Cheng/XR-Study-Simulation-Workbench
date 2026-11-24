@@ -18,12 +18,22 @@ export interface Outcome {
   label: string;
   domain: Domain;
   unit: string;
-  scale: "continuous" | "proportion" | "ordinal" | "rank";
+  /**
+   * continuous; proportion (0–1); ordinal (ratings); rank (preference ranks, 1 = first); count
+   * (non-negative whole numbers per person, e.g. collisions; averaged arithmetically).
+   */
+  scale: "continuous" | "proportion" | "ordinal" | "rank" | "count";
   aggregation: "arithmetic" | "geometric";
   family: string;
   weight: number;
   phaseIds: string[];
+  /** Lowest and highest possible value, e.g. [1, 7] for a 1–7 rating. Optional; not for ranks. */
+  range?: [number, number];
   components?: string[];
+  /** How a composite follows from its items: "mean" (default) or "sum", each item times its weight. */
+  componentRule?: "mean" | "sum";
+  /** Optional item weights (every item, positive), e.g. the SSQ's 3.74 for the total score. */
+  componentWeights?: Record<string, number>;
   description: string;
 }
 export interface Study {

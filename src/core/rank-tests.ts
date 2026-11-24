@@ -195,6 +195,25 @@ export function holm(ps: (number | null)[]): (number | null)[] {
   return out;
 }
 
+/**
+ * The smallest two-sided p the exact Wilcoxon signed-rank test can reach with n non-zero
+ * differences: every difference on one side, 2 / 2^n (also with ties, since that sign pattern is
+ * the only one giving the extreme sum). Fewer than two differences give no test (1 here).
+ */
+export function smallestWilcoxonP(n: number): number {
+  return n < 2 ? 1 : Math.min(1, 2 / 2 ** n);
+}
+/**
+ * The smallest two-sided p the exact Mann–Whitney U test can reach for groups of n1 and n2:
+ * complete separation, 2 / C(n1 + n2, n1). An empty group gives no test (1 here).
+ */
+export function smallestMannWhitneyP(n1: number, n2: number): number {
+  if (n1 < 1 || n2 < 1) return 1;
+  let ways = 1;
+  for (let k = 1; k <= Math.min(n1, n2); k++) ways = (ways * (n1 + n2 - Math.min(n1, n2) + k)) / k;
+  return Math.min(1, 2 / ways);
+}
+
 // ---------- Student t quantile ----------
 
 function logGamma(x: number): number {

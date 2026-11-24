@@ -8,7 +8,12 @@ export interface ForecastTarget {
   unit: string;
   scale: string;
   aggregation: string;
+  /** The measure's declared range (study.json), which every value or composite must lie in. */
+  range?: [number, number];
   components?: string[];
+  /** How the items make the measure: their mean (default) or sum, each times its weight. */
+  componentRule?: "mean" | "sum";
+  componentWeights?: Record<string, number>;
 }
 
 /** "1–7" for a unit such as "1-7 item mean" or "0-10", else null. */
@@ -16,14 +21,34 @@ function unitRange(unit: string): string | null {
   const m = /(-?\d+(?:\.\d+)?)\s*[-–]\s*(-?\d+(?:\.\d+)?)/.exec(unit ?? "");
   return m ? `${m[1]}–${m[2]}` : null;
 }
+/** The declared range as text, else the range the unit names. */
+const rangeText = (t: ForecastTarget) => (t.range ? `${t.range[0]}–${t.range[1]}` : unitRange(t.unit));
+/** A composite's value from its items: the declared mean (default) or sum, each item times its weight. */
+function composite(t: ForecastTarget, items: Record<string, number>): number {
+  const w = (c: string) => t.componentWeights?.[c] ?? 1;
+  const total = t.components!.reduce((s, c) => s + w(c) * items[c], 0);
+  return t.componentRule === "sum" ? total : total / t.components!.reduce((s, c) => s + w(c), 0);
+}
+/** Inside the declared range, with a hair of slack for composites computed in floating point. */
+function inRange(t: ForecastTarget, v: number): boolean {
+  if (!t.range) return true;
+  const slack = 1e-9 * Math.max(1, Math.abs(t.range[0]), Math.abs(t.range[1]));
+  return v >= t.range[0] - slack && v <= t.range[1] + slack;
+}
 
 /** What one row of a measure needs, e.g. `"items" general, spatial, involvement, realness, each on 1–7 (no "value")`. */
 export function answerNeeds(t: ForecastTarget, designs: number): string {
-  const range = unitRange(t.unit);
-  if (t.components?.length)
-    return `"items" ${t.components.join(", ")}, each ${range ? `on ${range}` : `in ${t.unit}`} (an object {${t.components.map((c) => `"${c}": number`).join(", ")}}, no "value")`;
+  const range = rangeText(t);
+  if (t.components?.length) {
+    const shape = `(an object {${t.components.map((c) => `"${c}": number`).join(", ")}}, no "value")`;
+    // A sum (e.g. an SSQ total) has no per-item range; its total must lie in the measure's range.
+    if (t.componentRule === "sum")
+      return `"items" ${t.components.join(", ")} ${shape}; the ${t.componentWeights ? "weighted " : ""}sum of the items is the score${range ? `, on ${range}` : ""} (${t.unit})`;
+    return `"items" ${t.components.join(", ")}, each ${range ? `on ${range}` : `in ${t.unit}`} ${shape}`;
+  }
   if (t.scale === "proportion") return `"value", a proportion from 0 to 1 (${t.unit})`;
   if (t.scale === "rank") return `"value", a rank from 1 to ${designs} (${t.unit})`;
+  if (t.scale === "count") return `"value", a count of 0 or more${range ? ` on ${range}` : ""} (an expected count may have decimals; ${t.unit})`;
   if (range) return `"value" on ${range} (${t.unit})`;
   return `"value", a ${t.aggregation === "geometric" ? "positive " : ""}number (${t.unit})`;
 }
@@ -100,6 +125,8 @@ export function checkForecast(
         const items = (row.items && typeof row.items === "object" ? row.items : {}) as Record<string, unknown>;
         const missing = t.components.filter((c) => typeof items[c] !== "number" || !Number.isFinite(items[c]));
         if (missing.length) lacking.push(`${d} (${missing.length === t.components.length ? "no items" : `missing ${missing.join(", ")}`})`);
+        // The composite of the items must lie in the declared range (e.g. an SSQ total on 0–235.62).
+        else if (!inRange(t, composite(t, items as Record<string, number>))) outOfRange.push(`${d} (the items give ${Number(composite(t, items as Record<string, number>).toPrecision(6))})`);
         else measurements.push({ conditionId: d, outcomeId: t.id, ...(participantId ? { participantId } : {}), components: Object.fromEntries(t.components.map((c) => [c, Number(items[c])])) });
         continue;
       }
@@ -108,6 +135,8 @@ export function checkForecast(
       else if (t.scale === "proportion" && (value < 0 || value > 1)) outOfRange.push(d);
       else if (t.scale === "rank" && (value < 1 || value > designIds.length)) outOfRange.push(d);
       else if (t.aggregation === "geometric" && value <= 0) outOfRange.push(d);
+      else if (t.scale === "count" && value < 0) outOfRange.push(d);
+      else if (!inRange(t, value)) outOfRange.push(d);
       else measurements.push({ conditionId: d, outcomeId: t.id, ...(participantId ? { participantId } : {}), value });
     }
     const parts = [

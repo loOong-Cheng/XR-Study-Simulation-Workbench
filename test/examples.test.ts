@@ -1526,3 +1526,49 @@ test("figures: simulated configurations are marked and never tested against real
   assert.deepEqual(mixedLines.configs.map((x) => x.id), ["knows-participant"]);
   assert.match(mixedLines.note, /Left out \(population-level/);
 });
+
+test("submit_forecast refuses values outside a declared range and negative counts", async () => {
+  const { spawn } = await import("node:child_process");
+  const { createInterface } = await import("node:readline");
+  const dir = await mkdtemp(join(tmpdir(), "xr-range-"));
+  try {
+    const targets = [
+      { id: "comfort", label: "Comfort", unit: "1–7", scale: "ordinal", aggregation: "arithmetic", range: [1, 7] },
+      { id: "collisions", label: "Collisions", unit: "collisions", scale: "count", aggregation: "arithmetic" },
+      { id: "ssq", label: "SSQ", unit: "0–235.62", scale: "continuous", aggregation: "arithmetic", range: [0, 235.62], components: ["n", "o", "d"], componentRule: "sum", componentWeights: { n: 3.74, o: 3.74, d: 3.74 } },
+    ];
+    await writeFile(join(dir, "job.json"), JSON.stringify({ jobId: "r", budget: 50, projectDir: null, participantId: null, designs: [{ id: "a", label: "A" }], targets }));
+    const child = spawn(process.execPath, [resolve("dist/runtimes/study-mcp.js"), dir], { stdio: ["pipe", "pipe", "ignore"] });
+    const waiting = new Map<number, (m: any) => void>();
+    createInterface({ input: child.stdout! }).on("line", (l) => {
+      const m = JSON.parse(l);
+      waiting.get(m.id)?.(m);
+    });
+    let seq = 0;
+    const rpc = (method: string, params: Record<string, unknown> = {}) =>
+      new Promise<any>((ok) => {
+        const id = ++seq;
+        waiting.set(id, ok);
+        child.stdin!.write(JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n");
+      });
+    await rpc("initialize");
+    const submit = (comfort: number, collisions: number, items: Record<string, number>) =>
+      rpc("tools/call", { name: "submit_forecast", arguments: { predictions: [{ design: "a", outcome: "comfort", value: comfort }, { design: "a", outcome: "collisions", value: collisions }, { design: "a", outcome: "ssq", items }] } });
+    // One rejection lists every problem, grouped by measure, each with what the measure needs.
+    const tools = await rpc("tools/list");
+    const description = tools.result.tools.find((t: { name: string }) => t.name === "submit_forecast").description;
+    assert.match(description, /comfort: give "value" on 1–7/);
+    assert.match(description, /collisions: give "value", a count of 0 or more/);
+    assert.match(description, /ssq: give "items" n, o, d .*the weighted sum of the items is the score, on 0–235\.62/);
+    const refused = (await submit(8, -1, { n: 30, o: 20, d: 20 })).result.content[0].text;
+    assert.match(refused, /comfort needs "value" on 1–7 .* for every design: out of range for a\./);
+    assert.match(refused, /collisions needs "value", a count of 0 or more .* for every design: out of range for a\./);
+    assert.match(refused, /ssq needs "items" n, o, d .* for every design: out of range for a \(the items give 261\.8\)\./);
+    const accepted = (await submit(7, 1.5, { n: 2, o: 3, d: 1 })).result.content[0].text;
+    assert.match(accepted, /Forecast accepted/);
+    child.stdin!.end();
+    await new Promise((ok) => child.on("exit", ok));
+  } finally {
+    await removeDir(dir);
+  }
+});
