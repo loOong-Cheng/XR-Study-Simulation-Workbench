@@ -104,7 +104,7 @@ test("forecast format: every measure says what it needs; a refused forecast list
   const targets = study.outcomes.map((o) => ({ id: o.id, label: o.label, unit: o.unit, scale: o.scale, aggregation: o.aggregation, ...(o.components ? { components: o.components } : {}) }));
   const designs = study.conditions.map((c) => c.id);
   const lines = answerLines(targets, designs.length);
-  assert.ok(lines.includes('presence: give "items" general, spatial, involvement, realness, each on 1–7 (an object {"general": number, "spatial": number, "involvement": number, "realness": number}, no "value")'), lines.join("\n"));
+  assert.ok(lines.includes('presence: give "items" general, spatial, involvement, realness, each on 1–7 (an object {"general": number, "spatial": number, "involvement": number, "realness": number}, no "value"); only the mean of the items is scored; give your best estimate for each item (they may differ)'), lines.join("\n"));
   assert.ok(lines.includes('preference: give "value", a rank from 1 to 3 (rank; 1 = best)'), lines.join("\n"));
   assert.ok(lines.includes('search-time: give "value", a positive number (seconds per main trial)'), lines.join("\n"));
   const description = submitDescription(designs, targets);

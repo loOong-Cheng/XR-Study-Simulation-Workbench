@@ -624,8 +624,9 @@ test("sources: read what agents get; outcome-blind check counts only", async () 
     const vals = human.measurements.filter((m) => m.outcomeId === o.id && m.conditionId === d.id).map((m) => measurementValue(ws.study, m));
     const mean = (vals.reduce((s, x) => s + x, 0) / vals.length).toFixed(2);
     const leaky = `People rated it ${mean} on average; ${ws.study.participants[0].id} liked it.`;
-    assert.deepEqual(await leakCheck(a.id, ws.study, leaky), { participantIds: 1, humanMeanMatches: 1, checkedAgainstHuman: true });
-    assert.deepEqual(await leakCheck(a.id, ws.study, "A model predicts higher presence at high quality."), { participantIds: 0, humanMeanMatches: 0, checkedAgainstHuman: true });
+    assert.deepEqual(await leakCheck(a.id, ws.study, leaky), { participantIds: 1, humanMeanMatches: 1, checkedAgainstHuman: true, predictions: [] });
+    // A prediction about a measure is no leak by count, but is flagged for the researcher to confirm (the text's own sentence, never human data).
+    assert.deepEqual(await leakCheck(a.id, ws.study, "A model predicts higher presence at high quality."), { participantIds: 0, humanMeanMatches: 0, checkedAgainstHuman: true, predictions: ["A model predicts higher presence at high quality."] });
     const overview = await evidenceOverview(a.id, ws.agents ?? []);
     assert.ok(overview.some((e) => e.id === "evidence" && e.exists));
   } finally {
