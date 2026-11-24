@@ -3,6 +3,7 @@ import {
   campaignPlan,
   conditionModel,
   lineageJobIndex,
+  modelDifferences,
   scoringDigest,
   type Campaign,
   type CampaignModel,
@@ -158,10 +159,19 @@ export function analyzeCampaign(
     report.notes.push(
       `${merged.reused.length} forecast run(s) were reused from earlier campaigns with an identical setup and model; their original session and output are scored once, not regenerated.`,
     );
-  if (c.conditionModels)
-    report.notes.push(
-      "Conditions use different forecasting models. A between-condition difference confounds method and model unless the contrast holds the method fixed.",
-    );
+  if (c.conditionModels) {
+    // Say what differs: the model (or provider), or only the effort the same model spends.
+    const models = c.suite.conditions.map((x) => conditionModel(c, x.id));
+    const differs = new Set(models.flatMap((m) => modelDifferences(models[0], m)));
+    if (differs.has("model") || differs.has("provider"))
+      report.notes.push(
+        `Conditions use different forecasting models${differs.has("effort") ? " and efforts" : ""}. A between-condition difference confounds method and model unless the contrast holds the method fixed.`,
+      );
+    else if (differs.has("effort"))
+      report.notes.push(
+        "Conditions use the same model with different effort (how much it thinks before answering). A between-condition difference confounds method and effort unless the contrast holds the method fixed.",
+      );
+  }
   // Which compared configurations differ in what they get and also in model or effort.
   report.notes.push(...modelConfoundWarnings(plan.study, plan.agents, comparisons));
   return {
