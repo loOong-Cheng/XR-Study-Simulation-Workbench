@@ -486,9 +486,17 @@ function reviewFolder(studyPath: string): { id: string; problem?: string } {
     workspaceDir(id);
     return { id };
   } catch (e) {
+    const nested = id.replace(/^(examples|private\/studies)\//, "").includes("/");
+    const badName = !/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}$/.test(basename(folder)) || basename(folder).endsWith(".");
     return {
       id,
-      problem: `The website cannot open ${id}: ${(e as Error).message}${/[^a-zA-Z0-9_./-]/.test(id) ? " Rename the folder using only letters, digits, dots, dashes and underscores." : ""}`,
+      problem: `The website cannot open ${id}: ${(e as Error).message}${
+        nested
+          ? " The study folder must sit directly in examples/ or private/studies/."
+          : badName
+          ? " Rename the folder: letters, digits, dots, dashes and underscores only, starting with a letter, digit or underscore."
+          : ""
+      }`,
     };
   }
 }

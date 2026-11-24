@@ -96,6 +96,8 @@ test("cli: plan uses agents.json beside the study; drafts carry the Settings for
   for (const a of (await json<Plan>(join(dir, "p2/plan.json"))).agents) assert.deepEqual(a.model, draftedModel);
   ok(await cli(dir, "agents-draft", "gq/study.json", "drafted.json"));
   for (const a of await json<AgentProtocol[]>(join(dir, "drafted.json"))) assert.deepEqual(a.model, draftedModel);
+  // A fresh draft passes the checks for new configurations.
+  ok(await cli(dir, "study-check", "gq/study.json", "--agents", "drafted.json"));
 });
 
 test("cli: study-check reports human-data problems first and exits non-zero", async (t) => {
