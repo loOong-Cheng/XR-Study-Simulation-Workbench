@@ -76,6 +76,9 @@ import {
 const load = async <T>(path: string): Promise<T> =>
   JSON.parse(await readFile(path, "utf8")) as T;
 const pretty = (x: unknown) => JSON.stringify(x, null, 2) + "\n";
+/** A CSV field: quoted when it holds a comma, quote or line break. */
+const csvText = (x: string | null) =>
+  x == null ? "" : /[",\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x;
 async function loadReceipts(files: string[]): Promise<CampaignReceipt[]> {
   const receipts: CampaignReceipt[] = [];
   for (const file of files) {
@@ -249,7 +252,7 @@ async function main(): Promise<void> {
     await writeFiles(out, {
       "comparison.json": pretty(report),
       "comparison.csv":
-        "condition,domain,before,after,change_pp,n_humans,before_runs,after_runs\n" +
+        "condition,domain,before,after,change_pp,n_humans,before_runs,after_runs,status,before_model,after_model,before_run_kind,after_run_kind,note\n" +
         report.rows
           .map((r) =>
             [
@@ -261,6 +264,12 @@ async function main(): Promise<void> {
               r.nHumans,
               r.beforeRuns,
               r.afterRuns,
+              r.status,
+              csvText(r.beforeModel),
+              csvText(r.afterModel),
+              r.beforeRunKind,
+              r.afterRunKind,
+              csvText(r.note),
             ].join(","),
           )
           .join("\n") +

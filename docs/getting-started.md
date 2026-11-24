@@ -83,6 +83,7 @@ Each card is one configuration:
 - Give a campaign a **label** (for example "pilot A×2" or "main run"). Labels can be changed later; they are stored beside the campaign, not in it.
 - **Campaigns** lists every campaign as a tree: continuations under their parent, with sessions, done, failed, not run, real and simulated results, and cost. **Show** picks the campaign the executor and analyzer use; both pages name it and have a switcher.
 - Freezing exactly the same configurations, models and sessions again asks first and offers to open the existing campaign.
+- **Compare two campaigns** (below the list, needs human data) sets each configuration's agreement with humans in one campaign beside another, with the model and effort and the kind of runs (real or simulated) on each side. A change is shown only where the setup is the same and both sides rest on the same kind of runs; real runs are never set against simulated ones.
 - **Delete** removes a campaign you no longer need (a summary asks first). Its campaign file and runs move to the study's `deleted/` folder, so nothing is lost by mistake; remove that folder to free the space. A campaign that another one continues from cannot be deleted (its runs are reused there): delete the continuation first.
 
 ## 4 · Run agents (executor)

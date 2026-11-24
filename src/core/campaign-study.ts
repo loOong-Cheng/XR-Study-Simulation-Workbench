@@ -175,6 +175,9 @@ export function campaignScorecard(
       ci95: s.ci95,
       nHumans: humans(s.domain),
       nRuns: s.scoreable,
+      // Which kind of runs the score rests on (real and simulated are never pooled).
+      real: s.real ?? 0,
+      simulated: s.simulated ?? 0,
     })),
   };
 }

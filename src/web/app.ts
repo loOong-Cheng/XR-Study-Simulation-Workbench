@@ -191,6 +191,11 @@ let contPreview: any = null;
 /** Reuse finished simulated runs in a continuation (default: run those sessions again). */
 let contKeepSimulated = false;
 let contPreviewSim: { reused: number; runAgain: number; byCondition: Record<string, { reused: number; runAgain: number }> } | null = null;
+// campaign comparison (Freeze & campaigns)
+let cmpBefore = "";
+let cmpAfter = "";
+interface CampaignCmpRow { conditionId: string; domain: Domain; status: string; comparable: boolean; beforeLabel: string | null; afterLabel: string | null; beforeModel: string | null; afterModel: string | null; modelChanged: boolean; modelChanges: string[]; beforeRunKind: string; afterRunKind: string; before: number | null; after: number | null; changePercentagePoints: number | null; nHumans: number; beforeRuns: number; afterRuns: number; note: string | null }
+let campaignCmp: { before: string; after: string; rows: CampaignCmpRow[]; notes: string[] } | null = null;
 let busy = false;
 
 const $ = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -678,7 +683,33 @@ function campaignHistory() {
     }
   };
   walk(null, 0);
-  return `<div class="card"><h2>Campaigns</h2><p class="caption">Every freeze makes a campaign; continuations appear under the campaign they continue. Type a label to name one. "Show" picks the campaign the executor and analyzer use.</p><div class="table-scroll"><table><thead><tr><th>Label</th><th>Frozen</th><th>Sessions</th><th>Done</th><th>Failed</th><th>Not run</th><th>Real + sim results</th><th>Cost</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table></div></div>`;
+  return `<div class="card"><h2>Campaigns</h2><p class="caption">Every freeze makes a campaign; continuations appear under the campaign they continue. Type a label to name one. "Show" picks the campaign the executor and analyzer use.</p><div class="table-scroll"><table><thead><tr><th>Label</th><th>Frozen</th><th>Sessions</th><th>Done</th><th>Failed</th><th>Not run</th><th>Real + sim results</th><th>Cost</th><th></th></tr></thead><tbody>${rows.join("")}</tbody></table></div>${ws.campaigns.length > 1 ? campaignComparison() : ""}</div>`;
+}
+/** The two campaigns to compare: chosen ones, else the campaign shown and the one it continues. */
+function comparedCampaigns() {
+  const list = ws?.campaigns ?? [];
+  const after = list.some((c) => c.id === cmpAfter) ? cmpAfter : campaignId && list.some((c) => c.id === campaignId) ? campaignId : list.at(-1)?.id ?? "";
+  const parent = campaignOf(after)?.parentId;
+  const before = list.some((c) => c.id === cmpBefore) ? cmpBefore : parent && list.some((c) => c.id === parent) ? parent : list.find((c) => c.id !== after)?.id ?? "";
+  return { before, after };
+}
+/** Agreement with humans in two campaigns, per configuration and domain (Freeze & campaigns). */
+function campaignComparison() {
+  const { before, after } = comparedCampaigns();
+  const options = (selectedId: string) => ws!.campaigns.map((c) => `<option value="${esc(c.id)}" ${c.id === selectedId ? "selected" : ""}>${esc(campaignName(c))}</option>`).join("");
+  const kind = (k: string, n: number) => (k === "real" ? `${n} real run${n === 1 ? "" : "s"}` : k === "simulated" ? `<span class="warn">${n} simulated run${n === 1 ? "" : "s"}</span>` : k === "unknown" ? `${n} runs` : "no runs");
+  const side = (agreement: number | null, model: string | null, k: string, n: number) => `${pct(agreement)}<br><span class="small">${model ? `${esc(model)} · ` : ""}${kind(k, n)}</span>`;
+  const status: Record<string, string> = { added: "added", removed: "removed", "setup-changed": "setup changed", "real-vs-simulated": "real vs simulated: not compared" };
+  const c = campaignCmp && campaignCmp.before === before && campaignCmp.after === after ? campaignCmp : null;
+  const table = c
+    ? `<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Domain</th><th>Before</th><th>After</th><th>Change</th><th>Note</th></tr></thead><tbody>${c.rows
+        .map(
+          (r) =>
+            `<tr><td>${esc(r.afterLabel ?? r.beforeLabel ?? r.conditionId)}</td><td>${esc(r.domain)}</td><td>${r.status === "added" ? "—" : side(r.before, r.beforeModel, r.beforeRunKind, r.beforeRuns)}</td><td>${r.status === "removed" ? "—" : side(r.after, r.afterModel, r.afterRunKind, r.afterRuns)}</td><td>${r.changePercentagePoints == null ? (status[r.status] ? `<span class="small">${esc(status[r.status])}</span>` : "—") : `${r.changePercentagePoints > 0 ? "+" : ""}${r.changePercentagePoints.toFixed(1)} pp`}</td><td class="wrap small">${esc(r.note ?? "")}</td></tr>`,
+        )
+        .join("")}</tbody></table></div><ul class="notes">${c.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul>`
+    : "";
+  return `<div class="divider"></div><h3>Compare two campaigns</h3><div class="row"><label class="field">Before<select id="cmp-before">${options(before)}</select></label><label class="field">After<select id="cmp-after">${options(after)}</select></label></div><div class="actions">${btn("compare-campaigns", "Compare campaigns")}</div><p class="caption">Agreement with the human data per configuration. A change is shown only where the setup is the same and both sides rest on the same kind of runs; real runs are never set against simulated ones. Needs human data (human.json).</p>${table}`;
 }
 
 function renderFreeze() {
@@ -1492,6 +1523,13 @@ async function action(name: string) {
     case "toggle-significant":
       showSignificantOnly = !showSignificantOnly;
       break;
+    case "compare-campaigns": {
+      const { before, after } = comparedCampaigns();
+      if (before === after) throw new Error("Choose two different campaigns.");
+      const r = await api<{ rows: CampaignCmpRow[]; notes: string[] }>("workspace/compare", { id: ws!.id, before, after, comparisons });
+      campaignCmp = { before, after, rows: r.rows, notes: r.notes };
+      break;
+    }
     case "compare-agents":
       agentCmp = await api<AgentCmp>("workspace/compare-agents", { id: ws!.id, campaignId });
       break;
@@ -1818,6 +1856,13 @@ document.addEventListener("change", (e) => {
   if (el.id === "cont-keep-sim") {
     contKeepSimulated = el.checked;
     contPreview = null;
+    render();
+    return;
+  }
+  if (el.id === "cmp-before" || el.id === "cmp-after") {
+    if (el.id === "cmp-before") cmpBefore = el.value;
+    else cmpAfter = el.value;
+    campaignCmp = null;
     render();
     return;
   }

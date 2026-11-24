@@ -224,7 +224,8 @@ test("scorecards compare reused, changed and added conditions without fabricatin
   assert.equal(row("text-only").status, "comparable");
   assert.equal(row("text-only").changePercentagePoints, 0); // fully reused
   assert.equal(row("uses-app").modelChanged, true);
-  assert.equal(row("uses-app").afterModel, "model-b");
+  assert.deepEqual(row("uses-app").modelChanges, ["model"]);
+  assert.equal(row("uses-app").afterModel, "model-b, effort high");
   assert.equal(row("reads-project-b").status, "added");
   assert.equal(row("reads-project-b").changePercentagePoints, null);
   // A different human reference cannot be compared.
@@ -368,4 +369,53 @@ test("continuing from receipts: only accepted forecasts are reused; simulated ru
   assert.equal(repaired.jobs.find((j) => j.templateJobId === template(neverRun))!.inheritedFrom, undefined);
   assert.equal(repaired.jobs.find((j) => j.templateJobId === template(failed))!.inheritedFrom, undefined);
   assert.ok(repaired.jobs.find((j) => j.templateJobId === template(simulated))!.inheritedFrom, "a completed run is still reused");
+});
+
+test("campaign comparison: real runs are never set against simulated ones; effort is shown and compared by meaning", async () => {
+  const plan = await planned();
+  const human = syntheticHumanData(plan.study);
+  const c1 = campaignFromPlan(plan, modelA, "c1", t0);
+  const r1 = syntheticCampaignExecution(c1);
+  // The text-only runs of c1 were real sessions (the study is synthetic, so they are scored).
+  const realIds = new Set(c1.jobs.filter((j) => j.conditionId === "text-only").map((j) => j.id));
+  r1.results.runs.forEach((r) => {
+    if (realIds.has(r.jobId)) r.execution.synthetic = false;
+  });
+  const c2 = continueCampaign(
+    c1,
+    {
+      rerunConditions: ["text-only"],
+      conditionModels: {
+        "uses-app": { ...modelA, reasoning: "max" },
+        "reads-project": { ...modelA, reasoning: "effort=high" },
+      },
+    },
+    "c2",
+    t1,
+  );
+  const r2 = syntheticCampaignExecution(c2);
+  const a1 = analyzeCampaign(c1, human, [r1.results]);
+  const a2 = analyzeCampaign(c2, human, [r1.results, r2.results]);
+  const cmp = compareCampaignScores(c1, a1.scorecard, c2, a2.scorecard);
+  const row = (id: string) => cmp.rows.find((r) => r.conditionId === id && r.domain === "subjective")!;
+  const text = row("text-only");
+  assert.equal(text.status, "real-vs-simulated");
+  assert.equal(text.comparable, false);
+  assert.equal(text.changePercentagePoints, null);
+  assert.equal(text.beforeRunKind, "real");
+  assert.equal(text.afterRunKind, "simulated");
+  assert.match(text.note!, /Not comparable: real runs before, simulated runs after/);
+  const app = row("uses-app");
+  assert.equal(app.status, "comparable");
+  assert.deepEqual(app.modelChanges, ["effort"]);
+  assert.equal(app.beforeModel, "model-a, effort high");
+  assert.equal(app.afterModel, "model-a, effort max");
+  assert.match(app.note!, /Changed effort: model-a, effort high → model-a, effort max/);
+  assert.match(app.note!, /Simulated \(invented\) runs on both sides/);
+  // "high" and "effort=high" are the same effort.
+  assert.equal(row("reads-project").modelChanged, false);
+  // One model per campaign only when every configuration uses it.
+  assert.equal(cmp.beforeModel, "model-a, effort high");
+  assert.equal(cmp.afterModel, null);
+  assert.ok(cmp.notes.some((n) => /different models/.test(n)));
 });
