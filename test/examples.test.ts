@@ -10,11 +10,11 @@ import { campaignFromPlan } from "../src/core/campaign.js";
 import { analyzeCampaign, syntheticCampaignExecution } from "../src/core/campaign-study.js";
 import { holm, mannWhitney, wilcoxonSignedRank } from "../src/core/figures.js";
 import type { AgentProtocol, AnalysisReport, Comparison, HumanData, Study } from "../src/core/types.js";
+import { until } from "./until.js";
 
 // Run from the repository root (npm test).
 const example = (p: string) => resolve("examples/graphics-quality", p);
 const json = async <T>(p: string) => JSON.parse(await readFile(example(p), "utf8")) as T;
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 test("graphics-quality workspace: study, configs, human data and the campaign path stay valid", async () => {
   const study = validateStudy(await json("study.json"));
@@ -128,7 +128,7 @@ test("executor: simulated runs, runtime blockers, zip export and import", async 
     assert.match(blocked[0].message, /Unity MCP runtime is not configured/);
     await assert.rejects(ex.start("agent"), /Unity MCP runtime is not configured/);
     await ex.start("simulate");
-    for (let i = 0; i < 400 && ex.snapshot().counts.done !== ex.jobs.size; i++) await wait(250);
+    await until(() => ex.snapshot().counts.done === ex.jobs.size, "every session to finish", { executor: ex });
     assert.equal(ex.snapshot().counts.done, ex.jobs.size);
     const zip = await exportRuns(a.id, c.id);
     await saveCampaign(b.id, c);
@@ -185,7 +185,7 @@ const call = (method, params) => new Promise((r) => { const n = ++id; wait[n] = 
     await saveCampaign(a.id, c);
     const ex = await Executor.open(a.id, c.id);
     await ex.start("agent");
-    for (let i = 0; i < 80 && ex.snapshot().counts.done !== 1 && !ex.snapshot().counts.failed; i++) await wait(250);
+    await until(() => ex.snapshot().counts.done === 1 || !!ex.snapshot().counts.failed, "the session to end", { executor: ex });
     assert.equal(ex.snapshot().counts.done, 1, JSON.stringify(ex.snapshot().jobs.map((j) => j.error)));
     // The session must have been the stand-in, never a real (billed) Claude Code session.
     const manifest = JSON.parse(await readFile(join(runDir(a.id, c.id), "jobs", c.jobs[0].id, "a1", "execution-manifest.json"), "utf8"));
@@ -324,7 +324,7 @@ test("executor: an external runtime gets the job folder, writes the audit trace,
     await saveCampaign(a.id, c);
     const ex = await Executor.open(a.id, c.id);
     await ex.start("agent");
-    for (let i = 0; i < 80 && ex.snapshot().counts.done !== 1 && !ex.snapshot().counts.failed; i++) await wait(250);
+    await until(() => ex.snapshot().counts.done === 1 || !!ex.snapshot().counts.failed, "the session to end", { executor: ex });
     assert.equal(ex.snapshot().counts.done, 1, JSON.stringify(ex.snapshot().jobs.map((j) => j.error)));
     const jobDir = join(runDir(a.id, c.id), "jobs", c.jobs[0].id, "a1");
     const args = JSON.parse(await readFile(join(jobDir, "session", "args.json"), "utf8")) as string[];
@@ -427,7 +427,7 @@ test("executor: only the chosen sessions run; the others stay not started", asyn
     const estimate = await ex.estimate(firstTwo);
     assert.deepEqual(estimate.map((e) => [e.agentId, e.sessions, e.perSession]), [["text-only", 2, null]]);
     await ex.start("simulate", firstTwo);
-    for (let i = 0; i < 200 && ex.snapshot().counts.done !== 2; i++) await wait(100);
+    await until(() => ex.snapshot().counts.done === 2, "two sessions to finish", { executor: ex });
     const counts = ex.snapshot().counts;
     assert.equal(counts.done, 2);
     assert.equal(counts["not-started"], ex.jobs.size - 2);
@@ -483,7 +483,7 @@ test("executor: engine runtimes run one session at a time; app-free sessions sti
     await saveCampaign(a.id, c);
     const ex = await Executor.open(a.id, c.id);
     await ex.start("agent");
-    for (let i = 0; i < 200 && (ex.snapshot().counts.done ?? 0) + (ex.snapshot().counts.failed ?? 0) < 6; i++) await wait(250);
+    await until(() => (ex.snapshot().counts.done ?? 0) + (ex.snapshot().counts.failed ?? 0) >= 6, "six sessions to end", { executor: ex });
     assert.equal(ex.snapshot().counts.done, 6, JSON.stringify(ex.snapshot().jobs.map((j) => j.error)));
     const events = (await readFile(join(bin, "timeline.jsonl"), "utf8")).trim().split("\n").map((l) => JSON.parse(l) as { what: string; unreal: boolean; t: number }).sort((x, y) => x.t - y.t);
     let unreal = 0, all = 0, maxUnreal = 0, maxAll = 0;
@@ -562,7 +562,7 @@ test("campaign history: labels, lineage, progress, duplicate designs and every a
     const ex = await Executor.open(a.id, c1.id);
     const first = [...ex.jobs.keys()][0];
     await ex.start("simulate", [first]);
-    for (let i = 0; i < 100 && ex.snapshot().counts.done !== 1; i++) await wait(100);
+    await until(() => ex.snapshot().counts.done === 1, "the session to finish", { executor: ex });
     // A stopped attempt leaves a folder but no receipt; it is still listed.
     await mkdir(join(runDir(a.id, c1.id), "jobs", [...ex.jobs.keys()][1], "a1"), { recursive: true });
     const list = await campaignSummaries(a.id);
@@ -833,7 +833,7 @@ test("within-subjects: main scores keep mean differences; a second view uses sig
   assert.deepEqual([...new Set(sig.summaries.map((x) => x.agentId))].sort(), population.sort());
 });
 
-test("token budget: validated, enforced by the study server at 90%, and audited", async () => {
+test("token budget: validated, enforced by the study server at 90%, and audited", async (t) => {
   const { spawn } = await import("node:child_process");
   const { createInterface } = await import("node:readline");
   const { auditRun } = await import("../src/core/protocol.js");
@@ -851,6 +851,7 @@ test("token budget: validated, enforced by the study server at 90%, and audited"
     await writeFile(join(dir, "job.json"), JSON.stringify({ jobId: "t", budget: 50, tokenBudget: 10_000, projectDir: dir, participantId: null, designs: [], targets: [] }));
     await writeFile(join(dir, "usage.json"), JSON.stringify({ tokens: 9_500, budget: 10_000 }));
     const child = spawn(process.execPath, [resolve("dist/runtimes/study-mcp.js"), dir], { stdio: ["pipe", "pipe", "ignore"] });
+    t.after(() => child.kill()); // also when an assertion below fails
     const waiting = new Map<number, (m: any) => void>();
     createInterface({ input: child.stdout! }).on("line", (l) => {
       const m = JSON.parse(l);
@@ -1045,13 +1046,18 @@ test("executor: token counts show live while a session runs", async () => {
     const ex = await Executor.open(a.id, c.id);
     await ex.start("agent");
     let live: { in: number | null; out: number | null } | null = null;
-    for (let i = 0; i < 100 && !live; i++) {
-      const j = ex.snapshot().jobs[0];
-      if (j.status === "running" && j.tokensIn != null) live = { in: j.tokensIn, out: j.tokensOut };
-      else await wait(50);
-    }
-    assert.deepEqual(live, { in: 1000, out: 50 }, "input = uncached + cache writes + cache reads, while the session runs");
-    for (let i = 0; i < 80 && ex.snapshot().counts.done !== 1 && !ex.snapshot().counts.failed; i++) await wait(250);
+    // Checked on every executor event, so the counts are seen while the session runs however slow the machine.
+    await until(
+      () => {
+        const j = ex.snapshot().jobs[0];
+        if (!live && j.status === "running" && j.tokensIn != null) live = { in: j.tokensIn, out: j.tokensOut };
+        return !!live || ["done", "failed"].includes(j.status);
+      },
+      "live token counts",
+      { executor: ex },
+    );
+    assert.deepEqual(live,{ in: 1000, out: 50 }, "input = uncached + cache writes + cache reads, while the session runs");
+    await until(() => ex.snapshot().counts.done === 1 || !!ex.snapshot().counts.failed, "the session to end", { executor: ex });
     assert.equal(ex.snapshot().counts.done, 1, JSON.stringify(ex.snapshot().jobs.map((j) => j.error)));
   } finally {
     delete process.env.XR_STUDY_SETTINGS;
@@ -1104,7 +1110,7 @@ test("rerun selected configurations: a new campaign with fresh sessions for them
     await saveCampaign(a.id, c);
     const ex = await Executor.open(a.id, c.id);
     await ex.start("simulate");
-    for (let i = 0; i < 400 && ex.snapshot().counts.done !== ex.jobs.size; i++) await wait(100);
+    await until(() => ex.snapshot().counts.done === ex.jobs.size, "every session to finish", { executor: ex });
     assert.equal(ex.snapshot().counts.done, ex.jobs.size);
     // What the executor's "Rerun the checked configurations" sends to workspace/continue.
     const next = continueFromStatus(c, await readReceipts(a.id, [c.id]), { rerunConditions: ["text-only"], note: "Rerun of Text only" });

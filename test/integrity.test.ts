@@ -273,14 +273,15 @@ test("executor: Stop ends simulated sessions for good; a second Start adds to th
     const app = [...ex.jobs.values()].filter((j) => j.agentId === "uses-app").slice(0, 3).map((j) => j.jobId);
     const ids = [...ex.jobs.keys()].filter((id) => !app.includes(id));
     await ex.start("simulate", app);
-    await wait(200);
+    await until(() => app.every((id) => ex.jobs.get(id)!.status === "running"), "the three sessions to run", { executor: ex });
     ex.stop();
     assert.deepEqual(app.map((id) => ex.jobs.get(id)!.status), ["stopped", "stopped", "stopped"]);
+    // A window in which a stopped session would have finished; nothing may change in it.
     await wait(2500);
     assert.deepEqual(app.map((id) => ex.jobs.get(id)!.status), ["stopped", "stopped", "stopped"], "stopped sessions never turn done");
     // Rerunning them right away runs them.
     await ex.start("simulate", app);
-    for (let i = 0; i < 100 && app.some((id) => ex.jobs.get(id)!.status !== "done"); i++) await wait(100);
+    await until(() => app.every((id) => ex.jobs.get(id)!.status === "done"), "the rerun sessions to finish", { executor: ex });
     assert.deepEqual(app.map((id) => ex.jobs.get(id)!.status), ["done", "done", "done"]);
     // A second Start while the first queue runs adds to it.
     const first = ids.slice(0, 20),
@@ -288,7 +289,7 @@ test("executor: Stop ends simulated sessions for good; a second Start adds to th
     await ex.start("simulate", first);
     await ex.start("simulate", second);
     await assert.rejects(ex.start("agent", ids.slice(25, 26)), /Simulated sessions are still queued or running/);
-    for (let i = 0; i < 300 && [...first, ...second].some((id) => ex.jobs.get(id)!.status !== "done"); i++) await wait(100);
+    await until(() => [...first, ...second].every((id) => ex.jobs.get(id)!.status === "done"), "both queues to finish", { executor: ex });
     assert.ok([...first, ...second].every((id) => ex.jobs.get(id)!.status === "done"), JSON.stringify(ex.snapshot().counts));
     assert.equal(ex.snapshot().counts.queued ?? 0, 0);
     // Tool calls exclude the forecast submission, in the executor and in the attempts alike.
@@ -343,7 +344,7 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     const ex = await Executor.open(a.id, c.id);
     const person = c.jobs.find((j) => j.conditionId === "knows-participant")!.id;
     await ex.start("agent", [person]);
-    for (let i = 0; i < 80 && !["done", "failed"].includes(ex.jobs.get(person)!.status); i++) await wait(250);
+    await until(() => ["done", "failed"].includes(ex.jobs.get(person)!.status), "the session to end", { executor: ex });
     assert.equal(ex.jobs.get(person)!.status, "done", ex.jobs.get(person)!.error ?? "");
     const prompt = await readFile(join(runDir(a.id, c.id), "jobs", person, "a1", "prompt.md"), "utf8");
     assert.match(prompt, /^xr_experience: /m, "the frozen fields, not the workspace's current ones");
@@ -355,7 +356,7 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     const budgeted = c.jobs.find((j) => j.conditionId === "text-only")!.id;
     process.env.FAKE_CLOSING = "30000";
     await ex.start("agent", [budgeted]);
-    for (let i = 0; i < 80 && !["done", "failed"].includes(ex.jobs.get(budgeted)!.status); i++) await wait(250);
+    await until(() => ["done", "failed"].includes(ex.jobs.get(budgeted)!.status), "the session to end", { executor: ex });
     delete process.env.FAKE_CLOSING;
     const over = ex.jobs.get(budgeted)!;
     assert.equal(over.status, "done", over.error ?? "");
@@ -370,10 +371,10 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     const other = c.jobs.filter((j) => j.conditionId === "knows-participant")[1].id;
     process.env.FAKE_HANG = "1";
     await ex.start("agent", [other]);
-    for (let i = 0; i < 80 && ex.jobs.get(other)!.tokensIn == null; i++) await wait(100);
+    await until(() => ex.jobs.get(other)!.tokensIn != null, "live token counts", { executor: ex });
     delete process.env.FAKE_HANG;
     ex.stop();
-    for (let i = 0; i < 80 && !(await readReceipts(a.id, [c.id])).some((r) => r.jobId === other); i++) await wait(100);
+    await until(async () => (await readReceipts(a.id, [c.id])).some((r) => r.jobId === other), "the stopped session's receipt", { executor: ex });
     assert.equal(ex.jobs.get(other)!.status, "stopped");
     assert.deepEqual([ex.jobs.get(other)!.tokensIn, ex.jobs.get(other)!.tokensOut], [5_010, 400]);
     const receipt = (await readReceipts(a.id, [c.id])).find((r) => r.jobId === other)! as unknown as { error: string; usage: Record<string, unknown> };
@@ -382,7 +383,7 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     const stopped = (await sessionAttempts(a.id, c, other)).attempts[0];
     assert.deepEqual([stopped.status, stopped.cost, stopped.tokensIn], ["stopped", "unknown (stopped before the end)", 5_010]);
     await ex.start("agent", [other]);
-    for (let i = 0; i < 80 && ex.jobs.get(other)!.status !== "done"; i++) await wait(250);
+    await until(() => ex.jobs.get(other)!.status === "done", "the rerun to finish", { executor: ex });
     assert.equal(ex.jobs.get(other)!.status, "done");
 
     // A source file changed after the freeze blocks the configurations that read it.
@@ -403,7 +404,7 @@ test("executor: frozen knowledge is what agents get; a changed source blocks; st
     const job = c2.jobs.find((j) => j.conditionId === "text-only")!.id;
     const fine = c2.jobs.find((j) => j.conditionId === "knows-participant")!.id;
     await ex2.start("agent", [job, fine]);
-    for (let i = 0; i < 80 && (ex2.jobs.get(job)!.status !== "failed" || ex2.jobs.get(fine)!.status !== "done"); i++) await wait(100);
+    await until(() => ex2.jobs.get(job)!.status === "failed" && ex2.jobs.get(fine)!.status === "done", "one failed and one finished session", { executor: ex2 });
     assert.equal(ex2.jobs.get(job)!.error, 'Claude Code does not know the model "claude-sonet-5-5". Check the model ID on Agent configurations.');
     assert.equal((await readReceipts(a.id, [c2.id])).find((r) => r.jobId === job)!.actualModel, null);
     // The analysis says why a session failed, not only that it was not returned.

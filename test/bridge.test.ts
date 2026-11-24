@@ -16,8 +16,8 @@ import { validateAgents, validateComparisons, validateStudy } from "../src/core/
 import { campaignFromPlan } from "../src/core/campaign.js";
 import { analyzeCampaign, syntheticCampaignExecution } from "../src/core/campaign-study.js";
 import type { AgentProtocol, Audit, Study, TraceEvent } from "../src/core/types.js";
+import { until } from "./until.js";
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const removeDir = (dir: string) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 });
 const template = resolve("examples/bridge-template/bridge.mjs");
 const fakeClaude = resolve("test/fixtures/fake-claude-bridge.cjs");
@@ -73,7 +73,7 @@ async function session(
     await saveCampaign(a.id, c);
     const ex = await Executor.open(a.id, c.id);
     await ex.start("agent");
-    for (let i = 0; i < 160 && !ex.snapshot().counts.done && !ex.snapshot().counts.failed; i++) await wait(250);
+    await until(() => !!ex.snapshot().counts.done || !!ex.snapshot().counts.failed, "the session to end", { executor: ex });
     const job = ex.snapshot().jobs[0];
     assert.equal(job.status, opts.until ?? "done", JSON.stringify(job));
     const jobDir = join(runDir(a.id, c.id), "jobs", c.jobs[0].id, "a1");
@@ -131,7 +131,8 @@ test("bridge restart: resumes its state, frames stay unique, the engine it start
     // The engine process of the crashed bridge was ended with it; the second one at the end of the session.
     const engines = (await readFile(pids, "utf8")).trim().split("\n").map(Number);
     assert.equal(engines.length, 2);
-    for (let i = 0; i < 40 && engines.some(alive); i++) await wait(100);
+    // Windows may keep a killed process listed for a moment; only POSIX is asserted below.
+    await until(() => !engines.some(alive), "the engine processes to end", { limitMs: 30_000 }).catch(() => undefined);
     if (process.platform !== "win32") assert.deepEqual(engines.filter(alive), []);
   } finally {
     await s.cleanup();

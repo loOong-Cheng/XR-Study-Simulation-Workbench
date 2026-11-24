@@ -11,9 +11,9 @@ import { createHash } from "node:crypto";
 import { freezePlan } from "../src/core/planner.js";
 import { campaignFromPlan, freezeCampaign, type Campaign } from "../src/core/campaign.js";
 import type { AgentProtocol, Study } from "../src/core/types.js";
+import { until } from "./until.js";
 
 const JSZip = createRequire(import.meta.url)("jszip") as typeof import("jszip");
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const sha = (x: Buffer | string) => createHash("sha256").update(x).digest("hex");
 const removeDir = (dir: string) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 });
 
@@ -77,10 +77,10 @@ async function simulatedRuns(n: number) {
   const ex = await Executor.open(a.id, c.id);
   const ids = [...ex.jobs.keys()];
   await ex.start("simulate", ids.slice(0, 1));
-  for (let i = 0; i < 200 && (ex.snapshot().counts.done ?? 0) < 1; i++) await wait(100);
+  await until(() => (ex.snapshot().counts.done ?? 0) >= 1, "the first session to finish", { executor: ex });
   const z1 = await exportRuns(a.id, c.id);
   if (n > 1) await ex.start("simulate");
-  for (let i = 0; i < 300 && (ex.snapshot().counts.done ?? 0) < n; i++) await wait(100);
+  await until(() => (ex.snapshot().counts.done ?? 0) >= n, "every session to finish", { executor: ex });
   assert.equal(ex.snapshot().counts.done, n);
   const z2 = await exportRuns(a.id, c.id);
   return { a, c, ids, z1, z2, done: () => removeDir(a.dir) };
@@ -164,7 +164,7 @@ console.log(JSON.stringify({ type: "result", subtype: "success", usage: { input_
     }
     const ex = await Executor.open(a.id, c.id);
     await ex.start("agent", [j0]);
-    for (let i = 0; i < 80 && !ex.snapshot().counts.done && !ex.snapshot().counts.failed; i++) await wait(250);
+    await until(() => !!ex.snapshot().counts.done || !!ex.snapshot().counts.failed, "the session to end", { executor: ex });
     const s0 = ex.snapshot().jobs.find((j) => j.jobId === j0)!;
     // The forecast in the attempt folder was not written by the study server for this attempt.
     assert.equal(s0.status, "failed", JSON.stringify(s0));
@@ -179,13 +179,13 @@ console.log(JSON.stringify({ type: "result", subtype: "success", usage: { input_
     assert.deepEqual((await readReceipts(a.id, [c.id])).map((r) => [r.jobId, r.attempt, r.status]), [[j0, 2, "failed"]]);
     // A simulated attempt, too, never reuses a folder, and a rerun takes the next free number.
     await ex.start("simulate", [j1]);
-    for (let i = 0; i < 80 && ex.snapshot().jobs.find((j) => j.jobId === j1)!.status !== "done"; i++) await wait(100);
+    await until(() => ex.snapshot().jobs.find((j) => j.jobId === j1)!.status === "done", "the simulated rerun to finish", { executor: ex });
     assert.equal(ex.snapshot().jobs.find((j) => j.jobId === j1)!.attempts, 2);
     assert.ok(existsSync(join(runDir(a.id, c.id), "jobs", j1, "a2", "result.json")));
     assert.equal(await readFile(join(runDir(a.id, c.id), "jobs", j1, "a1", "calls.log"), "utf8"), "x\n".repeat(500));
     await mkdir(join(runDir(a.id, c.id), "jobs", j0, "a3"));
     await ex.start("simulate", [j0]);
-    for (let i = 0; i < 80 && ex.snapshot().jobs.find((j) => j.jobId === j0)!.status !== "done"; i++) await wait(100);
+    await until(() => ex.snapshot().jobs.find((j) => j.jobId === j0)!.status === "done", "the simulated rerun to finish", { executor: ex });
     assert.equal(ex.snapshot().jobs.find((j) => j.jobId === j0)!.attempts, 4);
     assert.deepEqual(await readdir(join(runDir(a.id, c.id), "jobs", j0, "a3")), []);
   } finally {

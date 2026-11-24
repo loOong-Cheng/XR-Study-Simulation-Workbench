@@ -13,6 +13,7 @@ import { freezePlan } from "../src/core/planner.js";
 import { campaignFromPlan, verifyContinuation, type Campaign, type CampaignCondition } from "../src/core/campaign.js";
 import { answerLines, checkForecast, submitDescription } from "../src/core/forecast-format.js";
 import { validateStudy } from "../src/core/validation.js";
+import { until as waitFor } from "./until.js";
 
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const readJson = async <T>(p: string) => JSON.parse(await readFile(p, "utf8")) as T;
@@ -29,9 +30,8 @@ async function tempWorkspace(from: string) {
   return { id: `private/studies/${name}`, dir };
 }
 const gq = resolve("examples/graphics-quality");
-async function until(done: () => boolean, ms = 20_000) {
-  for (let t = 0; t < ms && !done(); t += 100) await wait(100);
-}
+/** Waits for `done` (the assertions after it say what is wrong); the limit only keeps a broken test from hanging. */
+const until = (done: () => boolean, ms = 180_000) => waitFor(done, "the condition", { limitMs: ms }).catch(() => undefined);
 
 /**
  * A stand-in for `claude -p` that plays FAKE_STEPS: turns of a given input size that call a study
@@ -276,7 +276,7 @@ test("executor: Resume continues only sessions waiting after Pause; stopped sess
     // Stop: running sessions stop; Resume does not start them again (that is Rerun failed or Start).
     const stopped = ids.slice(12, 15);
     await ex.start("simulate", stopped);
-    await wait(300);
+    await until(() => stopped.every((id) => ex.jobs.get(id)!.status === "running"));
     ex.stop();
     assert.throws(() => ex.resume(), /Nothing to resume: no sessions are waiting\. Stopped or failed sessions run again with Rerun failed/);
     await wait(1500);

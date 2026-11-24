@@ -1,8 +1,8 @@
 // The built-in WebXR runtime (src/runtimes/webxr-mcp.ts) against a tiny offline app.
 // Needs Google Chrome (CHROME_PATH, or the default install location); skipped without it.
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
-import { spawn } from "node:child_process";
+import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -31,8 +31,12 @@ window.xrStudy = {
 };
 </script></body>`;
 
+// Servers end with this file's tests, also when a test hangs and --test-timeout cancels it.
+const children = new Set<ChildProcess>();
+after(() => children.forEach((c) => c.kill()));
 function client(jobDir: string) {
   const child = spawn(process.execPath, [server, jobDir], { stdio: ["pipe", "pipe", "ignore"] });
+  children.add(child);
   const waiting = new Map<number, (m: any) => void>();
   createInterface({ input: child.stdout! }).on("line", (l) => {
     const m = JSON.parse(l);
@@ -50,12 +54,15 @@ function client(jobDir: string) {
     const r = await rpc("tools/call", { name, arguments: args });
     return { error: r.result?.isError === true, text: r.result?.content?.[0]?.text as string | undefined, content: r.result?.content };
   };
-  const close = () => new Promise<void>((ok) => (child.on("exit", () => ok()), child.stdin!.end()));
-  return { rpc, call, close };
+  const close = () => new Promise<void>((ok) => (child.exitCode !== null || child.signalCode !== null ? ok() : (child.on("exit", () => ok()), child.stdin!.end())));
+  // Ends the server (and its Chrome) when a test failed before closing it, so `node --test` never waits on it.
+  const kill = () => void (child.exitCode === null && child.signalCode === null && child.kill());
+  return { rpc, call, close, kill };
 }
 
 test("WebXR runtime: per-design object IDs, audit trace and clean shutdown", { skip: !existsSync(chrome) && `Chrome not found at ${chrome}` }, async () => {
   const root = await mkdtemp(join(tmpdir(), "xr-webxr-test-"));
+  let mcp: ReturnType<typeof client> | undefined;
   try {
     const appDir = join(root, "app"),
       jobDir = join(root, "job");
@@ -65,7 +72,7 @@ test("WebXR runtime: per-design object IDs, audit trace and clean shutdown", { s
     const designs = ["one", "two"].map((id) => ({ id, label: id, practice: null, main: { caseId: `${id}-main`, phaseId: "main" } }));
     await writeFile(join(jobDir, "job.json"), JSON.stringify({ webxr: { jobId: "t", budget: 40, chromePath: chrome, app: { dir: appDir, query: "?design={condition}" }, designs } }));
     const before = new Set(readdirSync(tmpdir()).filter((n) => n.startsWith("xr-webxr-") && !n.startsWith("xr-webxr-test-")));
-    const mcp = client(jobDir);
+    mcp = client(jobDir);
     await mcp.rpc("initialize", { protocolVersion: "2025-06-18" });
 
     // Without app.capabilities the basic contract: look, list_objects and select, no pointer or app actions.
@@ -116,6 +123,7 @@ test("WebXR runtime: per-design object IDs, audit trace and clean shutdown", { s
     const left = readdirSync(tmpdir()).filter((n) => n.startsWith("xr-webxr-") && !n.startsWith("xr-webxr-test-") && !before.has(n));
     assert.deepEqual(left, []);
   } finally {
+    mcp?.kill();
     await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   }
 });

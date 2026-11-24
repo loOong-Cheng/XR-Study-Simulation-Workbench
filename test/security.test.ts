@@ -1,7 +1,7 @@
 // Security of the local workbench: who may call it, what agents may read, which paths sources and
 // zips may reach, and that bad requests get plain messages. Throw-away studies live under
 // private/studies/__test-… and are removed afterwards.
-import { test } from "node:test";
+import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync } from "node:fs";
@@ -9,18 +9,22 @@ import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "n
 import { request } from "node:http";
 import { createRequire } from "node:module";
 import { tmpdir } from "node:os";
-import { join, relative, resolve } from "node:path";
+import { dirname, join, parse, relative, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { createHash } from "node:crypto";
 import { freezePlan } from "../src/core/planner.js";
 import { campaignFromPlan } from "../src/core/campaign.js";
 import { validateStudy } from "../src/core/validation.js";
 import type { AgentProtocol, Study } from "../src/core/types.js";
+import { until } from "./until.js";
 
 const JSZip = createRequire(import.meta.url)("jszip") as typeof import("jszip");
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const sha = (x: Buffer | string) => createHash("sha256").update(x).digest("hex");
 const removeDir = (dir: string) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 });
+// Servers started here end with the tests, also when an assertion failed before a test closed them.
+const children = new Set<ChildProcess>();
+const own = <T extends ChildProcess>(child: T): T => (children.add(child), child.once("exit", () => children.delete(child)), child);
+after(() => children.forEach((c) => c.kill()));
 async function tempWorkspace(from: string) {
   const name = `__test-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const dir = resolve("private/studies", name);
@@ -74,11 +78,11 @@ function call(port: number, path: string, opts: { method?: string; host?: string
 async function startServer(settings: string): Promise<{ port: number; proc: ChildProcess }> {
   for (let tries = 0; tries < 5; tries++) {
     const port = 41000 + Math.floor(Math.random() * 15000);
-    const proc = spawn(process.execPath, [resolve("dist/server.js")], { env: { ...process.env, XR_STUDY_PORT: String(port), XR_STUDY_SETTINGS: settings }, stdio: ["ignore", "pipe", "pipe"] });
+    const proc = own(spawn(process.execPath, [resolve("dist/server.js")], { env: { ...process.env, XR_STUDY_PORT: String(port), XR_STUDY_SETTINGS: settings }, stdio: ["ignore", "pipe", "pipe"] }));
     const up = await new Promise<boolean>((ok) => {
       createInterface({ input: proc.stdout! }).on("line", (l) => /XR Study Sim/.test(l) && ok(true));
       proc.on("exit", () => ok(false));
-      setTimeout(() => ok(false), 15_000);
+      setTimeout(() => ok(false), 60_000).unref(); // a slow CI runner; never keeps the tests waiting
     });
     if (up) return { port, proc };
     proc.kill();
@@ -271,7 +275,7 @@ test("screenshots: only this campaign's screenshots, symlinks resolved", async (
 // ---------- 3. what agents may read (study MCP) ----------
 
 async function studyServer(jobDir: string) {
-  const child = spawn(process.execPath, [resolve("dist/runtimes/study-mcp.js"), jobDir], { stdio: ["pipe", "pipe", "ignore"] });
+  const child = own(spawn(process.execPath, [resolve("dist/runtimes/study-mcp.js"), jobDir], { stdio: ["pipe", "pipe", "ignore"] }));
   const waiting = new Map<number, (m: any) => void>();
   createInterface({ input: child.stdout! }).on("line", (l) => {
     const m = JSON.parse(l);
@@ -347,7 +351,10 @@ test("sources: inside the study folder; only an absolute project folder may live
   const { missingSources, readWorkspace, sourceLocation } = await import("../src/workspace.js");
   const { sourceText, evidenceOverview, saveKnowledge } = await import("../src/sources.js");
   const a = await tempWorkspace(resolve("examples/graphics-quality"));
-  const outside = await mkdtemp(join(tmpdir(), "xr-engine-project-"));
+  // An engine project outside the workbench, on the checkout's drive: across Windows drives (CI checks
+  // out on D:, the temporary folder is on C:) no relative path exists, which the test below needs.
+  const sameDrive = parse(tmpdir()).root.toLowerCase() === parse(resolve(".")).root.toLowerCase();
+  const outside = await mkdtemp(join(sameDrive ? tmpdir() : dirname(resolve(".")), "xr-engine-project-"));
   try {
     await writeFile(join(outside, "Level.umap"), "level");
     const problem = async (id: string) => {
@@ -446,10 +453,10 @@ test("runs zip: append-only records merge, every campaign is checked, only expor
     const ids = [...ex.jobs.keys()];
     // z1 after two sessions, z2 after all five.
     await ex.start("simulate", ids.slice(0, 2));
-    for (let i = 0; i < 200 && (ex.snapshot().counts.done ?? 0) < 2; i++) await wait(100);
+    await until(() => (ex.snapshot().counts.done ?? 0) >= 2, "two sessions to finish", { executor: ex });
     const z1 = await exportRuns(a.id, c.id);
     await ex.start("simulate");
-    for (let i = 0; i < 200 && (ex.snapshot().counts.done ?? 0) < 5; i++) await wait(100);
+    await until(() => (ex.snapshot().counts.done ?? 0) >= 5, "five sessions to finish", { executor: ex });
     assert.equal(ex.snapshot().counts.done, 5);
     const z2 = await exportRuns(a.id, c.id);
 

@@ -10,8 +10,8 @@ import { join, resolve } from "node:path";
 import { freezePlan, proposeAgents, withDefaultRuns } from "../src/core/planner.js";
 import { campaignFromPlan, continueFromStatus } from "../src/core/campaign.js";
 import type { Study } from "../src/core/types.js";
+import { until } from "./until.js";
 
-const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 async function tempWorkspace(from: string, edit?: (study: Study) => void) {
   const name = `__test-flow-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
   const dir = resolve("private/studies", name);
@@ -125,7 +125,7 @@ test("simulate a research study: sessions finish, the analysis leaves every simu
     await saveCampaign(a.id, c);
     const ex = await Executor.open(a.id, c.id);
     await ex.start("simulate");
-    for (let i = 0; i < 400 && ex.snapshot().counts.done !== ex.jobs.size; i++) await wait(100);
+    await until(() => ex.snapshot().counts.done === ex.jobs.size, "every session to finish", { executor: ex });
     assert.equal(ex.snapshot().counts.done, ex.jobs.size, `all simulated sessions finish: ${JSON.stringify(ex.snapshot().counts)}`);
     assert.ok([...ex.jobs.values()].every((j) => j.simulated && j.error === null));
 
@@ -163,7 +163,7 @@ test("reused sessions keep the tokens and cost of the run they reuse; dropped co
     await saveCampaign(a.id, c);
     const ex = await Executor.open(a.id, c.id);
     await ex.start("simulate");
-    for (let i = 0; i < 400 && ex.snapshot().counts.done !== ex.jobs.size; i++) await wait(100);
+    await until(() => ex.snapshot().counts.done === ex.jobs.size, "every session to finish", { executor: ex });
     // Turn one text-only run into a real one with usage and a reported cost, as a real session leaves it.
     const job = c.jobs.find((j) => j.conditionId === "text-only" && j.kind === "llm")!;
     const dir = runDir(a.id, c.id);

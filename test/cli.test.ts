@@ -236,3 +236,15 @@ test("cli: wrong inputs give plain messages", async (t) => {
   ok(await cli(dir, "demo", "demo"));
   ok(await cli(dir, "analyze", "demo/plan.json", "demo/human.synthetic.json", "demo/results.synthetic.json", "demo-report"));
 });
+
+// No --test-force-exit: with it, Node ends a file's run before its later tests (29 → 8 in research.test).
+test("npm test runs every test file, with a time limit per test (CI never hangs)", async () => {
+  const { readdirSync } = await import("node:fs");
+  const script = (await json<{ scripts: Record<string, string> }>(resolve("package.json"))).scripts.test;
+  const files = readdirSync(resolve("test")).filter((f) => f.endsWith(".test.ts"));
+  assert.ok(files.length >= 10, files.join(", "));
+  const missing = files.filter((f) => !script.includes(`.test-build/test/${f.replace(/\.ts$/, ".js")}`));
+  assert.deepEqual(missing, [], "add these test files to the test script in package.json");
+  assert.match(script, /node --test --test-timeout=\d+ /);
+  assert.doesNotMatch(script, /--test-force-exit/);
+});

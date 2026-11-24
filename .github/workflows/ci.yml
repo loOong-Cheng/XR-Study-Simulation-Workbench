@@ -9,20 +9,26 @@ jobs:
       matrix:
         os: [ubuntu-latest, windows-latest]
     runs-on: ${{ matrix.os }}
+    # The whole job takes a few minutes; a hung test or process must not hold a runner for hours.
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: npm
       # Chrome for the WebXR runtime test (test/webxr-runtime.test.ts skips without it).
-      - uses: browser-actions/setup-chrome@v1
+      - uses: browser-actions/setup-chrome@v2
         id: chrome
         with:
           install-dependencies: true
       - run: npm ci --ignore-scripts
       - run: npm run check
+      # npm test runs every test/*.test.ts (a test fails if one is missing from the script) with a time
+      # limit per test; tests end the servers they start, also after a failed assertion. Not
+      # --test-force-exit: it ends a file's run before its later tests. The step limit is the backstop.
       - run: npm test
+        timeout-minutes: 10
         env:
           CHROME_PATH: ${{ steps.chrome.outputs.chrome-path }}
       - run: npm run demo
