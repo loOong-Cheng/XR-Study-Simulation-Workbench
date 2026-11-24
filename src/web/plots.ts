@@ -161,7 +161,8 @@ export function agreementPlot(fig: { groups: Group[]; brackets: Bracket[]; chanc
     xs.set(g.id, cx);
     const color = colorFor(g.id, order);
     body += distribution(g, cx, slot * 0.8, ax, color, true, violin);
-    body += `<text x="${cx}" y="${top - 6}" font-size="11" text-anchor="middle" fill="${color}">${fmt(g.stats.mean * 100, 1)}${g.vsChance?.holm != null && g.vsChance.holm < 0.05 ? " †" : ""}</text>`;
+    // No mean above a configuration without runs ("no data" is drawn in its place).
+    if (g.stats.n) body += `<text x="${cx}" y="${top - 6}" font-size="11" text-anchor="middle" fill="${color}">${fmt(g.stats.mean * 100, 1)}${g.vsChance?.holm != null && g.vsChance.holm < 0.05 ? " †" : ""}</text>`;
     // At most three lines; a simulated group's last line is always "(simulated)".
     const marked = g.simulated && g.label.endsWith(" (simulated)");
     const words = (marked ? g.label.slice(0, -" (simulated)".length) : g.label).split(" ");
