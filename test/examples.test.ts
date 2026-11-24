@@ -1419,3 +1419,30 @@ test("compare agents: cost, tool calls and minutes include the runs a continuati
     await removeDir(a.dir);
   }
 });
+
+test("example data files use LF line endings, so a copied package and a clone hash them alike", async () => {
+  const { readdir } = await import("node:fs/promises");
+  // Folders the workbench writes when trying an example (not committed) and vendored code.
+  const skip = new Set(["campaigns", "runs", "deleted", "node_modules", "vendor", "Library", "Temp"]);
+  const files: string[] = [];
+  const walk = async (dir: string): Promise<void> => {
+    for (const e of await readdir(dir, { withFileTypes: true }))
+      if (e.isDirectory()) {
+        if (!skip.has(e.name)) await walk(join(dir, e.name));
+      } else if (/\.(csv|json)$/i.test(e.name)) files.push(join(dir, e.name));
+  };
+  await walk(resolve("examples"));
+  assert.ok(files.length >= 30, `found only ${files.length} example CSV/JSON files`);
+  const withCr: string[] = [];
+  for (const f of files) if ((await readFile(f)).includes(13)) withCr.push(f);
+  assert.deepEqual(withCr, [], "these example files contain carriage returns (CRLF); write them with LF");
+  // The generators and converters write LF and UTF-8 on every platform.
+  for (const name of ["ecolar", "graphics-quality", "selection"]) {
+    const generator = await readFile(resolve("examples", name, "data/generate_synthetic.py"), "utf8");
+    assert.match(generator, /lineterminator="\\n"/, `${name}: generate_synthetic.py`);
+    const converter = await readFile(resolve("examples", name, "data/convert_to_human.py"), "utf8");
+    const opens = converter.split("\n").filter((line) => /\bopen\(/.test(line));
+    assert.ok(opens.length >= 2, `${name}: convert_to_human.py opens no files?`);
+    for (const line of opens) assert.match(line, /encoding="utf-8"/, `${name}: ${line.trim()}`);
+  }
+});

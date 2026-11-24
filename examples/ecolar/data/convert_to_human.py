@@ -21,11 +21,12 @@ from collections import defaultdict
 
 here = os.path.dirname(os.path.abspath(__file__))
 raw = os.path.join(here, "raw")
-study = json.load(open(os.path.join(here, "..", "study.json")))
+with open(os.path.join(here, "..", "study.json"), encoding="utf-8") as f:
+    study = json.load(f)
 
 
 def rows(name):
-    with open(os.path.join(raw, name)) as f:
+    with open(os.path.join(raw, name), encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
 
 
@@ -52,5 +53,6 @@ for r in rows("rankings.csv"):
     for d in ("SP", "VO", "PP", "HP"):
         add(r["participant"], d, f"rank-{r['question']}", int(r[d]))
 
-json.dump({"schemaVersion": "1.0", "studyId": study["id"], "synthetic": True, "measurements": out}, open(os.path.join(here, "..", "human.json"), "w"), indent=1)
+with open(os.path.join(here, "..", "human.json"), "w", encoding="utf-8", newline="\n") as f:
+    json.dump({"schemaVersion": "1.0", "studyId": study["id"], "synthetic": True, "measurements": out}, f, indent=1)
 print(f"Wrote {len(out)} measurements to ../human.json")

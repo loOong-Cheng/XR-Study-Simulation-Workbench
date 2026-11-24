@@ -119,8 +119,8 @@ for i in range(N):
 
 
 def write(name, rows):
-    with open(os.path.join(raw, name), "w", newline="") as f:
-        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
+    with open(os.path.join(raw, name), "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, fieldnames=list(rows[0].keys()), lineterminator="\n")
         w.writeheader()
         w.writerows(rows)
 

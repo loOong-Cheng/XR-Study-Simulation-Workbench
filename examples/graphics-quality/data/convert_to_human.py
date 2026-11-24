@@ -23,11 +23,12 @@ from collections import defaultdict
 
 here = os.path.dirname(os.path.abspath(__file__))
 raw = os.path.join(here, "raw")
-study = json.load(open(os.path.join(here, "..", "study.json")))
+with open(os.path.join(here, "..", "study.json"), encoding="utf-8") as f:
+    study = json.load(f)
 
 
 def rows(name):
-    with open(os.path.join(raw, name)) as f:
+    with open(os.path.join(raw, name), encoding="utf-8", newline="") as f:
         return list(csv.DictReader(f))
 
 
@@ -97,7 +98,7 @@ out = {
     "measurements": measurements,
 }
 path = os.path.join(here, "..", "human.json")
-with open(path, "w") as f:
+with open(path, "w", encoding="utf-8", newline="\n") as f:
     json.dump(out, f, indent=1)
     f.write("\n")
 print(f"Wrote {len(measurements)} human records to {path}")

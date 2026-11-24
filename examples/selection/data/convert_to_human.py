@@ -17,8 +17,14 @@ import os
 from collections import defaultdict
 
 here = os.path.dirname(os.path.abspath(__file__))
-study = json.load(open(os.path.join(here, "..", "study.json")))
-rows = lambda name: list(csv.DictReader(open(os.path.join(here, "raw", name))))
+with open(os.path.join(here, "..", "study.json"), encoding="utf-8") as f:
+    study = json.load(f)
+
+
+def rows(name):
+    with open(os.path.join(here, "raw", name), encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
 
 ids = {p["id"] for p in study["participants"]}
 techniques = {c["id"] for c in study["conditions"]}
@@ -42,7 +48,7 @@ for r in rows("rankings.csv"):
     add("overall-preference", r["technique"], r["participant"], value=int(r["overall_rank"]))
 
 out = {"schemaVersion": "1.0", "studyId": study["id"], "synthetic": True, "measurements": records}
-with open(os.path.join(here, "..", "human.json"), "w") as f:
+with open(os.path.join(here, "..", "human.json"), "w", encoding="utf-8", newline="\n") as f:
     json.dump(out, f, indent=2)
     f.write("\n")
 print(f"wrote {len(records)} records to human.json")
