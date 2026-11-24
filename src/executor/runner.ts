@@ -19,6 +19,7 @@ import { changedSources, listCampaigns, missingSources, readCampaign, readHuman,
 import { runtimeFor, runtimeStatus } from "./runtimes.js";
 import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
+import { agentFileList } from "../runtimes/guard.js";
 
 /** not-started: never asked to run; queued: asked to run and waiting for a free slot. */
 export type JobStatus = "not-started" | "queued" | "running" | "done" | "failed" | "stopped" | "reused";
@@ -588,7 +589,8 @@ export class Executor {
       if (kind === "brief" || kind === "evidence")
         injected.push({ sourceId: id, title: kind === "brief" ? "Study brief" : `Knowledge: ${labelOf(id)}`, content: await readFile(path!, "utf8") });
       else if (kind === "project") {
-        const files = (await listTree(path!)).join("\n");
+        // The same files list_files and read_file give: nothing hidden from agents is named.
+        const files = (await agentFileList(path!)).join("\n");
         injected.push({ sourceId: id, title: "Project files you can open with read_file", content: files });
       } else if (kind === "demographics")
         injected.push({ sourceId: id, title: `Participant background: ${labelOf(id)} (allowed fields only)`, content: await demographics(path, study.sources.find((s) => s.id === id)!.fields ?? [], job.participantId, study.participants.map((p) => p.id)) });
@@ -994,16 +996,6 @@ export class Executor {
 function totalInput(e: { inputTokens: number | null; cacheReadTokens: number | null; cacheWriteTokens: number | null }): number | null {
   const parts = [e.inputTokens, e.cacheReadTokens, e.cacheWriteTokens].filter((x): x is number => typeof x === "number");
   return parts.length ? parts.reduce((s, x) => s + x, 0) : null;
-}
-async function listTree(root: string, prefix = ""): Promise<string[]> {
-  const out: string[] = [];
-  for (const e of await readdir(join(root, prefix), { withFileTypes: true })) {
-    if (e.name.startsWith(".")) continue;
-    const rel = prefix ? `${prefix}/${e.name}` : e.name;
-    if (e.isDirectory()) out.push(...(await listTree(root, rel)));
-    else out.push(rel);
-  }
-  return out.slice(0, 500);
 }
 /** Allowed demographic fields: the person's row, or a cohort summary for population configs. */
 async function demographics(path: string | null, fields: string[], participantId: string | undefined, people: string[]): Promise<string> {

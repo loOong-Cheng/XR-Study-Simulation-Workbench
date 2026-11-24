@@ -3,10 +3,10 @@
 // Tools: list_files/read_file (only the permitted project folder), submit_forecast.
 // Every call is appended to <job-dir>/trace.jsonl and counted against the budget.
 import { createHash } from "node:crypto";
-import { existsSync, realpathSync } from "node:fs";
-import { appendFile, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { appendFile, readFile, stat, writeFile } from "node:fs/promises";
 import { join, relative, resolve, sep } from "node:path";
-import { agentPath, hiddenFromAgents, within } from "./guard.js";
+import { agentFolderEntries, agentPath, realPath, windowsAliasProblem, within } from "./guard.js";
 import { budgetNearlyUsed, serveMcp, text, ToolError, type Tool } from "./mcp.js";
 
 export interface JobSpec {
@@ -41,10 +41,10 @@ async function countCall(tool: string): Promise<void> {
   if (tool !== "submit_forecast" && used > spec.budget)
     throw new ToolError(`Tool budget of ${spec.budget} calls is used up. Submit your forecast now with submit_forecast.`);
 }
-// The permitted folder with symlinks resolved; every path is checked against it after resolving its own symlinks.
+// The permitted folder as it is on disk (symlinks resolved, on-disk names); every path is checked against it after resolving its own.
 const projectRoot = (() => {
   try {
-    return spec.projectDir ? realpathSync(spec.projectDir) : null;
+    return spec.projectDir ? realPath(spec.projectDir) : null;
   } catch {
     return null;
   }
@@ -56,6 +56,8 @@ function inside(path: string, what: "file" | "folder"): string {
   if (!projectRoot) throw new ToolError("The project folder is not available on this machine.");
   const target = resolve(projectRoot, path || ".");
   if (!within(projectRoot, target)) throw new ToolError("Only the approved project folder can be read.");
+  // On Windows "human.json." or "human.json::$DATA" would open human.json.
+  if (windowsAliasProblem(path)) throw new ToolError("This path is not available to agents.");
   // Symlinks may not lead out of the folder, and human results or run records are never given out.
   const real = agentPath(projectRoot, target);
   if (!real) throw new ToolError(existsSync(target) && within(projectRoot, target) ? "This path is not available to agents." : `No such ${what}.`);
@@ -72,14 +74,10 @@ if (spec.projectDir) {
         await countCall("list_files");
         const dir = inside(String(args.path ?? "."), "folder");
         if (!(await stat(dir)).isDirectory()) throw new ToolError("No such folder.");
-        const entries = await readdir(dir, { withFileTypes: true });
+        // Only what read_file would give: no dot files, nothing hidden from agents, no links out.
+        const entries = await agentFolderEntries(dir, projectRoot!);
         await log({ tool: "list_files", path: shown(dir) });
-        return text(
-          entries
-            .filter((e) => !e.name.startsWith(".") && !hiddenFromAgents(join(dir, e.name)))
-            .map((e) => (e.isDirectory() ? e.name + "/" : e.name))
-            .join("\n") || "(empty)",
-        );
+        return text(entries.join("\n") || "(empty)");
       },
     },
     {

@@ -104,6 +104,7 @@ private/studies/<name>/            (or examples/<name>/ for synthetic studies)
 - Every source in `workspace.json` resolves (symlinks followed) **inside the study folder**. It may not be the study folder itself (`"project": "."`), a folder around it, `human.json`, `campaigns/`, `runs/` or `deleted/`.
 - Only a **project** folder may live elsewhere on the machine (an engine project). Write it as an **absolute path** outside this repository, and not a folder that holds a `study.json` or `human.json`. A relative path that leaves the study folder is refused.
 - As a second guard, the study MCP server never hands an agent a file named `human.json`, nor anything in a study's `campaigns/`, `runs/` or `deleted/`. A symlink that leads out of the permitted folder is refused too.
+- Names are checked as they are on disk, not as written: other letter case, look-alikes the volume folds (`human.jſon`), and on Windows trailing dots or spaces, 8.3 short names (`HUMAN~1.JSO`) and streams (`human.json::$DATA`) cannot reach protected files. The `campaigns/`, `runs/` and `deleted/` of a study kept inside another folder count too, and a file with a second name on disk (a hard link) is never given to agents or written through. The website, the prompt and the MCP server use the same rule (`src/runtimes/guard.ts`).
 
 **Study IDs** are exactly `examples/<name>` or `private/studies/<name>`, with the folder's own letter case. Other spellings (`./`, `//`, a trailing `/`) are refused.
 

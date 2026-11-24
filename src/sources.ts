@@ -3,13 +3,14 @@
 // the leak check only reports how many numbers match.
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, stat, writeFile } from "node:fs/promises";
+import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, join } from "node:path";
 import type { Study } from "./core/types.js";
 import { measurementValue, requireThat } from "./core/validation.js";
 // The study and its sources only: knowledge stays readable while saved configurations disagree with the study.
 import { readHuman, readStudyFolder as readWorkspace, sourceLocation, studyWriteTarget, type WorkspaceManifest } from "./workspace.js";
 import { backgroundText, columnGaps, idColumn, outcomeNamed, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS, plural, strangerNote, strangers, toCsv } from "./participant-knowledge.js";
+import { agentFileList } from "./runtimes/guard.js";
 import { draftKnowledge } from "./assistant.js";
 import { extractProposal } from "./core/proposal.js";
 import type { AgentProtocol } from "./core/types.js";
@@ -27,19 +28,10 @@ async function sourcePath(id: string, sourceId: string) {
   requireThat(where.path, `Source '${sourceId}' ${where.problem}.`);
   return { ws, src: src!, path: where.path!, rel: ws.manifest.sources![sourceId] };
 }
-async function tree(root: string, prefix = "", out: string[] = []): Promise<string[]> {
-  for (const e of await readdir(join(root, prefix), { withFileTypes: true })) {
-    if (e.name.startsWith(".") || out.length >= 500) continue;
-    const rel = prefix ? `${prefix}/${e.name}` : e.name;
-    if (e.isDirectory()) await tree(root, rel, out);
-    else out.push(rel);
-  }
-  return out;
-}
-/** The source as plain text: a file's content (up to 2 MB) or a folder's file list. */
+/** The source as plain text: a file's content (up to 2 MB) or a folder's file list (as agents see it). */
 export async function sourceText(id: string, sourceId: string): Promise<string> {
   const { src, path, rel } = await sourcePath(id, sourceId);
-  if ((await stat(path)).isDirectory()) return `${src.label} (${rel}): folder with these files\n\n${(await tree(path)).join("\n")}\n`;
+  if ((await stat(path)).isDirectory()) return `${src.label} (${rel}): folder with these files\n\n${(await agentFileList(path)).join("\n")}\n`;
   const buf = await readFile(path);
   requireThat(buf.length <= 2_000_000, "This file is too large to show here.");
   return buf.toString("utf8");
