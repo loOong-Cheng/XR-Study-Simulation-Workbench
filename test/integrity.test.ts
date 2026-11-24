@@ -465,6 +465,11 @@ test("folder fingerprints: paths become / before sorting (same on Windows and PO
     assert.equal(sourceHash(dir), expected, "OS clutter does not change the fingerprint");
     await writeFile(join(dir, "p1", "b.csv"), "2");
     assert.notEqual(sourceHash(dir), expected);
+    // Agents see the same files: the shared listing and reading leave the clutter out.
+    const { agentFileList, agentPath } = await import("../src/runtimes/guard.js");
+    assert.deepEqual((await agentFileList(dir)).sort(), ["p1/a.csv", "p1/b.csv", "p10/a.csv"]);
+    assert.deepEqual(["Thumbs.db", "desktop.ini", "~$notes.docx", join("p1", "._a.csv")].map((f) => agentPath(dir, join(dir, f))), [null, null, null, null]);
+    assert.ok(agentPath(dir, join(dir, "p1", "a.csv")));
   } finally {
     await removeDir(dir);
   }
@@ -501,6 +506,12 @@ test("executor: a WebXR app changed after freezing blocks app sessions; the app'
     const frozenAs = "changed after this campaign was frozen. Freeze a new campaign, or Continue / rerun to use the new version.";
     await writeFile(main, original + "\n// changed\n");
     assert.deepEqual(await blocked(), [`The WebXR app (webxr-app) ${frozenAs}`]);
+    // A continuation runs the app configurations again (their runs played the old app), not the others.
+    const { handlePost } = await import("../src/routes.js");
+    let preview: Record<string, any> = {};
+    await handlePost("/api/workspace/continue", { id: a.id, campaignId: c.id, changes: { note: "new app" }, preview: true }, (v) => (preview = v as Record<string, any>));
+    assert.deepEqual(preview.sourceChanges, [`The WebXR app changed since this campaign was frozen: ${usesApp} runs again (its finished runs played the old version).`]);
+    assert.deepEqual(preview.campaign.continuation.rerunConditions, ["uses-app"]);
     await writeFile(main, original);
     assert.deepEqual(await blocked(), []);
     // The query and what workspace.json declares about the app are frozen too.

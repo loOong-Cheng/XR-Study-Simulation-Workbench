@@ -39,6 +39,8 @@ import {
   createStudy,
   changedSources,
   rerunChangedSources,
+  rerunChangedApp,
+  changedApp,
 } from "./workspace.js";
 import { campaignSummaries, deleteCampaign, sameDesignKey, sessionAttempts, writeLabel } from "./history.js";
 import { evidenceOverview, knowledgeDraft, leakCheck, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
@@ -404,7 +406,10 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       // finished runs used the old version (recorded as rerunConditions in the change set).
       const { manifest } = await readStudyFolder(id);
       const sourceReruns = rerunChangedSources(previous, await changedSources(id, previous, manifest), changes);
-      const next = continueFromStatus(previous, receipts, sourceReruns.changes, undefined, undefined, {
+      // Likewise the configurations that play the WebXR app, when the app changed.
+      const appReruns = rerunChangedApp(previous, await changedApp(id, previous, manifest), sourceReruns.changes);
+      const sourceNotes = [...sourceReruns.notes, ...appReruns.notes];
+      const next = continueFromStatus(previous, receipts, appReruns.changes, undefined, undefined, {
         simulatedJobIds: simulatedBefore,
         keepSimulated,
         receiptsComplete: true,
@@ -427,12 +432,12 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       );
       const totals = Object.values(simulated).reduce((s, x) => ({ reused: s.reused + x.reused, runAgain: s.runAgain + x.runAgain }), { reused: 0, runAgain: 0 });
       if (preview) {
-        json({ preview: true, campaign: next, keepSimulated, simulated: { ...totals, byCondition: simulated }, sourceChanges: sourceReruns.notes });
+        json({ preview: true, campaign: next, keepSimulated, simulated: { ...totals, byCondition: simulated }, sourceChanges: sourceNotes });
         return true;
       }
       await saveCampaign(id, next);
       await saveSourceFingerprints(id, next);
-      json({ campaignId: next.id, reused, jobs: next.jobs.length, reusedSimulated: totals.reused, simulatedRunAgain: totals.runAgain, sourceChanges: sourceReruns.notes });
+      json({ campaignId: next.id, reused, jobs: next.jobs.length, reusedSimulated: totals.reused, simulatedRunAgain: totals.runAgain, sourceChanges: sourceNotes });
       return true;
     }
     case "/api/executor/start": {

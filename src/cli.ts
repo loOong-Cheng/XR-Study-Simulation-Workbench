@@ -84,7 +84,7 @@ import {
   type CampaignScorecard,
 } from "./core/campaign-comparison.js";
 import { readSettings } from "./settings.js";
-import { changedSourcesIn, repoRoot, rerunChangedSources, workspaceDir, type WorkspaceManifest } from "./workspace.js";
+import { changedAppIn, changedSourcesIn, repoRoot, rerunChangedApp, rerunChangedSources, workspaceDir, type WorkspaceManifest } from "./workspace.js";
 import { decodeText } from "./files.js";
 
 // ---------- commands, usage and help ----------
@@ -829,10 +829,12 @@ async function main(): Promise<void> {
     const studyDir = resolve(dirname(previousPath), "..", "..");
     const fingerprints = join(dirname(previousPath), "sources.json");
     const manifest = existsSync(join(studyDir, "workspace.json")) ? await readJson<WorkspaceManifest>(join(studyDir, "workspace.json")) : {};
-    const { changes, notes } =
-      existsSync(fingerprints) && existsSync(join(studyDir, "study.json"))
-        ? rerunChangedSources(previous, await changedSourcesIn(studyDir, previous, manifest, fingerprints), given)
-        : { changes: given, notes: [] as string[] };
+    const frozen = existsSync(fingerprints) && existsSync(join(studyDir, "study.json"));
+    const bySources = frozen ? rerunChangedSources(previous, await changedSourcesIn(studyDir, previous, manifest, fingerprints), given) : { changes: given, notes: [] as string[] };
+    // Likewise the configurations that play the WebXR app, when the app changed.
+    const byApp = frozen ? rerunChangedApp(previous, await changedAppIn(studyDir, manifest, fingerprints), bySources.changes) : { changes: bySources.changes, notes: [] as string[] };
+    const changes = byApp.changes,
+      notes = [...bySources.notes, ...byApp.notes];
     // The configurations it adds or changes are checked as when they are saved (continueCampaign).
     const receiptFiles = lists.get("--receipts");
     const campaign = receiptFiles

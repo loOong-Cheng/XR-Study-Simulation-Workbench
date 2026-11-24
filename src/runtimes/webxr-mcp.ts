@@ -367,13 +367,18 @@ function requireActive() {
 }
 
 // ---------- the app's log (kept in the job folder, never shown to the agent) ----------
+/**
+ * app-logs/<nn>-<design>.json: {design, opened (the nth open_design), savedAt, entries (what
+ * window.xrStudy.log() returned)}. Saving runs as zip exports it; loading checks this shape.
+ */
 async function saveAppLog() {
   if (!design || !ws) return;
   try {
-    const body = await evaluate(`(async () => { const l = window.xrStudy?.log; return typeof l === "function" ? JSON.stringify(await l.call(window.xrStudy)) : null; })()`, 10_000);
-    if (typeof body !== "string") return;
-    if (body.length > 50_000_000) return void (await log({ appLog: null, note: "The app's log is larger than 50 MB and was not saved." }));
-    const name = `${String(opened).padStart(2, "0")}-${design.id.replace(/[^A-Za-z0-9_-]/g, "_")}.json`;
+    const entries = await evaluate(`(async () => { const l = window.xrStudy?.log; return typeof l === "function" ? JSON.stringify(await l.call(window.xrStudy)) ?? "null" : null; })()`, 10_000);
+    if (typeof entries !== "string") return;
+    if (entries.length > 50_000_000) return void (await log({ appLog: null, note: "The app's log is larger than 50 MB and was not saved." }));
+    const name = `${String(opened).padStart(2, "0")}-${design.id.replace(/[^A-Za-z0-9_-]/g, "_").slice(0, 200)}.json`;
+    const body = `{"design":${JSON.stringify(design.id)},"opened":${opened},"savedAt":${JSON.stringify(new Date().toISOString())},"entries":${entries}}`;
     await mkdir(join(jobDir, "app-logs"), { recursive: true });
     await writeFile(join(jobDir, "app-logs", name), body + "\n");
     await log({ appLog: `app-logs/${name}` });

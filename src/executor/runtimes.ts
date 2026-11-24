@@ -98,7 +98,7 @@ export function webxrActionWarnings(study: Study, agents: AgentProtocol[], manif
 }
 
 /** Which runtime a config needs: its own setting, else none for configs that never use the app, else the study's engine. */
-export function runtimeFor(study: Study, a: AgentProtocol): string {
+export function runtimeFor(study: Study, a: Pick<AgentProtocol, "runtime" | "tools">): string {
   if (a.runtime) return a.runtime;
   if (!a.tools.includes("xr-interact")) return "none";
   return study.runtime.engine === "unreal" ? "unreal" : study.runtime.engine === "unity" ? "unity" : "webxr";

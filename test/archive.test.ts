@@ -400,3 +400,48 @@ test("save runs as zip: links and anything that is not a regular file are left o
     await removeDir(cfg);
   }
 });
+
+test("runs zip: the WebXR runtime's app logs and object IDs are saved and loaded; a malformed app log is refused", async () => {
+  const { exportRuns, importRuns } = await import("../src/executor/archive.js");
+  const { runDir } = await import("../src/workspace.js");
+  const cfg = await mkdtemp(join(tmpdir(), "xr-settings-"));
+  await writeFile(join(cfg, "settings.json"), "{}");
+  process.env.XR_STUDY_SETTINGS = join(cfg, "settings.json");
+  const runs = await simulatedRuns(1);
+  const { a, c, ids } = runs;
+  const fresh = await tempWorkspace(resolve("examples/selection"));
+  const other = await tempWorkspace(resolve("examples/selection"));
+  try {
+    // What a WebXR session leaves in its attempt folder besides the trace (see webxr-mcp.ts).
+    const a1 = join(runDir(a.id, c.id), "jobs", ids[0], "a1");
+    const files: Record<string, string> = {
+      "app-logs/01-ray.json": JSON.stringify({ design: "ray", opened: 1, savedAt: new Date().toISOString(), entries: [{ t: 1, type: "select", hit: true }] }) + "\n",
+      "app-logs/02-direct.json": JSON.stringify({ design: "direct", opened: 2, savedAt: new Date().toISOString(), entries: null }) + "\n",
+      "object-ids.jsonl": JSON.stringify({ t: 1, design: "ray", shownToApp: { "obj-1": "cube" } }) + "\n",
+    };
+    await mkdir(join(a1, "app-logs"));
+    for (const [rel, text] of Object.entries(files)) await writeFile(join(a1, ...rel.split("/")), text);
+    const zip = await exportRuns(a.id, c.id);
+    const inZip = Object.keys((await JSZip.loadAsync(zip)).files);
+    for (const rel of Object.keys(files)) assert.ok(inZip.includes(`runs/${c.id}/jobs/${ids[0]}/a1/${rel}`), rel);
+    await importRuns(fresh.id, zip);
+    for (const [rel, text] of Object.entries(files)) assert.equal(await readFile(join(runDir(fresh.id, c.id), "jobs", ids[0], "a1", ...rel.split("/")), "utf8"), text, rel);
+    // Not an app log as the runtime writes it: refused before anything is written.
+    const prefix = `runs/${c.id}/jobs/${ids[0]}/a1/app-logs`;
+    for (const [name, body] of [
+      ["01-ray.json", "[1, 2]"],
+      ["01-ray.json", JSON.stringify({ design: "ray", entries: [] })],
+      ["notes.json", JSON.stringify({ design: "ray", opened: 1, savedAt: "x", entries: [] })],
+    ]) {
+      const bad = await rezip(zip, (f) => f.set(`${prefix}/${name}`, Buffer.from(body)));
+      await assert.rejects(importRuns(other.id, bad), /app-logs\/.* in this zip is not an app log/);
+      assert.equal(existsSync(join(other.dir, "runs")), false);
+    }
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await runs.done();
+    await removeDir(fresh.dir);
+    await removeDir(other.dir);
+    await removeDir(cfg);
+  }
+});

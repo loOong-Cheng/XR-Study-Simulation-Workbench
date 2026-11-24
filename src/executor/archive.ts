@@ -340,7 +340,16 @@ function attemptFileProblem(file: string, jobId: string, text: string): string |
   if (file === "usage.json") return isObj(x) && Object.values(x).every((v) => numOrNull(v) || typeof v === "boolean") ? null : "is not a usage record";
   if (file === "forecast.json") return isObj(x) && Array.isArray(x.measurements) && x.measurements.every(measurementOk) ? null : "is not a forecast";
   if (file === "job.json" || file === "mcp.json") return isObj(x) ? null : "is not a session description";
+  if (file.startsWith("app-logs/")) return appLogProblem(file, x);
   return null;
+}
+/**
+ * Why a file in an attempt's app-logs/ is not an app log as the WebXR runtime writes it, or null:
+ * app-logs/<nn>-<design>.json holding {design, opened, savedAt, entries} (entries: what the app's
+ * window.xrStudy.log() returned, any JSON).
+ */
+function appLogProblem(file: string, x: unknown): string | null {
+  return /^app-logs\/\d{2,6}-[A-Za-z0-9_-]{1,200}\.json$/.test(file) && isObj(x) && isStr(x.design) && isNum(x.opened) && isStr(x.savedAt) && "entries" in x ? null : "is not an app log";
 }
 const isText = (name: string) => /\.jsonl?$/.test(name);
 

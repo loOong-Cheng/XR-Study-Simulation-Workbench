@@ -252,7 +252,8 @@ test("WebXR runtime: pointer tools only with pointer-xy; hits and misses, filter
     assert.equal(events.find((e) => e.type === "observation").captures[0].clock, "app", "the app's clock (getState().timeMs)");
     // The app's own log, per design, in the job folder (never shown to the agent).
     assert.deepEqual(readdirSync(join(jobDir, "app-logs")).sort(), ["01-fn.json", "02-events.json"]);
-    assert.equal(JSON.parse(await readFile(join(jobDir, "app-logs", "01-fn.json"), "utf8")).length, 5);
+    const appLog = JSON.parse(await readFile(join(jobDir, "app-logs", "01-fn.json"), "utf8"));
+    assert.deepEqual([appLog.design, appLog.opened, appLog.entries.length], ["fn", 1, 5]);
   } finally {
     await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
   }

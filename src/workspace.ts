@@ -18,6 +18,7 @@ import { explainComparisons } from "./core/explain.js";
 import { measureNamedFieldProblem, PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
 import { agentRefusal, ignoredName, inside, nameKey, realPath, windowsAliasProblem, within } from "./runtimes/guard.js";
 import { readJsonFile, unquotePath, windowsUnusableName } from "./files.js";
+import { runtimeFor } from "./executor/runtimes.js";
 
 // dist/workspace.js or .test-build/src/workspace.js: walk up to the folder holding package.json.
 export const repoRoot = (() => {
@@ -241,11 +242,14 @@ export function appFingerprint(dir: string, manifest: WorkspaceManifest): AppFin
  * refuse nothing. Engine project folders are never fingerprinted (engines rewrite them).
  */
 export async function changedApp(id: string, campaign: Campaign, manifest: WorkspaceManifest): Promise<string | null> {
-  const file = fingerprintFile(id, campaign.id);
+  return changedAppIn(workspaceDir(id), manifest, fingerprintFile(id, campaign.id));
+}
+/** changedApp for a study folder and the campaign's sources.json given as paths (the command line). */
+export async function changedAppIn(dir: string, manifest: WorkspaceManifest, file: string): Promise<string | null> {
   if (!existsSync(file)) return null;
   const frozen = await load<{ app?: AppFingerprint | null }>(file);
   if (frozen.app === undefined) return null;
-  const now = appFingerprint(workspaceDir(id), manifest);
+  const now = appFingerprint(dir, manifest);
   const f = frozen.app;
   if (!f && !now) return null;
   const tail = "changed after this campaign was frozen. Freeze a new campaign, or Continue / rerun to use the new version.";
@@ -301,6 +305,30 @@ export function rerunChangedSources(
   return {
     changes: { ...changes, rerunConditions: [...new Set([...(changes?.rerunConditions ?? []), ...conditionIds])] },
     notes: hit.map((h) => `${h.labels.join(", ")} changed since this campaign was frozen: ${h.c.label} runs again (its finished runs used the old version).`),
+    conditionIds,
+  };
+}
+/**
+ * A continuation also runs again every configuration that plays the WebXR app when the app changed
+ * since the campaign it continues was frozen (changedApp's message): its finished runs played the
+ * old app. Same shape as rerunChangedSources.
+ */
+export function rerunChangedApp(
+  previous: Campaign,
+  appChange: string | null,
+  changes: CampaignContinuation,
+): { changes: CampaignContinuation; notes: string[]; conditionIds: string[] } {
+  const study = previous.suite.study;
+  const dropped = new Set(changes?.dropConditions ?? []);
+  const hit =
+    appChange && study
+      ? previous.suite.conditions.filter((c) => c.kind === "llm" && !dropped.has(c.id) && c.recipe.protocol && c.recipe.protocol.tools.includes("xr-interact") && runtimeFor(study, c.recipe.protocol) === "webxr")
+      : [];
+  if (!hit.length) return { changes, notes: [], conditionIds: [] };
+  const conditionIds = hit.map((c) => c.id);
+  return {
+    changes: { ...changes, rerunConditions: [...new Set([...(changes?.rerunConditions ?? []), ...conditionIds])] },
+    notes: hit.map((c) => `The WebXR app changed since this campaign was frozen: ${c.label} runs again (its finished runs played the old version).`),
     conditionIds,
   };
 }
