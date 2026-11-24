@@ -208,11 +208,42 @@ export async function sessionAttempts(id: string, campaign: Campaign, jobId: str
 }
 
 /**
- * Delete a campaign: its campaign file and runs move to <study>/deleted/<time>-<campaign>/, so
+ * How deleting moves folders; tests replace `rename` to make a move fail. On Windows a folder
+ * cannot be moved while a file in it is open (a session still ending, an image viewer, Explorer's
+ * preview, a virus scan), so a refused move is tried again for `retryMs` before giving up.
+ */
+export const deleteMoves = { rename, retryMs: 5000, stepMs: 100 };
+const LOCKED = new Set(["EPERM", "EBUSY", "EACCES"]);
+async function moveFolder(from: string, to: string) {
+  const until = Date.now() + deleteMoves.retryMs;
+  for (;;)
+    try {
+      return await deleteMoves.rename(from, to);
+    } catch (e) {
+      if (!LOCKED.has((e as NodeJS.ErrnoException).code ?? "") || Date.now() >= until) throw e;
+      await new Promise((ok) => setTimeout(ok, deleteMoves.stepMs));
+    }
+}
+const openFile = (where: string, e: unknown) => {
+  const code = (e as NodeJS.ErrnoException).code;
+  return LOCKED.has(code ?? "")
+    ? new Error(`A file in the ${where} folder is open (${code}: another program, such as an image viewer, Explorer or a session that is still stopping, holds it). Close it and try again.`)
+    : (e as Error);
+};
+
+/**
+ * Delete a campaign: its runs and campaign file move to <study>/deleted/<time>-<campaign>/, so
  * nothing is lost by mistake (remove that folder to free the space). Refused for a campaign that
- * another campaign continues from (its runs are reused there).
+ * another campaign continues from (its runs are reused there). The runs move first: if the
+ * campaign file cannot follow, the runs move back, so a campaign is never gone while its runs stay.
  */
 const deleting = new Set<string>();
+async function dropLabel(id: string, campaignId: string) {
+  const labels = await readLabels(id);
+  if (!labels[campaignId]) return;
+  delete labels[campaignId];
+  await writeFile(labelsPath(id), JSON.stringify(labels, null, 2) + "\n");
+}
 const ALREADY_DELETED = "This campaign was already deleted.";
 export async function deleteCampaign(id: string, campaignId: string) {
   const key = `${workspaceDir(id)}::${campaignId}`;
@@ -223,8 +254,18 @@ export async function deleteCampaign(id: string, campaignId: string) {
     const campaigns = await listCampaigns(id);
     const c = campaigns.find((x) => x.id === campaignId);
     if (!c) {
-      const gone = existsSync(join(workspaceDir(id), "deleted")) && (await readdir(join(workspaceDir(id), "deleted"))).some((f) => f.endsWith(`-${campaignId}`));
-      throw new Error(gone ? ALREADY_DELETED : "Unknown campaign.");
+      const deleted = join(workspaceDir(id), "deleted");
+      const gone = existsSync(deleted) ? (await readdir(deleted)).filter((f) => f.endsWith(`-${campaignId}`)).sort() : [];
+      // An earlier delete moved the campaign but not its runs (a file in them was open): finish it.
+      const last = gone[gone.length - 1];
+      if (last && existsSync(runDir(id, campaignId)) && !existsSync(join(deleted, last, "runs"))) {
+        await moveFolder(runDir(id, campaignId), join(deleted, last, "runs")).catch((e) => {
+          throw openFile("runs", e);
+        });
+        await dropLabel(id, campaignId);
+        return { deleted: campaignId, movedTo: `deleted/${last}` };
+      }
+      throw new Error(gone.length ? ALREADY_DELETED : "Unknown campaign.");
     }
     const children = campaigns.filter((x) => x.id !== campaignId && (x.parentDigest === c.digest || (x.lineage ?? []).includes(c.digest)));
     requireThat(!children.length, `Other campaigns continue from this one and reuse its runs (${children.map((x) => x.id.slice(9, 17)).join(", ")}). Delete those first.`);
@@ -233,19 +274,31 @@ export async function deleteCampaign(id: string, campaignId: string) {
     const movedTo = `deleted/${stamp}-${campaignId}`;
     const target = join(workspaceDir(id), "deleted", `${stamp}-${campaignId}`);
     await mkdir(target, { recursive: true });
+    const runs = runDir(id, campaignId);
+    let runsMoved = false;
     try {
-      await rename(join(workspaceDir(id), "campaigns", campaignId), join(target, "campaign"));
+      if (existsSync(runs)) {
+        await moveFolder(runs, join(target, "runs")).catch((e) => {
+          throw openFile("runs", e);
+        });
+        runsMoved = true;
+      }
+      await moveFolder(join(workspaceDir(id), "campaigns", campaignId), join(target, "campaign")).catch((e) => {
+        throw (e as NodeJS.ErrnoException).code === "ENOENT" ? new Error(ALREADY_DELETED) : openFile("campaign", e);
+      });
     } catch (e) {
-      await rmdir(target).catch(() => undefined); // only if still empty
-      if ((e as NodeJS.ErrnoException).code === "ENOENT") throw new Error(ALREADY_DELETED);
+      // Put back what moved, so the campaign and its runs stay together.
+      if (runsMoved)
+        try {
+          await moveFolder(join(target, "runs"), runs);
+        } catch {
+          throw new Error(`${(e as Error).message} Its runs were already moved to ${movedTo}/runs and could not be moved back; move that folder back to runs/${campaignId} in the study folder.`);
+        }
+      await rmdir(target).catch(() => undefined); // only if empty again
+      if (e instanceof Error && e.message.startsWith("A file in the ")) e.message += " Nothing was deleted.";
       throw e;
     }
-    if (existsSync(runDir(id, campaignId))) await rename(runDir(id, campaignId), join(target, "runs"));
-    const labels = await readLabels(id);
-    if (labels[campaignId]) {
-      delete labels[campaignId];
-      await writeFile(labelsPath(id), JSON.stringify(labels, null, 2) + "\n");
-    }
+    await dropLabel(id, campaignId);
     return { deleted: campaignId, movedTo };
   } finally {
     deleting.delete(key);
