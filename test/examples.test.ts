@@ -1446,3 +1446,83 @@ test("example data files use LF line endings, so a copied package and a clone ha
     for (const line of opens) assert.match(line, /encoding="utf-8"/, `${name}: ${line.trim()}`);
   }
 });
+
+test("figures: simulated configurations are marked and never tested against real ones or the human data", async () => {
+  const figures = await import("../src/core/figures.js");
+  const { agentVsHumanFigure, agreementFigure, correlationFigure, populationVsIndividualFigure, simulatedConfigs, trajectoryFigure } = figures;
+  const { agreementPlot, agentVsHumanPlot, correlationPlot } = await import("../src/web/plots.js");
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json"));
+  const human = await json<HumanData>("human.json");
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "sim-marks", new Date(Date.now() - 1000).toISOString());
+  const config = new Map(c.jobs.map((j) => [j.id, j.conditionId]));
+  // Every configuration ran with real agents except uses-app and reads-evidence (simulated only).
+  const simulatedIds = new Set(["uses-app", "reads-evidence"]);
+  const results = syntheticCampaignExecution(c).results;
+  for (const r of results.runs) r.execution.synthetic = simulatedIds.has(config.get(r.jobId)!);
+  const comparisons: Comparison[] = [
+    { candidate: "uses-app", baseline: "text-only", domain: "subjective" },
+    { candidate: "reads-project", baseline: "text-only", domain: "subjective" },
+  ];
+  const { report } = analyzeCampaign(c, human, [results], comparisons);
+  assert.deepEqual([...simulatedConfigs(report)].sort(), ["reads-evidence", "uses-app"]);
+  const labels = Object.fromEntries(c.suite.conditions.map((x) => [x.id, x.label]));
+  const ids = ["text-only", "reads-project", "uses-app", "reads-evidence"];
+
+  // Agreement: labels and flags; brackets only within one kind, each kind its own Holm family.
+  const fig = agreementFigure(report, ids, "subjective", labels);
+  for (const g of fig.groups) {
+    assert.equal(!!g.simulated, simulatedIds.has(g.id), g.id);
+    assert.equal(g.label.endsWith("(simulated)"), simulatedIds.has(g.id), g.label);
+  }
+  assert.ok(fig.brackets.length === 2, JSON.stringify(fig.brackets));
+  for (const b of fig.brackets) {
+    assert.equal(simulatedIds.has(b.a), simulatedIds.has(b.b), `${b.a} vs ${b.b} mixes real and simulated`);
+    assert.equal(!!b.simulated, simulatedIds.has(b.a));
+  }
+  const realOnly = agreementFigure(report, ["text-only", "reads-project"], "subjective", labels);
+  assert.deepEqual(fig.brackets.filter((b) => !b.simulated).map((b) => b.holm), realOnly.brackets.map((b) => b.holm));
+  assert.deepEqual(fig.groups.filter((g) => !g.simulated).map((g) => g.vsChance), realOnly.groups.map((g) => g.vsChance));
+  assert.ok(fig.groups.filter((g) => g.simulated).every((g) => g.vsChance?.p === null));
+  assert.match(fig.note, /\(simulated\)/);
+  assert.doesNotMatch(realOnly.note, /simulated/);
+  const svg = agreementPlot(fig, "t", ids);
+  assert.match(svg, /stroke-dasharray="4 3"/);
+  assert.match(svg, /invented forecasts that test the pipeline/);
+  assert.doesNotMatch(agreementPlot(realOnly, "t", ids), /stroke-dasharray="4 3"|invented/);
+
+  // Agent vs human: simulated configurations are described, not tested, and outside the Holm family.
+  const vs = agentVsHumanFigure(study, report, ids, "search-time", labels);
+  const vsReal = agentVsHumanFigure(study, report, ["text-only", "reads-project"], "search-time", labels);
+  const simRows = vs.discrepancies.filter((r) => simulatedIds.has(r.agentId));
+  assert.ok(simRows.length > 0 && simRows.every((r) => r.simulated && r.p === null && r.holm === null && r.test.startsWith("Not tested")));
+  assert.ok(simRows.every((r) => Number.isFinite(r.discrepancy)));
+  assert.deepEqual(vs.discrepancies.filter((r) => !r.simulated).map((r) => r.holm), vsReal.discrepancies.map((r) => r.holm));
+  assert.ok(vs.designs.every((d) => d.groups.filter((g) => simulatedIds.has(g.id)).every((g) => g.simulated && g.label.endsWith("(simulated)"))));
+  assert.match(agentVsHumanPlot(vs, "t", ids), /invented forecasts/);
+
+  // Population vs individual and correlation: the same marking and bracket rule.
+  const pvi = populationVsIndividualFigure(study, report, ids, "subjective", labels);
+  assert.ok(pvi.brackets.every((b) => simulatedIds.has(b.a) === simulatedIds.has(b.b)));
+  const cor = correlationFigure(study, report, ids, labels);
+  assert.deepEqual(cor.series.filter((s) => s.label.endsWith("(simulated)")).map((s) => s.id).sort(), ["reads-evidence", "uses-app"]);
+  assert.match(correlationPlot(cor, "t", ids), /invented forecasts/);
+
+  // Planned comparisons: simulated against real is shown, not tested.
+  const mixed = report.contrasts.find((x) => x.candidate === "uses-app")!;
+  assert.equal(mixed.p, null);
+  assert.match(mixed.status, /Not tested: compares simulated/);
+  assert.notEqual(report.contrasts.find((x) => x.candidate === "reads-project")!.status, mixed.status);
+
+  // An earlier report without the list: the summaries' run counts give the same answer.
+  const older = { ...report, simulatedConfigs: undefined };
+  assert.deepEqual([...simulatedConfigs(older)].sort(), ["reads-evidence", "uses-app"]);
+
+  // Participant lines with population configurations only say why there is nothing to draw.
+  const lines = trajectoryFigure(report, ["text-only", "reads-project"], "subjective", labels);
+  assert.equal((lines as { empty?: boolean }).empty, true);
+  assert.match(lines.note, /needs? an individual-level configuration/);
+  const mixedLines = trajectoryFigure(report, ["text-only", "knows-participant"], "subjective", labels);
+  assert.deepEqual(mixedLines.configs.map((x) => x.id), ["knows-participant"]);
+  assert.match(mixedLines.note, /Left out \(population-level/);
+});

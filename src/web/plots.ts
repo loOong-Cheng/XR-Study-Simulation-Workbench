@@ -10,6 +10,8 @@ export interface Group {
   units: string[];
   stats: Stats;
   vsChance?: { p: number | null; holm: number | null };
+  /** Scored on simulated (invented) runs only: drawn dashed and hollow, label ends in "(simulated)". */
+  simulated?: boolean;
 }
 export interface Bracket {
   a: string;
@@ -18,7 +20,13 @@ export interface Bracket {
   p: number | null;
   holm: number | null;
   stars: string;
+  /** Between two simulated configurations (their own Holm family): drawn dashed. */
+  simulated?: boolean;
 }
+/** Dash pattern for everything drawn from simulated (invented) runs. */
+const SIM_DASH = ' stroke-dasharray="4 3"';
+/** The legend line every figure with simulated configurations carries. */
+const SIMULATED_LEGEND = "Dashed, hollow, “(simulated)”: invented forecasts that test the pipeline; never tested against real configurations or the human data.";
 const PALETTE = ["#4C78A8", "#E6AD70", "#7EAE98", "#B392B4", "#E45756", "#72B7B2", "#9D755D", "#EECA3B", "#FF9DA6", "#739DC0", "#727D88", "#54A24B"];
 const HUMAN = "#6B7280";
 export function colorFor(id: string, order: string[]): string {
@@ -89,6 +97,8 @@ function yAxis(ax: Axis, x: number, width: number, label: string, percent: boole
 function distribution(g: Group, cx: number, w: number, ax: Axis, color: string, percent: boolean, violin: boolean) {
   const s = g.stats;
   if (!s.n) return `<text x="${cx}" y="${ax.bottom - 6}" font-size="10" text-anchor="middle" fill="#888">no data</text>`;
+  // Simulated groups: dashed outlines, a lighter box and hollow dots, so they never pass for real runs.
+  const dash = g.simulated ? SIM_DASH : "";
   let out = "";
   if (violin) {
     const dens = kde(ax.log ? g.values.map(Math.log) : g.values, ax.log ? Math.log(ax.lo) : ax.lo, ax.log ? Math.log(ax.hi) : ax.hi);
@@ -96,16 +106,16 @@ function distribution(g: Group, cx: number, w: number, ax: Axis, color: string, 
       const max = Math.max(...dens.map((d) => d[1]));
       const pts = dens.map(([v, d]) => [cx + (d / max) * (w / 2), project(ax, ax.log ? Math.exp(v) : v)]);
       const back = dens.map(([v, d]) => [cx - (d / max) * (w / 2), project(ax, ax.log ? Math.exp(v) : v)]).reverse();
-      out += `<path d="M${[...pts, ...back].map((p) => p.map((n) => n.toFixed(1)).join(",")).join("L")}Z" fill="${color}" fill-opacity="0.16" stroke="${color}" stroke-opacity="0.4"/>`;
+      out += `<path d="M${[...pts, ...back].map((p) => p.map((n) => n.toFixed(1)).join(",")).join("L")}Z" fill="${color}" fill-opacity="${g.simulated ? 0.06 : 0.16}" stroke="${color}" stroke-opacity="0.4"${dash}/>`;
     }
   }
   const bw = w * 0.42;
-  out += `<line x1="${cx}" x2="${cx}" y1="${project(ax, s.whiskerLow)}" y2="${project(ax, s.whiskerHigh)}" stroke="${color}" stroke-width="1.4"/>`;
+  out += `<line x1="${cx}" x2="${cx}" y1="${project(ax, s.whiskerLow)}" y2="${project(ax, s.whiskerHigh)}" stroke="${color}" stroke-width="1.4"${dash}/>`;
   out += `<line x1="${cx - bw / 3}" x2="${cx + bw / 3}" y1="${project(ax, s.whiskerLow)}" y2="${project(ax, s.whiskerLow)}" stroke="${color}"/><line x1="${cx - bw / 3}" x2="${cx + bw / 3}" y1="${project(ax, s.whiskerHigh)}" y2="${project(ax, s.whiskerHigh)}" stroke="${color}"/>`;
-  out += `<rect x="${cx - bw / 2}" y="${project(ax, s.q3)}" width="${bw}" height="${Math.max(1, project(ax, s.q1) - project(ax, s.q3))}" fill="${color}" fill-opacity="0.28" stroke="${color}"/>`;
+  out += `<rect x="${cx - bw / 2}" y="${project(ax, s.q3)}" width="${bw}" height="${Math.max(1, project(ax, s.q1) - project(ax, s.q3))}" fill="${color}" fill-opacity="${g.simulated ? 0.08 : 0.28}" stroke="${color}"${dash}/>`;
   out += `<line x1="${cx - bw / 2}" x2="${cx + bw / 2}" y1="${project(ax, s.median)}" y2="${project(ax, s.median)}" stroke="#111" stroke-width="1.6"/>`;
   out += g.values
-    .map((v, i) => `<circle cx="${(cx + jitter(i + 1) * bw * 0.9).toFixed(1)}" cy="${project(ax, v).toFixed(1)}" r="2.6" fill="${color}" fill-opacity="0.85"/>`)
+    .map((v, i) => `<circle cx="${(cx + jitter(i + 1) * bw * 0.9).toFixed(1)}" cy="${project(ax, v).toFixed(1)}" r="2.6" ${g.simulated ? `fill="#fff" stroke="${color}"` : `fill="${color}" fill-opacity="0.85"`}/>`)
     .join("");
   const my = project(ax, s.mean);
   out += `<path d="M${cx},${my - 5}L${cx + 5},${my}L${cx},${my + 5}L${cx - 5},${my}Z" fill="#fff" stroke="#111" stroke-width="1.2"><title>mean ${fmt(percent ? s.mean * 100 : s.mean)}</title></path>`;
@@ -118,7 +128,7 @@ function bracketLayer(brackets: Bracket[], xs: Map<string, number>, top: number)
       const x1 = xs.get(b.a)!,
         x2 = xs.get(b.b)!;
       const y = top - 8 - i * 14;
-      return `<path d="M${x1},${y + 5}V${y}H${x2}V${y + 5}" fill="none" stroke="#1f2a24"/><text x="${(x1 + x2) / 2}" y="${y - 2}" font-size="12" text-anchor="middle" fill="#1f2a24">${b.stars}<title>${esc(b.test)}, Holm p = ${fmt(b.holm ?? NaN, 4)}</title></text>`;
+      return `<path d="M${x1},${y + 5}V${y}H${x2}V${y + 5}" fill="none" stroke="${b.simulated ? "#888" : "#1f2a24"}"${b.simulated ? SIM_DASH : ""}/><text x="${(x1 + x2) / 2}" y="${y - 2}" font-size="12" text-anchor="middle" fill="${b.simulated ? "#888" : "#1f2a24"}">${b.stars}<title>${b.simulated ? "Both simulated (separate Holm family): " : ""}${esc(b.test)}, Holm p = ${fmt(b.holm ?? NaN, 4)}</title></text>`;
     })
     .join("");
 }
@@ -130,8 +140,9 @@ export function agreementPlot(fig: { groups: Group[]; brackets: Bracket[]; chanc
   const left = 64,
     slot = Math.max(70, Math.min(130, 760 / Math.max(1, n))),
     width = left + slot * n + 30;
+  const simulated = fig.groups.some((g) => g.simulated);
   const top = 50 + shown * 14 + 18,
-    height = top + 300 + 104;
+    height = top + 300 + 104 + (simulated ? 14 : 0);
   const ax: Axis = { lo: 0, hi: 1, log: false, top, bottom: top + 300 };
   let body = yAxis(ax, left, slot * n + 10, fig.yLabel, true);
   const cy = project(ax, fig.chance);
@@ -148,12 +159,13 @@ export function agreementPlot(fig: { groups: Group[]; brackets: Bracket[]; chanc
     words.forEach((w) => (lines.length && (lines.at(-1)! + " " + w).length <= 16 ? (lines[lines.length - 1] += " " + w) : lines.push(w)));
     body += lines
       .slice(0, 3)
-      .map((l, k) => `<text x="${cx}" y="${ax.bottom + 18 + k * 13}" font-size="11" text-anchor="middle" fill="#1f2a24">${esc(l)}</text>`)
+      .map((l, k) => `<text x="${cx}" y="${ax.bottom + 18 + k * 13}" font-size="11" text-anchor="middle" fill="#1f2a24"${g.simulated ? ' font-style="italic"' : ""}>${esc(l)}</text>`)
       .join("");
     body += `<text x="${cx}" y="${ax.bottom + 18 + Math.min(3, lines.length) * 13}" font-size="10" text-anchor="middle" fill="#888">n=${g.stats.n}${g.units[0]?.startsWith("rep") ? " repetition(s)" : g.level === "individual" ? " people" : g.level === "population" ? " runs" : ""}</text>`;
   });
   body += bracketLayer(fig.brackets, xs, top - 14);
-  body += `<text x="${left}" y="${height - 22}" font-size="10" fill="#666">Above boxes: mean (%); † above chance (Wilcoxon vs 50%, Holm).</text><text x="${left}" y="${height - 8}" font-size="10" fill="#666">Brackets: * p&lt;.05, ** p&lt;.01, *** p&lt;.001 (Holm).</text>`;
+  body += `<text x="${left}" y="${height - 22 - (simulated ? 14 : 0)}" font-size="10" fill="#666">Above boxes: mean (%); † above chance (Wilcoxon vs 50%, Holm).</text><text x="${left}" y="${height - 8 - (simulated ? 14 : 0)}" font-size="10" fill="#666">Brackets: * p&lt;.05, ** p&lt;.01, *** p&lt;.001 (Holm).</text>`;
+  if (simulated) body += `<text x="${left}" y="${height - 8}" font-size="10" fill="#666">${esc(SIMULATED_LEGEND)}</text>`;
   return svg(Math.max(width, 420), height + 8, body, title);
 }
 
@@ -192,15 +204,25 @@ export function agentVsHumanPlot(
     body += `<text x="${x0 + (per * slot) / 2}" y="${ax.bottom + 20}" font-size="12" font-weight="600" text-anchor="middle">${esc(d.label.length > 28 ? d.label.slice(0, 27) + "…" : d.label)}</text>`;
   });
   const legend = fig.designs[0]?.groups ?? [];
+  // Legend labels keep their "(simulated)" ending; simulated swatches are hollow and dashed.
   body += legend
-    .map((g, i) => `<rect x="${left + i * 150}" y="${ax.bottom + 36}" width="10" height="10" fill="${colorFor(g.id, order)}"/><text x="${left + i * 150 + 14}" y="${ax.bottom + 45}" font-size="11">${esc(g.label.slice(0, 22))}</text>`)
+    .map((g, i) => `<rect x="${left + i * 150}" y="${ax.bottom + 36}" width="10" height="10" ${g.simulated ? `fill="#fff" stroke="${colorFor(g.id, order)}"${SIM_DASH}` : `fill="${colorFor(g.id, order)}"`}/><text x="${left + i * 150 + 14}" y="${ax.bottom + 45}" font-size="11"${g.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(g.label, 22))}</text>`)
     .join("");
   body += `<text x="${left}" y="${ax.bottom + 66}" font-size="10" fill="#666">Stars above a box: config differs from humans for that design (Wilcoxon signed-rank: paired by participant for individual configs, humans vs the mean forecast for population configs; Holm across the table).</text>`;
-  return svg(Math.max(width, 520), ax.bottom + 76, body, title);
+  const simulated = legend.some((g) => g.simulated);
+  if (simulated) body += `<text x="${left}" y="${ax.bottom + 80}" font-size="10" fill="#666">${esc(SIMULATED_LEGEND)}</text>`;
+  return svg(Math.max(width, 520), ax.bottom + 76 + (simulated ? 14 : 0), body, title);
+}
+
+/** Shortens a label but keeps a "(simulated)" ending visible. */
+function legendLabel(label: string, max: number): string {
+  if (label.length <= max) return label;
+  const suffix = label.endsWith(" (simulated)") ? " (simulated)" : "";
+  return label.slice(0, Math.max(4, max - suffix.length - 1)) + "…" + suffix;
 }
 
 /** Correlation scatter of z-scored design means. */
-export function correlationPlot(fig: { series: { id: string; label: string; points: { human: number; agent: number }[]; pearson: number | null; spearman: number | null }[] }, title: string, order: string[]): string {
+export function correlationPlot(fig: { series: { id: string; label: string; simulated?: boolean; points: { human: number; agent: number }[]; pearson: number | null; spearman: number | null }[] }, title: string, order: string[]): string {
   const size = 360,
     left = 60,
     top = 44;
@@ -212,17 +234,19 @@ export function correlationPlot(fig: { series: { id: string; label: string; poin
   body += `<line x1="${px(-2.2)}" y1="${project(ax, -2.2)}" x2="${px(2.2)}" y2="${project(ax, 2.2)}" stroke="#bbb" stroke-dasharray="4 4"/>`;
   fig.series.forEach((s) => {
     const c = colorFor(s.id, order);
-    body += s.points.map((p, i) => `<circle cx="${(px(p.human) + jitter(i) * 3).toFixed(1)}" cy="${project(ax, p.agent).toFixed(1)}" r="3.2" fill="${c}" fill-opacity="0.7"/>`).join("");
+    body += s.points.map((p, i) => `<circle cx="${(px(p.human) + jitter(i) * 3).toFixed(1)}" cy="${project(ax, p.agent).toFixed(1)}" r="3.2" ${s.simulated ? `fill="#fff" stroke="${c}"${SIM_DASH.replace("4 3", "2 1.5")}` : `fill="${c}" fill-opacity="0.7"`}/>`).join("");
   });
   body += fig.series
-    .map((s, i) => `<rect x="${left + size + 24}" y="${top + 6 + i * 34}" width="10" height="10" fill="${colorFor(s.id, order)}"/><text x="${left + size + 40}" y="${top + 15 + i * 34}" font-size="12">${esc(s.label.slice(0, 30))}</text><text x="${left + size + 40}" y="${top + 29 + i * 34}" font-size="11" fill="#55635a">r = ${fmt(s.pearson ?? NaN)}, ρ = ${fmt(s.spearman ?? NaN)}, n = ${s.points.length}</text>`)
+    .map((s, i) => `<rect x="${left + size + 24}" y="${top + 6 + i * 34}" width="10" height="10" ${s.simulated ? `fill="#fff" stroke="${colorFor(s.id, order)}"${SIM_DASH}` : `fill="${colorFor(s.id, order)}"`}/><text x="${left + size + 40}" y="${top + 15 + i * 34}" font-size="12"${s.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(s.label, 30))}</text><text x="${left + size + 40}" y="${top + 29 + i * 34}" font-size="11" fill="#55635a">r = ${fmt(s.pearson ?? NaN)}, ρ = ${fmt(s.spearman ?? NaN)}, n = ${s.points.length}</text>`)
     .join("");
-  return svg(left + size + 300, ax.bottom + 48, body, title);
+  const simulated = fig.series.some((s) => s.simulated);
+  if (simulated) body += `<text x="${left}" y="${ax.bottom + 52}" font-size="10" fill="#666">${esc(SIMULATED_LEGEND)}</text>`;
+  return svg(left + size + 300, ax.bottom + 48 + (simulated ? 14 : 0), body, title);
 }
 
 /** Participant trajectories across individual configs + Spearman heatmap (as in the paper). */
 export function trajectoryPlot(
-  fig: { configs: { id: string; label: string }[]; participants: { id: string; values: (number | null)[] }[]; means: (number | null)[]; spearman: (number | null)[][] },
+  fig: { configs: { id: string; label: string; simulated?: boolean }[]; participants: { id: string; values: (number | null)[] }[]; means: (number | null)[]; spearman: (number | null)[][] },
   title: string,
 ): string {
   const k = fig.configs.length;
@@ -235,6 +259,10 @@ export function trajectoryPlot(
   let body = yAxis(ax, left, w, "Participant agreement (%)", true);
   const cy = project(ax, 0.5);
   body += `<line x1="${left}" x2="${left + w}" y1="${cy}" y2="${cy}" stroke="#888" stroke-dasharray="4 4"/>`;
+  // A simulated configuration's column gets a dashed guide.
+  fig.configs.forEach((c, i) => {
+    if (c.simulated) body += `<line x1="${x(i)}" x2="${x(i)}" y1="${ax.top}" y2="${ax.bottom}" stroke="#888"${SIM_DASH}/>`;
+  });
   fig.participants.forEach((p) => {
     const delta = p.values[1] != null && p.values[0] != null ? p.values[1]! - p.values[0]! : 0;
     const color = delta > 0.02 ? "#3f9b6b" : delta < -0.02 ? "#c8564b" : "#9aa1a6";
@@ -244,8 +272,10 @@ export function trajectoryPlot(
   });
   const mean = fig.means.map((v, i) => (v == null ? null : [x(i), project(ax, v)])).filter((q): q is number[] => !!q);
   if (mean.length) body += `<path d="M${mean.map((q) => q.join(",")).join("L")}" fill="none" stroke="#111" stroke-width="3"/>` + mean.map((q) => `<path d="M${q[0]},${q[1] - 6}L${q[0] + 6},${q[1]}L${q[0]},${q[1] + 6}L${q[0] - 6},${q[1]}Z" fill="#111"/>`).join("");
-  fig.configs.forEach((c, i) => (body += `<text x="${x(i)}" y="${ax.bottom + 18}" font-size="11" text-anchor="middle">${esc(c.label.length > 18 ? c.label.slice(0, 17) + "…" : c.label)}</text>`));
+  fig.configs.forEach((c, i) => (body += `<text x="${x(i)}" y="${ax.bottom + 18}" font-size="11" text-anchor="middle"${c.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(c.label, 18))}</text>`));
   body += `<text x="${left}" y="${ax.bottom + 40}" font-size="10" fill="#666">Each line is one participant (green: gained from the first to the second config, red: lost). Black: mean.</text>`;
+  const simulated = fig.configs.some((c) => c.simulated);
+  if (simulated) body += `<text x="${left}" y="${ax.bottom + 54}" font-size="10" fill="#666">${esc(SIMULATED_LEGEND)}</text>`;
   // heatmap
   const hx = left + w + 140,
     cell = Math.min(54, 300 / Math.max(1, k));
@@ -261,10 +291,10 @@ export function trajectoryPlot(
     }),
   );
   fig.configs.forEach((c, i) => {
-    body += `<text x="${hx - 6}" y="${top + i * cell + cell / 2 + 4}" font-size="10" text-anchor="end">${esc(c.label.length > 20 ? c.label.slice(0, 19) + "…" : c.label)}</text>`;
+    body += `<text x="${hx - 6}" y="${top + i * cell + cell / 2 + 4}" font-size="10" text-anchor="end"${c.simulated ? ' font-style="italic"' : ""}>${esc(legendLabel(c.label, 20))}</text>`;
   });
   body += `<text x="${hx}" y="${top - 10}" font-size="11">Spearman ρ between configs</text>`;
-  return svg(Math.max(hx + k * cell + 30, hx + 190), ax.bottom + 50, body, title);
+  return svg(Math.max(hx + k * cell + 30, hx + 190), ax.bottom + 50 + (simulated ? 14 : 0), body, title);
 }
 
 /** Download helpers. */

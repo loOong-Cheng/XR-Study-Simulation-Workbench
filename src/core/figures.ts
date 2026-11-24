@@ -69,6 +69,11 @@ export interface Group {
   units: string[];
   stats: ReturnType<typeof describe>;
   vsChance?: { p: number | null; holm: number | null };
+  /**
+   * Scored on simulated (invented) runs only. The label ends in "(simulated)"; the group is never
+   * tested against a group with real runs, nor against chance or the human data.
+   */
+  simulated?: boolean;
 }
 export interface Bracket {
   a: string;
@@ -77,8 +82,44 @@ export interface Bracket {
   p: number | null;
   holm: number | null;
   stars: string;
+  /** Between two simulated configurations: its own Holm family, drawn and labelled as simulated. */
+  simulated?: boolean;
 }
 const labelOf = (labels: Record<string, string>, id: string) => labels[id] ?? id;
+/** Appended to the label of every configuration a figure shows on simulated runs. */
+export const SIMULATED_SUFFIX = " (simulated)";
+
+/**
+ * Configurations scored on simulated (invented) runs only, as the analyzer decided: a
+ * configuration with real runs is scored on them alone, so only configurations without any real
+ * run rest on simulated ones. Reports without that list (earlier or hand-built ones) fall back to
+ * the summaries' run counts.
+ */
+export function simulatedConfigs(report: AnalysisReport): Set<string> {
+  if (Array.isArray(report.simulatedConfigs)) return new Set(report.simulatedConfigs);
+  const kinds = new Map<string, { real: number; simulated: number }>();
+  for (const s of report.summaries ?? []) {
+    if (typeof s.real !== "number" || typeof s.simulated !== "number") continue;
+    const k = kinds.get(s.agentId) ?? { real: 0, simulated: 0 };
+    kinds.set(s.agentId, { real: Math.max(k.real, s.real), simulated: Math.max(k.simulated, s.simulated) });
+  }
+  return new Set([...kinds].filter(([, k]) => k.simulated > 0 && k.real === 0).map(([id]) => id));
+}
+const markedLabel = (labels: Record<string, string>, id: string, simulated: boolean) =>
+  labelOf(labels, id) + (simulated ? SIMULATED_SUFFIX : "");
+/** The sentence every figure with simulated configurations carries. */
+function simulatedNote(groups: { simulated?: boolean }[], tested: "brackets" | "humans" | "none"): string {
+  if (!groups.some((g) => g.simulated)) return "";
+  const what =
+    tested === "brackets"
+      ? groups.some((g) => !g.simulated)
+        ? " They are never tested against configurations with real runs, nor against chance; brackets between two simulated configurations form their own Holm family and are drawn dashed."
+        : " They are not tested against chance; brackets between them are drawn dashed and test the pipeline only."
+      : tested === "humans"
+      ? " They get no test against the human data: their discrepancy is shown, not tested, and they stay out of the Holm family."
+      : "";
+  return ` Marked "(simulated)" and drawn dashed: configurations scored on simulated (invented) runs only, which test the pipeline, not how well agents forecast.${what}`;
+}
 
 /**
  * Pairwise brackets between groups; paired Wilcoxon when both are individual configs. The scores
@@ -86,26 +127,34 @@ const labelOf = (labels: Record<string, string>, id: string) => labels[id] ?? id
  * tolerance, near-ties are rounded at 1e-9 (relative to the largest value when that exceeds 1).
  */
 function brackets(groups: Group[], tolerance?: number): Bracket[] {
-  const rows: Bracket[] = [];
+  // Real and simulated configurations are never tested against each other. Pairs of real
+  // configurations form the figure's Holm family; pairs of simulated ones (only when the figure
+  // shows them) a separate family, marked as simulated.
+  const real: Bracket[] = [],
+    simulated: Bracket[] = [];
   for (let i = 0; i < groups.length; i++)
     for (let j = i + 1; j < groups.length; j++) {
       const a = groups[i],
         b = groups[j];
+      if (!!a.simulated !== !!b.simulated) continue;
+      let row: Bracket;
       if (a.level === "individual" && b.level === "individual") {
         const byUnit = new Map(b.units.map((u, k) => [u, b.values[k]]));
         const diffs = a.units.flatMap((u, k) => (byUnit.has(u) ? [byUnit.get(u)! - a.values[k]] : []));
-        rows.push({ a: a.id, b: b.id, test: "Wilcoxon signed-rank", p: wilcoxonSignedRank(diffs, tolerance).p, holm: null, stars: "" });
-      } else
-        rows.push({ a: a.id, b: b.id, test: "Mann–Whitney U", p: mannWhitney(a.values, b.values, tolerance).p, holm: null, stars: "" });
+        row = { a: a.id, b: b.id, test: "Wilcoxon signed-rank", p: wilcoxonSignedRank(diffs, tolerance).p, holm: null, stars: "" };
+      } else row = { a: a.id, b: b.id, test: "Mann–Whitney U", p: mannWhitney(a.values, b.values, tolerance).p, holm: null, stars: "" };
+      if (a.simulated) simulated.push({ ...row, simulated: true });
+      else real.push(row);
     }
-  holm(rows.map((r) => r.p)).forEach((h, i) => {
-    rows[i].holm = h;
-    rows[i].stars = stars(h);
-  });
-  return rows;
+  for (const rows of [real, simulated])
+    holm(rows.map((r) => r.p)).forEach((h, i) => {
+      rows[i].holm = h;
+      rows[i].stars = stars(h);
+    });
+  return [...real, ...simulated];
 }
-function group(id: string, label: string, level: Group["level"], values: number[], units: string[]): Group {
-  return { id, label, level, values, units, stats: describe(values) };
+function group(id: string, label: string, level: Group["level"], values: number[], units: string[], simulated = false): Group {
+  return { id, label, level, values, units, stats: describe(values), ...(simulated ? { simulated: true } : {}) };
 }
 
 /**
@@ -169,14 +218,18 @@ export function agreementFigure(
   domain: Domain,
   labels: Record<string, string> = {},
 ) {
+  const sim = simulatedConfigs(report);
   const groups = agentIds.filter((id) => predicts(report, id, { domain })).map((id) => {
     const rows = (report.runScores ?? []).filter(
       (r) => r.agentId === id && r.domain === domain && r.agreement !== null && (r.level === "population" || r.repetition === 1),
     );
-    return group(id, labelOf(labels, id), rows[0]?.level ?? "population", rows.map((r) => r.agreement!), rows.map((r) => r.unit));
+    return group(id, markedLabel(labels, id, sim.has(id)), rows[0]?.level ?? "population", rows.map((r) => r.agreement!), rows.map((r) => r.unit), sim.has(id));
   });
-  const chance = holm(groups.map((g) => wilcoxonSignedRank(g.values.map((v) => v - 0.5)).p));
-  groups.forEach((g, i) => (g.vsChance = { p: wilcoxonSignedRank(g.values.map((v) => v - 0.5)).p, holm: chance[i] }));
+  // Tests against chance, Holm over the configurations with real runs; simulated ones are not tested.
+  const tested = groups.filter((g) => !g.simulated);
+  const chance = holm(tested.map((g) => wilcoxonSignedRank(g.values.map((v) => v - 0.5)).p));
+  tested.forEach((g, i) => (g.vsChance = { p: wilcoxonSignedRank(g.values.map((v) => v - 0.5)).p, holm: chance[i] }));
+  groups.filter((g) => g.simulated).forEach((g) => (g.vsChance = { p: null, holm: null }));
   return {
     kind: "agreement" as const,
     domain,
@@ -184,7 +237,7 @@ export function agreementFigure(
     chance: 0.5,
     groups,
     brackets: brackets(groups),
-    note: "Population configs: one value per run (Mann–Whitney U between configs). Individual configs: one value per participant, primary forecast (Wilcoxon signed-rank, paired by participant). Holm across all brackets in the figure; marks above boxes test against 50% (Wilcoxon, Holm).",
+    note: "Population configs: one value per run (Mann–Whitney U between configs). Individual configs: one value per participant, primary forecast (Wilcoxon signed-rank, paired by participant). Holm across all brackets in the figure; marks above boxes test against 50% (Wilcoxon, Holm)." + simulatedNote(groups, "brackets"),
   };
 }
 
@@ -210,6 +263,7 @@ export function agentVsHumanFigure(
   const g = geo(study, outcomeId);
   // Only configurations that predict this measure get a row and a test (one Holm family over them).
   const shown = agentIds.filter((id) => predicts(report, id, { outcomeId }));
+  const sim = simulatedConfigs(report);
   const designs = study.conditions.map((c) => {
     const human = (report.humanValues ?? []).filter((v) => v.outcomeId === outcomeId && v.conditionId === c.id);
     const groups: Group[] = [
@@ -218,7 +272,7 @@ export function agentVsHumanFigure(
         const rows = (report.values ?? []).filter(
           (v) => v.agentId === id && v.outcomeId === outcomeId && v.conditionId === c.id && (v.level === "population" || v.repetition === 1),
         );
-        return group(id, labelOf(labels, id), rows[0]?.level ?? "population", rows.map((v) => v.value), rows.map((v) => v.unit));
+        return group(id, markedLabel(labels, id, sim.has(id)), rows[0]?.level ?? "population", rows.map((v) => v.value), rows.map((v) => v.unit), sim.has(id));
       }),
     ];
     return { conditionId: c.id, label: c.label, groups };
@@ -232,6 +286,24 @@ export function agentVsHumanFigure(
   const rows = designs.flatMap((d) => {
     const human = d.groups[0];
     return d.groups.slice(1).map((ag) => {
+      // Simulated (invented) forecasts get no test against the human data: the discrepancy is
+      // described, and the row stays out of the Holm family.
+      if (ag.simulated) {
+        const row: Discrepancy = {
+          agentId: ag.id,
+          conditionId: d.conditionId,
+          humanCentre: centre(human.values, g),
+          agentCentre: centre(ag.values, g),
+          discrepancy: centre(ag.values, g) - centre(human.values, g),
+          test: "Not tested: simulated (invented) forecasts",
+          n: 0,
+          p: null,
+          holm: null,
+          stars: "",
+          simulated: true,
+        };
+        return row;
+      }
       let diffs: number[];
       let test: Discrepancy["test"];
       if (ag.level === "individual") {
@@ -259,9 +331,10 @@ export function agentVsHumanFigure(
       return row;
     });
   });
-  holm(rows.map((r) => r.p)).forEach((h, i) => {
-    rows[i].holm = h;
-    rows[i].stars = stars(h);
+  const tested = rows.filter((r) => !r.simulated);
+  holm(tested.map((r) => r.p)).forEach((h, i) => {
+    tested[i].holm = h;
+    tested[i].stars = stars(h);
   });
   return {
     kind: "agent-vs-human" as const,
@@ -269,7 +342,7 @@ export function agentVsHumanFigure(
     logScale: g,
     designs,
     discrepancies: rows,
-    note: `Human: one value per participant. Configs: one prediction per population run, or per participant (primary forecast) for individual configs. Discrepancy = config ${g ? "geometric mean" : "mean"} − human ${g ? "geometric mean" : "mean"}. Individual configs: Wilcoxon signed-rank on each participant's forecast − their value. Population configs: one-sample Wilcoxon signed-rank of the human values against the mean forecast (the runs are not people). ${g ? "Log scale. " : ""}Holm across this table; the tests treat the human sample as fixed.`,
+    note: `Human: one value per participant. Configs: one prediction per population run, or per participant (primary forecast) for individual configs. Discrepancy = config ${g ? "geometric mean" : "mean"} − human ${g ? "geometric mean" : "mean"}. Individual configs: Wilcoxon signed-rank on each participant's forecast − their value. Population configs: one-sample Wilcoxon signed-rank of the human values against the mean forecast (the runs are not people). ${g ? "Log scale. " : ""}Holm across this table; the tests treat the human sample as fixed.${simulatedNote(designs[0]?.groups.slice(1) ?? [], "humans")}`,
   };
 }
 export interface Discrepancy {
@@ -279,12 +352,14 @@ export interface Discrepancy {
   agentCentre: number;
   discrepancy: number;
   /** What was tested for this configuration and design. */
-  test: "Wilcoxon signed-rank, paired by participant" | "One-sample Wilcoxon signed-rank vs mean forecast";
+  test: "Wilcoxon signed-rank, paired by participant" | "One-sample Wilcoxon signed-rank vs mean forecast" | "Not tested: simulated (invented) forecasts";
   /** Non-zero differences the test used. */
   n: number;
   p: number | null;
   holm: number | null;
   stars: string;
+  /** Simulated configuration: described, not tested, not in the Holm family. */
+  simulated?: boolean;
 }
 
 /** (3) Correlation of agent design means with human design means (each outcome z-scored across designs). */
@@ -299,6 +374,7 @@ export function correlationFigure(
     const sd = Math.sqrt(values.reduce((s, v) => s + (v - m) ** 2, 0) / values.length);
     return values.map((v) => (sd > 0 ? (v - m) / sd : 0));
   };
+  const sim = simulatedConfigs(report);
   const series = agentIds.map((id) => {
     const points: { outcomeId: string; conditionId: string; human: number; agent: number; domain: Domain }[] = [];
     for (const o of study.outcomes) {
@@ -323,7 +399,8 @@ export function correlationFigure(
     }
     return {
       id,
-      label: labelOf(labels, id),
+      label: markedLabel(labels, id, sim.has(id)),
+      ...(sim.has(id) ? { simulated: true } : {}),
       points,
       pearson: pearson(points.map((p) => p.human), points.map((p) => p.agent)),
       spearman: spearman(points.map((p) => p.human), points.map((p) => p.agent)),
@@ -332,7 +409,7 @@ export function correlationFigure(
   return {
     kind: "correlation" as const,
     series,
-    note: "Each point is one outcome × design. Human and agent design means are z-scored within each outcome across designs (log scale for geometric outcomes), so the correlation reflects agreement in the pattern across designs, not in absolute level.",
+    note: "Each point is one outcome × design. Human and agent design means are z-scored within each outcome across designs (log scale for geometric outcomes), so the correlation reflects agreement in the pattern across designs, not in absolute level." + simulatedNote(series, "none"),
   };
 }
 
@@ -352,6 +429,7 @@ export function populationVsIndividualFigure(
     humanMatrix(study, (p, c, o) => human.get(`${p}|${c}|${o}`)),
     study.design === "between-subjects" ? "significant" : "means",
   );
+  const sim = simulatedConfigs(report);
   const groups = agentIds.filter((id) => predicts(report, id, { domain })).map((id) => {
     const rows = (report.values ?? []).filter((v) => v.agentId === id);
     const level = rows[0]?.level ?? "population";
@@ -380,7 +458,7 @@ export function populationVsIndividualFigure(
         names.push(key);
       }
     }
-    return group(id, labelOf(labels, id), level, values, names);
+    return group(id, markedLabel(labels, id, sim.has(id)), level, values, names, sim.has(id));
   });
   // Here every unit is an independent cohort-level forecast, so all brackets use Mann–Whitney U.
   const independent = groups.map((g) => ({ ...g, level: "population" as const }));
@@ -391,7 +469,7 @@ export function populationVsIndividualFigure(
     chance: 0.5,
     groups,
     brackets: brackets(independent, study.analysis.tieTolerance),
-    note: `Population configs: each run's forecast, scored as in the analyzer's per-run scores. Individual configs: each repetition's participant forecasts averaged per design (geometric mean where declared) and scored the same way against the human population pattern (${study.design === "between-subjects" ? "significant group differences only" : "every difference of the design means"}). Mann–Whitney U, Holm across brackets; the tests treat the human sample as fixed.`,
+    note: `Population configs: each run's forecast, scored as in the analyzer's per-run scores. Individual configs: each repetition's participant forecasts averaged per design (geometric mean where declared) and scored the same way against the human population pattern (${study.design === "between-subjects" ? "significant group differences only" : "every difference of the design means"}). Mann–Whitney U, Holm across brackets; the tests treat the human sample as fixed.${simulatedNote(groups, "brackets")}`,
   };
 }
 
@@ -402,6 +480,26 @@ export function trajectoryFigure(
   domain: Domain,
   labels: Record<string, string> = {},
 ) {
+  // Participant lines need a forecast per participant: individual configurations only.
+  const levelOf = (id: string) =>
+    (report.values ?? []).find((v) => v.agentId === id)?.level ??
+    (report.runScores ?? []).find((r) => r.agentId === id)?.level ??
+    (report.summaries ?? []).find((s) => s.agentId === id)?.level;
+  const population = agentIds.filter((id) => levelOf(id) !== "individual");
+  agentIds = agentIds.filter((id) => levelOf(id) === "individual");
+  const names = (ids: string[]) => ids.map((id) => labelOf(labels, id)).join(", ");
+  if (!agentIds.length)
+    return {
+      kind: "trajectories" as const,
+      domain,
+      empty: true,
+      configs: [],
+      participants: [],
+      means: [],
+      spearman: [],
+      note: `Participant lines need an individual-level configuration (one forecast per participant). ${population.length === 1 ? `${names(population)} is` : `${names(population)} are`} population-level: ${population.length === 1 ? "it forecasts" : "they forecast"} the group, not each person. Select an individual configuration, or use the Agreement view.`,
+    };
+  const sim = simulatedConfigs(report);
   const score = new Map<string, Map<string, number>>();
   for (const r of report.runScores ?? [])
     if (r.level === "individual" && r.domain === domain && r.repetition === 1 && r.agreement !== null && agentIds.includes(r.agentId)) {
@@ -423,11 +521,14 @@ export function trajectoryFigure(
   return {
     kind: "trajectories" as const,
     domain,
-    configs: agentIds.map((id) => ({ id, label: labelOf(labels, id) })),
+    configs: agentIds.map((id) => ({ id, label: markedLabel(labels, id, sim.has(id)), ...(sim.has(id) ? { simulated: true } : {}) })),
     participants,
     means,
     spearman: matrix,
-    note: "Each line is one participant (primary forecast per config). Right: Spearman correlation of participant scores between configs. Descriptive; no additional tests.",
+    note:
+      "Each line is one participant (primary forecast per config). Right: Spearman correlation of participant scores between configs. Descriptive; no additional tests." +
+      (population.length ? ` Left out (population-level, no forecast per participant): ${names(population)}.` : "") +
+      simulatedNote(agentIds.map((id) => ({ simulated: sim.has(id) })), "none"),
   };
 }
 

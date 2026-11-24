@@ -473,6 +473,7 @@ function mergeLevels(plan: Plan, parts: AnalysisReport[]): AnalysisReport {
     pairRule: parts.find((p) => p.predictionLevel === "population")?.pairRule ?? first.pairRule,
     humanPairs: parts.flatMap((p) => p.humanPairs ?? []),
     absoluteFit: parts.flatMap((p) => p.absoluteFit ?? []),
+    simulatedConfigs: parts.flatMap((p) => p.simulatedConfigs ?? []),
   };
 }
 const ALPHA = 0.05;
@@ -564,7 +565,8 @@ function analyzeLevel(
         }
       poolingNotes.push(`${labelOf(agentId)}: ${k.real} real + ${k.simulated} simulated run(s). Scored on the ${k.real} real run(s) only; the simulated ones are left out.`);
     }
-  const simulatedOnly = [...kinds].filter(([, k]) => k.simulated && !k.real).map(([id]) => labelOf(id));
+  const simulatedOnlyIds = new Set([...kinds].filter(([, k]) => k.simulated && !k.real).map(([id]) => id));
+  const simulatedOnly = [...simulatedOnlyIds].map(labelOf);
   if (plan.study.synthetic && simulatedOnly.length && [...kinds.values()].some((k) => k.real))
     poolingNotes.push(`Scored on simulated (invented) runs only: ${simulatedOnly.join(", ")}. Comparisons between these and configurations with real runs compare invented with real forecasts.`);
   // A research study never scores invented forecasts (the audit marks them); the notes say so.
@@ -858,8 +860,11 @@ function analyzeLevel(
       valid.length >= plan.study.analysis.bootstrapDraws * 0.9;
     const degenerate =
       valid.length > 0 && Math.max(...valid) - Math.min(...valid) < 1e-12;
+    // Invented forecasts are never tested against real ones: the difference is shown, untested
+    // (it still counts in the declared Holm family, like every untestable comparison).
+    const mixed = simulatedOnlyIds.has(c.baseline) !== simulatedOnlyIds.has(c.candidate);
     const p =
-      eligible && !degenerate
+      eligible && !degenerate && !mixed
         ? (1 +
             valid.filter(
               (x) => Math.abs(x - difference!) >= Math.abs(difference!) - 1e-12,
@@ -869,11 +874,13 @@ function analyzeLevel(
     return {
       ...c,
       difference,
-      ci95: eligible ? interval(diffs) : null,
+      ci95: eligible && !mixed ? interval(diffs) : null,
       p,
       holmP: null,
       status: !eligible
         ? "Insufficient matched coverage"
+        : mixed
+        ? "Not tested: compares simulated (invented) with real runs"
         : degenerate
         ? "No test: empirically degenerate bootstrap variance"
         : "Exploratory centered-bootstrap contrast; Holm across the declared family",
@@ -988,6 +995,7 @@ function analyzeLevel(
     runScores,
     values,
     humanValues,
+    simulatedConfigs: [...simulatedOnlyIds],
     studyId: plan.study.id,
     title: plan.study.title,
     synthetic: plan.study.synthetic,

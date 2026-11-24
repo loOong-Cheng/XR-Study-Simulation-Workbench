@@ -1230,7 +1230,7 @@ function renderHumans() {
     ${
       figureData?.discrepancies
         ? `<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Design</th><th>Human</th><th>Agent</th><th>Discrepancy</th><th>Test</th><th>Holm p</th></tr></thead><tbody>${figureData.discrepancies
-            .map((r: any) => `<tr><td>${esc(name(r.agentId))}</td><td>${esc(study?.conditions.find((c) => c.id === r.conditionId)?.label ?? r.conditionId)}</td><td>${Number(r.humanCentre).toFixed(2)}</td><td>${Number(r.agentCentre).toFixed(2)}</td><td>${Number(r.discrepancy).toFixed(2)}</td><td class="small">${esc(r.test ?? "")}</td><td>${r.holm == null ? "—" : r.holm.toFixed(3)} ${r.stars}</td></tr>`)
+            .map((r: any) => `<tr${r.simulated ? ' class="simulated-row"' : ""}><td>${esc(name(r.agentId))}${r.simulated ? ' <span class="small warn">(simulated)</span>' : ""}</td><td>${esc(study?.conditions.find((c) => c.id === r.conditionId)?.label ?? r.conditionId)}</td><td>${Number(r.humanCentre).toFixed(2)}</td><td>${Number(r.agentCentre).toFixed(2)}</td><td>${Number(r.discrepancy).toFixed(2)}</td><td class="small">${esc(r.test ?? "")}</td><td>${r.holm == null ? "—" : r.holm.toFixed(3)} ${r.stars}</td></tr>`)
             .join("")}</tbody></table></div>`
         : ""
     }${explainText ? `<div class="notice neutral explain">${esc(explainText).replace(/\n/g, "<br>")}</div>` : ""}</div>
@@ -1239,7 +1239,7 @@ function renderHumans() {
     <div class="card"><h2>Planned comparisons</h2><p class="caption">Chosen at analysis (they are not needed for data collection). One Holm correction covers all of them; choosing them changes no other number.</p><div class="table-scroll"><table><thead><tr><th>Candidate − baseline</th><th>Domain</th><th>Difference</th><th>95% interval</th><th>Holm p</th><th></th></tr></thead><tbody>${comparisons
       .map((c, i) => {
         const r = a.contrasts.find((x) => x.candidate === c.candidate && x.baseline === c.baseline && x.domain === c.domain);
-        return `<tr><td>${esc(name(c.candidate))} − ${esc(name(c.baseline))}</td><td>${c.domain}</td><td>${r?.difference == null ? "—" : (r.difference * 100).toFixed(1) + " pp"}</td><td>${r?.ci95 ? `${pct(r.ci95.low)} – ${pct(r.ci95.high)}` : "—"}</td><td>${r?.holmP == null ? "—" : r.holmP.toFixed(3)}</td><td>${btn(`cmp-remove:${i}`, "Remove")}</td></tr>`;
+        return `<tr><td>${esc(name(c.candidate))} − ${esc(name(c.baseline))}</td><td>${c.domain}</td><td>${r?.difference == null ? "—" : (r.difference * 100).toFixed(1) + " pp"}</td><td>${r?.ci95 ? `${pct(r.ci95.low)} – ${pct(r.ci95.high)}` : "—"}</td><td>${r?.holmP == null ? (r?.status.startsWith("Not tested") ? `<span class="small warn">${esc(r.status)}</span>` : "—") : r.holmP.toFixed(3)}</td><td>${btn(`cmp-remove:${i}`, "Remove")}</td></tr>`;
       })
       .join("")}<tr><td><select id="cmp-a" aria-label="Candidate">${a.configs.map((c) => `<option value="${c.id}">${esc(c.label)}</option>`).join("")}</select> − <select id="cmp-b" aria-label="Baseline">${a.configs.map((c) => `<option value="${c.id}">${esc(c.label)}</option>`).join("")}</select></td><td><select id="cmp-d" aria-label="Domain"><option>subjective</option><option>objective</option></select></td><td></td><td></td><td></td><td>${btn("cmp-add", "Add")}</td></tr></tbody></table></div><div class="actions">${btn("cmp-save", "Save comparisons")}</div></div>
     ${a.exclusions.length || a.notes.length ? `<div class="card"><details><summary>Notes and exclusions</summary><ul>${[...a.exclusions, ...a.notes].map((n) => `<li class="caption">${esc(n)}</li>`).join("")}</ul></details></div>` : ""}`
@@ -1366,6 +1366,11 @@ async function drawFigure() {
   // A study or campaign switched while the figure was computed: it belongs to neither.
   if (ws?.id !== forStudy || campaignId !== forCampaign || !analysis) return;
   figureData = data;
+  // The figure says itself why nothing can be drawn (for example participant lines without an individual configuration).
+  if (figureData.empty) {
+    figureSvg = "";
+    return;
+  }
   if ((view === "agreement" || view === "population-vs-individual") && Array.isArray(figureData.groups) && figureData.groups.every((g: { values: number[] }) => !g.values.length)) {
     figureData = { empty: true, note: `Nothing can be scored (${domain}) for the selected configurations: no run or participant has an agreement score here.` };
     figureSvg = "";

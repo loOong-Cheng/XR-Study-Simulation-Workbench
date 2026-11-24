@@ -346,6 +346,11 @@ export interface AnalysisReport {
   /** Within-subjects studies: the population scores again, on significant human differences only. */
   significantOnly?: { summaries: SummaryScore[]; exclusions: string[]; humanPairs: HumanPair[] };
   humanValues?: { participantId: string; outcomeId: string; conditionId: string; value: number }[];
+  /**
+   * Configurations whose returned runs are all simulated (invented). Figures mark them and never
+   * test them against configurations with real runs or against the human data.
+   */
+  simulatedConfigs?: string[];
   bootstrapDraws: number;
   seed: number;
 }
