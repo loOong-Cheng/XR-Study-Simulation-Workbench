@@ -1,6 +1,6 @@
 # External XR execution
 
-The launcher runs on the researcher's XR machine. This repository deliberately contains no pretense of a live Unreal, Unity, OpenXR or Meta connection. `UnavailableRuntime` fails explicitly. Only `syntheticResults` is implemented, and all its artifacts are marked synthetic.
+The executor runs real agent sessions through the built-in **WebXR** runtime or through a **study bridge** set for an engine runtime in **Settings**, on the machine that runs the engine (see [MCP runtimes used by the executor](#mcp-runtimes-used-by-the-executor)). Suite 2 ships a Unity bridge; no Unreal or visionOS bridge is included, and no headset, OpenXR or Meta runtime connection has been verified. A runtime that is not configured fails explicitly and names itself. **Simulate** produces invented runs (`syntheticResults`), always marked synthetic. `RuntimeAdapter` and `ProtocolGate` in `src/core/protocol.ts` are an optional library contract for a controller of your own; the executor does not use them.
 
 ## Engine, runtime and observation are separate
 
@@ -29,14 +29,14 @@ These links document vendor facilities, not successful integration tests perform
 
 The executor runs each agent session as headless Claude Code with exactly two kinds of MCP server:
 
-- **study** (`src/runtimes/study-mcp.ts`, always): `list_files` / `read_file` limited to the permitted project folder, and `submit_forecast`, which checks the full design × measure grid and ends the session. It enforces the tool budget and writes the audit trace. Paths are checked after resolving symlinks, so a link cannot lead out of the folder. Files named `human.json`, and the `campaigns/`, `runs/` and `deleted/` folders of any study folder, are never listed or read (`src/runtimes/guard.ts`). The built-in WebXR runtime serves its app folder under the same rule. A study bridge that reads files for the agent should do the same.
+- **study** (`src/runtimes/study-mcp.ts`, always): `list_files` / `read_file` limited to the permitted project folder, and `submit_forecast`, which checks that the forecast covers every design × each measure the configuration predicts and ends the session. It enforces the tool budget and writes the audit trace. Paths are checked after resolving symlinks, so a link cannot lead out of the folder. Files named `human.json`, and the `campaigns/`, `runs/` and `deleted/` folders of any study folder, are never listed or read (`src/runtimes/guard.ts`). The built-in WebXR runtime serves its app folder under the same rule. A study bridge that reads files for the agent should do the same.
 - **the configuration's runtime**:
 
 | Runtime | Server | Notes |
 | --- | --- | --- |
 | `webxr` | Built in: `src/runtimes/webxr-mcp.ts` | Serves the app folder from `workspace.json`, drives it in headless Chrome over the DevTools protocol, calls `window.xrStudy` (`start`, `select`, `look`, `listObjects`, `getState`). Mono screenshots only. |
 | `unreal` | Your Unreal MCP, wrapped in a study bridge (below) | Set in Settings on the machine that runs Unreal. |
-| `unity` | Your Unity MCP server | Not configured: "Unity MCP runtime is not configured". |
+| `unity` | A study bridge (below), set in Settings → Runtimes → unity | Suite 2 ships one: `examples/selection/runtime/bridge.py` (Python, standard library) drives the included Unity project in Play mode; no third-party Unity MCP is needed (`examples/selection/UNITY_SETUP.md`). Until it is set: "Unity MCP runtime is not configured". |
 | `visionos` | A visionOS simulator MCP server | Not configured: Apple Vision Pro needs a visionOS simulator runtime. |
 
 A runtime for another engine should offer participant-like tools:
@@ -46,7 +46,7 @@ A runtime for another engine should offer participant-like tools:
 - act or select;
 - task state.
 
-It should log the audit trace events `phase`, `case-start`, `observation`, `action` and `case-end` to `<job-dir>/trace.jsonl`, in the shape the WebXR server writes.
+It should log the audit trace events `runtime`, `phase`, `case-start`, `observation`, `action` and `case-end` to `<job-dir>/trace.jsonl`, in the shape the WebXR server writes (see "What it logs" below).
 
 ## Study bridge contract
 
@@ -104,7 +104,7 @@ An engine MCP server (for example ue-mcp) usually offers editor tools: spawn act
 
 **Settings.** Declare the bridge's real capabilities (for example `screenshot`, `phase-events`). The executor blocks configurations whose study requires a capability the runtime does not declare. A runtime supports stereo configurations only when it declares `stereo-capture`.
 
-- **Time limit per session:** default 90 minutes for Unreal, Unity and visionOS (a full engine session with dozens of answers takes long), otherwise the global limit.
+- **Time limit per session:** by default 90 minutes for Unreal, Unity and visionOS, or the global limit if that is higher (a full engine session with dozens of answers takes long); otherwise the global limit.
 - **Sessions at the same time:** default 1 for Unreal, Unity and visionOS, because one editor hosts one Play session. The queue enforces it whatever the overall number of parallel sessions is; app-free sessions keep running alongside.
 
 **Robustness.**
@@ -115,11 +115,11 @@ An engine MCP server (for example ue-mcp) usually offers editor tools: spawn act
 
 **Token budget.** `job.json` → `tokenBudget` is the session's token budget (all tokens: input including cache, plus output), or null. The executor keeps `<job dir>/usage.json` (`{"tokens": …, "submitNow": …}`) current from the session's stream. Once `submitNow` is true (what is left of the budget is smaller than 10% of it, or than 1.5 × the last turn's input, since every turn re-reads the context) or `tokens` reaches 90% of the budget, a bridge refuses every further tool call with "Token budget … is nearly used up. Submit your forecast now." (the study server and the WebXR runtime do this too), so the agent submits; the executor stops a session above 150%, but never once its forecast was accepted (`usage.json` → `tokensAtSubmit`).
 
-**Tool-call limit.** A configuration's tool-call limit (`budget` in `job.json`) is a safety cap shared by every call, including reading files. The agent configuration page shows the fewest calls the protocol needs: each design to open, each required task's actions, one view per task, and the forecast. A task's `minActions` in `study.json` declares how many actions it needs at least (for example one answer per trial).
+**Tool-call limit.** A configuration's tool-call limit (`budget` in `job.json`) is a safety cap shared by every call, including reading files. The agent configuration page shows the fewest calls the protocol needs: each project file to read, each design to open, each required task's actions and one view per task; submitting the forecast is not counted. A task's `minActions` in `study.json` declares how many actions it needs at least (for example one answer per trial).
 
-## Implement a connector
+## Optional library contract: `RuntimeAdapter`
 
-Implement `RuntimeAdapter` in `src/core/protocol.ts`:
+The executor does not use this contract: real runs go through WebXR or a study bridge (above), and a new engine needs only a bridge. For an external controller of your own, `src/core/protocol.ts` offers `RuntimeAdapter`:
 
 1. `describe`: report engine/runtime versions and actually supported capabilities.
 2. `reset`: establish a fresh session and the scheduled study state.

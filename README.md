@@ -41,7 +41,7 @@ npm start          # http://127.0.0.1:4317 → Open study
 - Node.js 22.13+ and npm.
 - For real agent runs: [Claude Code](https://claude.com/claude-code), logged in. No API key is stored anywhere.
 - For WebXR runs: Google Chrome.
-- Unreal, Unity or Apple Vision Pro runs need that engine's MCP server on the machine that runs the engine (set in **Settings**).
+- Unreal, Unity or Apple Vision Pro runs need a study bridge (a stdio MCP server, see [runtime adapters](docs/runtime-adapters.md#study-bridge-contract)) on the machine that runs the engine, set in **Settings**. Suite 2 includes one for its Unity app.
 
 The website runs locally on the loopback address and is not a hosted service. Settings live in `private/settings.json`; real studies in `private/studies/`. Both are git-ignored.
 
@@ -69,7 +69,7 @@ Model wall time, environment simulation time and predicted human time are separa
 
 ## Command line
 
-Every step also works from the command line, which is what coding agents use. Run `node dist/cli.js` for the full list. See [AGENTS.md](AGENTS.md) for the workflow, [model reruns and continuations](docs/model-reruns.md), [runtime adapters](docs/runtime-adapters.md) and the [data contract](docs/data-contract.md).
+Every step also works from the command line, which is what coding agents use. Run `node dist/cli.js` (or `node dist/cli.js help`) for the full list of commands with their options. See [AGENTS.md](AGENTS.md) for the workflow, [model reruns and continuations](docs/model-reruns.md), [runtime adapters](docs/runtime-adapters.md) and the [data contract](docs/data-contract.md).
 
 ## Open research and publication
 

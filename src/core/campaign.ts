@@ -583,7 +583,9 @@ function deriveCampaign(
       typeof changes === "object" &&
       Object.keys(changes).every((k) => continuationKeys.includes(k)) &&
       Object.keys(changes).some((k) => k !== "note"),
-    `A continuation needs at least one change (${continuationKeys.join(", ")}).`,
+    changes && typeof changes === "object" && Object.keys(changes).some((k) => !continuationKeys.includes(k))
+      ? `Unknown change "${Object.keys(changes).find((k) => !continuationKeys.includes(k))}"; allowed: ${continuationKeys.join(", ")}.`
+      : `A continuation needs at least one change (${continuationKeys.filter((k) => k !== "note").join(", ")}); a note alone changes nothing.`,
   );
   const ch = structuredClone(changes);
   const suite = structuredClone(previous.suite);
@@ -922,7 +924,7 @@ export function verifyContinuation(parent: Campaign, child: Campaign): void {
   verifyCampaign(child);
   requireThat(
     child.parentDigest === parent.digest && child.continuation,
-    "This campaign is not a recorded continuation of the given parent.",
+    "This campaign is not a recorded continuation of the given parent: it names another parent or records no change set (campaign-rerun output records none; campaign-verify checks it as a rerun).",
   );
   requireThat(
     deriveCampaign(parent, child.continuation!, child.id, child.createdAt, "verify")

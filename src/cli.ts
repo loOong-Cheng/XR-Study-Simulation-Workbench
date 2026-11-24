@@ -1,5 +1,6 @@
-import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname, join, resolve, isAbsolute, relative, sep } from "node:path";
+import { existsSync, statSync } from "node:fs";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import { basename, dirname, join, resolve, isAbsolute, relative, sep } from "node:path";
 import { createHash } from "node:crypto";
 import { analyze } from "./core/analyzer.js";
 import {
@@ -13,6 +14,7 @@ import {
   handoffFiles,
   planningBrief,
   proposeAgents,
+  verifyPlan,
 } from "./core/planner.js";
 import {
   checkNewConfigurations,
@@ -23,10 +25,12 @@ import {
 } from "./core/validation.js";
 import { reportCSV, reportHTML } from "./core/report.js";
 import {
+  explainAgents,
   explainCampaign,
+  explainComparisons,
+  explainHuman,
   explainPlan,
   explainStudy,
-  humanCoverage,
 } from "./core/explain.js";
 import { approvalState } from "./review.js";
 import {
@@ -34,6 +38,7 @@ import {
   checkedReading,
   localReading,
   agentReading,
+  proposalFields,
   readerConfig,
 } from "./core/proposal.js";
 import type {
@@ -42,9 +47,12 @@ import type {
   HumanData,
   Plan,
   ResultBundle,
+  RunResult,
+  Study,
 } from "./core/types.js";
 import {
   campaignFiles,
+  campaignPlan,
   campaignStatus,
   campaignSummary,
   campaignFromPlan,
@@ -52,6 +60,7 @@ import {
   continueFromStatus,
   freezeCampaign,
   rerunCampaign,
+  validateSuite,
   verifyCampaign,
   verifyContinuation,
   type Campaign,
@@ -73,32 +82,348 @@ import {
   compareCampaignScores,
   type CampaignScorecard,
 } from "./core/campaign-comparison.js";
+import { readSettings } from "./settings.js";
+import { repoRoot, workspaceDir } from "./workspace.js";
 
-const load = async <T>(path: string): Promise<T> =>
-  JSON.parse(await readFile(path, "utf8")) as T;
+// ---------- commands, usage and help ----------
+
+const usage: Record<string, string> = {
+  review: "review <study-folder> [--port 4317]",
+  proposal: "proposal <document.pdf|docx|md|txt> <new-directory> [--agent]",
+  "proposal-check": "proposal-check <document.pdf|docx|md|txt> <reading.json>",
+  "agents-draft": "agents-draft <study.json> <new-agents.json>",
+  "study-check": "study-check <study.json> [--agents agents.json] [--human human.json]",
+  explain: "explain <file>",
+  brief: "brief <study.json> <new-brief.json>",
+  plan: "plan <study.json> <new-directory> [--agents agents.json] [--repetitions N]",
+  "campaign-from-plan": "campaign-from-plan <plan.json> <new-directory> [<provider> <model> <reasoning>]",
+  unpack: "unpack <package.json> <new-directory>",
+  "campaign-status": "campaign-status <campaign.json> [<receipts.jsonl> ...]",
+  "campaign-analyze":
+    "campaign-analyze <campaign.json> <human.json> <new-directory> <results> [<earlier-results> ...] [--comparisons comparisons.json]",
+  "campaign-compare":
+    "campaign-compare <old-campaign.json> <old-scores.json> <new-campaign.json> <new-scores.json> <new-directory>",
+  analyze: "analyze <plan.json> <human.json> <results> <new-directory> [--comparisons comparisons.json]",
+  "campaign-continue":
+    "campaign-continue <previous-campaign.json> <changes.json> <new-directory> [--receipts <receipts.jsonl> ...]",
+  "campaign-rerun": "campaign-rerun <previous-campaign.json> <new-directory> <provider> <model> <reasoning>",
+  "campaign-verify": "campaign-verify <campaign.json|campaign-folder> [<parent-campaign.json>]",
+  "campaign-example": "campaign-example <new-suite.json>",
+  "campaign-new": "campaign-new <suite.json> <new-directory> <provider> <model> <reasoning>",
+  "campaign-preflight": "campaign-preflight <suite-or-campaign.json> <bindings.local.json>",
+  "campaign-mock": "campaign-mock <synthetic-campaign.json> <new-directory>",
+  demo: "demo [<new-directory>]",
+};
+const sections: [string, [string, string][]][] = [
+  ["Website", [["review", "open a study folder (under examples/ or private/studies/) in the local website"]]],
+  [
+    "Understand and draft a study",
+    [
+      ["proposal", "extract a document's text locally (--agent: also read it with the XR_PLANNER_* model)"],
+      ["proposal-check", "check reading.json: every fact needs an exact quote from the document"],
+      ["agents-draft", "draft agent configurations with the Settings forecasting model"],
+      ["study-check", "check the study, its agent configurations and human data; list what to fix"],
+      ["explain", "summarise a study, agents, human, comparisons, plan, campaign or campaign-suite file"],
+      ["brief", "export the planning brief (no model call)"],
+    ],
+  ],
+  [
+    "Freeze",
+    [
+      ["plan", "freeze a plan (uses agents.json next to the study unless --agents is given)"],
+      ["campaign-from-plan", "freeze a campaign from a plan"],
+      ["unpack", "verify a package container {\"files\": {…}} and write its files"],
+    ],
+  ],
+  [
+    "Status, scores and comparisons",
+    [
+      ["campaign-status", "progress of a campaign from its receipts (none before anything ran)"],
+      ["campaign-analyze", "score a campaign against human.json"],
+      ["campaign-compare", "compare the scorecards of two campaigns (descriptive)"],
+      ["analyze", "score a plan's results against human.json"],
+    ],
+  ],
+  [
+    "Continue, rerun and verify",
+    [
+      ["campaign-continue", "derive a continuation from a change set; unchanged finished runs are reused"],
+      ["campaign-rerun", "freeze the same suite again with another model; every job runs again"],
+      ["campaign-verify", "check a campaign's digest and every file in its manifest; with a parent, its lineage"],
+    ],
+  ],
+  [
+    "External campaign suites and examples",
+    [
+      ["campaign-example", "write a synthetic campaign suite"],
+      ["campaign-new", "freeze a campaign from a suite"],
+      ["campaign-preflight", "check a suite's asset files against a bindings file"],
+      ["campaign-mock", "run a synthetic campaign with invented forecasts"],
+      ["demo", "synthetic example from study to report"],
+    ],
+  ],
+];
+const bindingsFormat =
+  '{"roots": {"<root>": "<folder>"}, "files": {"<asset-id>": {"root": "<root>", "path": "<path inside the root>"}}, "attestations": {"<asset-id>": {"sha256": "<hash>", "evidence": "<how it was checked>"}}}';
+function helpText(): string {
+  const lines = ["XR Study Sim — command line. Run: node dist/cli.js <command> …", ""];
+  for (const [title, commands] of sections) {
+    lines.push(`${title}:`);
+    for (const [name, what] of commands) lines.push(`  ${usage[name]}`, `      ${what}`);
+    lines.push("");
+  }
+  lines.push(
+    "Notes:",
+    "  Options may come anywhere after the command. --receipts takes every file after it, up to the next option.",
+    "  New directories and files must not exist yet; nothing is ever overwritten.",
+    "  <results> for campaign-analyze and analyze: a result-bundle file, a run-result file, or a folder of them such as",
+    "    runs/<campaign>/results (the website writes one file per job). Give the results of every campaign in the lineage.",
+    `  bindings.local.json for campaign-preflight: ${bindingsFormat}`,
+    "  Use npm start for the website. The workflow is in AGENTS.md; contracts in docs/data-contract.md.",
+  );
+  return lines.join("\n");
+}
+
+// ---------- arguments ----------
+
+/** Options per command. Value options take one value; list options take every value up to the next option. */
+const optionsOf: Record<string, { values?: string[]; lists?: string[]; switches?: string[] }> = {
+  review: { values: ["--port"] },
+  proposal: { switches: ["--agent"] },
+  "study-check": { values: ["--agents", "--human"] },
+  plan: { values: ["--agents", "--repetitions"] },
+  analyze: { values: ["--comparisons"] },
+  "campaign-analyze": { values: ["--comparisons"] },
+  "campaign-continue": { lists: ["--receipts"] },
+};
+const optionValue: Record<string, string> = {
+  "--port": "port",
+  "--agents": "agents.json",
+  "--human": "human.json",
+  "--repetitions": "N",
+  "--comparisons": "comparisons.json",
+  "--receipts": "receipts.jsonl",
+};
+function parseArgs(command: string, raw: string[]) {
+  const spec = optionsOf[command] ?? {};
+  const known = [...(spec.values ?? []), ...(spec.lists ?? []), ...(spec.switches ?? [])];
+  const positional: string[] = [];
+  const values = new Map<string, string>();
+  const lists = new Map<string, string[]>();
+  const switches = new Set<string>();
+  for (let i = 0; i < raw.length; i++) {
+    let arg = raw[i];
+    if (!arg.startsWith("--")) {
+      positional.push(arg);
+      continue;
+    }
+    let inline: string | undefined;
+    if (arg.includes("=")) [arg, inline] = [arg.slice(0, arg.indexOf("=")), arg.slice(arg.indexOf("=") + 1)];
+    requireThat(
+      known.includes(arg),
+      `Unknown option ${arg} for ${command}. ${known.length ? `It accepts ${known.join(", ")}.` : "It takes no options."} Usage: node dist/cli.js ${usage[command]}`,
+    );
+    if (spec.switches?.includes(arg)) {
+      switches.add(arg);
+      continue;
+    }
+    if (spec.lists?.includes(arg)) {
+      const items = inline !== undefined ? [inline] : [];
+      while (i + 1 < raw.length && !raw[i + 1].startsWith("--")) items.push(raw[++i]);
+      requireThat(items.length && items.every(Boolean), `${arg} needs at least one file: ${arg} <${optionValue[arg]}> …`);
+      lists.set(arg, [...(lists.get(arg) ?? []), ...items]);
+      continue;
+    }
+    const value = inline ?? raw[i + 1];
+    requireThat(value !== undefined && value !== "" && !value.startsWith("--"), `${arg} needs a value: ${arg} <${optionValue[arg]}>.`);
+    requireThat(!values.has(arg), `${arg} is given twice.`);
+    values.set(arg, value);
+    if (inline === undefined) i++;
+  }
+  return { positional, values, lists, switches };
+}
+
+// ---------- files ----------
+
 const pretty = (x: unknown) => JSON.stringify(x, null, 2) + "\n";
-/** A CSV field: quoted when it holds a comma, quote or line break. */
-const csvText = (x: string | null) =>
-  x == null ? "" : /[",\n]/.test(x) ? `"${x.replace(/"/g, '""')}"` : x;
+const isFolder = (path: string) => existsSync(path) && statSync(path).isDirectory();
+async function readText(path: string): Promise<string> {
+  requireThat(existsSync(path), `Cannot find ${path}.`);
+  requireThat(!isFolder(path), `${path} is a folder; give a file.`);
+  return readFile(path, "utf8");
+}
+async function readJson<T = unknown>(path: string): Promise<T> {
+  const text = await readText(path);
+  try {
+    return JSON.parse(text) as T;
+  } catch (e) {
+    throw new Error(`${path} is not valid JSON (${(e as Error).message}).`);
+  }
+}
+type Kind =
+  | "campaign"
+  | "suite"
+  | "scorecard"
+  | "approval"
+  | "manifest"
+  | "package"
+  | "plan"
+  | "results"
+  | "run"
+  | "human"
+  | "reading"
+  | "study"
+  | "agents"
+  | "comparisons"
+  | "unknown";
+const kindName: Record<Kind, string> = {
+  campaign: "a campaign.json",
+  suite: "a campaign suite",
+  scorecard: "a scorecard.json",
+  approval: "a study approval file",
+  manifest: "a manifest.json",
+  package: "a package container",
+  plan: "a plan.json",
+  results: "a result bundle",
+  run: "a run result",
+  human: "a human.json",
+  reading: "a reading.json",
+  study: "a study.json",
+  agents: "an agents.json",
+  comparisons: "a comparisons.json",
+  unknown: "none of the workbench's files",
+};
+/** Which workbench file a parsed JSON value is, from its shape. */
+function kindOf(v: unknown): Kind {
+  if (Array.isArray(v)) {
+    const objects = v.every((x) => x && typeof x === "object" && !Array.isArray(x));
+    if (objects && v.every((x) => "candidate" in x || "baseline" in x)) return "comparisons";
+    if (objects && v.length && v.every((x) => "id" in x && ("tools" in x || "sourceIds" in x || "model" in x))) return "agents";
+    return "unknown";
+  }
+  if (!v || typeof v !== "object") return "unknown";
+  const o = v as Record<string, unknown>;
+  switch (o.schemaVersion) {
+    case "xr-campaign/1":
+      return "campaign";
+    case "xr-campaign-suite/1":
+      return "suite";
+    case "xr-campaign-scores/1":
+      return "scorecard";
+    case "xr-study-approval/1":
+      return "approval";
+  }
+  if (o.files && typeof o.files === "object") {
+    const values = Object.values(o.files as Record<string, unknown>);
+    return values.length && values.every((x) => typeof x === "string" && /^[a-f0-9]{64}$/.test(x)) ? "manifest" : "package";
+  }
+  if (o.digest && o.study && Array.isArray(o.jobs)) return "plan";
+  if (Array.isArray(o.runs)) return "results";
+  if (typeof o.jobId === "string" && typeof o.planDigest === "string") return "run";
+  if ("measurements" in o || (typeof o.studyId === "string" && !("conditions" in o))) return "human";
+  if (o.facts && typeof o.facts === "object") return "reading";
+  if ("conditions" in o || "outcomes" in o || "participants" in o) return "study";
+  return "unknown";
+}
+const kindHints: Record<string, string> = {
+  "plan<study": "run plan first: node dist/cli.js plan <study.json> <new-directory>",
+  "campaign<plan": "freeze a campaign from it first: node dist/cli.js campaign-from-plan <plan.json> <new-directory>",
+  "campaign<study": "freeze it first: plan, then campaign-from-plan (or Freeze in the website)",
+  "campaign<suite": "freeze it first: node dist/cli.js campaign-new <suite.json> <new-directory> <provider> <model> <reasoning>",
+  "study<plan": "a plan already contains its study",
+};
+function expectKind(path: string, value: unknown, want: Kind): void {
+  const got = kindOf(value);
+  if (got === want) return;
+  const wrapped =
+    want === "agents" && value && typeof value === "object" && Array.isArray((value as { agents?: unknown }).agents)
+      ? '; put the list itself in the file, not {"agents": [...]}'
+      : "";
+  const hint = kindHints[`${want}<${got}`];
+  throw new Error(
+    `${path} is not ${kindName[want]}${got !== "unknown" ? ` (it looks like ${kindName[got]})` : ""}${hint ? `; ${hint}` : ""}${wrapped}.`,
+  );
+}
+/** A JSON file of the expected kind. A folder holding `inFolder` (e.g. campaign.json) also works. */
+async function loadAs<T>(path: string, want: Kind, inFolder?: string): Promise<{ value: T; path: string }> {
+  const file = inFolder && isFolder(path) && existsSync(join(path, inFolder)) ? join(path, inFolder) : path;
+  const value = await readJson<T>(file);
+  expectKind(file, value, want);
+  return { value, path: file };
+}
+const loadCampaign = async (path: string) => (await loadAs<Campaign>(path, "campaign", "campaign.json")).value;
 async function loadReceipts(files: string[]): Promise<CampaignReceipt[]> {
   const receipts: CampaignReceipt[] = [];
-  for (const file of files) {
-    const text = await readFile(file, "utf8");
-    if (text.trim())
-      receipts.push(
-        ...text
-          .trim()
-          .split(/\n/)
-          .map((l) => JSON.parse(l) as CampaignReceipt),
-      );
+  for (const given of files) {
+    const file = isFolder(given) && existsSync(join(given, "receipts.jsonl")) ? join(given, "receipts.jsonl") : given;
+    const lines = (await readText(file)).split(/\r?\n/);
+    lines.forEach((line, i) => {
+      if (!line.trim()) return;
+      try {
+        receipts.push(JSON.parse(line) as CampaignReceipt);
+      } catch {
+        throw new Error(`${file}, line ${i + 1}, is not valid JSON; receipts files hold one JSON receipt per line.`);
+      }
+    });
   }
   return receipts;
 }
+/**
+ * Result bundles from files or folders. A folder (for example the website's runs/<campaign>/results,
+ * or runs/<campaign> itself) holds one run-result file per job; its files become one bundle.
+ */
+async function loadResults(paths: string[], studyId: string): Promise<ResultBundle[]> {
+  const bundles: ResultBundle[] = [];
+  for (const given of paths) {
+    requireThat(existsSync(given), `Cannot find ${given}.`);
+    if (!isFolder(given)) {
+      const value = await readJson<ResultBundle | RunResult>(given);
+      const kind = kindOf(value);
+      requireThat(kind === "results" || kind === "run", `${given} is not a result bundle or run result${kind !== "unknown" ? ` (it looks like ${kindName[kind]})` : ""}.`);
+      bundles.push(kind === "run" ? { schemaVersion: "1.0", studyId, runs: [value as RunResult] } : (value as ResultBundle));
+      continue;
+    }
+    const dir = isFolder(join(given, "results")) ? join(given, "results") : given;
+    const files = (await readdir(dir)).filter((f) => f.endsWith(".json")).sort();
+    requireThat(files.length, `${dir} holds no result files (*.json).`);
+    const runs: RunResult[] = [];
+    for (const f of files) {
+      const value = await readJson<ResultBundle | RunResult>(join(dir, f));
+      const kind = kindOf(value);
+      if (kind === "run") runs.push(value as RunResult);
+      else if (kind === "results") {
+        requireThat((value as ResultBundle).studyId === studyId, `${join(dir, f)} holds results of study "${(value as ResultBundle).studyId}", not "${studyId}".`);
+        runs.push(...(value as ResultBundle).runs);
+      } else throw new Error(`${join(dir, f)} is not a run result or result bundle.`);
+    }
+    bundles.push({ schemaVersion: "1.0", studyId, runs });
+  }
+  return bundles;
+}
+async function loadComparisons(path: string, study: Study, agents: AgentProtocol[]): Promise<Comparison[]> {
+  const list = await readJson<Comparison[]>(path);
+  requireThat(
+    Array.isArray(list),
+    `${path} must be a list: [{"candidate": "<configuration ID>", "baseline": "<configuration ID>", "domain": "objective" or "subjective"}].`,
+  );
+  const { problems } = explainComparisons(list, study, agents);
+  requireThat(!problems.length, `${path}: ${problems.join(" ")}`);
+  return list;
+}
+/** A new output folder: refuse an existing one before any work is done, create it when writing. */
+function requireNew(path: string): void {
+  requireThat(!existsSync(path), `${path} already exists; choose a new ${/\.[a-z]+$/i.test(path) ? "file name" : "folder"}. Nothing is overwritten.`);
+}
 async function freshDirectory(path: string): Promise<string> {
+  requireNew(path);
   const dir = resolve(path);
   await mkdir(dirname(dir), { recursive: true });
   await mkdir(dir);
   return dir;
+}
+async function writeNewFile(path: string, text: string): Promise<void> {
+  requireNew(path);
+  await writeFile(path, text, { flag: "wx" });
 }
 async function writeFiles(
   directory: string,
@@ -117,24 +442,113 @@ async function writeFiles(
     await writeFile(target, contents, { flag: "wx" });
   }
 }
+const sha256 = (data: Buffer | string) => createHash("sha256").update(data).digest("hex");
+/** Every file listed in a campaign folder's manifest.json, checked against its SHA-256. */
+async function verifyManifest(dir: string, c: Campaign) {
+  const manifest = await readJson<{ campaignDigest?: string; files?: Record<string, string> }>(join(dir, "manifest.json"));
+  requireThat(manifest && manifest.files && typeof manifest.files === "object", `${join(dir, "manifest.json")} lists no files.`);
+  const problems: string[] = [];
+  if (manifest.campaignDigest !== c.digest)
+    problems.push(`manifest.json belongs to campaign digest ${String(manifest.campaignDigest).slice(0, 12)}…, not this campaign's ${c.digest.slice(0, 12)}….`);
+  const listed = Object.entries(manifest.files!);
+  for (const [name, digest] of listed) {
+    if (isAbsolute(name) || name.split(/[\\/]/).includes("..")) {
+      problems.push(`${name}: unsafe path in the manifest.`);
+      continue;
+    }
+    const file = join(dir, name);
+    if (!existsSync(file)) problems.push(`${name} is missing.`);
+    else if (sha256(await readFile(file)) !== digest) problems.push(`${name} differs from the manifest (changed after freezing).`);
+  }
+  const unlisted: string[] = [];
+  const walk = async (rel: string) => {
+    for (const entry of await readdir(join(dir, rel), { withFileTypes: true })) {
+      if (entry.name.startsWith(".")) continue;
+      const path = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory()) await walk(path);
+      else if (path !== "manifest.json" && !(path in manifest.files!)) unlisted.push(path);
+    }
+  };
+  await walk("");
+  return { checked: listed.length, problems, unlisted };
+}
+/** What `review` and the website need: a study folder under examples/ or private/studies/ that the workbench can open. */
+function reviewFolder(studyPath: string): { id: string; problem?: string } {
+  const folder = resolve(studyPath).replace(/[\\/]study\.json$/, "");
+  const id = relative(repoRoot, folder).split(sep).join("/");
+  if (!["examples/", "private/studies/"].some((r) => id.startsWith(r)))
+    return {
+      id,
+      problem: `${studyPath} is outside examples/ and private/studies/. The website opens study folders only there: copy the folder to private/studies/<name>/ (real data, git-ignored) or examples/<name>/ (synthetic studies only), then run review on that folder.`,
+    };
+  if (!existsSync(join(folder, "study.json"))) return { id, problem: `There is no study.json in ${id}; the website reads the study from that file name.` };
+  try {
+    workspaceDir(id);
+    return { id };
+  } catch (e) {
+    const nested = id.replace(/^(examples|private\/studies)\//, "").includes("/");
+    const badName = !/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}$/.test(basename(folder)) || basename(folder).endsWith(".");
+    return {
+      id,
+      problem: `The website cannot open ${id}: ${(e as Error).message}${
+        nested
+          ? " The study folder must sit directly in examples/ or private/studies/."
+          : badName
+          ? " Rename the folder: letters, digits, dots, dashes and underscores only, starting with a letter, digit or underscore."
+          : ""
+      }`,
+    };
+  }
+}
+/** Templates with the Settings forecasting model, as the website drafts them. */
+async function draftAgents(study: Study): Promise<{ agents: AgentProtocol[]; model: CampaignModel }> {
+  const { forecasting } = await readSettings();
+  const model = { provider: forecasting.provider, model: forecasting.model, reasoning: forecasting.reasoning };
+  return { agents: (await proposeAgents(study)).map((a) => ({ ...a, model: { ...model } })), model };
+}
+const modelText = (m: CampaignModel) => `${m.provider} / ${m.model} (effort ${m.reasoning})`;
+const csvCell = (v: unknown) => {
+  const s = v === null || v === undefined ? "" : String(v);
+  return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+};
+const percent = (x: number | null | undefined) => (x === null || x === undefined ? null : Number((x * 100).toFixed(4)));
+
+// ---------- commands ----------
+
 async function main(): Promise<void> {
   const [command, ...rawArgs] = process.argv.slice(2);
-  // --comparisons <file> may follow analyze / campaign-analyze; take it out of the positional list.
-  const ci = rawArgs.indexOf("--comparisons");
-  const comparisonsFile = ci < 0 ? undefined : rawArgs[ci + 1];
-  const args = ci < 0 ? rawArgs : rawArgs.filter((_, i) => i !== ci && i !== ci + 1);
-  const comparisons = comparisonsFile ? await load<Comparison[]>(comparisonsFile) : undefined;
-  const flag = (name: string) => {
-    const i = args.indexOf(name);
-    return i < 0 ? undefined : args[i + 1];
-  };
+  if (command === undefined || ["help", "--help", "-h"].includes(command)) {
+    const topic = rawArgs[0];
+    console.log(topic && usage[topic] ? `Usage: node dist/cli.js ${usage[topic]}` : helpText());
+    return;
+  }
+  if (!(command in usage)) {
+    console.error(`Unknown command "${command}".\n\n${helpText()}`);
+    process.exitCode = 1;
+    return;
+  }
+  const { positional: args, values, lists, switches } = parseArgs(command, rawArgs);
+  const need = (condition: unknown) => requireThat(condition, `Usage: node dist/cli.js ${usage[command]}`);
+
   if (command === "proposal-check") {
+    need(args.length === 2);
+    const document = await extractProposal(args[0], Buffer.from(await readFile(resolveExisting(args[0]))));
+    const raw = await readJson<{ facts?: Record<string, { value?: unknown; quote?: unknown }> }>(args[1]);
+    // Report every unusable fact at once, not only the first.
+    const problems: string[] = [];
+    for (const key of proposalFields) {
+      const fact = raw?.facts?.[key];
+      if (!fact || typeof fact.value !== "string" || typeof fact.quote !== "string")
+        problems.push(`${key}: missing; give {"value": "…", "quote": "…"} (both empty if the document does not say).`);
+      else if (fact.value && !(fact.quote.trim() && document.text.includes(fact.quote)))
+        problems.push(`${key}: the quote is not copied exactly from the document${fact.quote.trim() ? `: "${fact.quote.length > 100 ? fact.quote.slice(0, 100) + "…" : fact.quote}"` : " (it is empty)"}.`);
+    }
+    const extra = Object.keys(raw?.facts ?? {}).filter((k) => !(proposalFields as readonly string[]).includes(k));
     requireThat(
-      args.length === 2,
-      "Usage: proposal-check <document.pdf|docx|md|txt> <reading.json>",
+      !problems.length,
+      `${args[1]} has ${problems.length} problem(s):\n${problems.map((p) => `- ${p}`).join("\n")}\nThe reading's facts are: ${proposalFields.join(", ")}.`,
     );
-    const document = await extractProposal(args[0], await readFile(args[0]));
-    const reading = checkedReading(document, await load(args[1]), {
+    const reading = checkedReading(document, raw, {
       mode: "agent",
       provider: "coding-agent",
       model: "recorded-by-agent",
@@ -142,35 +556,44 @@ async function main(): Promise<void> {
     });
     console.log(
       `All ${Object.values(reading.facts).filter((f) => f.value).length} extracted facts have exact quotes in ${args[0]}.` +
-        (reading.missing.length ? ` Not found in the document: ${reading.missing.join(", ")}.` : ""),
+        (reading.missing.length ? ` Not found in the document: ${reading.missing.join(", ")}.` : "") +
+        (extra.length ? ` Ignored (not reading fields): ${extra.join(", ")}.` : ""),
     );
     return;
   }
   if (command === "agents-draft") {
-    requireThat(
-      args.length === 2,
-      "Usage: agents-draft <study.json> <new-agents.json>",
-    );
-    const agents = await proposeAgents(validateStudy(await load(args[0])));
-    await writeFile(args[1], pretty(agents), { flag: "wx" });
+    need(args.length === 2);
+    const study = validateStudy((await loadAs(args[0], "study")).value);
+    requireNew(args[1]);
+    const { agents, model } = await draftAgents(study);
+    await writeNewFile(args[1], pretty(agents));
     console.log(
-      `Drafted ${agents.length} agent methods (${agents.map((a) => a.id).join(", ")}) in ${args[1]}. Set the real provider/model/reasoning for each before freezing a real study.`,
+      `Drafted ${agents.length} agent configurations (${agents.map((a) => a.id).join(", ")}) in ${args[1]}, each with the Settings forecasting model ${modelText(model)}. Review level, runs, runtime, sources, targets and inputs; change a configuration's model if the researcher wants another.`,
     );
     return;
   }
   if (command === "study-check") {
-    requireThat(
-      args[0],
-      "Usage: study-check <study.json> [--agents agents.json] [--human human.json]",
-    );
-    const study = validateStudy(await load(args[0]));
-    const agentsFile = flag("--agents"),
-      humanFile = flag("--human");
+    need(args.length === 1);
+    const study = validateStudy((await loadAs(args[0], "study")).value);
+    const agentsFile = values.get("--agents"),
+      humanFile = values.get("--human");
     const agents = agentsFile
-      ? validateAgents(study, await load<AgentProtocol[]>(agentsFile))
+      ? validateAgents(study, (await loadAs<AgentProtocol[]>(agentsFile, "agents")).value)
       : undefined;
     console.log(explainStudy(study, agents));
     const problems: string[] = [];
+    if (humanFile) {
+      const human = (await loadAs<HumanData>(humanFile, "human")).value;
+      const checked = explainHuman(study, human);
+      console.log(checked.text);
+      problems.push(...checked.problems);
+      if (!checked.problems.length)
+        try {
+          validateHumanData(study, human);
+        } catch (e) {
+          problems.push((e as Error).message);
+        }
+    }
     if (agents && !study.synthetic)
       agents
         .filter((a) =>
@@ -185,32 +608,26 @@ async function main(): Promise<void> {
       } catch (e) {
         problems.push((e as Error).message);
       }
-    if (humanFile) {
-      const human = await load<HumanData>(humanFile);
-      const cov = humanCoverage(study, human);
-      console.log(
-        `## Human reference\n\n${cov.records} of ${cov.expected} expected records.` +
-          (cov.missing.length ? ` Missing ${cov.missing.length}, e.g. ${cov.missing.slice(0, 5).join(", ")}.` : "") +
-          "\n",
-      );
-      if (cov.unknownPeople.length) problems.push(`Participant IDs not in the study: ${cov.unknownPeople.join(", ")}.`);
-      if (cov.unknownOutcomes.length) problems.push(`Outcome IDs not in the study: ${cov.unknownOutcomes.join(", ")}.`);
-      if (cov.unknownConditions.length) problems.push(`Design IDs not in the study: ${cov.unknownConditions.join(", ")}.`);
-      if (!problems.length)
-        try {
-          validateHumanData(study, human);
-        } catch (e) {
-          problems.push((e as Error).message);
-        }
-    }
     const approval = await approvalState(args[0], study, agents);
+    const folder = reviewFolder(args[0]);
+    const folderPath = dirname(resolve(args[0]));
+    const notes = [
+      basename(args[0]) !== "study.json" ? `The website reads the study from ${folder.id}/study.json.` : "",
+      agentsFile && resolve(agentsFile) !== join(folderPath, "agents.json")
+        ? `It reads the configurations from ${folder.id}/agents.json, not ${agentsFile}.`
+        : "",
+    ].filter(Boolean);
     console.log(
       `## Review\n\n${
         approval.current
           ? `Approved by the researcher on ${approval.approval!.approvedAt}.`
-          : approval.approved
-          ? "Changed since the researcher approved it. Run `review` again before freezing."
-          : "Not yet approved. Run `node dist/cli.js review " + args[0] + (agentsFile ? ` --agents ${agentsFile}` : "") + "` and ask the researcher to check and approve it."
+          : (approval.approved
+              ? "Changed since the researcher approved it. "
+              : "Not yet approved. ") +
+            (folder.problem
+              ? folder.problem
+              : `Run \`node dist/cli.js review ${folder.id}\` and ask the researcher to check and approve it.`) +
+            (notes.length ? " " + notes.join(" ") : "")
       }\n`,
     );
     if (problems.length) {
@@ -220,88 +637,135 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "explain") {
-    requireThat(args.length === 1, "Usage: explain <study.json|plan.json|campaign.json>");
-    const value = await load<{ schemaVersion: string; study?: unknown; suite?: unknown }>(args[0]);
-    if (value.schemaVersion === "xr-campaign/1") {
-      verifyCampaign(value as unknown as Campaign);
-      console.log(explainCampaign(value as unknown as Campaign));
-    } else if ((value as Plan).digest && value.study) console.log(explainPlan(value as unknown as Plan));
-    else console.log(explainStudy(validateStudy(value)));
+    need(args.length === 1);
+    const path = args[0];
+    const value = await readJson(path);
+    const sibling = (name: string) => join(dirname(path), name);
+    const siblingStudy = async (what: string) => {
+      requireThat(
+        existsSync(sibling("study.json")),
+        `To explain ${what}, explain needs the study: put study.json in the same folder as ${path}${what === "agents.json" ? `, or run study-check <study.json> --agents ${path}` : what === "human.json" ? `, or run study-check <study.json> --human ${path}` : ""}.`,
+      );
+      return validateStudy((await loadAs(sibling("study.json"), "study")).value);
+    };
+    const kind = kindOf(value);
+    if (kind === "campaign") {
+      try {
+        verifyCampaign(value as Campaign);
+      } catch (e) {
+        throw new Error(`${path} failed its integrity check: ${(e as Error).message} A frozen campaign must not be edited; derive a continuation instead.`);
+      }
+      console.log(explainCampaign(value as Campaign));
+    } else if (kind === "plan") {
+      try {
+        verifyPlan(value as Plan);
+      } catch (e) {
+        throw new Error(`${path} failed its integrity check: ${(e as Error).message}`);
+      }
+      console.log(explainPlan(value as Plan));
+    } else if (kind === "study") console.log(explainStudy(validateStudy(value)));
+    else if (kind === "agents") {
+      const study = await siblingStudy("agents.json");
+      console.log(`# Agent configurations of ${study.title}\n\n${explainAgents(study, validateAgents(study, value as AgentProtocol[]))}\n`);
+    } else if (kind === "human") {
+      const study = await siblingStudy("human.json");
+      const checked = explainHuman(study, value as HumanData);
+      console.log(`# Human reference of ${study.title}\n\n${checked.text}`);
+      if (checked.problems.length) {
+        console.log("## Problems\n\n" + checked.problems.map((p) => `- ${p}`).join("\n"));
+        process.exitCode = 2;
+      }
+    } else if (kind === "comparisons") {
+      const study = existsSync(sibling("study.json")) ? validateStudy((await loadAs(sibling("study.json"), "study")).value) : undefined;
+      const agents =
+        study && existsSync(sibling("agents.json"))
+          ? validateAgents(study, (await loadAs<AgentProtocol[]>(sibling("agents.json"), "agents")).value)
+          : undefined;
+      const checked = explainComparisons(value as Comparison[], study, agents);
+      console.log(checked.text + (agents ? "" : "\n(No study.json and agents.json beside it, so configuration IDs were not checked.)\n"));
+      if (checked.problems.length) {
+        console.log("## Problems\n\n" + checked.problems.map((p) => `- ${p}`).join("\n"));
+        process.exitCode = 2;
+      }
+    } else if (kind === "suite") {
+      const suite = validateSuite(value);
+      console.log(
+        `# ${suite.title}${suite.synthetic ? " (synthetic)" : ""}\n\nCampaign suite \`${suite.id}\`: ${suite.conditions.length} conditions, ${suite.assets.length} assets.\n\n` +
+          "| Condition | Label | Stage | Kind | Jobs |\n| --- | --- | --- | --- | --- |\n" +
+          suite.conditions.map((c) => `| ${c.id} | ${c.label} | ${c.stage} | ${c.kind} | ${c.jobs.length} |`).join("\n") +
+          "\n",
+      );
+    } else
+      throw new Error(
+        `explain accepts study, agents, human, comparisons, plan, campaign and campaign-suite files; ${path} looks like ${kindName[kind]}.`,
+      );
     return;
   }
   if (command === "review") {
-    requireThat(args[0], "Usage: review <study-folder> [--port 4317]   (the folder must be under examples/ or private/studies/)");
-    const { repoRoot, workspaceDir } = await import("./workspace.js");
-    const folder = resolve(args[0]).replace(/[\\/]study\.json$/, "");
-    const id = relative(repoRoot, folder).split(sep).join("/");
-    try {
-      workspaceDir(id);
-    } catch {
-      throw new Error("Put the study folder under private/studies/<name>/ (git-ignored) or examples/<name>/ so the workbench can open it.");
-    }
-    if (flag("--port")) process.env.XR_STUDY_PORT = flag("--port");
+    need(args.length === 1);
+    const folder = reviewFolder(args[0]);
+    requireThat(!folder.problem, folder.problem!);
+    if (values.get("--port")) process.env.XR_STUDY_PORT = values.get("--port");
     await import("./server.js");
-    console.log(`Review it at http://127.0.0.1:${process.env.XR_STUDY_PORT ?? 4317}/?study=${encodeURIComponent(id)}`);
+    console.log(`Review it at http://127.0.0.1:${process.env.XR_STUDY_PORT ?? 4317}/?study=${encodeURIComponent(folder.id)}`);
     return;
   }
   if (command === "campaign-compare") {
-    requireThat(
-      args.length === 5,
-      "Usage: campaign-compare <old-campaign.json> <old-scores.json> <new-campaign.json> <new-scores.json> <new-directory>",
-    );
+    need(args.length === 5);
+    requireNew(args[4]);
     const report = compareCampaignScores(
-      await load<Campaign>(args[0]),
-      await load<CampaignScorecard>(args[1]),
-      await load<Campaign>(args[2]),
-      await load<CampaignScorecard>(args[3]),
+      await loadCampaign(args[0]),
+      (await loadAs<CampaignScorecard>(args[1], "scorecard")).value,
+      await loadCampaign(args[2]),
+      (await loadAs<CampaignScorecard>(args[3], "scorecard")).value,
     );
     const out = await freshDirectory(args[4]);
     await writeFiles(out, {
       "comparison.json": pretty(report),
+      // Agreement and its change in one unit: percent and percentage points.
       "comparison.csv":
-        "condition,domain,before,after,change_pp,n_humans,before_runs,after_runs,status,before_model,after_model,before_run_kind,after_run_kind,note\n" +
+        "condition,domain,before_agreement_pct,after_agreement_pct,change_pp,n_humans,before_runs,after_runs,status,before_model,after_model,model_changed,before_run_kind,after_run_kind,note\n" +
         report.rows
           .map((r) =>
             [
               r.conditionId,
               r.domain,
-              r.before ?? "",
-              r.after ?? "",
-              r.changePercentagePoints ?? "",
+              percent(r.before),
+              percent(r.after),
+              r.changePercentagePoints === null ? null : Number(r.changePercentagePoints.toFixed(4)),
               r.nHumans,
               r.beforeRuns,
               r.afterRuns,
               r.status,
-              csvText(r.beforeModel),
-              csvText(r.afterModel),
+              r.beforeModel,
+              r.afterModel,
+              r.modelChanged,
               r.beforeRunKind,
               r.afterRunKind,
-              csvText(r.note),
-            ].join(","),
+              r.note,
+            ]
+              .map(csvCell)
+              .join(","),
           )
           .join("\n") +
         "\n",
     });
     console.log(
-      `Comparable model scores saved in ${out}; descriptive changes only.`,
+      `Comparable model scores saved in ${out}; descriptive changes only (agreement in percent, changes in percentage points).`,
     );
     return;
   }
   if (command === "campaign-example") {
-    requireThat(args.length === 1, "Usage: campaign-example <new-suite.json>");
-    await writeFile(args[0], pretty(syntheticCampaignSuite()), { flag: "wx" });
+    need(args.length === 1);
+    await writeNewFile(args[0], pretty(syntheticCampaignSuite()));
     console.log(
       "Synthetic complete-condition suite saved; no original participant inputs included.",
     );
     return;
   }
   if (command === "campaign-new" || command === "campaign-rerun") {
-    requireThat(
-      args.length === 5,
-      `Usage: ${command} <${
-        command === "campaign-new" ? "suite" : "previous-campaign"
-      }.json> <new-directory> <provider-or-transport> <exact-model-id> <reasoning-setting>`,
-    );
+    need(args.length === 5);
+    requireNew(args[1]);
     const model: CampaignModel = {
       provider: args[2],
       model: args[3],
@@ -309,8 +773,8 @@ async function main(): Promise<void> {
     };
     const campaign =
       command === "campaign-new"
-        ? freezeCampaign(await load<CampaignSuite>(args[0]), model)
-        : rerunCampaign(await load<Campaign>(args[0]), model);
+        ? freezeCampaign((await loadAs<CampaignSuite>(args[0], "suite")).value, model)
+        : rerunCampaign(await loadCampaign(args[0]), model);
     const out = await freshDirectory(args[1]);
     await writeFiles(out, campaignFiles(campaign));
     console.log(
@@ -327,12 +791,11 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "campaign-from-plan") {
-    requireThat(
-      args.length === 2 || args.length === 5,
-      "Usage: campaign-from-plan <plan.json> <new-directory> [<provider> <model> <reasoning>]",
-    );
+    need(args.length === 2 || args.length === 5);
+    const plan = (await loadAs<Plan>(args[0], "plan", "plan.json")).value;
+    requireNew(args[1]);
     const campaign = campaignFromPlan(
-      await load<Plan>(args[0]),
+      plan,
       args.length === 5
         ? { provider: args[2], model: args[3], reasoning: args[4] }
         : undefined,
@@ -345,21 +808,18 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "campaign-continue") {
-    const rp = args.indexOf("--receipts");
+    need(args.length === 3);
+    const previous = await loadCampaign(args[0]);
+    const changes = await readJson<CampaignContinuation>(args[1]);
     requireThat(
-      (rp < 0 && args.length === 3) || (rp === 3 && args.length > 4),
-      "Usage: campaign-continue <previous-campaign.json> <changes.json> <new-directory> [--receipts <receipts.jsonl> ...]",
+      changes && typeof changes === "object" && !Array.isArray(changes),
+      `${args[1]} must be a JSON object of changes, for example {"rerunConditions": ["<configuration>"]}.`,
     );
-    const previous = await load<Campaign>(args[0]);
-    const changes = await load<CampaignContinuation>(args[1]);
-    const campaign =
-      rp < 0
-        ? continueCampaign(previous, changes)
-        : continueFromStatus(
-            previous,
-            await loadReceipts(args.slice(rp + 1)),
-            changes,
-          );
+    requireNew(args[2]);
+    const receiptFiles = lists.get("--receipts");
+    const campaign = receiptFiles
+      ? continueFromStatus(previous, await loadReceipts(receiptFiles), changes)
+      : continueCampaign(previous, changes);
     const out = await freshDirectory(args[2]);
     await writeFiles(out, campaignFiles(campaign));
     console.log(
@@ -368,28 +828,54 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "campaign-verify") {
-    requireThat(
-      args.length === 1 || args.length === 2,
-      "Usage: campaign-verify <campaign.json> [<parent-campaign.json>]",
-    );
-    const c = await load<Campaign>(args[0]);
-    if (args[1]) verifyContinuation(await load<Campaign>(args[1]), c);
-    else verifyCampaign(c);
-    console.log(
-      args[1]
-        ? "Campaign integrity verified and the continuation follows from its parent."
-        : "Campaign integrity verified.",
-    );
+    need(args.length === 1 || args.length === 2);
+    const { value: c, path } = await loadAs<Campaign>(args[0], "campaign", "campaign.json");
+    try {
+      verifyCampaign(c);
+    } catch (e) {
+      throw new Error(`${path} failed its integrity check: ${(e as Error).message}`);
+    }
+    const lines = ["Campaign integrity verified: campaign.json matches its digest."];
+    const dir = dirname(path);
+    if (existsSync(join(dir, "manifest.json"))) {
+      const m = await verifyManifest(dir, c);
+      requireThat(
+        !m.problems.length,
+        `campaign.json is intact, but the campaign folder ${dir} does not match its manifest.json:\n${m.problems.map((p) => `- ${p}`).join("\n")}`,
+      );
+      lines.push(
+        `All ${m.checked} files listed in manifest.json match their SHA-256.` +
+          (m.unlisted.length ? ` Not listed in the manifest, so not checked: ${m.unlisted.join(", ")}.` : ""),
+      );
+    } else lines.push(`There is no manifest.json beside it (a website campaign folder holds only campaign.json), so only campaign.json was checked.`);
+    if (args[1]) {
+      const parent = await loadCampaign(args[1]);
+      verifyCampaign(parent);
+      requireThat(
+        c.parentDigest === parent.digest,
+        `${args[1]} is not this campaign's parent: the campaign records parent ${c.parentDigest ? c.parentDigest.slice(0, 12) + "…" : "none"}, the given file is ${parent.digest.slice(0, 12)}….`,
+      );
+      if (c.continuation) {
+        verifyContinuation(parent, c);
+        lines.push("The continuation follows from its parent and its recorded change set.");
+      } else {
+        // campaign-rerun output: the parent's suite frozen again with another model, nothing reused.
+        const again = freezeCampaign(parent.suite, c.model, parent.digest, c.id, c.createdAt, c.conditionModels);
+        requireThat(
+          again.digest === c.digest,
+          "This campaign names the parent but is neither a recorded continuation (campaign-continue) nor a rerun of its suite (campaign-rerun).",
+        );
+        lines.push(`It is a rerun of its parent (campaign-rerun): the same suite with ${modelText(c.model)}; every job runs again and nothing is reused.`);
+      }
+    }
+    console.log(lines.join("\n"));
     return;
   }
   if (command === "campaign-mock") {
-    requireThat(
-      args.length === 2,
-      "Usage: campaign-mock <synthetic-campaign.json> <new-directory>",
-    );
-    const { receipts, results } = syntheticCampaignExecution(
-      await load<Campaign>(args[0]),
-    );
+    need(args.length === 2);
+    const campaign = await loadCampaign(args[0]);
+    requireNew(args[1]);
+    const { receipts, results } = syntheticCampaignExecution(campaign);
     const out = await freshDirectory(args[1]);
     await writeFiles(out, {
       "receipts.jsonl": receipts.map((r) => JSON.stringify(r)).join("\n") + "\n",
@@ -401,19 +887,15 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "campaign-analyze") {
-    requireThat(
-      args.length >= 4,
-      "Usage: campaign-analyze <campaign.json> <human.json> <new-directory> <results.json> [<earlier-results.json> ...] [--comparisons comparisons.json]",
-    );
-    const bundles = await Promise.all(
-      args.slice(3).map((f) => load<ResultBundle>(f)),
-    );
-    const analysis = analyzeCampaign(
-      await load<Campaign>(args[0]),
-      await load<HumanData>(args[1]),
-      bundles,
-      comparisons,
-    );
+    need(args.length >= 4);
+    const campaign = await loadCampaign(args[0]);
+    const human = (await loadAs<HumanData>(args[1], "human")).value;
+    requireNew(args[2]);
+    const plan = campaignPlan(campaign);
+    const bundles = await loadResults(args.slice(3), plan.study.id);
+    const comparisonsFile = values.get("--comparisons");
+    const comparisons = comparisonsFile ? await loadComparisons(comparisonsFile, plan.study, plan.agents) : undefined;
+    const analysis = analyzeCampaign(campaign, human, bundles, comparisons);
     const out = await freshDirectory(args[2]);
     await writeFiles(out, {
       "report.json": pretty(analysis.report),
@@ -430,45 +912,65 @@ async function main(): Promise<void> {
     console.log(
       `Campaign report saved in ${out} (${analysis.reused.length} reused run(s), ${analysis.ignoredRuns} superseded run(s) ignored).`,
     );
+    // Reused runs live in the results of the campaign that executed them; say which ones were not given.
+    const given = new Set(bundles.flatMap((b) => b.runs.map((r) => r?.planDigest)));
+    const origins = new Map<string, { id: string; jobs: number }>();
+    campaign.jobs
+      .filter((j) => j.kind === "llm" && j.inheritedFrom && !given.has(j.inheritedFrom.campaignDigest))
+      .forEach((j) => {
+        const o = j.inheritedFrom!;
+        origins.set(o.campaignDigest, { id: o.campaignId, jobs: (origins.get(o.campaignDigest)?.jobs ?? 0) + 1 });
+      });
+    if (origins.size)
+      console.warn(
+        `Warning: this campaign reuses runs of earlier campaigns, but their results were not given, so these runs are missing from the report: ${[
+          ...origins,
+        ]
+          .map(([digest, o]) => `${o.id} (digest ${digest.slice(0, 12)}…, ${o.jobs} run(s))`)
+          .join("; ")}. Add their results too, for example runs/<campaign-id>/results.`,
+      );
     return;
   }
   if (command === "campaign-preflight") {
+    need(args.length === 2);
+    const value = await readJson<CampaignSuite | Campaign>(args[0]);
+    const kind = kindOf(value);
     requireThat(
-      args.length === 2,
-      "Usage: campaign-preflight <suite-or-campaign.json> <bindings.local.json>",
+      kind === "suite" || kind === "campaign",
+      `${args[0]} is not a campaign suite or campaign.json${kind !== "unknown" ? ` (it looks like ${kindName[kind]})` : ""}.`,
     );
-    const value = await load<CampaignSuite | Campaign>(args[0]);
-    const suite = value.schemaVersion === "xr-campaign/1" ? value.suite : value;
-    const result = await preflightSuite(
-      suite,
-      await load<AssetBindings>(args[1]),
+    const suite = kind === "campaign" ? (value as Campaign).suite : (value as CampaignSuite);
+    const raw = await readJson<Partial<AssetBindings>>(args[1]);
+    const section = (x: unknown) => x === undefined || (!!x && typeof x === "object" && !Array.isArray(x));
+    requireThat(
+      raw && typeof raw === "object" && !Array.isArray(raw) && section(raw.roots) && section(raw.files) && section(raw.attestations),
+      `${args[1]} is not a bindings file. Expected ${bindingsFormat} (sections you do not need may be left out).`,
     );
+    const result = await preflightSuite(suite, {
+      roots: raw.roots ?? {},
+      files: raw.files ?? {},
+      attestations: raw.attestations ?? {},
+    });
     console.log(pretty(result));
     if (!result.ready) process.exitCode = 2;
     return;
   }
   if (command === "campaign-status") {
-    requireThat(
-      args.length >= 2,
-      "Usage: campaign-status <campaign.json> <receipts.jsonl> [<earlier-receipts.jsonl> ...]",
-    );
+    need(args.length >= 1);
+    const campaign = await loadCampaign(args[0]);
     const receipts = await loadReceipts(args.slice(1));
-    console.log(
-      pretty(campaignStatus(await load<Campaign>(args[0]), receipts)),
-    );
+    console.log(pretty(campaignStatus(campaign, receipts)));
     return;
   }
   if (command === "proposal") {
+    need(args.length === 2);
+    const document = await extractProposal(args[0], Buffer.from(await readFile(resolveExisting(args[0]))));
+    const config = switches.has("--agent") ? readerConfig() : undefined;
     requireThat(
-      args[0] && args[1],
-      "Use proposal <document.pdf|docx|md|txt> <new-directory> [--agent].",
+      !switches.has("--agent") || config,
+      "Set XR_PLANNER_PROVIDER, XR_PLANNER_MODEL (and XR_PLANNER_API_KEY for a remote endpoint) before using --agent; see docs/proposal-workflow.md.",
     );
-    const document = await extractProposal(args[0], await readFile(args[0]));
-    const config = args.includes("--agent") ? readerConfig() : undefined;
-    requireThat(
-      !args.includes("--agent") || config,
-      "Configure XR_PLANNER_* before using --agent.",
-    );
+    requireNew(args[1]);
     const reading = config
       ? await agentReading(document, config)
       : localReading(document);
@@ -478,21 +980,21 @@ async function main(): Promise<void> {
       "reading.json": pretty(reading),
     });
     console.log(
-      `Proposal reading saved to ${out}. Review it in the document-first workbench; no study was automatically frozen.`,
+      `Proposal reading saved to ${out}: extracted-proposal.txt and reading.json. Complete reading.json with exact quotes, then run proposal-check; no study was created or frozen.`,
     );
     return;
   }
   if (command === "demo") {
+    need(args.length <= 1);
+    const target = args[0] ?? "artifacts/demo-" + new Date().toISOString().replace(/[:.]/g, "-");
+    requireNew(target);
     const study = exampleStudy(),
       agents = await proposeAgents(study),
       plan = freezePlan(study, withDefaultRuns(study, agents, 1), 1);
     const human = syntheticHumanData(study),
       results = syntheticResults(plan),
       report = analyze(plan, human, results);
-    const out = await freshDirectory(
-      args[0] ??
-        "artifacts/demo-" + new Date().toISOString().replace(/[:.]/g, "-"),
-    );
+    const out = await freshDirectory(target);
     await writeFiles(out, {
       "study.json": pretty(study),
       "agents.json": pretty(agents),
@@ -511,18 +1013,26 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "plan") {
-    requireThat(
-      args[0] && args[1],
-      "Usage: plan <study.json> <new-output-directory> [--agents protocols.json] [--repetitions N]",
-    );
-    const study = validateStudy(await load(args[0]));
-    const ap = args.indexOf("--agents"),
-      rp = args.indexOf("--repetitions");
-    const agents =
-      ap < 0
-        ? await proposeAgents(study)
-        : await load<AgentProtocol[]>(args[ap + 1]);
-    const approval = await approvalState(args[0], study, ap < 0 ? undefined : agents);
+    need(args.length === 2);
+    const study = validateStudy((await loadAs(args[0], "study")).value);
+    requireNew(args[1]);
+    // An agents.json beside the study is the study's own configuration set; use it unless --agents names another.
+    let agentsFile = values.get("--agents");
+    const beside = join(dirname(args[0]), "agents.json");
+    if (!agentsFile && existsSync(beside)) {
+      agentsFile = beside;
+      console.log(`Using ${beside}, the agent configurations next to the study (give --agents to choose another file).`);
+    }
+    let agents: AgentProtocol[];
+    if (agentsFile) agents = validateAgents(study, (await loadAs<AgentProtocol[]>(agentsFile, "agents")).value);
+    else {
+      const draft = await draftAgents(study);
+      agents = draft.agents;
+      console.log(
+        `No agents.json next to the study and no --agents: freezing the ${agents.length} template configurations (${agents.map((a) => a.id).join(", ")}) with the Settings forecasting model ${modelText(draft.model)}. To choose them, run agents-draft and review the file first.`,
+      );
+    }
+    const approval = await approvalState(args[0], study, agentsFile ? agents : undefined);
     if (!approval.current)
       console.warn(
         approval.approved
@@ -530,7 +1040,7 @@ async function main(): Promise<void> {
           : "Warning: this study has not been approved in `review`. Freezing anyway; the plan records the exact files used.",
       );
     // --repetitions N = runs per participant (default 1); population configurations without their own count get participants × N.
-    const perParticipant = rp < 0 ? 1 : Number(args[rp + 1]);
+    const perParticipant = values.has("--repetitions") ? Number(values.get("--repetitions")) : 1;
     const plan = freezePlan(study, withDefaultRuns(study, agents, perParticipant), perParticipant);
     const out = await freshDirectory(args[1]);
     await writeFiles(out, handoffFiles(plan));
@@ -538,27 +1048,24 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "brief") {
-    requireThat(
-      args[0] && args[1],
-      "Usage: brief <study.json> <new-brief.json>",
-    );
-    await writeFile(
-      args[1],
-      pretty(planningBrief(validateStudy(await load(args[0])))),
-      { flag: "wx" },
-    );
+    need(args.length === 2);
+    const study = validateStudy((await loadAs(args[0], "study")).value);
+    await writeNewFile(args[1], pretty(planningBrief(study)));
     console.log("Planning brief exported; no LLM was called.");
     return;
   }
   if (command === "analyze") {
-    requireThat(
-      args.length === 4,
-      "Usage: analyze <plan.json> <human.json> <results.json> <new-output-directory> [--comparisons comparisons.json]",
-    );
+    need(args.length === 4);
+    const plan = (await loadAs<Plan>(args[0], "plan", "plan.json")).value;
+    const human = (await loadAs<HumanData>(args[1], "human")).value;
+    requireNew(args[3]);
+    const bundles = await loadResults([args[2]], plan.study?.id);
+    const comparisonsFile = values.get("--comparisons");
+    const comparisons = comparisonsFile ? await loadComparisons(comparisonsFile, plan.study, plan.agents) : undefined;
     const r = analyze(
-      await load<Plan>(args[0]),
-      await load<HumanData>(args[1]),
-      await load<ResultBundle>(args[2]),
+      plan,
+      human,
+      { schemaVersion: "1.0", studyId: bundles[0].studyId, runs: bundles.flatMap((b) => b.runs) },
       comparisons,
     );
     const out = await freshDirectory(args[3]);
@@ -571,55 +1078,66 @@ async function main(): Promise<void> {
     return;
   }
   if (command === "unpack") {
+    need(args.length === 2);
+    const pack = await readJson<{ files?: Record<string, string> }>(args[0]);
+    const kind = kindOf(pack);
     requireThat(
-      args.length === 2,
-      "Usage: unpack <handoff.json> <new-output-directory>",
+      kind === "package" && Object.values(pack.files!).every((x) => typeof x === "string") && typeof pack.files!["manifest.json"] === "string",
+      `${args[0]} is not a package container${kind !== "unknown" && kind !== "package" ? ` (it looks like ${kindName[kind]})` : ""}. unpack expects one JSON file {"files": {"manifest.json": "…", "plan.json" or "campaign.json": "…", …}}, as the local API returns it; plan and the campaign-… commands already write their files into a folder.`,
     );
-    const pack = await load<{ files: Record<string, string> }>(args[0]);
+    const files = pack.files!;
+    let manifest: { files?: Record<string, string>; campaignDigest?: string };
+    try {
+      manifest = JSON.parse(files["manifest.json"]);
+    } catch {
+      throw new Error("The package's manifest.json is not valid JSON.");
+    }
+    requireThat(manifest?.files && typeof manifest.files === "object", "The package's manifest.json lists no files.");
     requireThat(
-      pack.files &&
-        Object.values(pack.files).every((x) => typeof x === "string"),
-      "Invalid handoff container.",
-    );
-    const manifest = JSON.parse(pack.files["manifest.json"]) as {
-      files: Record<string, string>;
-    };
-    requireThat(
-      Object.keys(pack.files).length === Object.keys(manifest.files).length + 1,
+      Object.keys(files).length === Object.keys(manifest.files!).length + 1,
       "Handoff inventory mismatch.",
     );
-    for (const [name, digest] of Object.entries(manifest.files))
+    for (const [name, digest] of Object.entries(manifest.files!))
       requireThat(
-        typeof pack.files[name] === "string" &&
-          createHash("sha256").update(pack.files[name]).digest("hex") ===
-            digest,
+        typeof files[name] === "string" && sha256(files[name]) === digest,
         `Checksum mismatch: ${name}.`,
       );
-    if (pack.files["campaign.json"]) {
-      const campaign = JSON.parse(pack.files["campaign.json"]) as Campaign;
+    if (files["campaign.json"]) {
+      const campaign = JSON.parse(files["campaign.json"]) as Campaign;
       verifyCampaign(campaign);
       requireThat(
-        (manifest as { campaignDigest?: string }).campaignDigest ===
-          campaign.digest,
+        manifest.campaignDigest === campaign.digest,
         "Campaign manifest digest mismatch.",
       );
     } else {
       requireThat(
-        pack.files["plan.json"],
+        files["plan.json"],
         "Package contains neither a frozen plan nor a campaign.",
       );
-      handoffFiles(JSON.parse(pack.files["plan.json"]) as Plan);
+      handoffFiles(JSON.parse(files["plan.json"]) as Plan);
     }
     const out = await freshDirectory(args[1]);
-    await writeFiles(out, pack.files);
+    await writeFiles(out, files);
     console.log(`Verified handoff unpacked into ${out}`);
     return;
   }
-  console.log(
-    "XR Study Sim — local HCI planning and analysis\n\nCommands:\n  demo [new-directory]\n  proposal <document.pdf|docx|md|txt> <new-directory> [--agent]\n  plan <study.json> <new-directory> [--agents protocols.json] [--repetitions N]\n  brief <study.json> <new-brief.json>\n  analyze <plan.json> <human.json> <results.json> <new-directory> [--comparisons comparisons.json]\n  unpack <handoff.json> <new-directory>\n  campaign-example <new-suite.json>\n  campaign-new <suite.json> <new-directory> <provider> <model> <reasoning>\n  campaign-rerun <previous-campaign.json> <new-directory> <provider> <model> <reasoning>\n  campaign-preflight <suite-or-campaign.json> <bindings.local.json>\n  campaign-status <campaign.json> <receipts.jsonl> [earlier-receipts.jsonl ...]\n  campaign-from-plan <plan.json> <new-directory> [provider model reasoning]\n  campaign-continue <previous-campaign.json> <changes.json> <new-directory> [--receipts receipts.jsonl ...]\n  campaign-verify <campaign.json> [parent-campaign.json]\n  campaign-mock <synthetic-campaign.json> <new-directory>\n  campaign-analyze <campaign.json> <human.json> <new-directory> <results.json> [earlier-results.json ...] [--comparisons comparisons.json]\n  campaign-compare <old-campaign.json> <old-scores.json> <new-campaign.json> <new-scores.json> <new-directory>\n\nUse npm start for the local workbench. External XR execution is an adapter contract.",
-  );
+}
+/** A path that exists and is a file, with a plain message otherwise. */
+function resolveExisting(path: string): string {
+  requireThat(existsSync(path), `Cannot find ${path}.`);
+  requireThat(!isFolder(path), `${path} is a folder; give a file.`);
+  return path;
 }
 main().catch((error) => {
-  console.error((error as Error).message);
+  const e = error as NodeJS.ErrnoException;
+  console.error(
+    e.code === "ENOENT" && e.path
+      ? `Cannot find ${e.path}.`
+      : e.code === "EEXIST" && e.path
+      ? `${e.path} already exists; choose a new name. Nothing is overwritten.`
+      : e.code === "EISDIR"
+      ? `${e.path ?? "The path"} is a folder; give a file.`
+      : e.message,
+  );
   process.exitCode = 1;
 });

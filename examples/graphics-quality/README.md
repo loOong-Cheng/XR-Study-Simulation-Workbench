@@ -13,7 +13,7 @@ This is **suite 3**: a complete, synthetic study you can run from start to finis
 | --- | --- | --- |
 | `study.json` | Designs, measures, participants and orders, sources | Drafted from your document with **Understand study**, then reviewed |
 | `agents.json` | Seven agent configurations (population and individual, with and without the app, one with measured inputs) | Your configurations |
-| `workspace.json` | Where each source lives; how to serve the app (`?quality={condition}&study=1`) | Same, for your project |
+| `workspace.json` | Where each source lives; how to serve the app (`?quality={condition}&study=1&participant={participant}`) | Same, for your project |
 | `human.json` | Human reference (invented), used only by the executor for declared inputs and by the analyzer | Written by your converter |
 | `comparisons.json` | Which configurations to test against each other | Chosen at analysis |
 | `webxr-app/` | The app; exposes `window.xrStudy` for the WebXR runtime | Your app or engine project |
@@ -64,7 +64,7 @@ npm start      # http://127.0.0.1:4317 → Open study → Graphics quality
 **Setup on a new machine.** This suite needs only Google Chrome; there is no engine, MCP server or app server to install.
 - The WebXR runtime is built into the framework. Each session starts its own headless Chrome and serves `webxr-app/` itself.
 - `node scripts/setup.mjs` finds Chrome and writes its path into Settings. Check **Settings → Chrome path** if the WebXR runtime card says Chrome was not found.
-- To build another WebXR study, copy `webxr-app/` and expose the same `window.xrStudy` functions: `getState`, `start`, `listObjects`, `select`, `look`, `capture`.
+- To build another WebXR study, copy `webxr-app/` and expose the `window.xrStudy` functions the runtime calls: `getState`, `start`, `listObjects`, `select` and `look`. Screenshots are taken by Chrome itself, so the app's own `capture` is optional.
 
 To see the app yourself: `cd examples/graphics-quality/webxr-app && python3 -m http.server 8123 --bind 127.0.0.1`, then open http://127.0.0.1:8123/?quality=low (or `medium`, `high`).
 
