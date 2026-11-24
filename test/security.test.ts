@@ -588,11 +588,25 @@ test("campaign delete: two requests at once; the second is told it was already d
 const toHuman = (target: string, human: string) => {
   rmSync(target + ".hl", { force: true });
   linkSync(human, target + ".hl");
-  renameSync(target + ".hl", target);
+  swapIn(target + ".hl", target);
 };
 const toPlain = (target: string, text = "PLAIN-EVIDENCE\n") => {
   writeFileSync(target + ".plain", text);
-  renameSync(target + ".plain", target);
+  swapIn(target + ".plain", target);
+};
+/**
+ * Windows cannot rename onto a file that is open (the reader holds it). Another process can still
+ * remove the open file's name (Node opens files with FILE_SHARE_DELETE) and put another file there:
+ * the same swap in two steps.
+ */
+const swapIn = (from: string, target: string) => {
+  try {
+    renameSync(from, target);
+  } catch (e) {
+    if (process.platform !== "win32" || !["EPERM", "EACCES", "EBUSY"].includes((e as NodeJS.ErrnoException).code ?? "")) throw e;
+    rmSync(target);
+    renameSync(from, target);
+  }
 };
 
 test("checked reads: a source swapped for a hard link to human.json between the check and the read is never returned", async () => {

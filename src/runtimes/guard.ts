@@ -239,6 +239,8 @@ export async function readChecked(real: string, opts: { protect?: string[]; maxB
     } catch {
       resolved = null;
     }
+    // Windows has no O_NOFOLLOW: a link put in the file's place before the open was followed.
+    if (now?.isSymbolicLink()) throw new ReadRefused("link", "is a link now (it was checked as a plain file). Point at the file itself");
     if (!now || !sameFile(now, st) || now.nlink !== 1n || resolved !== real)
       throw changed();
     const tooLarge = () => new ReadRefused("too-large", `is larger than ${Math.round(opts.maxBytes! / 1e6)} MB`);
