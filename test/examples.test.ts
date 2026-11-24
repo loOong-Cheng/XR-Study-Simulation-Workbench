@@ -995,6 +995,23 @@ test("agent vs human figure: paired test for individual configs, one-sample test
   assert.deepEqual([pop.holm, ind.holm], [0.4375, 0.125]);
 });
 
+test("figures: a configuration that does not predict a measure gets no row and is not in the Holm family", async () => {
+  const { agentVsHumanFigure, agreementFigure } = await import("../src/core/figures.js");
+  const study = validateStudy(await json("study.json"));
+  const agents = validateAgents(study, await json<AgentProtocol[]>("agents.json"));
+  const c = campaignFromPlan(freezePlan(study, withDefaultRuns(study, agents, 1), 1), undefined, "holm-family", new Date(Date.now() - 1000).toISOString());
+  const { report } = analyzeCampaign(c, await json<HumanData>("human.json"), [syntheticCampaignExecution(c).results]);
+  // text-with-task-data is given search time as an input and predicts subjective measures only.
+  const both = agentVsHumanFigure(study, report, ["text-with-task-data", "text-only"], "search-time");
+  const alone = agentVsHumanFigure(study, report, ["text-only"], "search-time");
+  assert.ok(both.discrepancies.length > 0 && both.discrepancies.every((r) => r.agentId === "text-only"));
+  assert.deepEqual(both.discrepancies.map((r) => r.holm), alone.discrepancies.map((r) => r.holm));
+  assert.ok(both.designs.every((d) => d.groups.every((g) => g.id !== "text-with-task-data")));
+  const objective = agreementFigure(report, ["text-with-task-data", "text-only", "uses-app"], "objective");
+  assert.deepEqual(objective.groups.map((g) => g.id), ["text-only", "uses-app"]);
+  assert.equal(objective.brackets.length, 1);
+});
+
 test("executor: token counts show live while a session runs", async () => {
   const { Executor } = await import("../src/executor/runner.js");
   const { readWorkspace, saveCampaign } = await import("../src/workspace.js");

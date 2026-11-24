@@ -150,13 +150,26 @@ export function figureSelection(
 }
 
 /** (1) Agreement per run / participant for the selected configs, with brackets and tests against chance (50%). */
+/**
+ * Whether the report scores this configuration on the measure, or on any measure of the domain
+ * (report.metrics has one row per configuration and predicted measure). A configuration that does
+ * not predict it gets no group and no test, so it never enters the figure's Holm family; routes
+ * leave it out first with figureSelection, which also says why. A hand-built report without
+ * metrics counts the configurations that have forecasts for the measure.
+ */
+function predicts(report: AnalysisReport, id: string, scope: { outcomeId: string } | { domain: Domain }): boolean {
+  if (report.metrics?.length)
+    return report.metrics.some((m) => m.agentId === id && ("outcomeId" in scope ? m.outcomeId === scope.outcomeId : m.domain === scope.domain));
+  return "outcomeId" in scope ? (report.values ?? []).some((v) => v.agentId === id && v.outcomeId === scope.outcomeId) : true;
+}
+
 export function agreementFigure(
   report: AnalysisReport,
   agentIds: string[],
   domain: Domain,
   labels: Record<string, string> = {},
 ) {
-  const groups = agentIds.map((id) => {
+  const groups = agentIds.filter((id) => predicts(report, id, { domain })).map((id) => {
     const rows = (report.runScores ?? []).filter(
       (r) => r.agentId === id && r.domain === domain && r.agreement !== null && (r.level === "population" || r.repetition === 1),
     );
@@ -195,11 +208,13 @@ export function agentVsHumanFigure(
   const o = study.outcomes.find((x) => x.id === outcomeId);
   if (!o) throw new Error(`Unknown outcome ${outcomeId}.`);
   const g = geo(study, outcomeId);
+  // Only configurations that predict this measure get a row and a test (one Holm family over them).
+  const shown = agentIds.filter((id) => predicts(report, id, { outcomeId }));
   const designs = study.conditions.map((c) => {
     const human = (report.humanValues ?? []).filter((v) => v.outcomeId === outcomeId && v.conditionId === c.id);
     const groups: Group[] = [
       group("human", "Human", "human", human.map((v) => v.value), human.map((v) => v.participantId)),
-      ...agentIds.map((id) => {
+      ...shown.map((id) => {
         const rows = (report.values ?? []).filter(
           (v) => v.agentId === id && v.outcomeId === outcomeId && v.conditionId === c.id && (v.level === "population" || v.repetition === 1),
         );
@@ -337,7 +352,7 @@ export function populationVsIndividualFigure(
     humanMatrix(study, (p, c, o) => human.get(`${p}|${c}|${o}`)),
     study.design === "between-subjects" ? "significant" : "means",
   );
-  const groups = agentIds.map((id) => {
+  const groups = agentIds.filter((id) => predicts(report, id, { domain })).map((id) => {
     const rows = (report.values ?? []).filter((v) => v.agentId === id);
     const level = rows[0]?.level ?? "population";
     const targets = new Set(rows.map((v) => v.outcomeId));
