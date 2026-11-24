@@ -3,7 +3,7 @@
 // understood, not only whether the JSON validated.
 import type { AgentProtocol, Comparison, HumanData, Plan, Study } from "./types.js";
 import { agentLevel, agentTargets, methodGets } from "./planner.js";
-import { measurementValue } from "./validation.js";
+import { measurementValue, mixedLevelsMessage } from "./validation.js";
 import {
   campaignSummary,
   conditionModel,
@@ -117,7 +117,7 @@ export function explainComparisons(comparisons: Comparison[], study?: Study, age
         );
       else if (study) {
         const [x, y] = [c.candidate, c.baseline].map((id) => agentLevel(study, agents.find((a) => a.id === id)!));
-        if (x !== y) problems.push(`${where}: mixes a ${x} and an ${y} configuration; compare configurations of one level.`);
+        if (x !== y) problems.push(mixedLevelsMessage(c.candidate, c.baseline));
       }
     }
   });

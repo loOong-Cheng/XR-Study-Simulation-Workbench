@@ -23,6 +23,7 @@ import { auditRun } from "./protocol.js";
 import {
   measurementKey,
   measurementValue,
+  mixedLevelsMessage,
   requireThat,
   validateHumanData,
 } from "./validation.js";
@@ -411,14 +412,11 @@ export function analyzeVerifiedPlan(
 ): AnalysisReport {
   // Configs can predict at different levels; each level is analysed with its own
   // resampling, then merged. Comparisons must stay within one level.
-  const resolved = resolveComparisons(plan, comparisons);
+  // A comparison across levels cannot be tested: it is skipped with a note, the others are analysed.
   const levelOf = new Map(plan.agents.map((a) => [a.id, agentLevel(plan.study, a)]));
-  resolved.forEach((c) =>
-    requireThat(
-      levelOf.get(c.candidate) === levelOf.get(c.baseline),
-      `Comparison ${c.candidate} − ${c.baseline} mixes population and individual configs; use the population-vs-individual view instead.`,
-    ),
-  );
+  const all = resolveComparisons(plan, comparisons);
+  const resolved = all.filter((c) => levelOf.get(c.candidate) === levelOf.get(c.baseline));
+  const skippedMixed = all.filter((c) => !resolved.includes(c));
   const levels = [...new Set(levelOf.values())];
   const parts = levels.map((level) => {
     const ids = new Set(plan.agents.filter((a) => levelOf.get(a.id) === level).map((a) => a.id));
@@ -437,6 +435,10 @@ export function analyzeVerifiedPlan(
     );
   });
   const report = mergeLevels(plan, parts);
+  if (skippedMixed.length)
+    report.notes.push(
+      `Skipped ${skippedMixed.length} comparison(s): ${skippedMixed.map((c) => mixedLevelsMessage(c.candidate, c.baseline)).join(" ")} The Holm family covers the remaining ${resolved.length}.`,
+    );
   // Within subjects, the main scores keep every difference of the means; a second view scores the
   // population configurations on significant paired differences only (Wilcoxon signed-rank, Holm).
   if (plan.study.design === "within-subjects" && levels.includes("population")) {

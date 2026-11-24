@@ -44,10 +44,17 @@ export function exposureIssues(
       forecast = true;
       continue;
     }
-    if (forecast)
+    if (forecast) {
+      // Closing a case that is still open when the session ends (the runtime's stdin closes after
+      // the forecast) is allowed: the case is recorded as not submitted. Anything else is not.
+      if (e.type === "case-end" && !e.submitted && e.caseId === currentCase) {
+        currentCase = undefined;
+        continue;
+      }
       issues.push(
         "Environment/source events occurred after the forecast boundary.",
       );
+    }
     if (e.type === "source") {
       if (!agent.sourceIds.includes(e.sourceId))
         issues.push(`Unapproved source delivered: ${e.sourceId}.`);
@@ -246,10 +253,17 @@ export function runtimeIssues(plan: Plan, agent: AgentProtocol, trace: TraceEven
   if (lacking.length) issues.push(`Runtime reported no ${lacking.join(", ")}, which the study requires.`);
   if (agent.observation === "stereo-pair" && !caps.includes("stereo-capture"))
     issues.push("Runtime reported no stereo-capture capability for a stereo configuration.");
-  if (new Set(reports.map((x) => JSON.stringify(x))).size > 1)
+  // A process ID or other extra fields may differ between reports; the identity may not.
+  const identity = (x: typeof r) => JSON.stringify([x.engine, x.engineVersion, x.backend, x.deviceProfile, x.observation, x.capabilities]);
+  if (new Set(reports.map(identity)).size > 1)
     issues.push("The runtime reported different identities within one session.");
+  // A runtime reports itself once per session: a second report means it was started again.
+  if (reports.length > 1) issues.push(restartIssue(reports.length));
   return issues;
 }
+/** The deviation for a runtime that was started more than once in one session. */
+export const restartIssue = (starts: number) =>
+  `The runtime restarted during the session (${starts} starts): what the agent experienced before the restart may be lost or repeated.`;
 
 /**
  * The token-budget check of a real session. When the execution record carries the tokens used up
@@ -380,6 +394,11 @@ export function auditRun(
     );
     if (agent.tools.includes("xr-interact")) {
       guarded(() => issues.push(...runtimeIssues(plan, agent, run.trace)));
+      // The executor counts the starts of a bridge it wrapped (bridge.jsonl), also when the
+      // restarted bridge did not report itself again.
+      const starts = (x as { runtimeStarts?: unknown }).runtimeStarts;
+      if (typeof starts === "number" && starts > 1 && !issues.some((i) => i.startsWith("The runtime restarted")))
+        issues.push(restartIssue(starts));
       // "custom" engine or backend in the recipe means not specified (e.g. a WebXR app).
       const want = plan.study.runtime;
       const capabilities = Array.isArray(x.capabilities) ? x.capabilities : [];

@@ -469,11 +469,12 @@ export async function saveWorkspace(
   const comparisons = update.comparisons === undefined ? null : validateComparisons(update.comparisons);
   if (comparisons) {
     // Comparisons name configurations: those of agents.json and those of the study's campaigns
-    // (a continuation can add a model arm that agents.json does not have).
+    // (a continuation can add a model arm that agents.json does not have). With the study, a
+    // comparison across levels (population vs individual) is refused as the analyzer would skip it.
     const known = new Map<string, AgentProtocol>((agents ?? []).map((a) => [a.id, a]));
     for (const c of await listCampaigns(id))
       for (const cond of c.suite.conditions) if (!known.has(cond.id) && cond.recipe.protocol) known.set(cond.id, { ...cond.recipe.protocol, model: c.model } as AgentProtocol);
-    const { problems } = explainComparisons(comparisons, undefined, [...known.values()]);
+    const { problems } = explainComparisons(comparisons, study, [...known.values()]);
     requireThat(!problems.length, problems.join(" "));
   }
   if (update.study) await writeFile(join(dir, "study.json"), pretty(study));

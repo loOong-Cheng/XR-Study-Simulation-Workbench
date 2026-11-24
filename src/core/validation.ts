@@ -645,8 +645,21 @@ export function checkNewConfigurations(s: Study, agents: AgentProtocol[]): void 
   }
 }
 
-/** Saved comparisons (comparisons.json): pairs of configuration IDs and a domain, nothing else. */
-export function validateComparisons(value: unknown): Comparison[] {
+/** Why a comparison cannot be tested: its two configurations predict at different levels. */
+export const mixedLevelsMessage = (candidate: string, baseline: string) =>
+  `Comparison ${candidate} − ${baseline} mixes population and individual configs; use the population-vs-individual view instead.`;
+/** The mixed-level message for a comparison of two known configurations of different levels, else null. */
+export function mixedLevels(study: Pick<Study, "predictionLevel">, agents: Pick<AgentProtocol, "id" | "level">[], c: { candidate: string; baseline: string }): string | null {
+  const x = agents.find((a) => a.id === c.candidate),
+    y = agents.find((a) => a.id === c.baseline);
+  return x && y && (x.level ?? study.predictionLevel) !== (y.level ?? study.predictionLevel) ? mixedLevelsMessage(c.candidate, c.baseline) : null;
+}
+/**
+ * Saved comparisons (comparisons.json): pairs of configuration IDs and a domain, nothing else.
+ * With the study and its configurations, a comparison across levels (population vs individual)
+ * is refused as the analyzer would skip it.
+ */
+export function validateComparisons(value: unknown, study?: Pick<Study, "predictionLevel">, agents?: Pick<AgentProtocol, "id" | "level">[] | null): Comparison[] {
   requireThat(Array.isArray(value) && value.length <= 200, "Comparisons must be a list (at most 200).");
   return (value as unknown[]).map((c, i) => {
     requireThat(c && typeof c === "object" && !Array.isArray(c), `Comparison ${i + 1} must be an object with candidate, baseline and domain.`);
@@ -658,6 +671,8 @@ export function validateComparisons(value: unknown): Comparison[] {
     );
     requireThat(x.domain === "objective" || x.domain === "subjective", `Comparison ${i + 1} needs the domain objective or subjective.`);
     requireThat(x.id === undefined || (typeof x.id === "string" && identifier.test(x.id)), `Comparison ${i + 1} has an invalid ID.`);
+    const mixed = study && agents ? mixedLevels(study, agents, x as { candidate: string; baseline: string }) : null;
+    requireThat(!mixed, mixed!);
     return { ...(x.id !== undefined ? { id: x.id as string } : {}), candidate: x.candidate as string, baseline: x.baseline as string, domain: x.domain as Domain };
   });
 }

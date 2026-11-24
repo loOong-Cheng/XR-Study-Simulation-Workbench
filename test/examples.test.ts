@@ -41,10 +41,11 @@ test("graphics-quality workspace: study, configs, human data and the campaign pa
   // Choosing comparisons changes no other number.
   const without = analyzeCampaign(c, human, [run.results]);
   assert.deepEqual(without.report.summaries, result.report.summaries);
-  assert.throws(
-    () => analyzeCampaign(c, human, [run.results], [{ candidate: "uses-app", baseline: "knows-participant", domain: "subjective" }]),
-    /mixes population and individual/,
-  );
+  // A comparison across levels is skipped with a note; the rest of the analysis stands.
+  const mixed = analyzeCampaign(c, human, [run.results], [...comparisons, { candidate: "uses-app", baseline: "knows-participant", domain: "subjective" }]);
+  assert.ok(mixed.report.notes.some((n) => /Skipped 1 comparison\(s\): Comparison uses-app − knows-participant mixes population and individual configs/.test(n)), JSON.stringify(mixed.report.notes));
+  assert.equal(mixed.report.contrasts.length, result.report.contrasts.length);
+  assert.deepEqual(mixed.report.summaries, result.report.summaries);
 });
 
 test("a config cannot predict what it is given, and inputs need after-experience forecasts", async () => {

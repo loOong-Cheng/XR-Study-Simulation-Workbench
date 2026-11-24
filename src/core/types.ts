@@ -251,6 +251,8 @@ export interface RunResult {
      * accepted; the turn that closes the session afterwards is not included. Absent when unknown.
      */
     tokensAtSubmit?: number;
+    /** Times the session's external runtime (study bridge) was started; more than 1 is a restart. */
+    runtimeStarts?: number;
   };
   measurements: Measurement[];
   trace: TraceEvent[];

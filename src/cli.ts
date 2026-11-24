@@ -18,6 +18,7 @@ import {
 } from "./core/planner.js";
 import {
   checkNewConfigurations,
+  mixedLevels,
   requireThat,
   validateAgents,
   validateHumanData,
@@ -616,6 +617,28 @@ async function main(): Promise<void> {
     const workspace = existsSync(workspaceFile) ? await readFile(workspaceFile, "utf8").then((t) => JSON.parse(t), () => ({})).catch(() => ({})) : {};
     const warnings = agents ? webxrActionWarnings(study, agents, workspace) : [];
     if (warnings.length) console.log("## Warnings\n\n" + warnings.map((w) => `- ${w}`).join("\n") + "\n");
+    // comparisons.json beside the study: a comparison across levels (population vs individual) is
+    // refused here as on save, so the analysis never meets one it has to skip. The configurations
+    // are those checked above, else agents.json beside the study. (A comparison may also name a
+    // model arm that only a campaign has; saving checks those.)
+    const comparisonsFile = join(dirname(resolve(args[0])), "comparisons.json");
+    if (existsSync(comparisonsFile)) {
+      const list = await readJson<Comparison[]>(comparisonsFile);
+      let known = agents;
+      const besideAgents = join(dirname(resolve(args[0])), "agents.json");
+      if (!known && existsSync(besideAgents))
+        try {
+          known = validateAgents(study, await readJson<AgentProtocol[]>(besideAgents));
+        } catch {
+          // reported when study-check runs with --agents
+        }
+      if (!Array.isArray(list)) problems.push("comparisons.json must be a list of comparisons.");
+      else if (known)
+        for (const c of list) {
+          const mixed = c && typeof c === "object" ? mixedLevels(study, known, c) : null;
+          if (mixed) problems.push(`comparisons.json: ${mixed}`);
+        }
+    }
     const approval = await approvalState(args[0], study, agents);
     const folder = reviewFolder(args[0]);
     const folderPath = dirname(resolve(args[0]));
