@@ -11,6 +11,7 @@ import {
 import type { CampaignScorecard } from "./campaign-comparison.js";
 import { syntheticResults } from "./example.js";
 import { hash } from "./planner.js";
+import { modelConfoundWarnings } from "./fairness.js";
 import type {
   AnalysisReport,
   Comparison,
@@ -161,6 +162,8 @@ export function analyzeCampaign(
     report.notes.push(
       "Conditions use different forecasting models. A between-condition difference confounds method and model unless the contrast holds the method fixed.",
     );
+  // Which compared configurations differ in what they get and also in model or effort.
+  report.notes.push(...modelConfoundWarnings(plan.study, plan.agents, comparisons));
   return {
     campaignDigest: c.digest,
     models: Object.fromEntries(

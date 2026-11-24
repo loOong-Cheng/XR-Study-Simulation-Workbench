@@ -14,6 +14,7 @@ import { agentFileList } from "./runtimes/guard.js";
 import { decodeText, encodingNote, windowsUnusableName } from "./files.js";
 import { draftKnowledge } from "./assistant.js";
 import { extractProposal } from "./core/proposal.js";
+import { predictionSentences, standInWarnings } from "./core/fairness.js";
 import type { AgentProtocol } from "./core/types.js";
 import { checkNewConfigurations, validateAgents, validateStudy } from "./core/validation.js";
 
@@ -42,7 +43,10 @@ export async function sourceText(id: string, sourceId: string): Promise<string> 
 const decimals = (text: string) => new Set(text.match(/-?\d+\.\d{2,}/g) ?? []);
 /**
  * Outcome-blind check for an evidence text: participant IDs it names, and how many of its numbers
- * equal a human design mean (rounded to 2 decimals). Only counts are returned.
+ * equal a human design mean (rounded to 2 decimals). Only counts are returned from the human data.
+ * `predictions` are the text's own sentences that state predictions about measured outcomes (a
+ * heuristic, fairness.ts → predictionSentences), for the researcher to confirm they were written
+ * without the results; they never come from the human data.
  */
 export async function leakCheck(id: string, study: Study, text: string) {
   const ids = study.participants.map((p) => p.id).filter((p) => new RegExp(`\\b${p.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\b`).test(text));
@@ -62,7 +66,7 @@ export async function leakCheck(id: string, study: Study, text: string) {
     const means = new Set([...groups.values()].map((v) => (v.reduce((s, x) => s + x, 0) / v.length).toFixed(2)));
     for (const n of decimals(text)) if (means.has(Number(n).toFixed(2))) matches++;
   }
-  return { participantIds: ids.length, humanMeanMatches: matches, checkedAgainstHuman: !!human };
+  return { participantIds: ids.length, humanMeanMatches: matches, checkedAgainstHuman: !!human, predictions: predictionSentences(study, text) };
 }
 
 /** Evidence sources of a study with preview, origin, hash, who gets them, and the outcome-blind check. */
@@ -102,16 +106,17 @@ async function saveManifest(dir: string, manifest: WorkspaceManifest) {
  * Participant-specific knowledge of a study (background and movement recordings): file, fields,
  * completeness, and what agents get. Background is shown as population and individual
  * configurations receive it; movement recordings show only their completeness and columns,
- * since they were measured during the study.
+ * since they were measured during the study, and warnings where their fields could stand in for a
+ * measure a configuration that gets them predicts (fairness.ts → standInWarnings).
  */
-export async function participantKnowledgeOverview(id: string, agents: { id: string; sourceIds: string[] }[]) {
+export async function participantKnowledgeOverview(id: string, agents: AgentProtocol[]) {
   const ws = await readWorkspace(id);
   const out = [];
   for (const src of ws.study.sources.filter((s) => (PARTICIPANT_KINDS as readonly string[]).includes(s.kind))) {
     const rel = ws.manifest.sources?.[src.id] ?? null;
     const path = rel ? (sourceLocation(ws.dir, src.kind, rel).path ?? null) : null;
     const exists = !!path && existsSync(path);
-    const problems = exists ? participantProblems(ws.study, src.kind, path!, src.fields ?? []) : [];
+    const problems = exists ? participantProblems(ws.study, src.kind, path!, src.fields ?? [], src.phases) : [];
     const isFile = exists && !(await stat(path!)).isDirectory();
     // Read as agents get it: also a table Excel saved as Windows-1252 or UTF-16 (the notes say so).
     const bytes = isFile ? await readFile(path!) : null;
@@ -124,6 +129,7 @@ export async function participantKnowledgeOverview(id: string, agents: { id: str
       kind: src.kind,
       description: src.description,
       fields: src.fields ?? [],
+      phases: src.phases ?? null,
       path: rel,
       exists,
       sha256: bytes ? sha(bytes) : null,
@@ -135,9 +141,18 @@ export async function participantKnowledgeOverview(id: string, agents: { id: str
       // Rows of people outside the study are never delivered or counted; say which.
       notes: [exists ? tableEncodingNotes(path!) : "", isFile ? strangerNote(strangers(ws.study, text)) : ""].filter(Boolean).join(" "),
       configs: agents.filter((a) => a.sourceIds.includes(src.id)).map((a) => a.id),
+      warnings: safely(() => standInWarnings(ws.study, agents, src.id), [] as string[]),
     });
   }
   return out;
+}
+/** A check that must not break a page while the saved configurations disagree with the study. */
+function safely<T>(f: () => T, fallback: T): T {
+  try {
+    return f();
+  } catch {
+    return fallback;
+  }
 }
 
 /**
@@ -310,7 +325,7 @@ export async function saveKnowledge(
         !results.length,
         `${src!.label} has ${plural(results.length, "a column", "columns")} named like ${plural(results.length, "a measure", "measures")} (${results.join(", ")}). Results are never participant knowledge: remove ${plural(results.length, "that column", "those columns")} from the file and add it again.`,
       );
-      const problems = participantProblemsText(study, src!.kind, w.text, src!.fields ?? []);
+      const problems = participantProblemsText(study, src!.kind, w.text, src!.fields ?? [], src!.phases);
       requireThat(!problems.length, `${src!.label} ${problems.join("; ")}. Participant-specific knowledge needs exactly one complete entry per participant: fix the file and add it again.`);
     }
   }

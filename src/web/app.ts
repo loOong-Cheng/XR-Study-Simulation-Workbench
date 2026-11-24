@@ -17,6 +17,8 @@ interface WorkspaceView {
   problem: string | null;
   /** Planning warnings for the saved study, e.g. too few people for any significant difference. */
   studyWarnings?: string[];
+  /** Fairness of what agents get (core/fairness.ts): the research question, stand-in recordings, models of compared configurations. */
+  warnings?: string[];
 }
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
 interface RuntimeStatus { id: string; label: string; available: boolean; builtIn: boolean; message: string }
@@ -45,7 +47,7 @@ let saved = "";
 let settings: Settings | null = null;
 let runtimes: RuntimeStatus[] = [];
 let showAllRuntimes = false;
-interface EvidenceItem { id: string; label: string; description: string; path: string | null; problem: string | null; exists: boolean; bytes: number; sha256: string | null; preview: string; truncated: boolean; configs: string[]; check: { participantIds: number; humanMeanMatches: number; checkedAgainstHuman: boolean } | null }
+interface EvidenceItem { id: string; label: string; description: string; path: string | null; problem: string | null; exists: boolean; bytes: number; sha256: string | null; preview: string; truncated: boolean; configs: string[]; check: LeakCheck | null }
 let evidence: EvidenceItem[] | null = null;
 /** The study brief (what every configuration gets); null when the study has no brief source yet. */
 let brief: EvidenceItem | null = null;
@@ -53,11 +55,12 @@ let brief: EvidenceItem | null = null;
 let briefEdit: string | null = null;
 /** A brief drafted by Understand study and taken with the draft; written to the study folder on Save. */
 let briefDraft: string | null = null;
-type LeakCheck = { participantIds: number; humanMeanMatches: number; checkedAgainstHuman: boolean };
-interface ParticipantItem { id: string; label: string; kind: string; description: string; fields: string[]; path: string | null; exists: boolean; sha256: string | null; participants: number; problems: string[]; columns: { name: string; missing: string[] }[]; population: string | null; individual: { participantId: string; text: string } | null; notes: string; configs: string[] }
+/** Outcome-blind check of a text agents get; `predictions` are its own sentences that predict measured outcomes (never human data). */
+type LeakCheck = { participantIds: number; humanMeanMatches: number; checkedAgainstHuman: boolean; predictions?: string[] };
+interface ParticipantItem { id: string; label: string; kind: string; description: string; fields: string[]; phases?: string[] | null; warnings?: string[]; path: string | null; exists: boolean; sha256: string | null; participants: number; problems: string[]; columns: { name: string; missing: string[] }[]; population: string | null; individual: { participantId: string; text: string } | null; notes: string; configs: string[] }
 let participantKnowledge: ParticipantItem[] = [];
 /** A new or replacement source, drafted on the server (by the assistant for documents) and reviewed here. */
-interface KnowledgeDraft { kind: "general" | "participant"; via: "assistant" | "table" | "raw"; sourceId: string; label: string; description: string; path: string; text: string; columns: { name: string; missing: string[] }[] | null; problems: string[]; check: { participantIds: number; humanMeanMatches: number; checkedAgainstHuman: boolean } | null; notes: string; replaces?: string }
+interface KnowledgeDraft { kind: "general" | "participant"; via: "assistant" | "table" | "raw"; sourceId: string; label: string; description: string; path: string; text: string; columns: { name: string; missing: string[] }[] | null; problems: string[]; check: LeakCheck | null; notes: string; replaces?: string }
 let knowledgeDraft: KnowledgeDraft | null = null;
 /** Which knowledge card is being edited, and how. */
 let knowledgeEdit: { id: string; mode: "rename" | "text" | "fields"; text?: string } | null = null;
@@ -170,7 +173,7 @@ let mode: "agent" | "simulate" = "simulate";
 let analysis: AnalysisView | null = null;
 interface AgentCmp {
   campaignId: string;
-  configs: { id: string; label: string; level: string; model: string; assigned: number; real: number; simulated: number; basis: string; deviations: number; meanToolCalls: number | null; meanWallMinutes: number | null; meanCostUsd: number | null; totalCostUsd: number | null; consistency: Record<Domain, number | null>; consistencyPairs: number }[];
+  configs: { id: string; label: string; level: string; model: string; assigned: number; real: number; simulated: number; basis: string; deviations: number; meanToolCalls: number | null; meanFilesRead?: number | null; runsWithoutReads?: number | null; meanWallMinutes: number | null; meanCostUsd: number | null; totalCostUsd: number | null; consistency: Record<Domain, number | null>; consistencyPairs: number }[];
   pairs: { a: string; b: string; domain: Domain; agreement: number | null; outcomes: number }[];
   notes: string[];
 }
@@ -490,6 +493,7 @@ function templates() {
   return [
     { id: "text-only", missing: "" },
     { id: "reads-project", missing: !has("project") ? "a project source" : project },
+    { id: "app-only", missing: !st.cases.length ? "tasks to play" : webxr && !ws?.manifest.app ? "a WebXR app declared in workspace.json (app)" : "" },
     { id: "uses-app", missing: app },
     { id: "reads-evidence", missing: !has("evidence") ? "an evidence source (Evidence & knowledge page)" : !ready("evidence") ? "the evidence file on this machine" : project },
     { id: "uses-app-people", missing: app || (!personKinds.some(has) ? "participant-specific knowledge (Evidence & knowledge page)" : !personKinds.filter(has).every(ready) ? "complete participant-specific knowledge (Evidence & knowledge page)" : "") },
@@ -537,11 +541,12 @@ function generalSection() {
           ? `<div class="notice">Outcome-blind check: ${e.check.participantIds ? `names ${e.check.participantIds} participant ID(s)` : ""}${e.check.participantIds && e.check.humanMeanMatches ? "; " : ""}${e.check.humanMeanMatches ? `${e.check.humanMeanMatches} number(s) equal a human design mean to two decimals` : ""}. Knowledge must not contain the study's results. Which numbers match is not shown, so you do not see the results either.</div>`
           : `<p class="caption ok">Outcome-blind check: no participant IDs${e.check.checkedAgainstHuman ? ", and no number equals a human design mean to two decimals" : ""}.</p>`
         : "";
+      const predicted = predictionNotice(e.check);
       const editing = knowledgeEdit?.id === e.id && knowledgeEdit.mode === "text";
       return `<div class="card"><div class="card-heading"><div><h3>${esc(e.label)}</h3><p class="caption">${esc(e.description)}</p></div><span class="tag">general</span></div>
         <p class="caption">${e.exists ? `${esc(e.path)} · ${(e.bytes / 1024).toFixed(1)} KB · sha256 ${esc(e.sha256!.slice(0, 16))}… · <a href="/api/workspace/source?id=${encodeURIComponent(ws!.id)}&source=${encodeURIComponent(e.id)}" target="_blank" rel="noopener">open full text</a>` : `<span class="warn">${e.problem && e.path ? `Not usable: this source ${esc(e.problem)}` : `No file on this machine${e.path ? ` (${esc(e.path)} is missing)` : ""}`}.</span>`} · ${usedText(e.id)}</p>
         ${knowledgeActions(e.id, "general")}${renameForm(e.id, e.label, e.description)}
-        ${editing ? `<label class="field">Text (Markdown)<textarea id="k-text" rows="18">${esc(knowledgeEdit!.text ?? "")}</textarea></label><div class="actions">${btn(`k-text-save:${e.id}`, "Save text", true)}${btn("k-cancel", "Cancel")}</div>` : `${check}${e.exists ? `<pre class="preview">${esc(e.preview)}${e.truncated ? "\n…" : ""}</pre>` : ""}`}</div>`;
+        ${editing ? `<label class="field">Text (Markdown)<textarea id="k-text" rows="18">${esc(knowledgeEdit!.text ?? "")}</textarea></label><div class="actions">${btn(`k-text-save:${e.id}`, "Save text", true)}${btn("k-cancel", "Cancel")}</div>` : `${check}${predicted}${e.exists ? `<pre class="preview">${esc(e.preview)}${e.truncated ? "\n…" : ""}</pre>` : ""}`}</div>`;
     })
     .join("");
   return `<h2 class="group-title">General knowledge</h2><p class="group-caption">The same for everyone: findings from papers, computational models, expert heuristics.</p>${cards || '<div class="card"><p class="caption">None yet.</p></div>'}`;
@@ -570,9 +575,10 @@ function participantSection() {
       const shown =
         k.kind === "demographics"
           ? `${k.population ? `<h3>A population configuration gets</h3><pre class="preview">${esc(k.population)}</pre>` : ""}${k.individual && study!.design !== "between-subjects" ? `<h3>An individual configuration gets (for example ${esc(k.individual.participantId)})</h3><pre class="preview">${esc(k.individual.text)}</pre>` : ""}`
-          : `<p class="caption">Movement recordings were measured during the study, so their values are not shown while planning. Individual configurations get each person's own rows: the ID column and ${esc(k.fields.join(", "))} only (other columns never reach the agent); population configurations get none.</p>`;
+          : `<p class="caption">Movement recordings were measured during the study, so their values are not shown while planning. Individual configurations get each person's own rows${k.phases?.length ? ` of the ${k.phases.length === 1 ? "phase" : "phases"} ${esc(k.phases.join(", "))} only` : ""}: the ID column and ${esc(k.fields.join(", "))} only (other columns never reach the agent); population configurations get none. To deliver only some phases (for example practice), set <code>"phases": ["practice"]</code> on the source in study.json.</p>`;
+      const standIns = (k.warnings ?? []).map((w) => `<div class="notice">${esc(w)}</div>`).join("");
       return `<div class="card"><div class="card-heading"><div><h3>${esc(k.label)}</h3><p class="caption">${esc(k.description)}</p></div><span class="tag">${esc(k.kind === "demographics" ? "background" : "movement")}</span></div><p class="caption">${k.path ? esc(k.path) : "not mapped"}${k.sha256 ? ` · sha256 ${esc(k.sha256.slice(0, 16))}…` : ""} · ${usedText(k.id)}</p>
-        ${k.kind === "demographics" ? knowledgeActions(k.id, "participant") : `<div class="actions">${btn(`k-rename:${k.id}`, "Rename")}${btn(`k-delete:${k.id}`, "Delete")}</div>`}${renameForm(k.id, k.label, k.description)}${fieldsForm}${status}${k.notes ? `<p class="caption">${esc(k.notes)}</p>` : ""}${shown}</div>`;
+        ${k.kind === "demographics" ? knowledgeActions(k.id, "participant") : `<div class="actions">${btn(`k-rename:${k.id}`, "Rename")}${btn(`k-delete:${k.id}`, "Delete")}</div>`}${renameForm(k.id, k.label, k.description)}${fieldsForm}${status}${standIns}${k.notes ? `<p class="caption">${esc(k.notes)}</p>` : ""}${shown}</div>`;
     })
     .join("");
   return `<h2 class="group-title">Participant-specific knowledge</h2><p class="group-caption">What is known about each participant apart from the measured results, for example background. Like general knowledge, both population configurations (a summary of the cohort) and individual configurations (the person's own entry) can use it. It must exist for every participant: no missing person and no empty field.</p>
@@ -589,7 +595,7 @@ function addKnowledgeCard() {
   const check = d.check && (d.check.participantIds || d.check.humanMeanMatches) ? `<div class="notice">Outcome-blind check: ${d.check.participantIds ? `names ${d.check.participantIds} participant ID(s)` : ""}${d.check.participantIds && d.check.humanMeanMatches ? "; " : ""}${d.check.humanMeanMatches ? `${d.check.humanMeanMatches} number(s) equal a human design mean to two decimals` : ""}. Remove the study's own results before adding.</div>` : d.check ? '<p class="caption ok">Outcome-blind check: nothing found.</p>' : "";
   const body =
     d.kind === "general"
-      ? `<label class="field">Text (Markdown; edit as needed)<textarea id="kd-text" rows="16">${esc(d.text)}</textarea></label>${check}`
+      ? `<label class="field">Text (Markdown; edit as needed)<textarea id="kd-text" rows="16">${esc(d.text)}</textarea></label>${check}${predictionNotice(d.check)}`
       : `${d.problems.length ? `<div class="notice">Cannot be added yet: this file ${esc(d.problems.join("; "))}. Participant-specific knowledge needs exactly one complete entry per participant.</div>` : ""}<p class="caption">Fields agents may see. A field that is empty for anyone cannot be chosen.</p><div class="config-picks">${(d.columns ?? [])
           .map((c) =>
             c.missing.length
@@ -696,7 +702,9 @@ function renderStudy() {
           }<div class="actions">${btn("use-draft", u.brief ? "Use this draft and brief for this study" : "Use this draft for this study", true)}${btn("discard-draft", "Discard draft")}</div>`
         : ""
     }${briefDraft !== null ? '<p class="caption">The drafted study brief is saved with the study when you press Save study.</p>' : ""}</div>
-    <div class="grid"><section><div class="card"><h2>Study</h2><label class="field">Title<input data-edit="title" data-id="study" value="${esc(s.title)}"></label><label class="field">Research questions<textarea data-edit="rq" data-id="study" rows="4">${esc(s.researchQuestion)}</textarea></label>
+    <div class="grid"><section><div class="card"><h2>Study</h2><label class="field">Title<input data-edit="title" data-id="study" value="${esc(s.title)}"></label><label class="field">Research questions about the human study (every agent gets them)<textarea data-edit="rq" data-id="study" rows="4">${esc(s.researchQuestion)}</textarea></label>${(ws.warnings ?? []).filter((w) => w.startsWith("The research question")).map((w) => `<p class="caption warn">${esc(w)}</p>`).join("")}
+    <label class="field">Questions about the agents (never sent to agents)<textarea data-edit="agent-questions" data-id="study" rows="2" placeholder="e.g. Which agent configurations reproduce these differences?">${esc(s.agentQuestions ?? "")}</textarea></label>
+    <label class="field">Title agents see<input data-edit="agent-title" data-id="study" value="${esc(s.agentTitle ?? "")}" placeholder="An XR user study"></label><p class="caption">Agents never see the study's own title, which may name the result or the data (such as "synthetic"). Leave this empty for the neutral "An XR user study".</p>
     <div class="row"><label class="field">Design<select data-edit="design" data-id="study"><option value="within-subjects" ${s.design === "within-subjects" ? "selected" : ""}>Within-subjects</option><option value="between-subjects" ${s.design === "between-subjects" ? "selected" : ""}>Between-subjects</option></select></label><label class="field">Forecast timing<select data-edit="timing" data-id="study"><option value="after-experience" ${s.predictionTiming === "after-experience" ? "selected" : ""}>After the study (measured data may be inputs)</option><option value="before-experience" ${s.predictionTiming === "before-experience" ? "selected" : ""}>Before (no measured data as input)</option></select></label></div>
     <div class="row"><label class="field">Engine<select data-edit="engine" data-id="study">${["unreal", "unity", "custom"].map((v) => `<option ${s.runtime.engine === v ? "selected" : ""}>${v}</option>`).join("")}</select></label><label class="field">Agent observation<select data-edit="observation" data-id="study"><option value="mono" ${s.runtime.observation === "mono" ? "selected" : ""}>Single image (mono)</option><option value="stereo-pair" ${s.runtime.observation === "stereo-pair" ? "selected" : ""}>Left/right pair (stereo)</option></select></label></div>
     <label class="field">Device<input data-edit="device" data-id="study" value="${esc(s.runtime.deviceProfile)}"></label>${webxrProfileHint()}${webxrStereoHint()}</div></section>
@@ -731,9 +739,17 @@ function studyNext(): "pick-doc" | "understand" | "use-draft" | "save" | "eviden
   if (doc && !docDrafted) return "understand";
   return "evidence";
 }
-/** The outcome-blind check of a text agents get, in words (counts only). */
+/** Sentences of a knowledge text that state predictions about measured outcomes (a heuristic): confirm they were written without the results. */
+function predictionNotice(check: LeakCheck | null) {
+  const found = check?.predictions ?? [];
+  if (!found.length) return "";
+  return `<div class="notice"><strong>Contains predictions about measured outcomes — confirm it was written without the results.</strong> Every agent that gets this text reads these as given:<ul class="notes">${found.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>Published findings or a model's output are fine; anything that knows how this study turned out is not.</div>`;
+}
+/** The outcome-blind check of a text agents get, in words (counts only), and any predictions it states. */
 function leakNotice(check: LeakCheck | null, fix: string) {
-  if (!check) return "";
+  return check ? leakCounts(check, fix) + predictionNotice(check) : "";
+}
+function leakCounts(check: LeakCheck, fix: string) {
   if (check.participantIds || check.humanMeanMatches)
     return `<div class="notice">Outcome-blind check: ${check.participantIds ? `names ${check.participantIds} participant ID(s)` : ""}${check.participantIds && check.humanMeanMatches ? "; " : ""}${check.humanMeanMatches ? `${check.humanMeanMatches} number(s) equal a human design mean to two decimals` : ""}. ${esc(fix)} Which numbers match is not shown, so you do not see the results either.</div>`;
   return `<p class="caption ok">Outcome-blind check: no participant IDs${check.checkedAgainstHuman ? ", and no number equals a human design mean to two decimals" : ""}.</p>`;
@@ -920,6 +936,11 @@ function renderFreeze() {
         ? `<div class="notice">The study's device is "${esc(study!.runtime.deviceProfile)}", but the WebXR runtime reports <code>${WEBXR_PROFILE}</code>. App sessions would be listed as protocol deviations. Set the device on the Study page (one click) before freezing.</div>`
         : ""
     }${
+      // Fairness of what agents get, as last saved (fairness.ts): a configuration comparison should change one ingredient.
+      ws.warnings?.length
+        ? `<div class="notice"><strong>Before freezing, check what the agents get${unsaved() ? " (as last saved)" : ""}:</strong><ul class="notes">${ws.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>`
+        : ""
+    }${
       agents.every((a) => a.repetitions) ? `<div class="notice">Runs per participant changes nothing here: every configuration has a fixed run count. Clear a Runs box to make it follow runs per participant.</div>` : ""
     }<p class="caption">${agents.length} configurations · ${jobs} sessions. Each session is one fresh agent run. An empty Runs box follows runs per participant; a number fixes it. ${ws.approval.current ? "Approved." : "Not approved yet: you can freeze, but approval documents your review."}</p><div class="actions">${btn("freeze", unsaved() ? "Save changes and freeze" : "Freeze campaign", true)}</div>${unsaved() ? '<p class="caption">You have unsaved changes (here or on Study and Agent configurations). They are saved to the study folder before freezing; an earlier approval then no longer matches.</p>' : ""}</div></section></div>${campaignHistory()}`
   );
@@ -1092,7 +1113,7 @@ function renderAgentCmp() {
   const rows = c.configs
     .map(
       (x) =>
-        `<tr><td>${esc(x.label)}</td><td>${esc(x.level)}</td><td>${esc(x.model)}</td><td>${x.real} real${x.simulated ? ` + ${x.simulated} sim` : ""} / ${x.assigned}${x.basis === "simulated" ? '<br><span class="small">simulated only</span>' : x.real && x.simulated ? '<br><span class="small">simulated left out</span>' : ""}</td><td>${x.deviations || ""}</td><td>${pct1(x.consistency[domain])}${x.consistencyPairs ? `<br><span class="small">${x.consistencyPairs} pairs</span>` : ""}</td><td>${num(x.meanToolCalls)}</td><td>${num(x.meanWallMinutes)}</td><td>${money(x.meanCostUsd)}</td><td>${money(x.totalCostUsd)}</td></tr>`,
+        `<tr><td>${esc(x.label)}</td><td>${esc(x.level)}</td><td>${esc(x.model)}</td><td>${x.real} real${x.simulated ? ` + ${x.simulated} sim` : ""} / ${x.assigned}${x.basis === "simulated" ? '<br><span class="small">simulated only</span>' : x.real && x.simulated ? '<br><span class="small">simulated left out</span>' : ""}</td><td>${x.deviations || ""}</td><td>${pct1(x.consistency[domain])}${x.consistencyPairs ? `<br><span class="small">${x.consistencyPairs} pairs</span>` : ""}</td><td>${num(x.meanToolCalls)}</td><td>${x.meanFilesRead == null ? "—" : `${num(x.meanFilesRead)}${x.runsWithoutReads ? `<br><span class="small warn">${x.runsWithoutReads} run${x.runsWithoutReads === 1 ? "" : "s"} read none</span>` : ""}`}</td><td>${num(x.meanWallMinutes)}</td><td>${money(x.meanCostUsd)}</td><td>${money(x.totalCostUsd)}</td></tr>`,
     )
     .join("");
   const ids = c.configs.map((x) => x.id);
@@ -1110,7 +1131,7 @@ function renderAgentCmp() {
     ? `<div class="notice"><strong>Simulated runs:</strong> ${esc(simulated.join(", "))} ${simulated.length === 1 ? "is" : "are"} described by invented forecasts. They test the pipeline, not how well agents forecast${study?.synthetic ? "" : ", and in this research study they are never scored against the human data"}.</div>`
     : "";
   return `${simNotice}<div class="card"><div class="row"><label class="field">Domain<select id="an-domain"><option value="subjective" ${domain === "subjective" ? "selected" : ""}>Subjective</option><option value="objective" ${domain === "objective" ? "selected" : ""}>Objective</option></select></label></div><div class="actions">${btn("compare-agents", "Recompute")}</div>
-    <h2>Configurations</h2><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Model</th><th>Runs</th><th>Deviations</th><th>Run-to-run agreement</th><th>Tool calls</th><th>Minutes</th><th>Cost / session</th><th>Total cost</th></tr></thead><tbody>${rows}</tbody></table></div>
+    <h2>Configurations</h2><div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Model</th><th>Runs</th><th>Deviations</th><th>Run-to-run agreement</th><th>Tool calls</th><th title="Project files opened per run, for configurations that can read them: a check that the ingredient they add was delivered">Files read</th><th>Minutes</th><th>Cost / session</th><th>Total cost</th></tr></thead><tbody>${rows}</tbody></table></div>
     <h2>Agreement between configurations (${domain})</h2><p class="caption">How often two configurations order each pair of designs the same way, on their average forecasts and the outcomes both predict. 100% = same pattern, 50% = unrelated, 0% = opposite.</p>${matrix}
     <ul class="notes">${c.notes.map((n) => `<li>${esc(n)}</li>`).join("")}</ul></div>`;
 }
@@ -2054,6 +2075,14 @@ document.addEventListener("change", (e) => {
         break;
       case "rq":
         study.researchQuestion = v;
+        break;
+      case "agent-questions":
+        if (v.trim()) study.agentQuestions = v;
+        else delete study.agentQuestions;
+        break;
+      case "agent-title":
+        if (v.trim()) study.agentTitle = v;
+        else delete study.agentTitle;
         break;
       case "design":
         study.design = v as Study["design"];

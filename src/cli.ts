@@ -21,6 +21,7 @@ import {
   mixedLevels,
   requireThat,
   validateAgents,
+  validateComparisons,
   validateHumanData,
   validateStudy,
 } from "./core/validation.js";
@@ -35,6 +36,7 @@ import {
 } from "./core/explain.js";
 import { approvalState } from "./review.js";
 import { webxrActionWarnings } from "./executor/runtimes.js";
+import { fairnessWarnings } from "./core/fairness.js";
 import {
   extractProposal,
   checkedReading,
@@ -168,6 +170,16 @@ const sections: [string, [string, string][]][] = [
 ];
 const bindingsFormat =
   '{"roots": {"<root>": "<folder>"}, "files": {"<asset-id>": {"root": "<root>", "path": "<path inside the root>"}}, "attestations": {"<asset-id>": {"sha256": "<hash>", "evidence": "<how it was checked>"}}}';
+/** The saved comparisons beside a study.json (comparisons.json), or null when there are none or they cannot be read. */
+async function comparisonsBeside(studyPath: string) {
+  const file = join(dirname(studyPath), "comparisons.json");
+  if (!existsSync(file)) return null;
+  try {
+    return validateComparisons(JSON.parse(await readFile(file, "utf8")));
+  } catch {
+    return null;
+  }
+}
 function helpText(): string {
   const lines = ["XR Study Sim — command line. Run: node dist/cli.js <command> …", ""];
   for (const [title, commands] of sections) {
@@ -615,7 +627,8 @@ async function main(): Promise<void> {
     // WebXR tasks whose required actions the runtime would never record with this app (workspace.json → app).
     const workspaceFile = join(dirname(resolve(args[0])), "workspace.json");
     const workspace = existsSync(workspaceFile) ? await readFile(workspaceFile, "utf8").then((t) => JSON.parse(t), () => ({})).catch(() => ({})) : {};
-    const warnings = agents ? webxrActionWarnings(study, agents, workspace) : [];
+    // What agents get must be fair (fairness.ts): the research question, stand-ins, models of compared configurations.
+    const warnings = [...(agents ? webxrActionWarnings(study, agents, workspace) : []), ...fairnessWarnings(study, agents, await comparisonsBeside(args[0]))];
     if (warnings.length) console.log("## Warnings\n\n" + warnings.map((w) => `- ${w}`).join("\n") + "\n");
     // comparisons.json beside the study: a comparison across levels (population vs individual) is
     // refused here as on save, so the analysis never meets one it has to skip. The configurations
@@ -1088,6 +1101,7 @@ async function main(): Promise<void> {
     // --repetitions N = runs per participant (default 1); population configurations without their own count get participants × N.
     const perParticipant = values.has("--repetitions") ? Number(values.get("--repetitions")) : 1;
     const plan = freezePlan(study, withDefaultRuns(study, agents, perParticipant), perParticipant);
+    for (const w of fairnessWarnings(study, agents, await comparisonsBeside(args[0]))) console.warn(`Warning: ${w}`);
     const out = await freshDirectory(args[1]);
     await writeFiles(out, handoffFiles(plan));
     console.log(`Frozen ${plan.jobs.length} jobs in ${out}\n${plan.digest}`);

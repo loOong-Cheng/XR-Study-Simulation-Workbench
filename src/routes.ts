@@ -13,6 +13,7 @@ import { agentVsHumanFigure, agreementFigure, correlationFigure, figureSelection
 import { agentLevel, agentTargets, freezePlan, methodGets, proposeAgents, withDefaultRuns } from "./core/planner.js";
 import { extractProposal } from "./core/proposal.js";
 import { studyWarnings } from "./core/explain.js";
+import { fairnessWarnings } from "./core/fairness.js";
 import type { AgentProtocol, Comparison, Domain, Study } from "./core/types.js";
 import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
@@ -187,6 +188,14 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
         manifest: ws.manifest,
         hasHuman: existsSync(join(ws.dir, "human.json")),
         approval: await approvalState(join(ws.dir, "study.json"), ws.study, (!ws.problem && ws.agents) || undefined).catch(() => ({ approved: false, current: false, approval: null })),
+        // Fairness of what the agents get (fairness.ts): shown on Study & variables and Freeze & campaigns.
+        warnings: (() => {
+          try {
+            return fairnessWarnings(ws.study, agents, ws.comparisons);
+          } catch {
+            return [] as string[];
+          }
+        })(),
         gets: each((a) => methodGets(a, ws.study), [] as string[]),
         runtimes: each((a) => runtimeFor(ws.study, a), "none"),
         missingSources: each((a) => missingSources(ws.dir, ws.study, ws.manifest, a.sourceIds).map((m) => m.label), [] as string[]),
@@ -374,7 +383,9 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
           // manifest not here (e.g. a partial zip)
         }
       }
-      json({ campaignId: campaign.id, ...compareAgents(campaignPlan(campaign), merged.runs, extras) });
+      // The study's saved comparisons name which configurations are compared (for the model check in the notes).
+      const comparisons = (await readStudyFolder(id).catch(() => null))?.comparisons ?? [];
+      json({ campaignId: campaign.id, ...compareAgents(campaignPlan(campaign), merged.runs, extras, comparisons) });
       return true;
     }
     case "/api/workspace/knowledge-draft":

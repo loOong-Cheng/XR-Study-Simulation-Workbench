@@ -13,7 +13,8 @@ import { outcomeWeights } from "./analyzer.js";
 import { describeModel } from "./campaign.js";
 import { agentLevel, agentTargets } from "./planner.js";
 import { auditRun } from "./protocol.js";
-import type { Domain, Plan, RunResult, Study } from "./types.js";
+import { modelConfoundWarnings } from "./fairness.js";
+import type { Comparison, Domain, Plan, RunResult, Study } from "./types.js";
 import { measurementValue } from "./validation.js";
 
 export interface RunExtras {
@@ -33,6 +34,13 @@ export interface AgentComparison {
     basis: "real" | "simulated" | "none";
     deviations: number;
     meanToolCalls: number | null;
+    /**
+     * Configurations that can read project files: files opened per run (distinct contents read with
+     * read_file), and runs that opened none. A manipulation check: reading the files is the
+     * ingredient such a configuration adds. Null for configurations without file access or runs.
+     */
+    meanFilesRead: number | null;
+    runsWithoutReads: number | null;
     meanWallMinutes: number | null;
     meanCostUsd: number | null;
     totalCostUsd: number | null;
@@ -84,7 +92,12 @@ export function agreementBetween(
   return { score, outcomes: weights.size };
 }
 
-export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<string, RunExtras> = {}): AgentComparison {
+/** Distinct project files a run opened (contents read with read_file, by their hash). */
+export function filesRead(run: RunResult): number {
+  const trace = Array.isArray(run.trace) ? run.trace : [];
+  return new Set(trace.filter((e) => e?.type === "source" && e.delivery === "read").map((e) => (e as { sha256: string }).sha256)).size;
+}
+export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<string, RunExtras> = {}, comparisons?: Comparison[]): AgentComparison {
   const study = plan.study;
   const designs = study.conditions.map((c) => c.id);
   const jobs = new Map(plan.jobs.map((j) => [j.id, j]));
@@ -149,6 +162,7 @@ export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<stri
     }
     meanProfiles.set(a.id, avg);
     const costs = used.map((r) => extras[r.jobId]?.costUsd).filter((x): x is number => typeof x === "number");
+    const reads = a.tools.includes("read-files") && a.sourceIds.some((id) => study.sources.find((s) => s.id === id)?.kind === "project") && used.length ? used.map(filesRead) : null;
     return {
       id: a.id,
       label: a.label,
@@ -161,6 +175,8 @@ export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<stri
       basis,
       deviations,
       meanToolCalls: basis === "real" ? mean(used.map((r) => r.execution.toolCalls)) : null,
+      meanFilesRead: reads ? mean(reads) : null,
+      runsWithoutReads: reads ? reads.filter((n) => n === 0).length : null,
       meanWallMinutes: basis === "real" ? mean(used.map((r) => r.execution.inferenceWallTimeMs / 60000)) : null,
       meanCostUsd: mean(costs),
       totalCostUsd: costs.length ? costs.reduce((s, x) => s + x, 0) : null,
@@ -179,6 +195,13 @@ export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<stri
       }
   if (configs.some((c) => c.basis === "real") && configs.some((c) => c.basis === "simulated"))
     notes.push(`Described by simulated (invented) runs: ${configs.filter((c) => c.basis === "simulated").map((c) => c.label).join(", ")}. Comparisons with them compare invented with real forecasts.`);
+  const unread = configs.filter((c) => c.runsWithoutReads);
+  if (unread.length)
+    notes.push(
+      `Opened no project file in some runs, although they can read the files: ${unread.map((c) => `${c.label} (${c.runsWithoutReads} of ${c.basis === "real" ? c.real : c.simulated})`).join(", ")}. Reading the files is what these configurations add, so in those runs it was not delivered; the audit lists them as deviations.`,
+    );
+  // Configurations compared here that differ in what they get and also in model or effort.
+  notes.push(...modelConfoundWarnings(study, plan.agents, comparisons));
   notes.push(
     "Directional agreement: for each pair of designs, whether two forecasts order them the same way (1), opposite (0), one ties (0.5) or both tie (1, within the study's tie tolerance), averaged over design pairs and over the outcomes both cover with the study's family and outcome weights. It needs no human data and says nothing about accuracy.",
     "Tool calls, time and cost describe real sessions only; simulated runs have none.",
