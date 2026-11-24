@@ -253,7 +253,7 @@ test("budget: a submitting session is never stopped for its budget but gets 3 at
 });
 
 test("executor: Resume continues only sessions waiting after Pause; stopped sessions stay stopped, also after a restart", async () => {
-  const { Executor, closeExecutor, STOPPED_UNRECORDED } = await import("../src/executor/runner.js");
+  const { Executor, closeExecutor, STOPPED } = await import("../src/executor/runner.js");
   const { readWorkspace, saveCampaign, runDir } = await import("../src/workspace.js");
   const a = await tempWorkspace(gq);
   try {
@@ -282,12 +282,13 @@ test("executor: Resume continues only sessions waiting after Pause; stopped sess
     await wait(1500);
     const snap = ex.snapshot();
     assert.deepEqual([snap.counts.stopped, snap.counts.queued ?? 0, snap.queued, snap.running], [3, 0, 0, 0]);
-    // A restart: the stopped simulated sessions come back stopped (not "not started"), with their attempt.
+    // A restart: the stopped simulated sessions come back stopped (not "not started"), with their
+    // attempt and the receipt Stop wrote for it.
     closeExecutor(a.id, c.id);
     const again = await Executor.open(a.id, c.id);
     for (const id of stopped) {
       const s = again.jobs.get(id)!;
-      assert.deepEqual([s.status, s.attempts, s.simulated, s.error], ["stopped", 1, true, STOPPED_UNRECORDED], id);
+      assert.deepEqual([s.status, s.attempts, s.simulated, s.error], ["stopped", 1, true, STOPPED], id);
     }
     assert.equal(again.snapshot().counts.done, 12);
     // Run again: a new attempt folder, never the stopped one.
