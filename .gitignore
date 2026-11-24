@@ -12,9 +12,11 @@ __pycache__/
 *.pyc
 private/
 
-# Campaigns and runs created when trying the examples
+# Campaigns and runs created when trying the examples, with their labels and deleted campaigns
 examples/*/campaigns/
 examples/*/runs/
+examples/*/deleted/
+examples/*/campaign-labels.json
 examples/*/study.approval.json
 
 # Worktrees of coding agents
