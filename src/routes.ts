@@ -16,7 +16,7 @@ import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
 import { briefOverview, saveBrief } from "./brief.js";
 import { closeExecutor, Executor, liveStatuses } from "./executor/runner.js";
-import { exportRunsReport, importRuns } from "./executor/archive.js";
+import { exportRunsReport, importRuns, runRecordPath } from "./executor/archive.js";
 import { runtimeFor, runtimeStatus } from "./executor/runtimes.js";
 import { approvalState, approve } from "./review.js";
 import { readSettings, writeSettings, type Settings } from "./settings.js";
@@ -333,8 +333,11 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
         const jobId = index.get(`${r.campaignDigest}/${r.jobId}`);
         if (!jobId || r.status !== "completed" || !r.executionManifest || extras[jobId]) continue;
         extras[jobId] = { costUsd: null };
+        // Only a manifest inside the run folder of the campaign that ran the session.
+        const path = dirOf.has(r.campaignDigest) ? runRecordPath(dirOf.get(r.campaignDigest)!, r.executionManifest.path) : null;
+        if (!path) continue;
         try {
-          const m = JSON.parse(await readFile(join(dirOf.get(r.campaignDigest) ?? "", r.executionManifest.path), "utf8")) as { costUsd?: number | null };
+          const m = JSON.parse(await readFile(path, "utf8")) as { costUsd?: number | null };
           extras[jobId] = { costUsd: typeof m.costUsd === "number" ? m.costUsd : null };
         } catch {
           // manifest not here (e.g. a partial zip)

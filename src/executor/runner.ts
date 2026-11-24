@@ -17,6 +17,7 @@ import { claudeEffort, effortProblem, requireThat } from "../core/validation.js"
 import { claudeCommand, readSettings, runtimeLimits, type Settings } from "../settings.js";
 import { changedSources, listCampaigns, missingSources, readCampaign, readHuman, readReceipts, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
 import { runtimeFor, runtimeStatus } from "./runtimes.js";
+import { runRecordPath } from "./archive.js";
 import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
 
@@ -264,7 +265,7 @@ export class Executor {
         const s = this.jobs.get(r.jobId);
         if (!s || s.costUsd !== null) continue;
         try {
-          const m = JSON.parse(await readFile(join(this.dir, r.executionManifest.path), "utf8")) as { costUsd?: number | null };
+          const m = JSON.parse(await readFile(runRecordPath(this.dir, r.executionManifest.path)!, "utf8")) as { costUsd?: number | null };
           s.costUsd = typeof m.costUsd === "number" ? m.costUsd : null;
         } catch {
           // manifest not here
@@ -325,7 +326,7 @@ export class Executor {
         if (!job || !wanted.has(job.conditionId)) continue;
         if (hash(conditionModel(c, job.conditionId)) !== hash(conditionModel(this.campaign, job.conditionId))) continue;
         try {
-          const m = JSON.parse(await readFile(join(runDir(this.workspaceId, c.id), r.executionManifest!.path), "utf8")) as { costUsd?: number | null };
+          const m = JSON.parse(await readFile(runRecordPath(runDir(this.workspaceId, c.id), r.executionManifest!.path)!, "utf8")) as { costUsd?: number | null };
           if (typeof m.costUsd === "number") costs.set(job.conditionId, [...(costs.get(job.conditionId) ?? []), m.costUsd]);
         } catch {
           // manifest missing (e.g. a partial zip): no estimate from this run

@@ -9,6 +9,7 @@ import { hash } from "./core/planner.js";
 import type { RunResult } from "./core/types.js";
 import { requireThat } from "./core/validation.js";
 import { listCampaigns, readReceipts, runDir, workspaceDir } from "./workspace.js";
+import { runRecordPath } from "./executor/archive.js";
 
 const labelsPath = (id: string) => join(workspaceDir(id), "campaign-labels.json");
 export async function readLabels(id: string): Promise<Record<string, string>> {
@@ -34,7 +35,8 @@ export function sameDesignKey(c: Campaign): string {
   });
 }
 
-async function json<T>(path: string): Promise<T | null> {
+async function json<T>(path: string | null): Promise<T | null> {
+  if (!path) return null;
   try {
     return JSON.parse(await readFile(path, "utf8")) as T;
   } catch {
@@ -101,7 +103,7 @@ export async function campaignSummaries(id: string, live?: (campaignId: string) 
     let cost: number | null = null;
     for (const r of receipts)
       if (r.executionManifest) {
-        const m = await json<{ costUsd?: number | null }>(join(dir, r.executionManifest.path));
+        const m = await json<{ costUsd?: number | null }>(runRecordPath(dir, r.executionManifest.path));
         if (typeof m?.costUsd === "number") cost = (cost ?? 0) + m.costUsd;
       }
     out.push({
@@ -153,7 +155,7 @@ export async function reusedUsage(id: string, campaign: Campaign) {
     const parts = [e?.inputTokens, e?.cacheReadTokens, e?.cacheWriteTokens].filter((x): x is number => typeof x === "number");
     if (!receiptsOf.has(o.campaignId)) receiptsOf.set(o.campaignId, await readReceipts(id, [o.campaignId]).catch(() => []));
     const r = receiptsOf.get(o.campaignId)!.filter((x) => x.jobId === o.jobId && x.status === "completed").sort((a, b) => a.attempt - b.attempt)[0];
-    const manifest = !synthetic && r?.executionManifest?.path.endsWith("execution-manifest.json") ? await json<{ costUsd?: number | null }>(join(dir, r.executionManifest.path)) : null;
+    const manifest = !synthetic && r?.executionManifest?.path.endsWith("execution-manifest.json") ? await json<{ costUsd?: number | null }>(runRecordPath(dir, r.executionManifest.path)) : null;
     out.set(j.id, {
       simulated: synthetic,
       tokensIn: synthetic || !parts.length ? null : parts.reduce((s, x) => s + x, 0),
