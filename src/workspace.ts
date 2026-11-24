@@ -16,8 +16,8 @@ import type { Campaign, CampaignContinuation, CampaignReceipt } from "./core/cam
 import { checkNewConfigurations, requireThat, validateAgents, validateComparisons, validateStudy } from "./core/validation.js";
 import { explainComparisons } from "./core/explain.js";
 import { measureNamedFieldProblem, PARTICIPANT_KINDS, participantProblems } from "./participant-knowledge.js";
-import { agentRefusal, ignoredName, inside, nameKey, realPath, windowsAliasProblem, within } from "./runtimes/guard.js";
-import { readJsonFile, unquotePath, windowsUnusableName } from "./files.js";
+import { agentRefusal, ignoredName, inside, nameKey, readChecked, realPath, windowsAliasProblem, within } from "./runtimes/guard.js";
+import { decodeText, encodingNote, readJsonFile, unquotePath, windowsUnusableName } from "./files.js";
 import { runtimeFor } from "./executor/runtimes.js";
 
 // dist/workspace.js or .test-build/src/workspace.js: walk up to the folder holding package.json.
@@ -102,6 +102,18 @@ export function sourceLocation(dir: string, kind: string, declaredValue: unknown
   if (existsSync(join(real, "study.json")) || existsSync(join(real, "human.json")))
     return { problem: `points at a study folder or human results (${shown}). Point it at the engine project itself` };
   return { path: real };
+}
+/**
+ * A source file of the study in `dir` that sourceLocation allowed (`real`), read as checked: the
+ * open file is the one that was checked, never a hard link or the study's human.json, even if
+ * another process swaps the file meanwhile (readChecked). Its text is decoded as a Windows or macOS
+ * program saved it (decodeText); `note` says how when that was not UTF-8 ("" otherwise). A refusal
+ * is a ReadRefused (its `problem` completes "Source '<id>' …").
+ */
+export async function readSourceText(dir: string, real: string, opts: { maxBytes?: number; name?: string } = {}) {
+  const bytes = await readChecked(real, { protect: [join(dir, "human.json")], maxBytes: opts.maxBytes });
+  const { text, encoding } = decodeText(bytes);
+  return { bytes, text, note: encodingNote(opts.name ?? basename(real), encoding) };
 }
 /**
  * A file the workbench may write in a study folder: inside the folder after resolving symlinks on
@@ -575,14 +587,44 @@ export async function readReceipts(id: string, campaignIds: string[]): Promise<C
   }
   return out;
 }
-/** Result bundles of the given campaigns (one bundle per campaign) for lineage analysis. */
+/** The error given to a completed receipt whose result file is not in the study (see receiptsWithResults). */
+export const RESULT_MISSING = "Recorded as completed, but its result file is not in the study (for example, a runs zip carried the record without it). Run the session again.";
+/**
+ * Receipts of the given campaigns as analyze and continue count them: a completed receipt whose
+ * result file (its output, results/<job>.json) is not a file in the campaign's run folder counts as
+ * a failed attempt, so its session is neither finished nor reused.
+ */
+export async function receiptsWithResults(id: string, campaignIds: string[]): Promise<CampaignReceipt[]> {
+  const out: CampaignReceipt[] = [];
+  for (const c of campaignIds) {
+    const dir = runDir(id, c);
+    for (const r of await readReceipts(id, [c])) {
+      const rel = r.status === "completed" ? r.output?.path : null;
+      const ok = r.status !== "completed" || (typeof rel === "string" && /^results\/[A-Za-z0-9_-]{1,400}\.json$/.test(rel) && !!lstatSync(join(dir, ...rel.split("/")), { throwIfNoEntry: false })?.isFile());
+      out.push(ok ? r : { ...r, status: "failed", output: null, error: RESULT_MISSING });
+    }
+  }
+  return out;
+}
+/**
+ * Result bundles of the given campaigns (one bundle per campaign) for lineage analysis. Read only
+ * from plain folders and files of the study: a link at runs/, runs/<campaign>/ or its results/
+ * (or a result file that is a link) could lead out of the study, and is refused.
+ */
 export async function readResults(id: string, study: Study, campaignIds: string[]): Promise<ResultBundle[]> {
   const bundles: ResultBundle[] = [];
+  const root = workspaceDir(id);
+  const linked = (p: string) => !!lstatSync(p, { throwIfNoEntry: false })?.isSymbolicLink();
   for (const c of campaignIds) {
     const dir = join(runDir(id, c), "results");
+    const link = [join(root, "runs"), runDir(id, c), dir].find(linked);
+    requireThat(!link, `${relative(root, link ?? "").split(sep).join("/")} in the study folder is a link. Results are read only from the study's own folders: replace the link with the folder itself.`);
     if (!existsSync(dir)) continue;
     const runs: RunResult[] = [];
-    for (const f of (await readdir(dir)).filter((x) => x.endsWith(".json"))) runs.push(await load<RunResult>(join(dir, f)));
+    for (const f of (await readdir(dir)).filter((x) => x.endsWith(".json"))) {
+      requireThat(lstatSync(join(dir, f)).isFile(), `runs/${c}/results/${f} is not a plain file (a link?). Results are read only from the study's own files: replace it with the file itself.`);
+      runs.push(await load<RunResult>(join(dir, f)));
+    }
     if (runs.length) bundles.push({ schemaVersion: "1.0", studyId: study.id, runs });
   }
   return bundles;

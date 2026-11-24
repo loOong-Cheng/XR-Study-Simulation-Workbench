@@ -7,8 +7,8 @@
 // on Windows, "human.json." / "human.json " (trailing dot or space), 8.3 short names (HUMAN~1.JSO)
 // and "human.json::$DATA" (a data stream) all open human.json. So every path is first resolved to
 // the names it really has on disk (realPath), and only then checked.
-import { existsSync, realpathSync, statSync } from "node:fs";
-import { readdir } from "node:fs/promises";
+import { constants, existsSync, lstatSync, realpathSync, statSync, type BigIntStats } from "node:fs";
+import { open, readdir } from "node:fs/promises";
 import path from "node:path";
 
 type Platform = NodeJS.Platform;
@@ -182,4 +182,71 @@ export async function agentFolderEntries(dir: string, root: string): Promise<str
   return (await readdir(dir, { withFileTypes: true }))
     .filter((e) => !ignoredName(e.name) && agentPathIn(realRoot, path.join(dir, e.name)))
     .map((e) => (e.isDirectory() ? e.name + "/" : e.name));
+}
+
+// ---------- reading a checked file ----------
+
+/** Why readChecked refused a file; `problem` completes "The file …" or "Source '<id>' …". */
+export class ReadRefused extends Error {
+  constructor(
+    readonly reason: "missing" | "not-file" | "link" | "hardlink" | "protected" | "changed" | "too-large",
+    readonly problem: string,
+  ) {
+    super(`The file ${problem}.`);
+  }
+}
+const sameFile = (a: BigIntStats, b: BigIntStats) => a.dev === b.dev && a.ino === b.ino;
+const changed = () => new ReadRefused("changed", "was replaced or moved while it was read. Try again; if this keeps happening, check what else changes the study folder");
+/** Test hooks: run before a checked file is opened and between opening and checking it (to put another file in its place). */
+export const readCheckedHooks: { beforeOpen?: (path: string) => void; afterOpen?: (path: string) => void } = {};
+/**
+ * The bytes of a file that was checked by its path (sourceLocation, agentPath, the screenshot
+ * route), read so that what is read is the file that was checked. Between a check by path and a
+ * read by path, another process could put another file there (a hard link to human.json, a link, a
+ * renamed file). So the file is opened once, without following a link in its last name
+ * (O_NOFOLLOW where the system has it), and the open file is checked:
+ * - a regular file with exactly one name on disk (a hard link's other name may be human.json);
+ * - not one of the `protect` files (same device and inode, e.g. the study's human.json);
+ * - still the file the checked path names, with one name, and the path still resolves to itself
+ *   (nothing on the way was replaced by a link meanwhile).
+ * Only then is it read, from that open file. A refusal is a ReadRefused with a plain message.
+ */
+export async function readChecked(real: string, opts: { protect?: string[]; maxBytes?: number } = {}): Promise<Buffer> {
+  const protectedFiles = (opts.protect ?? []).map((p) => statSync(p, { bigint: true, throwIfNoEntry: false })).filter((s): s is BigIntStats => !!s);
+  let fh: Awaited<ReturnType<typeof open>>;
+  readCheckedHooks.beforeOpen?.(real);
+  try {
+    // O_NONBLOCK: a pipe put in the file's place does not hang the read (no effect on regular files).
+    fh = await open(real, constants.O_RDONLY | (constants.O_NOFOLLOW ?? 0) | (constants.O_NONBLOCK ?? 0));
+  } catch (e) {
+    const code = (e as NodeJS.ErrnoException).code;
+    if (code === "ELOOP" || code === "EMLINK") throw new ReadRefused("link", "is a link now (it was checked as a plain file). Point at the file itself");
+    if (code === "ENOENT" || code === "ENOTDIR") throw new ReadRefused("missing", "does not exist");
+    if (code === "EISDIR") throw new ReadRefused("not-file", "is a folder, not a file");
+    throw new ReadRefused("missing", `cannot be opened (${code ?? "unknown error"})`);
+  }
+  try {
+    readCheckedHooks.afterOpen?.(real);
+    const st = await fh.stat({ bigint: true });
+    if (!st.isFile()) throw new ReadRefused("not-file", "is not a plain file");
+    if (protectedFiles.some((p) => sameFile(p, st))) throw new ReadRefused("protected", "is the study's human results (human.json), which are never shown or given to agents");
+    if (st.nlink === 0n) throw changed();
+    if (st.nlink !== 1n) throw new ReadRefused("hardlink", "has more than one name on disk (a hard link), which may be human results or run records. Copy the file instead of linking it");
+    let now: BigIntStats | undefined, resolved: string | null;
+    try {
+      now = lstatSync(real, { bigint: true, throwIfNoEntry: false });
+      resolved = realPath(real);
+    } catch {
+      resolved = null;
+    }
+    if (!now || !sameFile(now, st) || now.nlink !== 1n || resolved !== real)
+      throw changed();
+    const tooLarge = () => new ReadRefused("too-large", `is larger than ${Math.round(opts.maxBytes! / 1e6)} MB`);
+    if (opts.maxBytes !== undefined && st.size > BigInt(opts.maxBytes)) throw tooLarge();
+    const data = await fh.readFile();
+    if (opts.maxBytes !== undefined && data.length > opts.maxBytes) throw tooLarge();
+    return data;
+  } finally {
+    await fh.close().catch(() => undefined);
+  }
 }

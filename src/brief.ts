@@ -4,11 +4,11 @@
 // knowledge. It is saved as a file in the study folder (agent-brief.md) and mapped in workspace.json.
 import { createHash } from "node:crypto";
 import { existsSync, statSync } from "node:fs";
-import { readFile, stat, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AgentProtocol, Study } from "./core/types.js";
 import { requireThat, validateAgents, validateStudy } from "./core/validation.js";
-import { leakCheck } from "./sources.js";
+import { leakCheck, previewFile } from "./sources.js";
 import { readStudyFolder, readWorkspace, sourceLocation, studyWriteTarget } from "./workspace.js";
 
 const BRIEF_DESCRIPTION = "Task description for agents, without participant answers.";
@@ -22,19 +22,22 @@ export async function briefOverview(id: string, agents: { id: string; sourceIds:
   // The same rule as for agents: only a file the agents may get is previewed.
   const where = rel ? sourceLocation(ws.dir, src.kind, rel) : null;
   const path = where?.path ?? null;
-  const file = path && !(await stat(path)).isDirectory() ? await readFile(path) : null;
-  const text = file?.toString("utf8") ?? "";
+  // Read as checked (never a file swapped in after the check) and decoded as agents get it.
+  const { file: read, problem } = await previewFile(ws.dir, path, rel);
+  const file = read?.bytes ?? null;
+  const text = read?.text ?? "";
   return {
     id: src.id,
     label: src.label,
     description: src.description,
     path: rel,
-    problem: where?.problem ?? null,
+    problem: where?.problem ?? problem,
     exists: !!file && text.trim().length > 0,
     bytes: file?.length ?? 0,
     sha256: file ? createHash("sha256").update(file).digest("hex") : null,
     preview: text.slice(0, 6000),
     truncated: text.length > 6000,
+    notes: read?.note ?? "",
     configs: agents.filter((a) => a.sourceIds.includes(src.id)).map((a) => a.id),
     check: file ? await leakCheck(id, ws.study, text) : null,
   };

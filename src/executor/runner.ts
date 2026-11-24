@@ -16,14 +16,15 @@ import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent 
 import { claudeEffort, effortProblem, requireThat } from "../core/validation.js";
 import { claudeCommand, claudeProblem, readSettings, runtimeLimits, type Settings } from "../settings.js";
 import { claudeFeatures, killTree, spawnTree } from "./processes.js";
-import { changedApp, changedSources, listCampaigns, listWorkspaces, missingSources, readCampaign, readHuman, readReceipts, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
+import { changedApp, changedSources, listCampaigns, listWorkspaces, missingSources, readCampaign, readHuman, readReceipts, readSourceText, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
 import { appActions, runtimeFor, runtimeStatus, webxrCapabilities } from "./runtimes.js";
 import { runRecordPath } from "./archive.js";
 import { activeAttempts, appendLine, SERVER, serverAlive, stopLeftovers, unfinishedAttempts, writeMarker, type AttemptMarker } from "./attempts.js";
 import { joinScheduler, leaveScheduler, schedule, type Schedulable } from "./scheduler.js";
+import { LOADING, loadingInto, setBusyCheck, untilLoaded } from "./loading.js";
 import { compactStreamLine, ScreenshotIndex } from "./stream-log.js";
 import { backgroundText, trajectoryText } from "../participant-knowledge.js";
-import { agentFileList } from "../runtimes/guard.js";
+import { agentFileList, ReadRefused } from "../runtimes/guard.js";
 import { readText } from "../files.js";
 import { unfinishedCases } from "../runtimes/exposure.js";
 import { casesInOrder, designOrder } from "../core/fairness.js";
@@ -123,8 +124,18 @@ export function closeExecutor(workspaceId: string, campaignId: string) {
   requireThat(!ex || ex.paused || !ex.queue.length, "Sessions of this campaign are waiting to run. Stop them first.");
   registry.delete(key);
   opening.delete(key);
-  if (ex) leaveScheduler(ex);
+  if (ex) {
+    ex.closed = true;
+    leaveScheduler(ex);
+  }
 }
+// A runs zip is not loaded into a campaign whose sessions run or wait to run (see loading.ts).
+setBusyCheck((workspaceId, campaignId) => {
+  const ex = registry.get(`${workspaceId}::${campaignId}`);
+  if (ex?.running.size) return "Sessions of this campaign are running. Stop them, or wait until they end, then load the zip.";
+  if (ex?.queue.length) return "Sessions of this campaign are waiting to run. Stop them first, then load the zip.";
+  return null;
+});
 /**
  * Workbench shutdown (SIGINT/SIGTERM): every running session is stopped and recorded as
  * interrupted (with its usage so far); waiting ones stay not started. Resolves when their receipts
@@ -355,6 +366,8 @@ export class Executor implements Schedulable {
   mode: "agent" | "simulate" = "simulate";
   queue: string[] = [];
   running = new Map<string, ChildProcess | null>();
+  /** Closed (closeExecutor), e.g. for a runs zip: the next open reads the campaign from disk again. */
+  closed = false;
   /** Why queued sessions wait when another campaign holds the free slots (see scheduler.ts), else null. */
   waiting: string | null = null;
   /** The current run of each running session (see RunHandle). */
@@ -382,6 +395,9 @@ export class Executor implements Schedulable {
     const key = `${workspaceId}::${campaignId}`;
     const open = registry.get(key);
     if (open) return open;
+    // Not from disk while a runs zip is written into it: wait until the zip is written.
+    await untilLoaded(workspaceId, campaignId);
+    if (registry.get(key)) return registry.get(key)!;
     let pending = opening.get(key);
     if (!pending) {
       const created = (async () => {
@@ -663,6 +679,7 @@ export class Executor implements Schedulable {
    */
   async start(mode: "agent" | "simulate", jobIds?: string[]) {
     requireThat(!shuttingDown, "The workbench is shutting down; start the sessions again after it restarts.");
+    this.notLoading();
     const candidates = this.runnable(jobIds ?? [...this.jobs.keys()]).filter((id) => !this.running.has(id));
     requireThat(candidates.length > 0, "Nothing to run: every selected session is finished, reused or already running.");
     const busy = this.queue.length + this.running.size > 0;
@@ -679,6 +696,8 @@ export class Executor implements Schedulable {
         blocked.map((b) => `${b.message} Needed by: ${b.configs.join(", ")}.`).join(" "),
       );
     }
+    // Checked again after the awaits above, with nothing awaited from here until the sessions are queued.
+    this.notLoading();
     this.mode = mode;
     const added = candidates.filter((id) => !this.queue.includes(id));
     this.queue.push(...added);
@@ -695,11 +714,20 @@ export class Executor implements Schedulable {
     return this.snapshot();
   }
   /**
+   * Sessions start only while no runs zip is loaded into this campaign or one it continues, and only
+   * through the campaign's current executor (one closed for a loaded zip has left the scheduler).
+   */
+  private notLoading() {
+    requireThat(!loadingInto(this.workspaceId, this.campaign), LOADING);
+    requireThat(!this.closed, "The runs of this campaign were reloaded meanwhile (a runs zip was loaded). Reload the page and start again.");
+  }
+  /**
    * Continue after Pause: only the sessions that were waiting in the queue start. Stop empties the
    * queue, so stopped sessions run again only through Start or Rerun failed, which check what blocks
    * them (and, in the website, ask before real sessions start).
    */
   resume() {
+    this.notLoading();
     this.queue = this.queue.filter((id) => this.jobs.get(id)?.status === "queued");
     requireThat(
       this.queue.length > 0 || this.running.size > 0,
@@ -1171,16 +1199,19 @@ export class Executor implements Schedulable {
     const injected: PromptSection[] = [];
     for (const id of a.sourceIds) {
       const kind = kindOf(id);
-      const path = src(id);
+      // Checked again just before reading: a source that changed since missingSources is refused with its reason.
+      const where = sourceLocation(wsDir, kind ?? "", this.manifest.sources?.[id]);
+      requireThat(!kind || kind === "objective-records" || where.path, `Source '${id}' (${labelOf(id)}) ${where.problem}.`);
+      const path = where.path ?? null;
       if (kind === "brief" || kind === "evidence")
-        injected.push({ sourceId: id, title: kind === "brief" ? "Study brief" : `Knowledge: ${labelOf(id)}`, content: await readFile(path!, "utf8") });
+        injected.push({ sourceId: id, title: kind === "brief" ? "Study brief" : `Knowledge: ${labelOf(id)}`, content: await sourceContent(wsDir, id, labelOf(id), path!) });
       else if (kind === "project") {
         // The same files list_files and read_file give: nothing hidden from agents is named.
         const files = (await agentFileList(path!)).join("\n");
         // The same one line for every configuration that can read files (its content, hashed for the audit, is the list).
         injected.push({ sourceId: id, title: "Project files you can open with read_file", content: files, ...(a.tools.includes("read-files") ? { note: READ_FILES_LINE } : {}) });
       } else if (kind === "demographics")
-        injected.push({ sourceId: id, title: `Participant background: ${labelOf(id)} (allowed fields only)`, content: await demographics(path, study.sources.find((s) => s.id === id)!.fields ?? [], job.participantId, study.participants.map((p) => p.id)) });
+        injected.push({ sourceId: id, title: `Participant background: ${labelOf(id)} (allowed fields only)`, content: await demographics(path, study.sources.find((s) => s.id === id)!.fields ?? [], job.participantId, study.participants.map((p) => p.id), { wsDir, id, label: labelOf(id) }) });
       else if (kind === "trajectory")
         injected.push({ sourceId: id, title: `This participant's recorded movement: ${labelOf(id)} (allowed fields only)`, content: await trajectory(path, job.participantId, study.sources.find((s) => s.id === id)!.fields ?? [], study.sources.find((s) => s.id === id)!.phases) });
     }
@@ -1804,11 +1835,24 @@ function totalInput(e: { inputTokens: number | null; cacheReadTokens: number | n
   const parts = [e.inputTokens, e.cacheReadTokens, e.cacheWriteTokens].filter((x): x is number => typeof x === "number");
   return parts.length ? parts.reduce((s, x) => s + x, 0) : null;
 }
+/**
+ * A brief or evidence file as injected: read as checked (the open file is the one sourceLocation
+ * allowed, never a file swapped in after the check) and decoded as saved (UTF-16, Windows-1252).
+ */
+async function sourceContent(wsDir: string, id: string, label: string, path: string): Promise<string> {
+  try {
+    return (await readSourceText(wsDir, path)).text;
+  } catch (e) {
+    if (e instanceof ReadRefused) throw new Error(`Source '${id}' (${label}) ${e.problem}.`);
+    throw e;
+  }
+}
 /** Allowed demographic fields: the person's row, or a cohort summary for population configs. */
-async function demographics(path: string | null, fields: string[], participantId: string | undefined, people: string[]): Promise<string> {
+async function demographics(path: string | null, fields: string[], participantId: string | undefined, people: string[], source?: { wsDir: string; id: string; label: string }): Promise<string> {
   if (!path || !existsSync(path)) return "(no participant background file declared)";
-  // Also a table Excel saved as Windows-1252 or UTF-16.
-  return backgroundText(await readText(path), fields, participantId, people);
+  // Also a table Excel saved as Windows-1252 or UTF-16; a file is read as checked (see sourceContent).
+  const text = source && statSync(path).isFile() ? await sourceContent(source.wsDir, source.id, source.label, path) : await readText(path);
+  return backgroundText(text, fields, participantId, people);
 }
 /**
  * A participant's movement recordings, only the ID column and the declared fields: from a CSV with

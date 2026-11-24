@@ -2,13 +2,15 @@
 // workspace for the analyzer. The zip carries the campaign and its ancestors so
 // reused results can be matched to the campaign that executed them.
 import { createHash, randomUUID } from "node:crypto";
+import { homedir } from "node:os";
 import { existsSync, lstatSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { lstat, mkdir, readFile, readdir, rename, rm, rmdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, join, resolve, sep } from "node:path";
 import { verifyCampaign, type Campaign, type CampaignReceipt } from "../core/campaign.js";
 import { requireThat } from "../core/validation.js";
-import { listCampaigns, readCampaign, runDir, studyWriteTarget, workspaceDir } from "../workspace.js";
+import { listCampaigns, readCampaign, repoRoot, runDir, studyWriteTarget, workspaceDir } from "../workspace.js";
+import { holdForLoading } from "./loading.js";
 import { readJsonFile } from "../files.js";
 
 const JSZip = createRequire(import.meta.url)("jszip") as typeof import("jszip");
@@ -154,6 +156,144 @@ export interface ExportSkipped {
   unfinished: number;
   /** Files whose names a zip cannot carry safely (see zipNameProblem), or that would be one file on another disk. */
   names: number;
+  /** Files whose contents Load runs zip would refuse (see `reasons`): a saved zip always loads. */
+  invalid: number;
+  /**
+   * Lines of receipts.jsonl and events.jsonl Load would refuse (not a record of this campaign, two
+   * different receipts of one attempt), and completed receipts whose result is missing or cannot be
+   * loaded (see `reasons`).
+   */
+  records: number;
+  /** Why files and records were left out for their contents, one line each (at most REASONS_KEPT). */
+  reasons: string[];
+}
+const REASONS_KEPT = 100;
+const leaveOut = (skipped: ExportSkipped, kind: "invalid" | "records", reason: string) => {
+  skipped[kind]++;
+  if (skipped.reasons.length < REASONS_KEPT) skipped.reasons.push(reason);
+  else if (skipped.reasons.length === REASONS_KEPT) skipped.reasons.push("… and more (counted above).");
+};
+
+/** What exportable receipts of one run folder (see exportableReceipts) leave in the zip. */
+interface ReceiptsForZip {
+  text: string | null;
+  finished: Set<string>;
+  completed: Set<string>;
+  /** Result files (results/<job>.json) a kept completed receipt names, checked as Load checks them. */
+  results: Map<string, Buffer>;
+  /** Result files left out for their contents. */
+  badResults: Set<string>;
+}
+/**
+ * The receipts of a run folder at one moment (receiptsSnapshot), as Load runs zip accepts them:
+ * lines that are not a receipt of this campaign are left out, so are all receipts of an attempt
+ * recorded twice with different contents, and completed receipts whose result file (results/<job>.json)
+ * is missing or not a session result Load accepts (Load requires it). Each is counted with its reason.
+ */
+async function exportableReceipts(dir: string, c: Campaign, skipped: ExportSkipped): Promise<ReceiptsForZip> {
+  const out: ReceiptsForZip = { text: null, finished: new Set(), completed: new Set(), results: new Map(), badResults: new Set() };
+  const { text } = await receiptsSnapshot(dir);
+  if (text === null) return out;
+  const valid: { line: string; r: CampaignReceipt }[] = [];
+  for (const line of lines(text)) {
+    let r: unknown;
+    try {
+      r = JSON.parse(line);
+    } catch {
+      leaveOut(skipped, "records", `runs/${c.id}/receipts.jsonl: a line that is not valid JSON.`);
+      continue;
+    }
+    const problem = receiptProblem(r, c);
+    if (problem) leaveOut(skipped, "records", `runs/${c.id}/receipts.jsonl ${problem}.`);
+    else valid.push({ line, r: r as CampaignReceipt });
+  }
+  const versions = new Map<string, Set<string>>();
+  for (const { r } of valid) versions.set(`${r.jobId}|${r.attempt}`, (versions.get(`${r.jobId}|${r.attempt}`) ?? new Set()).add(canonicalJson(r)));
+  // A completed session's result, as Load checks it (read once per file).
+  const resultOk = async (rel: unknown, jobId: string): Promise<string | null> => {
+    const name = `runs/${c.id}/${rel}`;
+    const e = typeof rel === "string" ? classify(name) : null;
+    if (!e || e.kind !== "result" || e.jobId !== jobId || zipNameProblem(name)) return `names no result file of its own (${String(rel).slice(0, 200)})`;
+    if (out.results.has(rel as string)) return null;
+    if (out.badResults.has(rel as string)) return "has a result that cannot be loaded";
+    const st = await lstat(join(dir, ...(rel as string).split("/"))).catch(() => null);
+    if (!st?.isFile()) return `has no result file (${rel})`;
+    const bytes = await readFile(join(dir, ...(rel as string).split("/")));
+    const problem = resultFileProblem(bytes, jobId);
+    if (problem) {
+      out.badResults.add(rel as string);
+      leaveOut(skipped, "invalid", `${name} ${problem}.`);
+      return "has a result that cannot be loaded";
+    }
+    out.results.set(rel as string, bytes);
+    return null;
+  };
+  const kept: string[] = [];
+  for (const { line, r } of valid) {
+    const what = `Session ${r.jobId}, attempt ${r.attempt} of campaign ${c.id}`;
+    if (versions.get(`${r.jobId}|${r.attempt}`)!.size > 1) {
+      leaveOut(skipped, "records", `${what} has two different receipts; neither is saved.`);
+      continue;
+    }
+    const missing = r.status === "completed" ? await resultOk(r.output?.path, r.jobId) : null;
+    if (missing) {
+      leaveOut(skipped, "records", `${what} is recorded as completed but ${missing}; its record is not saved.`);
+      continue;
+    }
+    kept.push(line);
+    out.finished.add(`${r.jobId}|${r.attempt}`);
+    if (r.status === "completed") out.completed.add(r.jobId);
+  }
+  out.text = kept.length === lines(text).length ? text : kept.map((l) => l + "\n").join("");
+  return out;
+}
+
+// ---------- paths of this machine in attempt records ----------
+
+/** What paths of the saving machine are replaced by in a zip's attempt records (manifest.json → paths). */
+export const PATH_PLACEHOLDERS = { "<repo>": "the workbench folder on the machine that saved the runs", "~": "the home folder there" } as const;
+const strictUtf8 = new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }); // a byte-order mark is kept as it was
+/**
+ * This machine's workbench folder and home folder, as written and with links resolved, each also
+ * as JSON writes it (backslashes doubled): longest first, so the workbench folder inside the home
+ * folder becomes "<repo>", not "~/…".
+ */
+function machinePaths(): { from: string; to: string }[] {
+  const out: { from: string; to: string }[] = [];
+  const add = (p: string, to: string) => {
+    let real = p;
+    try {
+      real = realpathSync(p);
+    } catch {
+      // as written
+    }
+    for (const v of new Set([p, real].map((x) => x.replace(/[\\/]+$/, ""))))
+      if (v.length > 3) for (const from of new Set([v, JSON.stringify(v).slice(1, -1)])) out.push({ from, to });
+  };
+  add(repoRoot, "<repo>");
+  add(homedir(), "~");
+  return out.sort((a, b) => b.from.length - a.from.length);
+}
+/**
+ * A text file of an attempt folder (mcp.json, job.json, prompt.md, logs) with this machine's
+ * workbench and home folders replaced by "<repo>" and "~" (only where a whole folder name ends), or
+ * null when it names neither or is not UTF-8 text (screenshots).
+ */
+export function withoutMachinePaths(data: Buffer, paths = machinePaths()): Buffer | null {
+  let text: string;
+  try {
+    text = strictUtf8.decode(data);
+  } catch {
+    return null;
+  }
+  let changed = false;
+  for (const { from, to } of paths) {
+    // Only where the folder's name ends: "/home/ann" is not replaced in "/home/anna" or "/home/ann.bak".
+    const re = new RegExp(from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "(?![A-Za-z0-9_-]|\\.[A-Za-z0-9_-])", "g");
+    const next = text.replace(re, to);
+    if (next !== text) (changed = true), (text = next);
+  }
+  return changed ? Buffer.from(text, "utf8") : null;
 }
 /**
  * Regular files under a folder, as paths relative to it ("/" separators). Links are never
@@ -185,8 +325,10 @@ export async function exportRunsReport(workspaceId: string, campaignId: string):
   const lineage = [...(campaign.lineage ?? []).map((d) => all.find((c) => c.digest === d)).filter((c): c is Campaign => !!c), campaign];
   const zip = new JSZip();
   const hashes: Record<string, string> = {};
-  const skipped: ExportSkipped = { notFiles: 0, unfinished: 0, names: 0 };
+  const skipped: ExportSkipped = { notFiles: 0, unfinished: 0, names: 0, invalid: 0, records: 0, reasons: [] };
   const taken = new Set<string>();
+  const paths = machinePaths();
+  let pathsReplaced = 0;
   for (const c of lineage) {
     const cj = JSON.stringify(c, null, 2) + "\n";
     zip.file(`campaigns/${c.id}/campaign.json`, cj);
@@ -202,30 +344,65 @@ export async function exportRunsReport(workspaceId: string, campaignId: string):
     // One moment per campaign: the receipts are read first, and the zip holds exactly those, with
     // the results and attempt folders they name. A session that ends while the zip is written
     // comes with the next zip; a loaded zip never shows a session done without its result.
-    const { text: receipts, finished, completed } = await receiptsSnapshot(dir);
+    // Only what Load runs zip accepts is saved, checked the same way, so a saved zip always loads.
+    const receipts = await exportableReceipts(dir, c, skipped);
     for (const rel of await regularFiles(dir, skipped)) {
       const name = `runs/${c.id}/${rel}`;
       const e = classify(name);
-      if ((e?.kind === "job" && !finished.has(`${e.jobId}|${e.attempt}`)) || (e?.kind === "result" && !completed.has(e.jobId))) {
+      if (e?.kind === "result" && receipts.badResults.has(rel)) continue; // counted with its reason
+      if ((e?.kind === "job" && !receipts.finished.has(`${e.jobId}|${e.attempt}`)) || (e?.kind === "result" && !receipts.completed.has(e.jobId))) {
         skipped.unfinished++;
         continue;
       }
-      // Only what Load runs zip accepts, so a saved zip always loads.
       if (!e || zipNameProblem(name) || taken.has(foldName(name))) {
         skipped.names++;
         continue;
       }
+      let data: Buffer;
+      if (e.kind === "receipts") data = Buffer.from(receipts.text ?? "", "utf8");
+      else if (e.kind === "events") {
+        const all = lines(wholeLines(await readFile(join(dir, rel), "utf8")));
+        const ok = all.filter((l) => {
+          try {
+            return eventProblem(JSON.parse(l)) === null;
+          } catch {
+            return false;
+          }
+        });
+        if (ok.length < all.length) leaveOut(skipped, "records", `${name}: ${all.length - ok.length} line(s) that are not executor events.`);
+        data = Buffer.from(ok.map((l) => l + "\n").join(""), "utf8");
+      } else data = receipts.results.get(rel) ?? (await readFile(join(dir, ...rel.split("/"))));
+      if (e.kind === "job") {
+        // This machine's folders (workbench, home and user name) stay on this machine.
+        const replaced = withoutMachinePaths(data, paths);
+        if (replaced) (data = replaced), pathsReplaced++;
+      }
+      const problem =
+        e.kind === "job" && isText(name) ? attemptFileProblem(e.file, e.jobId, data.toString("utf8")) : e.kind === "result" && !receipts.results.has(rel) ? resultFileProblem(data, e.jobId) : null;
+      if (problem) {
+        leaveOut(skipped, "invalid", `${name} ${problem}.`);
+        continue;
+      }
       taken.add(foldName(name));
-      const data =
-        e.kind === "receipts" ? Buffer.from(receipts ?? "", "utf8") : e.kind === "events" ? Buffer.from(wholeLines(await readFile(join(dir, rel), "utf8")), "utf8") : await readFile(join(dir, ...rel.split("/")));
       zip.file(name, data);
+      // Over what the zip holds (after any replacement above).
       hashes[name] = sha(data);
     }
   }
   zip.file(
     "manifest.json",
     JSON.stringify(
-      { schemaVersion: "xr-study-runs/1", workspace: workspaceId, campaign: campaign.id, campaignDigest: campaign.digest, exportedAt: new Date().toISOString(), skipped, files: hashes },
+      {
+        schemaVersion: "xr-study-runs/1",
+        workspace: workspaceId,
+        campaign: campaign.id,
+        campaignDigest: campaign.digest,
+        exportedAt: new Date().toISOString(),
+        skipped,
+        // Records name folders of the saving machine only as placeholders; their checksums in receipts are of the files as written there.
+        paths: { replaced: PATH_PLACEHOLDERS, files: pathsReplaced },
+        files: hashes,
+      },
       null,
       2,
     ),
@@ -321,6 +498,14 @@ function runResultProblem(x: unknown, jobId: string): string | null {
   if (!Array.isArray(x.trace) || !x.trace.every((t) => isObj(t) && isStr(t.type))) return "has an invalid trace";
   return null;
 }
+/** runResultProblem of a file's bytes (also when they are not JSON). */
+function resultFileProblem(bytes: Buffer, jobId: string): string | null {
+  try {
+    return runResultProblem(JSON.parse(bytes.toString("utf8")), jobId);
+  } catch {
+    return "is not valid JSON";
+  }
+}
 /** Why a line of receipts.jsonl is not a receipt of a session of campaign `c`, or null. */
 function receiptProblem(r: unknown, c: Campaign): string | null {
   if (!isObj(r)) return "has a line that is not a receipt";
@@ -377,15 +562,26 @@ function attemptFileProblem(file: string, jobId: string, text: string): string |
   if (file.startsWith("app-logs/")) return appLogProblem(file, x);
   return null;
 }
+const APP_LOG_KEYS = ["design", "entries", "opened", "savedAt"];
 /**
  * Why a file in an attempt's app-logs/ is not an app log as the WebXR runtime writes it, or null:
  * app-logs/<nn>-<design>.json holding {design, opened, savedAt, entries} (entries: what the app's
- * window.xrStudy.log() returned, any JSON).
+ * window.xrStudy.log() returned, any JSON). Runs saved before that format hold what log() returned
+ * as it is (any JSON), and load too; a file with exactly the keys of the format is checked as one.
  */
 function appLogProblem(file: string, x: unknown): string | null {
-  return /^app-logs\/\d{2,6}-[A-Za-z0-9_-]{1,200}\.json$/.test(file) && isObj(x) && isStr(x.design) && isNum(x.opened) && isStr(x.savedAt) && "entries" in x ? null : "is not an app log";
+  if (!/^app-logs\/\d{2,6}-[A-Za-z0-9_-]{1,200}\.json$/.test(file)) return "is not an app log";
+  const current = isObj(x) && Object.keys(x).sort().join() === APP_LOG_KEYS.join();
+  return !current || (isStr(x.design) && isNum(x.opened) && isStr(x.savedAt)) ? null : "is not an app log";
 }
 const isText = (name: string) => /\.jsonl?$/.test(name);
+/**
+ * What to do about a zip whose contents Load refuses: Save runs as zip in this version checks
+ * them the same way and leaves out what would be refused (manifest.json → skipped says what), so
+ * saving again where the sessions ran gives a zip that loads.
+ */
+const RESAVE =
+  "Save the runs again on the machine that ran these sessions, with this version of the workbench: it leaves out what cannot be loaded and lists it in the zip's manifest.json (skipped).";
 
 // ---------- the disk the zip is loaded onto ----------
 
@@ -500,7 +696,10 @@ async function writeAll(root: string, writes: Write[]) {
  *   writes it), belongs to this study, and matches a campaign of the same ID already here; runs
  *   only for campaigns in the zip or here, and only for their sessions; checksums of every file;
  * - contents: receipts, events, results and the records of attempt folders have the types the
- *   exporter writes; files a receipt names are inside the campaign's run folder.
+ *   exporter writes; files a receipt names are inside the campaign's run folder; a completed
+ *   receipt comes with its result file (in the zip or here already).
+ * From the manifest on, the campaigns it writes to are held (loading.ts): refused while their
+ * sessions run or wait to run, and none of them starts until the zip is written.
  * Files of attempts without a receipt (in the zip or here) are not loaded: an executor never
  * reuses an attempt folder, so they could only be planted. Existing files are never overwritten,
  * with two exceptions that keep the records consistent: receipts.jsonl and events.jsonl are
@@ -532,7 +731,7 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
   // 2. The manifest: which files, with which checksums.
   const manifestFile = zip.file("manifest.json");
   requireThat(manifestFile, "This zip has no manifest.json; export runs from the executor.");
-  let manifest: { files?: unknown; campaign?: unknown; skipped?: unknown };
+  let manifest: ManifestOfZip;
   try {
     manifest = JSON.parse((await unpack(manifestFile!, true)).bytes!.toString("utf8"));
   } catch (e) {
@@ -543,7 +742,28 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
     listed && typeof listed === "object" && !Array.isArray(listed) && Object.values(listed).every((d) => typeof d === "string" && /^[0-9a-f]{64}$/.test(d)),
     "This zip's manifest.json is not valid; save the runs again with Save runs as zip.",
   );
-
+  // The campaigns the zip files runs under are held from here until it is written: none of their
+  // sessions starts meanwhile, and none may be running or waiting now (see loading.ts).
+  const ids = new Set(Object.keys(listed as object).map(campaignFolder).filter((c): c is string => !!c));
+  if (typeof manifest.campaign === "string") ids.add(manifest.campaign);
+  const hold = holdForLoading(workspaceId, ids);
+  try {
+    return await loadChecked(workspaceId, root, zip, manifest, listed as Record<string, string>, hold, beforeWrite);
+  } finally {
+    hold.release();
+  }
+}
+type ManifestOfZip = { files?: unknown; campaign?: unknown; skipped?: unknown };
+/** The rest of importRuns, while its campaigns are held: names, campaigns, records, contents, then writing. */
+async function loadChecked(
+  workspaceId: string,
+  root: string,
+  zip: Awaited<ReturnType<typeof JSZip.loadAsync>>,
+  manifest: ManifestOfZip,
+  listed: Record<string, string>,
+  hold: ReturnType<typeof holdForLoading>,
+  beforeWrite?: (campaignIds: string[]) => void,
+) {
   // 3. Names and kinds of file, before unpacking any of them.
   const planned: (Entry & { digest: string })[] = [];
   const byFold = new Map<string, string>();
@@ -609,12 +829,15 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
     requireThat(c, `The zip has runs of campaign ${e.campaign}, but neither the zip nor this study has that campaign.`);
     if (e.kind === "result" || e.kind === "job") requireThat(c!.jobs.some((j) => j.id === e.jobId), `The zip has runs of a session that campaign ${e.campaign} does not have (${short(e.jobId)}).`);
   }
+  // Continuations name the campaigns they continue by digest: theirs do not start either meanwhile.
+  hold.digests(planned.map((e) => campaignOf(e.campaign)?.digest).filter((d): d is string => !!d));
 
   // 5. Append-only records: the lines this study lacks. Receipts are matched by session attempt.
   const appends: Write[] = [];
   const receiptsHere = new Map<string, Set<string>>(); // campaign → attempts with a receipt here ("job|attempt")
   const receiptsZip = new Map<string, Set<string>>(); // campaign → attempts with a receipt in the zip
   const receiptsNew = new Map<string, Set<string>>(); // campaign → attempts whose receipt the zip adds
+  const completedInZip: { campaign: string; r: CampaignReceipt }[] = [];
   let newReceipts = 0;
   for (const e of planned.filter((x) => x.kind === "receipts" || x.kind === "events")) {
     const c = campaignOf(e.campaign)!;
@@ -628,10 +851,10 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
       try {
         x = JSON.parse(l);
       } catch {
-        throw new Error(`${e.kind}.jsonl of campaign ${e.campaign} ${where} has a line that is not valid JSON.`);
+        throw new Error(`${e.kind}.jsonl of campaign ${e.campaign} ${where} has a line that is not valid JSON.${where === "in the zip" ? ` ${RESAVE}` : ""}`);
       }
       const p = problem(x);
-      requireThat(!p, `${e.kind}.jsonl of campaign ${e.campaign} ${where} ${p}.`);
+      requireThat(!p, `${e.kind}.jsonl of campaign ${e.campaign} ${where} ${p}.${where === "in the zip" ? ` ${RESAVE}` : ""}`);
       return x;
     };
     if (e.kind === "events") {
@@ -667,6 +890,7 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
       const r = receipt(l, "in the zip");
       const key = receiptKey(r);
       receiptsZip.set(e.campaign, (receiptsZip.get(e.campaign) ?? new Set()).add(`${r.jobId}|${r.attempt}`));
+      if (r.status === "completed") completedInZip.push({ campaign: e.campaign, r });
       const mine = byKey.get(key);
       if (mine === undefined) {
         byKey.set(key, r);
@@ -676,7 +900,7 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
         requireThat(
           canonicalJson(mine) === canonicalJson(r),
           receiptsNew.get(e.campaign)?.has(`${r.jobId}|${r.attempt}`)
-            ? `The zip has two different records of session ${short(r.jobId)}, attempt ${r.attempt} of campaign ${e.campaign}. Save the runs again with Save runs as zip.`
+            ? `The zip has two different records of session ${short(r.jobId)}, attempt ${r.attempt} of campaign ${e.campaign}. ${RESAVE}`
             : `Session ${short(r.jobId)}, attempt ${r.attempt} of campaign ${e.campaign} was run both here and in the zip, with different records. Load the zip into a fresh copy of the study, or delete this campaign here first.`,
         );
     }
@@ -688,6 +912,19 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
     if (e.kind === "job" && !receiptsHere.has(e.campaign)) receiptsHere.set(e.campaign, await finishedAttempts(runDir(workspaceId, e.campaign)));
   const finished = (e: { campaign: string; jobId: string; attempt: number }) =>
     !!receiptsHere.get(e.campaign)?.has(`${e.jobId}|${e.attempt}`) || !!receiptsZip.get(e.campaign)?.has(`${e.jobId}|${e.attempt}`);
+  // A session recorded as completed comes with its result (results/<job>.json), in the zip or here
+  // already: the analyzer reads it, and progress and continuations count the session as finished.
+  const names = new Set(planned.map((e) => e.name));
+  for (const { campaign, r } of completedInZip) {
+    const rel = r.output?.path;
+    const name = `runs/${campaign}/${rel}`;
+    const own = typeof rel === "string" && classify(name)?.kind === "result" && (classify(name) as { jobId: string }).jobId === r.jobId;
+    const path = own ? runRecordPath(runDir(workspaceId, campaign), rel) : null;
+    requireThat(
+      own && (names.has(name) || !!(path && lstatSync(path, { throwIfNoEntry: false })?.isFile())),
+      `The zip records session ${short(r.jobId)} (attempt ${r.attempt}) of campaign ${campaign} as completed, but neither the zip nor this study has its result (${short(String(rel ?? "none named"))}). ${RESAVE}`,
+    );
+  }
 
   // 6. Every other file: checksum and contents, then new, already here, or the finished version of an attempt seen unfinished here.
   const writes: Write[] = [];
@@ -706,14 +943,9 @@ export async function importRuns(workspaceId: string, data: Buffer, beforeWrite?
     const { digest, bytes } = await unpack(zip.file(e.name)!, write || isText(e.name));
     requireThat(digest === e.digest, `Checksum mismatch: ${short(e.name)}.`);
     let problem: string | null = null;
-    if (e.kind === "result")
-      try {
-        problem = runResultProblem(JSON.parse(bytes!.toString("utf8")), e.jobId);
-      } catch {
-        problem = "is not valid JSON";
-      }
+    if (e.kind === "result") problem = resultFileProblem(bytes!, e.jobId);
     else if (e.kind === "job" && isText(e.name)) problem = attemptFileProblem(e.file, e.jobId, bytes!.toString("utf8"));
-    requireThat(!problem, `${short(e.name)} in this zip ${problem}. Save the runs again with Save runs as zip.`);
+    requireThat(!problem, `${short(e.name)} in this zip ${problem}. ${RESAVE}`);
     if (write) {
       if (!exists || sha(await readFile(target)) !== digest) writes.push({ campaign: e.campaign, target, bytes: bytes!, replace: exists });
       else kept++;

@@ -5,8 +5,8 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { appendFile, readFile, stat, writeFile } from "node:fs/promises";
-import { join, relative, resolve, sep } from "node:path";
-import { agentFolderEntries, agentPath, realPath, windowsAliasProblem, within } from "./guard.js";
+import { dirname, join, relative, resolve, sep } from "node:path";
+import { agentFolderEntries, agentPath, readChecked, ReadRefused, realPath, windowsAliasProblem, within } from "./guard.js";
 import { traceEvents, unfinishedCases } from "./exposure.js";
 import { acceptedCalls, budgetNearlyUsed, serveMcp, takeToolCall, text, ToolError, type Tool } from "./mcp.js";
 import { checkForecast, submitDescription } from "../core/forecast-format.js";
@@ -97,6 +97,20 @@ const projectRoot = (() => {
     return null;
   }
 })();
+/**
+ * human.json files read_file never returns, compared by device and inode (see readChecked): the
+ * one of the study this session belongs to (the first folder with a study.json above the attempt
+ * folder) and one at the top of the project folder.
+ */
+const protectedFiles = (() => {
+  const out = projectRoot ? [join(projectRoot, "human.json")] : [];
+  for (let d = jobDir, up = dirname(d); up !== d; d = up, up = dirname(d))
+    if (existsSync(join(d, "study.json"))) {
+      out.push(join(d, "human.json"));
+      break;
+    }
+  return out;
+})();
 /** Project-relative path for the trace, with "/" on every system. */
 const shown = (p: string) => relative(projectRoot!, p).split(sep).join("/") || ".";
 function inside(path: string, what: "file" | "folder"): string {
@@ -135,8 +149,14 @@ if (spec.projectDir) {
       async handler(args) {
         await countCall("read_file");
         const file = inside(String(args.path ?? ""), "file");
-        if (!(await stat(file)).isFile()) throw new ToolError("No such file.");
-        const data = await readFile(file);
+        // The open file is checked, not the path again: a file swapped in after the check is refused.
+        let data: Buffer;
+        try {
+          data = await readChecked(file, { protect: protectedFiles });
+        } catch (e) {
+          if (!(e instanceof ReadRefused)) throw e;
+          throw new ToolError(e.reason === "missing" || e.reason === "not-file" ? "No such file." : "This path is not available to agents.");
+        }
         await log({
           tool: "read_file",
           path: shown(file),

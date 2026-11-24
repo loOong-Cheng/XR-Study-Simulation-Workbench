@@ -4,7 +4,7 @@
 import { after, test } from "node:test";
 import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, linkSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { cp, mkdir, mkdtemp, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { request } from "node:http";
 import { createRequire } from "node:module";
@@ -576,5 +576,175 @@ test("campaign delete: two requests at once; the second is told it was already d
     assert.equal((await readdir(join(a.dir, "deleted"))).length, 1);
   } finally {
     await removeDir(a.dir);
+  }
+});
+
+// ---------- checked reads: the open file is checked, not the path a second time ----------
+
+/**
+ * V3b's swapper, one step at a time: `target` becomes a second name of `human` (a hard link) or a
+ * plain file again, each by an atomic rename, as another process on the machine could do.
+ */
+const toHuman = (target: string, human: string) => {
+  rmSync(target + ".hl", { force: true });
+  linkSync(human, target + ".hl");
+  renameSync(target + ".hl", target);
+};
+const toPlain = (target: string, text = "PLAIN-EVIDENCE\n") => {
+  writeFileSync(target + ".plain", text);
+  renameSync(target + ".plain", target);
+};
+
+test("checked reads: a source swapped for a hard link to human.json between the check and the read is never returned", async () => {
+  const { readChecked, readCheckedHooks, ReadRefused } = await import("../src/runtimes/guard.js");
+  const { sourceText, evidenceOverview } = await import("../src/sources.js");
+  const { briefOverview } = await import("../src/brief.js");
+  const { screenshotBytes, screenshotFile } = await import("../src/routes.js");
+  const { readWorkspace, saveCampaign, runDir, readResults } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  const outside = await mkdtemp(join(tmpdir(), "xr-results-elsewhere-"));
+  const human = join(a.dir, "human.json");
+  const secret = await readFile(human, "utf8");
+  const evidence = join(a.dir, "evidence", "toy-evidence.md");
+  const brief = join(a.dir, "agent-brief.md");
+  /** Swaps around the open of `target` (its real path): `before` just before it is opened, `after` right after. */
+  const around = (target: string, before?: (p: string) => void, after?: (p: string) => void) => {
+    const real = realpathSync(target);
+    readCheckedHooks.beforeOpen = (p) => p === real && before?.(p);
+    readCheckedHooks.afterOpen = (p) => p === real && after?.(p);
+  };
+  const clear = () => {
+    delete readCheckedHooks.beforeOpen;
+    delete readCheckedHooks.afterOpen;
+  };
+  const reason = (p: Promise<unknown>) => p.then(() => "read", (e) => (e instanceof ReadRefused ? e.reason : String(e)));
+  try {
+    toPlain(evidence);
+    assert.equal((await readChecked(realpathSync(evidence), { protect: [human] })).toString(), "PLAIN-EVIDENCE\n");
+    // Opened while it was a second name of human.json, plain again before the open file is checked:
+    // the open file is human.json (by device and inode); without that list, it is no longer the file the path names.
+    around(evidence, (p) => toHuman(p, human), (p) => toPlain(p));
+    assert.equal(await reason(readChecked(realpathSync(evidence), { protect: [human] })), "protected");
+    assert.equal(await reason(readChecked(realpathSync(evidence))), "changed");
+    // Still a hard link when checked; replaced after it was opened; a link put in its place.
+    around(evidence, (p) => toHuman(p, human));
+    assert.equal(await reason(readChecked(realpathSync(evidence))), "hardlink");
+    toPlain(evidence);
+    around(evidence, undefined, (p) => toHuman(p, human));
+    assert.equal(await reason(readChecked(realpathSync(evidence))), "changed");
+    toPlain(evidence);
+    around(evidence, (p) => (rmSync(p), symlinkSync(human, p)));
+    assert.equal(await reason(readChecked(realpathSync(evidence))), "link");
+    clear();
+    toPlain(evidence);
+
+    // The website's source preview, the evidence tab and the brief: refused with a plain message, never human data.
+    around(evidence, (p) => toHuman(p, human), (p) => toPlain(p));
+    const text = await sourceText(a.id, "evidence").then(String, (e: Error) => e.message);
+    assert.match(text, /^Source 'evidence' is the study's human results/);
+    const [ev] = await evidenceOverview(a.id, []);
+    assert.equal(ev.exists, false);
+    assert.match(ev.problem ?? "", /human results/);
+    assert.ok(!JSON.stringify(ev).includes(secret.slice(0, 40)));
+    clear();
+    around(brief, (p) => toHuman(p, human), (p) => toPlain(p, "BRIEF\n"));
+    const b = await briefOverview(a.id, []);
+    assert.equal(b?.exists, false);
+    assert.match(b?.problem ?? "", /human results/);
+    clear();
+    toPlain(evidence);
+    assert.equal(await sourceText(a.id, "evidence"), "PLAIN-EVIDENCE\n");
+
+    // Brief and evidence are decoded as saved (UTF-16, Windows-1252), with a note, and the leak check reads the decoded text.
+    toPlain(evidence, "");
+    await writeFile(evidence, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("Participant p01 rated 3.42.\n", "utf16le")]));
+    const [utf16] = await evidenceOverview(a.id, []);
+    assert.equal(utf16.preview, "Participant p01 rated 3.42.\n");
+    assert.match(utf16.notes, /Read as UTF-16LE/);
+    assert.equal(utf16.check?.participantIds, 1);
+    assert.match(await sourceText(a.id, "evidence"), /^\(Read as UTF-16LE[^\n]*\)\n\nParticipant p01 rated 3\.42\.\n$/);
+    await writeFile(brief, Buffer.from([0x63, 0x61, 0x66, 0xe9, 0x0a])); // "café" in Windows-1252
+    const cp1252 = await briefOverview(a.id, []);
+    assert.equal(cp1252?.preview, "café\n");
+    assert.match(cp1252?.notes ?? "", /Windows-1252/);
+
+    // Screenshots: read from the file that was checked, and never through a link, even to another file of the run folder.
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(smallPlan(ws, 1), undefined, "checked-reads", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const shots = join(runDir(a.id, c.id), "jobs", c.jobs[0].id, "a1", "screenshots");
+    await mkdir(shots, { recursive: true });
+    await writeFile(join(shots, "s1.png"), "png");
+    const rel = (n: string) => `jobs/${c.jobs[0].id}/a1/screenshots/${n}`;
+    assert.equal((await screenshotBytes(a.id, c.id, rel("s1.png"))).toString(), "png");
+    around(join(shots, "s1.png"), (p) => toHuman(p, human), (p) => toPlain(p, "png"));
+    await assert.rejects(screenshotBytes(a.id, c.id, rel("s1.png")), /^Error: Not found\.$/);
+    clear();
+    await writeFile(join(runDir(a.id, c.id), "receipts.jsonl"), "{}\n");
+    if (await link(join(runDir(a.id, c.id), "receipts.jsonl"), join(shots, "s2.png"))) assert.throws(() => screenshotFile(a.id, c.id, rel("s2.png")), /Not found/);
+
+    // Results are read only from the study's own folders: a linked results/ folder is refused.
+    await mkdir(join(outside, "results"));
+    if (await link(join(outside, "results"), join(runDir(a.id, c.id), "results"), "dir"))
+      await assert.rejects(readResults(a.id, ws.study, [c.id]), /results in the study folder is a link/);
+  } finally {
+    clear();
+    await removeDir(a.dir);
+    await removeDir(outside);
+  }
+});
+
+test("checked reads: the executor injects a source only from the file that was checked, and says why it refused", async () => {
+  const { Executor } = await import("../src/executor/runner.js");
+  const { readCheckedHooks } = await import("../src/runtimes/guard.js");
+  const { readWorkspace, saveCampaign, runDir } = await import("../src/workspace.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  const bin = await mkdtemp(join(tmpdir(), "fake-claude-"));
+  // A stand-in for `claude -p` that ends at once without a forecast (the prompt is written before it starts).
+  await writeFile(join(bin, "claude.cjs"), `console.log(JSON.stringify({ type: "result", subtype: "success", usage: { input_tokens: 1, output_tokens: 1 }, num_turns: 1 }));`);
+  await writeFile(join(bin, "settings.json"), JSON.stringify({ claudePath: join(bin, "claude.cjs") }));
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  const human = join(a.dir, "human.json");
+  const secret = (await readFile(human, "utf8")).slice(0, 40);
+  const evidence = join(a.dir, "evidence", "toy-evidence.md");
+  try {
+    const ws = await readWorkspace(a.id);
+    const study = { ...ws.study, analysis: { ...ws.study.analysis, contrasts: [] } };
+    const c = campaignFromPlan(freezePlan(study, ws.agents!.filter((x) => x.id === "reads-evidence").map((x) => ({ ...x, repetitions: 3 })), 1), undefined, "checked-inject", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const ex = await Executor.open(a.id, c.id);
+    const jobs = [...ex.jobs.keys()];
+    const run = async (job: string) => {
+      await ex.start("agent", [job]);
+      await until(() => !["queued", "running"].includes(ex.snapshot().jobs.find((j) => j.jobId === job)!.status), "the session to end", { executor: ex });
+      return ex.snapshot().jobs.find((j) => j.jobId === job)!;
+    };
+    const prompt = (job: string) => join(runDir(a.id, c.id), "jobs", job, "a1", "prompt.md");
+    const real = realpathSync(evidence);
+    // Swapped for a hard link to human.json just before it is opened, plain again right after.
+    readCheckedHooks.beforeOpen = (p) => p === real && toHuman(p, human);
+    readCheckedHooks.afterOpen = (p) => p === real && toPlain(p);
+    let s = await run(jobs[0]);
+    assert.equal(s.status, "failed");
+    assert.match(s.error ?? "", /^Source 'evidence' \([^)]*\) is the study's human results/);
+    assert.ok(!existsSync(prompt(jobs[0])) || !(await readFile(prompt(jobs[0]), "utf8")).includes(secret));
+    // A hard link (to another file) when read: a plain message too (never 'The "path" argument must be of type string').
+    await writeFile(join(a.dir, "copy.md"), "copy\n");
+    readCheckedHooks.beforeOpen = (p) => p === real && toHuman(p, join(a.dir, "copy.md"));
+    readCheckedHooks.afterOpen = undefined;
+    s = await run(jobs[1]);
+    assert.match(s.error ?? "", /^Source 'evidence' \([^)]*\) has more than one name on disk \(a hard link\)/);
+    delete readCheckedHooks.beforeOpen;
+    // A plain file saved as UTF-16 is injected as text.
+    toPlain(evidence);
+    await writeFile(evidence, Buffer.concat([Buffer.from([0xff, 0xfe]), Buffer.from("PLAIN-EVIDENCE in UTF-16\n", "utf16le")]));
+    s = await run(jobs[2]);
+    assert.match(await readFile(prompt(jobs[2]), "utf8"), /PLAIN-EVIDENCE in UTF-16\n/);
+  } finally {
+    delete readCheckedHooks.beforeOpen;
+    delete readCheckedHooks.afterOpen;
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(a.dir);
+    await removeDir(bin);
   }
 });

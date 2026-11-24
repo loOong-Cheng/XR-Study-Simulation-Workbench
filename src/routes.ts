@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 import { existsSync, statSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join, sep } from "node:path";
-import { realPath } from "./runtimes/guard.js";
+import { readChecked, ReadRefused, realPath } from "./runtimes/guard.js";
 import { choice, flag, int, object, objects, text, texts, type Body } from "./request.js";
 import { campaignFromPlan, campaignPlan, conditionModel, continueFromStatus, lineageJobIndex, type Campaign, type CampaignContinuation } from "./core/campaign.js";
 import { analyzeCampaign, mergeCampaignResults, simulatedJobIds, type CampaignAnalysis } from "./core/campaign-study.js";
@@ -20,6 +20,7 @@ import { understandStudy, explainResults } from "./assistant.js";
 import { briefOverview, saveBrief } from "./brief.js";
 import { closeExecutor, Executor, liveStatuses, receiptsChanged } from "./executor/runner.js";
 import { exportRunsReport, importRuns, runRecordPath } from "./executor/archive.js";
+import { LOADING, loadingInto } from "./executor/loading.js";
 import { runtimeFor, runtimeStatus } from "./executor/runtimes.js";
 import { approvalState, approve } from "./review.js";
 import { readSettings, writeSettings, type Settings } from "./settings.js";
@@ -43,6 +44,8 @@ import {
   rerunChangedSources,
   rerunChangedApp,
   changedApp,
+  receiptsWithResults,
+  workspaceDir,
 } from "./workspace.js";
 import { campaignSummaries, deleteCampaign, sameDesignKey, sessionAttempts, writeLabel } from "./history.js";
 import { evidenceOverview, knowledgeDraft, leakCheck, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
@@ -79,7 +82,7 @@ async function lineage(id: string, campaign: Campaign) {
 async function analysis(id: string, campaignId: string, comparisons?: Comparison[]) {
   const campaign = await readCampaign(id, campaignId);
   const chain = await lineage(id, campaign);
-  const receipts = await readReceipts(id, chain.map((c) => c.id));
+  const receipts = await receiptsWithResults(id, chain.map((c) => c.id));
   const key = `${id}|${campaign.digest}|${JSON.stringify(comparisons ?? null)}`;
   const kept = analysisCache.get(key);
   if (kept && kept.receipts === receipts.length) {
@@ -126,8 +129,19 @@ export function screenshotFile(id: string, campaignId: string, rel: string): str
     throw notFound();
   }
   const st = statSync(real);
-  if (!real.startsWith(root + sep) || !st.isFile() || st.nlink !== 1) throw notFound();
+  // No link on the way either, not even to another file of the same run folder: the path resolves to itself.
+  if (real !== join(root, ...rel.split("/")) || !real.startsWith(root + sep) || !st.isFile() || st.nlink !== 1) throw notFound();
   return real;
+}
+/** A screenshot's bytes (see screenshotFile), read from the file that was checked (readChecked). */
+export async function screenshotBytes(id: string, campaignId: string, rel: string): Promise<Buffer> {
+  const file = screenshotFile(id, campaignId, rel);
+  try {
+    return await readChecked(file, { protect: [join(workspaceDir(id), "human.json")] });
+  } catch (e) {
+    if (e instanceof ReadRefused) throw Object.assign(new Error("Not found."), { status: 404 });
+    throw e;
+  }
 }
 /** Session IDs of a request, each a session of this campaign. */
 function jobIdsOf(body: Body, ex: Executor): string[] | undefined {
@@ -279,18 +293,22 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
       return true;
     case "/api/workspace/file": {
       // Only run screenshots are served (for the executor's live view).
-      const file = screenshotFile(id, campaignId, url.searchParams.get("path") ?? "");
-      res.writeHead(200, { "Content-Type": file.endsWith(".png") ? "image/png" : "image/jpeg" });
-      res.end(await readFile(file));
+      const rel = url.searchParams.get("path") ?? "";
+      const bytes = await screenshotBytes(id, campaignId, rel);
+      res.writeHead(200, { "Content-Type": rel.endsWith(".png") ? "image/png" : "image/jpeg" });
+      res.end(bytes);
       return true;
     }
     case "/api/runs/export": {
-      // Links and other entries that are not plain files are left out (counted in the zip's manifest.json).
+      // Links, entries that are not plain files, and files or records Load runs zip would refuse are
+      // left out (counted, with the reasons, in the zip's manifest.json → skipped).
       const { zip, skipped } = await exportRunsReport(id, campaignId);
       res.writeHead(200, {
         "Content-Type": "application/zip",
         "Content-Disposition": `attachment; filename="runs-${campaignId}.zip"`,
-        "X-Runs-Skipped": String(skipped.notFiles + skipped.unfinished + skipped.names),
+        "X-Runs-Skipped": String(skipped.notFiles + skipped.unfinished + skipped.names + skipped.invalid + skipped.records),
+        // Why files or records were left out for their contents (also in the zip's manifest.json), URI-encoded.
+        "X-Runs-Skipped-Reasons": encodeURIComponent(Array.from(skipped.reasons.join("\n")).slice(0, 1000).join("").replace(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/g, "\uFFFD")),
       });
       res.end(zip);
       return true;
@@ -430,10 +448,13 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
         keepSimulated = flag(body, "keepSimulated");
       const previous = await readCampaign(id, campaignId());
       const chain = await lineage(id, previous);
-      // Always from what actually happened: only sessions with an accepted forecast are reused.
-      // Failed, stopped and never-started sessions run again, and so do simulated ones unless
-      // body.keepSimulated. (body.useReceipts is no longer needed; receipts are always read.)
-      const receipts = await readReceipts(id, chain.map((c) => c.id));
+      // Not from records a runs zip is being written into (see loading.ts).
+      const loading = () => requireThat(!chain.some((c) => loadingInto(id!, c)), LOADING);
+      loading();
+      // Always from what actually happened: only sessions with an accepted forecast and their result
+      // file are reused. Failed, stopped and never-started sessions run again, and so do simulated
+      // ones unless body.keepSimulated. (body.useReceipts is no longer needed; receipts are always read.)
+      const receipts = await receiptsWithResults(id, chain.map((c) => c.id));
       // Model settings Claude Code would refuse at run time are refused now.
       checkModelSettings(changes?.model, "the new default model");
       for (const [c, m] of Object.entries(changes?.conditionModels ?? {})) checkModelSettings(m, c);
@@ -473,6 +494,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
         json({ preview: true, campaign: next, keepSimulated, simulated: { ...totals, byCondition: simulated }, sourceChanges: sourceNotes });
         return true;
       }
+      loading();
       await saveCampaign(id, next);
       await saveSourceFingerprints(id, next);
       json({ campaignId: next.id, reused, jobs: next.jobs.length, reusedSimulated: totals.reused, simulatedRunAgain: totals.runAgain, sourceChanges: sourceNotes });

@@ -384,7 +384,7 @@ test("save runs as zip: links and anything that is not a regular file are left o
     await mkdir(join(a1, "SESSION"));
     await writeFile(join(a1, "SESSION", "notes.txt"), "x\n");
     const { zip, skipped } = await exportRunsReport(a.id, c.id);
-    assert.deepEqual(skipped, { notFiles: links, unfinished: 1, names: 0 });
+    assert.deepEqual(skipped, { notFiles: links, unfinished: 1, names: 0, invalid: 0, records: 0, reasons: [] });
     const z = await JSZip.loadAsync(zip);
     const names = Object.keys(z.files).filter((n) => !z.files[n].dir);
     assert.ok(!names.some((n) => /sym\.png|linked-folder|\/a2\/|session/i.test(n)), names.join("\n"));
@@ -426,17 +426,168 @@ test("runs zip: the WebXR runtime's app logs and object IDs are saved and loaded
     for (const rel of Object.keys(files)) assert.ok(inZip.includes(`runs/${c.id}/jobs/${ids[0]}/a1/${rel}`), rel);
     await importRuns(fresh.id, zip);
     for (const [rel, text] of Object.entries(files)) assert.equal(await readFile(join(runDir(fresh.id, c.id), "jobs", ids[0], "a1", ...rel.split("/")), "utf8"), text, rel);
-    // Not an app log as the runtime writes it: refused before anything is written.
+    // Runs saved before the app-log format hold what the app's log() returned as it is (any JSON): they load.
     const prefix = `runs/${c.id}/jobs/${ids[0]}/a1/app-logs`;
+    for (const body of ["[1, 2]\n", JSON.stringify({ design: "ray", entries: [] }), "null\n"]) {
+      const legacy = await tempWorkspace(resolve("examples/selection"));
+      try {
+        await importRuns(legacy.id, await rezip(zip, (f) => f.set(`${prefix}/01-ray.json`, Buffer.from(body))));
+        assert.equal(await readFile(join(runDir(legacy.id, c.id), "jobs", ids[0], "a1", "app-logs", "01-ray.json"), "utf8"), body);
+      } finally {
+        await removeDir(legacy.dir);
+      }
+    }
+    // Not an app log as the runtime writes it: refused before anything is written.
     for (const [name, body] of [
-      ["01-ray.json", "[1, 2]"],
-      ["01-ray.json", JSON.stringify({ design: "ray", entries: [] })],
+      ["01-ray.json", JSON.stringify({ design: 5, opened: 1, savedAt: "x", entries: [] })],
+      ["01-ray.json", JSON.stringify({ design: "ray", opened: "first", savedAt: "x", entries: [] })],
       ["notes.json", JSON.stringify({ design: "ray", opened: 1, savedAt: "x", entries: [] })],
     ]) {
       const bad = await rezip(zip, (f) => f.set(`${prefix}/${name}`, Buffer.from(body)));
       await assert.rejects(importRuns(other.id, bad), /app-logs\/.* in this zip is not an app log/);
       assert.equal(existsSync(join(other.dir, "runs")), false);
     }
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await runs.done();
+    await removeDir(fresh.dir);
+    await removeDir(other.dir);
+    await removeDir(cfg);
+  }
+});
+
+test("loading a zip holds its campaign: no session starts and no executor reads it until the zip is written; never while its sessions run", async () => {
+  const { importRuns } = await import("../src/executor/archive.js");
+  const { Executor, closeExecutor } = await import("../src/executor/runner.js");
+  const { holdForLoading } = await import("../src/executor/loading.js");
+  const { readReceipts } = await import("../src/workspace.js");
+  const cfg = await mkdtemp(join(tmpdir(), "xr-settings-"));
+  await writeFile(join(cfg, "settings.json"), "{}");
+  process.env.XR_STUDY_SETTINGS = join(cfg, "settings.json");
+  const runs = await simulatedRuns(2);
+  const { c, z2 } = runs;
+  const b = await tempWorkspace(resolve("examples/selection"));
+  const e = await tempWorkspace(resolve("examples/selection"));
+  try {
+    // The campaign alone first (as V3b's race did), so the study has an executor for it when the runs arrive.
+    const campaignOnly = await rezip(z2, (f) => [...f.keys()].filter((n) => n.startsWith("runs/")).forEach((n) => f.delete(n)));
+    await importRuns(b.id, campaignOnly);
+    const before = await Executor.open(b.id, c.id);
+    const refusal = (p: Promise<unknown>) => p.then(() => "not refused", (e: Error) => e.message);
+    const during: { start?: Promise<string>; again?: Promise<string>; open?: ReturnType<typeof Executor.open> } = {};
+    await importRuns(b.id, z2, (ids) => {
+      // While the zip is held: Start refuses, a second zip into the campaign refuses, and opening
+      // the campaign (after the zip closed its executor) waits until the zip is written.
+      during.start = refusal(before.start("simulate"));
+      during.again = refusal((async () => holdForLoading(b.id, [c.id]))());
+      ids.forEach((x) => closeExecutor(b.id, x));
+      during.open = Executor.open(b.id, c.id);
+    });
+    assert.match(await during.start!, /Runs are being loaded into this campaign; try again in a moment/);
+    assert.match(await during.again!, /already being loaded into campaign/);
+    const ex = await during.open!;
+    assert.notEqual(ex, before);
+    // Read from disk after the zip was written: both sessions finished, nothing to run again.
+    assert.equal(ex.snapshot().counts.done, 2);
+    await assert.rejects(ex.start("simulate"), /Nothing to run/);
+    await assert.rejects(before.start("simulate"), /reloaded meanwhile/);
+    const keys = (await readReceipts(b.id, [c.id])).map((r) => `${r.jobId}|${r.attempt}`);
+    assert.equal(keys.length, 2);
+    assert.equal(new Set(keys).size, keys.length);
+
+    // A zip is not loaded into a campaign whose sessions run or wait to run.
+    await importRuns(e.id, campaignOnly);
+    const running = await Executor.open(e.id, c.id);
+    await running.start("simulate");
+    await assert.rejects(importRuns(e.id, z2), /Sessions of this campaign are (running|waiting to run)/);
+    running.stop();
+    await until(() => running.running.size === 0, "the stopped session to end", { executor: running });
+  } finally {
+    delete process.env.XR_STUDY_SETTINGS;
+    await runs.done();
+    await removeDir(b.dir);
+    await removeDir(e.dir);
+    await removeDir(cfg);
+  }
+});
+
+test("save runs as zip: only what Load accepts (reasons in manifest.json), this machine's folders as placeholders; a completed session needs its result", async () => {
+  const { exportRunsReport, importRuns } = await import("../src/executor/archive.js");
+  const { runDir, repoRoot, receiptsWithResults, RESULT_MISSING } = await import("../src/workspace.js");
+  const { continueFromStatus } = await import("../src/core/campaign.js");
+  const { homedir } = await import("node:os");
+  const cfg = await mkdtemp(join(tmpdir(), "xr-settings-"));
+  await writeFile(join(cfg, "settings.json"), "{}");
+  process.env.XR_STUDY_SETTINGS = join(cfg, "settings.json");
+  const runs = await simulatedRuns(2);
+  const { a, c, ids } = runs;
+  const fresh = await tempWorkspace(resolve("examples/selection"));
+  const other = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const dir = runDir(a.id, c.id);
+    const a1 = join(dir, "jobs", ids[0], "a1");
+    const inZip = (job: string, rel: string) => `runs/${c.id}/jobs/${job}/a1/${rel}`;
+    // This machine's folders in an attempt's records, as a real session writes them (mcp.json, prompt.md).
+    const mcp = { mcpServers: { study: { command: "node", args: [join(repoRoot, "dist", "runtimes", "study-mcp.js"), a1] }, tool: { command: join(homedir(), "bin", "tool") } } };
+    await writeFile(join(a1, "mcp.json"), JSON.stringify(mcp, null, 2));
+    await writeFile(join(a1, "prompt.md"), `Notes in ${join(homedir(), "notes")} and ${repoRoot}.\n`);
+    // Records Load refuses: a trace line that is JSON but not an object, and a result whose bridge
+    // reported its capabilities as objects. An app log written before the app-log format loads.
+    await writeFile(join(a1, "trace.jsonl"), JSON.stringify({ t: 1, type: "phase" }) + "\n[1, 2]\n");
+    const resultFile = join(dir, "results", `${ids[1]}.json`);
+    const result = JSON.parse(await readFile(resultFile, "utf8"));
+    result.execution.capabilities = [{ name: "look" }];
+    await writeFile(resultFile, JSON.stringify(result, null, 2));
+    await mkdir(join(a1, "app-logs"));
+    await writeFile(join(a1, "app-logs", "01-ray.json"), "[1, 2]\n");
+
+    const { zip, skipped } = await exportRunsReport(a.id, c.id);
+    assert.equal(skipped.invalid, 2, skipped.reasons.join("\n"));
+    assert.equal(skipped.records, 1, skipped.reasons.join("\n"));
+    assert.ok(skipped.reasons.some((r) => r.includes(inZip(ids[0], "trace.jsonl")) && /not a record/.test(r)), skipped.reasons.join("\n"));
+    assert.ok(skipped.reasons.some((r) => r.includes(`results/${ids[1]}.json`) && /no valid execution record/.test(r)));
+    assert.ok(skipped.reasons.some((r) => r.includes(ids[1]) && /recorded as completed but has a result that cannot be loaded/.test(r)));
+    const z = await JSZip.loadAsync(zip);
+    const manifest = JSON.parse(await z.file("manifest.json")!.async("string"));
+    assert.deepEqual(manifest.skipped, skipped);
+    // Checksums are over what the zip holds; no file of an attempt names this machine's home folder.
+    for (const [name, digest] of Object.entries<string>(manifest.files)) {
+      const bytes = await z.file(name)!.async("nodebuffer");
+      assert.equal(sha(bytes), digest, name);
+      if (name.includes("/jobs/")) assert.ok(!bytes.toString("utf8").includes(homedir()), name);
+    }
+    assert.ok(manifest.paths.files >= 2 && manifest.paths.replaced["<repo>"] && manifest.paths.replaced["~"]);
+    const zmcp = JSON.parse(await z.file(inZip(ids[0], "mcp.json"))!.async("string"));
+    assert.deepEqual(zmcp.mcpServers.study.args, [join("<repo>", "dist", "runtimes", "study-mcp.js"), join("<repo>", relative(repoRoot, a1))]);
+    assert.equal(zmcp.mcpServers.tool.command, join("~", "bin", "tool"));
+    assert.equal(await z.file(inZip(ids[0], "prompt.md"))!.async("string"), `Notes in ${join("~", "notes")} and <repo>.\n`);
+    assert.equal(z.file(inZip(ids[0], "trace.jsonl")), null);
+    assert.ok(z.file(inZip(ids[0], "app-logs/01-ray.json")));
+    // The second session's record goes with its result: neither is in the zip, nor its attempt.
+    assert.equal(z.file(new RegExp(`(results|jobs)/${ids[1]}`)).length, 0);
+    assert.ok(!(await z.file(`runs/${c.id}/receipts.jsonl`)!.async("string")).includes(ids[1]));
+
+    // Every saved zip loads; the placeholders are kept as written.
+    const r = await importRuns(fresh.id, zip);
+    assert.equal(r.receipts, 1);
+    assert.equal(await readFile(join(runDir(fresh.id, c.id), "jobs", ids[0], "a1", "prompt.md"), "utf8"), `Notes in ${join("~", "notes")} and <repo>.\n`);
+
+    // Load: a completed session needs its result, in the zip or in the study already.
+    const noResult = await rezip(zip, (f) => [...f.keys()].filter((n) => n.includes(`results/${ids[0]}.json`) || n.includes(`jobs/${ids[0]}/`)).forEach((n) => f.delete(n)));
+    await assert.rejects(importRuns(other.id, noResult), new RegExp(`session ${ids[0]} \\(attempt 1\\) of campaign ${c.id} as completed, but neither the zip nor this study has its result`));
+    assert.equal(existsSync(join(other.dir, "runs")), false);
+    await importRuns(fresh.id, noResult); // the study that has it already
+
+    // Analyze and continue: a completed receipt whose result file is gone counts as not finished.
+    await rm(join(dir, "results", `${ids[0]}.json`));
+    const receipts = await receiptsWithResults(a.id, [c.id]);
+    const r0 = receipts.find((x) => x.jobId === ids[0])!;
+    assert.equal(r0.status, "failed");
+    assert.equal(r0.error, RESULT_MISSING);
+    const next = continueFromStatus(c, receipts, {}, undefined, undefined, { receiptsComplete: true });
+    const template = (id: string) => c.jobs.find((j) => j.id === id)!.templateJobId;
+    assert.equal(next.jobs.find((j) => j.templateJobId === template(ids[0]))!.inheritedFrom, undefined);
+    assert.ok(next.jobs.find((j) => j.templateJobId === template(ids[1]))!.inheritedFrom);
   } finally {
     delete process.env.XR_STUDY_SETTINGS;
     await runs.done();

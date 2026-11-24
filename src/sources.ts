@@ -8,9 +8,9 @@ import { basename, dirname, join } from "node:path";
 import type { Study } from "./core/types.js";
 import { measurementValue, requireThat } from "./core/validation.js";
 // The study and its sources only: knowledge stays readable while saved configurations disagree with the study.
-import { readHuman, readStudyFolder as readWorkspace, sourceLocation, studyWriteTarget, type WorkspaceManifest } from "./workspace.js";
+import { readHuman, readSourceText, readStudyFolder as readWorkspace, sourceLocation, studyWriteTarget, type WorkspaceManifest } from "./workspace.js";
 import { backgroundText, columnGaps, idColumn, measureNamedFieldProblem, outcomeNamed, parseCsv, participantProblems, participantProblemsText, PARTICIPANT_KINDS, plural, strangerNote, strangers, tableEncodingNotes, toCsv } from "./participant-knowledge.js";
-import { agentFileList } from "./runtimes/guard.js";
+import { agentFileList, ReadRefused } from "./runtimes/guard.js";
 import { decodeText, encodingNote, windowsUnusableName } from "./files.js";
 import { draftKnowledge } from "./assistant.js";
 import { extractProposal } from "./core/proposal.js";
@@ -30,13 +30,31 @@ async function sourcePath(id: string, sourceId: string) {
   requireThat(where.path, `Source '${sourceId}' ${where.problem}.`);
   return { ws, src: src!, path: where.path!, rel: ws.manifest.sources![sourceId] };
 }
-/** The source as plain text: a file's content (up to 2 MB) or a folder's file list (as agents see it). */
+/**
+ * The source as plain text: a file's content (up to 2 MB, decoded as agents get it, with a note
+ * first when it was not UTF-8) or a folder's file list (as agents see it).
+ */
 export async function sourceText(id: string, sourceId: string): Promise<string> {
-  const { src, path, rel } = await sourcePath(id, sourceId);
+  const { ws, src, path, rel } = await sourcePath(id, sourceId);
   if ((await stat(path)).isDirectory()) return `${src.label} (${rel}): folder with these files\n\n${(await agentFileList(path)).join("\n")}\n`;
-  const buf = await readFile(path);
-  requireThat(buf.length <= 2_000_000, "This file is too large to show here.");
-  return buf.toString("utf8");
+  let read: Awaited<ReturnType<typeof readSourceText>>;
+  try {
+    read = await readSourceText(ws.dir, path, { maxBytes: 2_000_000, name: basename(rel) });
+  } catch (e) {
+    if (e instanceof ReadRefused) throw new Error(e.reason === "too-large" ? "This file is too large to show here." : `Source '${sourceId}' ${e.problem}.`);
+    throw e;
+  }
+  return read.note ? `(${read.note})\n\n${read.text}` : read.text;
+}
+/** A source file for a preview (see readSourceText), or why it is not shown (null for a folder). */
+export async function previewFile(dir: string, path: string | null, rel: string | null) {
+  if (!path || (await stat(path).catch(() => null))?.isDirectory()) return { file: null, problem: null };
+  try {
+    return { file: await readSourceText(dir, path, { name: basename(rel ?? path) }), problem: null };
+  } catch (e) {
+    if (e instanceof ReadRefused) return { file: null, problem: e.problem };
+    throw e;
+  }
 }
 
 /** Numbers in a text with at least two decimals (e.g. 3.42), as written. */
@@ -78,19 +96,22 @@ export async function evidenceOverview(id: string, agents: { id: string; label: 
     // The same rule as for agents: only a file inside the study folder is previewed.
     const where = rel ? sourceLocation(ws.dir, src.kind, rel) : null;
     const path = where?.path ?? null;
-    const file = path && !(await stat(path)).isDirectory() ? await readFile(path) : null;
-    const text = file?.toString("utf8") ?? "";
+    // Read as checked (never a file swapped in after the check) and decoded as agents get it.
+    const { file: read, problem } = await previewFile(ws.dir, path, rel);
+    const file = read?.bytes ?? null;
+    const text = read?.text ?? "";
     out.push({
       id: src.id,
       label: src.label,
       description: src.description,
       path: rel,
-      problem: where?.problem ?? null,
+      problem: where?.problem ?? problem,
       exists: !!file,
       bytes: file?.length ?? 0,
       sha256: file ? sha(file) : null,
       preview: text.slice(0, 6000),
       truncated: text.length > 6000,
+      notes: read?.note ?? "",
       configs: agents.filter((a) => a.sourceIds.includes(src.id)).map((a) => a.id),
       check: file ? await leakCheck(id, ws.study, text) : null,
     });
