@@ -40,7 +40,6 @@ import {
   saveWorkspace,
   missingSources,
   runDir,
-  workspaceDir,
   createStudy,
   changedSources,
   rerunChangedSources,
