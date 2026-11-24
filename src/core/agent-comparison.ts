@@ -3,13 +3,17 @@
 // they cost (tool calls, time, money, protocol deviations). Useful while piloting.
 //
 // Directional agreement between two forecasts: for every pair of designs, do both put them in the
-// same order? Same order = 1, one tie = 0.5, opposite = 0, both tied = 1; averaged over design
-// pairs, then over the outcomes both forecasts cover, separately per domain. Real and simulated
-// runs are never pooled: a configuration with real runs is described by those only.
+// same order? Same order = 1, one tie = 0.5, opposite = 0, both tied = 1 (two forecasts that both
+// see no difference agree; against humans, tied human pairs are left out instead). A tie is a
+// difference within the study's tie tolerance. Averaged over design pairs, then over the outcomes
+// both forecasts cover with the study's family and outcome weights (as the analyzer's scores),
+// separately per domain. Real and simulated runs are never pooled: a configuration with real runs
+// is described by those only.
+import { outcomeWeights } from "./analyzer.js";
 import { describeModel } from "./campaign.js";
 import { agentLevel, agentTargets } from "./planner.js";
 import { auditRun } from "./protocol.js";
-import type { Domain, Plan, RunResult } from "./types.js";
+import type { Domain, Plan, RunResult, Study } from "./types.js";
 import { measurementValue } from "./validation.js";
 
 export interface RunExtras {
@@ -41,22 +45,44 @@ export interface AgentComparison {
   notes: string[];
 }
 
-const sign = (x: number) => (Math.abs(x) < 1e-12 ? 0 : x > 0 ? 1 : -1);
-/** Directional agreement of two value vectors over the same designs; null if fewer than two designs. */
-export function directional(a: number[], b: number[]): number | null {
+/** Sign of a difference; |x| ≤ tolerance is a tie, as in the analyzer. */
+const sign = (x: number, tolerance: number) => (Math.abs(x) <= tolerance ? 0 : x > 0 ? 1 : -1);
+/**
+ * Directional agreement of two value vectors over the same designs; null if fewer than two designs.
+ * Both tied on a pair counts as agreement (1). The tolerance is the study's tieTolerance.
+ */
+export function directional(a: number[], b: number[], tolerance = 1e-8): number | null {
   let sum = 0,
     n = 0;
   for (let i = 0; i < a.length; i++)
     for (let j = i + 1; j < a.length; j++) {
       if (![a[i], a[j], b[i], b[j]].every(Number.isFinite)) continue;
-      const sa = sign(a[i] - a[j]),
-        sb = sign(b[i] - b[j]);
+      const sa = sign(a[i] - a[j], tolerance),
+        sb = sign(b[i] - b[j], tolerance);
       sum += sa === sb ? 1 : sa === 0 || sb === 0 ? 0.5 : 0;
       n++;
     }
   return n ? sum / n : null;
 }
 const mean = (xs: number[]) => (xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null);
+/**
+ * Directional agreement of two forecasts (outcome → design values, log scale for geometric
+ * measures) over the outcomes of one domain both cover, weighted with the study's family and
+ * outcome weights exactly as the analyzer weights its scores.
+ */
+export function agreementBetween(
+  study: Study,
+  p: Map<string, number[]>,
+  q: Map<string, number[]>,
+  domain: Domain,
+): { score: number | null; outcomes: number } {
+  const scores = study.outcomes.map((o) =>
+    o.domain === domain && p.has(o.id) && q.has(o.id) ? directional(p.get(o.id)!, q.get(o.id)!, study.analysis.tieTolerance) : null,
+  );
+  const weights = outcomeWeights(study, domain, scores.map((s) => s !== null));
+  const score = weights.size ? [...weights].reduce((s, [i, w]) => s + scores[i]! * w, 0) : null;
+  return { score, outcomes: weights.size };
+}
 
 export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<string, RunExtras> = {}): AgentComparison {
   const study = plan.study;
@@ -85,16 +111,8 @@ export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<stri
     }
     return out;
   };
-  const domainOf = new Map(study.outcomes.map((o) => [o.id, o.domain]));
   const domains: Domain[] = ["objective", "subjective"];
-  /** Mean directional agreement over shared outcomes of one domain. */
-  const agree = (p: Map<string, number[]>, q: Map<string, number[]>, domain: Domain) => {
-    const scores = [...p.keys()]
-      .filter((o) => q.has(o) && domainOf.get(o) === domain)
-      .map((o) => directional(p.get(o)!, q.get(o)!))
-      .filter((x): x is number => x !== null);
-    return { score: mean(scores), outcomes: scores.length };
-  };
+  const agree = (p: Map<string, number[]>, q: Map<string, number[]>, domain: Domain) => agreementBetween(study, p, q, domain);
 
   const notes: string[] = [];
   const meanProfiles = new Map<string, Map<string, number[]>>();
@@ -162,7 +180,7 @@ export function compareAgents(plan: Plan, runs: RunResult[], extras: Record<stri
   if (configs.some((c) => c.basis === "real") && configs.some((c) => c.basis === "simulated"))
     notes.push(`Described by simulated (invented) runs: ${configs.filter((c) => c.basis === "simulated").map((c) => c.label).join(", ")}. Comparisons with them compare invented with real forecasts.`);
   notes.push(
-    "Directional agreement: for each pair of designs, whether two forecasts order them the same way (1), opposite (0) or one ties (0.5), averaged over design pairs and over the outcomes both cover. It needs no human data and says nothing about accuracy.",
+    "Directional agreement: for each pair of designs, whether two forecasts order them the same way (1), opposite (0), one ties (0.5) or both tie (1, within the study's tie tolerance), averaged over design pairs and over the outcomes both cover with the study's family and outcome weights. It needs no human data and says nothing about accuracy.",
     "Tool calls, time and cost describe real sessions only; simulated runs have none.",
   );
   return { configs, pairs, notes };

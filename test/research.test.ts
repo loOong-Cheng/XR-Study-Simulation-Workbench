@@ -15,6 +15,7 @@ import {
   t975,
   wilcoxonSignedRank,
 } from "../src/core/rank-tests.js";
+import { agreementBetween, directional } from "../src/core/agent-comparison.js";
 import {
   exampleStudy,
   syntheticHumanData,
@@ -539,6 +540,9 @@ test("near-ties from floating-point noise are ties in the rank tests and in agen
   assert.equal(mannWhitney([0.1 + 0.2, 0.3, 0.3], [0.6, 0.6, 0.1 * 6]).p, mannWhitney([1, 1, 1], [2, 2, 2]).p);
   // The study's tolerance: a difference of 1e-10 is zero (dropped) at tieTolerance 1e-8.
   assert.equal(wilcoxonSignedRank([1e-10, 2, 3], 1e-8).n, 2);
+  // Agent comparison uses the tie tolerance too (it used 1e-12): both tied on a pair = agreement.
+  assert.equal(directional([0, 1e-10, 1], [1e-10, 0, 1], 1e-8), 1);
+  assert.equal(directional([0, 1e-10, 1], [1e-10, 0, 1], 1e-12), 2 / 3);
 });
 test("Holm: one function; untestable comparisons count in the family size", () => {
   const ps = [0.01, 0.04, 0.03, null, 0.005];
@@ -601,4 +605,19 @@ test("bootstrap: each configuration resamples from its own stream", async () => 
       assert.deepEqual(ci(reversed, id, d), ci(full, id, d), `${id} ${d} reordered`);
     }
   assert.deepEqual(analyzeVerifiedPlan(x.plan, x.human, x.results, []).summaries, full.summaries);
+});
+test("agent comparison weights outcomes with the study's family and outcome weights", () => {
+  const study = {
+    outcomes: [
+      { id: "o1", domain: "subjective", family: "F1", weight: 1 },
+      { id: "o2", domain: "subjective", family: "F1", weight: 3 },
+      { id: "o3", domain: "subjective", family: "F2", weight: 1 },
+    ],
+    analysis: { tieTolerance: 1e-8, familyWeights: { F1: 1, F2: 3 } },
+  } as unknown as Study;
+  const p = new Map([["o1", [1, 2]], ["o2", [1, 2]], ["o3", [1, 2]]]);
+  const q = new Map([["o1", [1, 2]], ["o2", [2, 1]], ["o3", [1, 2]]]);
+  // F1 gets 1/4 (o1 1/16, o2 3/16), F2 3/4: 1/16 + 0 + 3/4 (the unweighted mean was 2/3).
+  assert.deepEqual(agreementBetween(study, p, q, "subjective"), { score: 13 / 16, outcomes: 3 });
+  assert.deepEqual(agreementBetween(study, p, q, "objective"), { score: null, outcomes: 0 });
 });
