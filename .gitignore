@@ -3,6 +3,9 @@ dist/
 .test-build/
 artifacts/
 coverage/
+# Builds of example apps (the visionOS app: runtime/build.mjs)
+.build/
+xcuserdata/
 .env
 .env.*
 !.env.example

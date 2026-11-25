@@ -7,6 +7,9 @@
 //   hang          ask the runtime for tools/list and wait (the bridge never answers)
 //   gate          submit before using the app (refused), then report a nearly used token budget
 //                 and submit again (accepted without the required exposure)
+//   select        the WebXR-style tools (screenshot, look, list_objects, select, app_state) of the
+//                 visionOS bridge: selects the targets FAKE_TARGETS names ({"practice": [app IDs],
+//                 "main": [app IDs]}), found through the bridge's object-ids.jsonl, until the task is done
 // FAKE_OUT (a file) receives the text of the replies the test wants to look at.
 const { spawn } = require("child_process");
 const fs = require("fs");
@@ -97,6 +100,40 @@ const textOf = (r) => (r.result?.content ?? []).filter((c) => c.type === "text")
     out({ type: "result", subtype: r.result.isError ? "error" : "success", usage: { input_tokens: 19_500, output_tokens: 50 }, num_turns: 2 });
     study.p.stdin.end();
     rt && rt.p.stdin.end();
+    process.exit(0);
+  }
+
+  if (plan === "select") {
+    const targets = JSON.parse(process.env.FAKE_TARGETS || "{}");
+    const shownFor = (design) => {
+      const lines = fs.readFileSync(path.join(jobDir, "object-ids.jsonl"), "utf8").trim().split("\n").map((l) => JSON.parse(l)).filter((x) => x.design === design);
+      const map = lines.at(-1).shownToApp;
+      return (appId) => Object.keys(map).find((k) => map[k] === appId);
+    };
+    for (const d of job.app.designs) {
+      note("open", textOf(await tool(rt, "open_design", { design: d.id })));
+      const shown = shownFor(d.id);
+      for (const kind of ["practice", "main"]) {
+        if (!d[kind]) continue;
+        note("screenshot", JSON.stringify((await tool(rt, "screenshot")).result?.content?.map((c) => c.type)));
+        await tool(rt, "look", { azimuth: 10, polar: 65 });
+        note("objects", textOf(await tool(rt, "list_objects")));
+        for (let round = 0; round < 8; round++) {
+          const state = JSON.parse(textOf(await tool(rt, "app_state")));
+          if (kind === "practice" ? state.phase !== "practice" : state.done) break;
+          for (const appId of targets[kind] || []) {
+            const r = textOf(await tool(rt, "select", { object: shown(appId) }));
+            note("select", r);
+          }
+        }
+      }
+    }
+    const r = await submit();
+    note("submit", textOf(r));
+    out({ type: "result", subtype: r.result.isError ? "error" : "success", usage: { input_tokens: 100, output_tokens: 50 }, num_turns: 3 });
+    study.p.stdin.end();
+    rt && rt.p.stdin.end();
+    await sleep(2000);
     process.exit(0);
   }
 

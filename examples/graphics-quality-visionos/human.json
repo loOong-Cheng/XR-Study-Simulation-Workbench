@@ -1,0 +1,2545 @@
+{
+ "schemaVersion": "1.0",
+ "studyId": "toy-graphics-quality-visionos",
+ "synthetic": true,
+ "measurements": [
+  {
+   "participantId": "p01",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 28.9048
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 40.1929
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 30.1292
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 24.2309
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 34.0453
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 24.1036
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 15.1349
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 20.2367
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 19.2166
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 20.6029
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 23.4709
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 1.0
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 21.3133
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 34.5533
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 32.1557
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 1.0
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 26.1232
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 18.004
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 18.3938
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 1.5
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 17.892
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 22.9112
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 24.2437
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 23.6918
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 15.8797
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.0
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 23.4118
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 1.5
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 17.9684
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.0
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 27.7326
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 29.3552
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 33.7573
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 1.25
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 28.4715
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 25.5829
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 1.25
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 27.102
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 24.1115
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 31.7086
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 23.4144
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 14.3658
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 17.2268
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 15.0985
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 20.3912
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 30.3132
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 25.9707
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 25.3396
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.0
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 29.948
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 20.8497
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 1.0
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 16.644
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 22.2648
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 1.5
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 22.1153
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 21.2893
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 27.1784
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 25.4005
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.5
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 25.5257
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 27.0503
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 1.0
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 29.1797
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 17.4362
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "high",
+   "outcomeId": "selection-errors",
+   "value": 0.75
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 19.9829
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "low",
+   "outcomeId": "selection-errors",
+   "value": 1.75
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "medium",
+   "outcomeId": "search-time",
+   "value": 19.7565
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "medium",
+   "outcomeId": "selection-errors",
+   "value": 0.25
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 3,
+    "involvement": 3,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 2
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 3
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 2,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 3
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 2,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 3,
+    "involvement": 2,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 2
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 0
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 5,
+    "involvement": 5,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 2,
+    "involvement": 2,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 0
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 3,
+    "involvement": 3,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 1,
+    "spatial": 2,
+    "involvement": 1,
+    "realness": 2
+   }
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 5,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 5,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 7
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 3
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 5,
+    "involvement": 5,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 6,
+    "spatial": 6,
+    "involvement": 5,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 2,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 0
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 5
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 7
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 3
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 3,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 5
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 0
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 5,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 5
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 6,
+    "spatial": 5,
+    "involvement": 5,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 5
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 3
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 2,
+    "involvement": 2,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 3
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 5,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 5
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 4
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 5,
+    "involvement": 3,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 5,
+    "involvement": 5,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 2,
+    "involvement": 2,
+    "realness": 2
+   }
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 0
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 3,
+    "involvement": 4,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 6,
+    "realness": 7
+   }
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 6,
+    "spatial": 6,
+    "involvement": 6,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 7
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 3,
+    "involvement": 5,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 6,
+    "involvement": 6,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 7
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 3,
+    "involvement": 3,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 6,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 6,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 2
+   }
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 3,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 0
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 7
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 5
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 5,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 7
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 4
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 5
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 4
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 5,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 3
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 6,
+    "involvement": 5,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 5,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 3,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 3
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 1
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 6,
+    "spatial": 6,
+    "involvement": 5,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 5
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 7
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 4
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 5,
+    "involvement": 3,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 2
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 4
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 4
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 4
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 6,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "high",
+   "outcomeId": "realism",
+   "value": 6
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "high",
+   "outcomeId": "visual-discomfort",
+   "value": 0
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "medium",
+   "outcomeId": "presence",
+   "components": {
+    "general": 6,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "medium",
+   "outcomeId": "realism",
+   "value": 5
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "medium",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "medium",
+   "outcomeId": "visual-discomfort",
+   "value": 0
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 2,
+    "spatial": 2,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "low",
+   "outcomeId": "realism",
+   "value": 1
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "low",
+   "outcomeId": "visual-discomfort",
+   "value": 2
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p01",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p02",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p03",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p04",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p05",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p06",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p07",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p08",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p09",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p10",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p11",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p12",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p13",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p14",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p15",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p16",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p17",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 3
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "medium",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "p18",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  }
+ ]
+}

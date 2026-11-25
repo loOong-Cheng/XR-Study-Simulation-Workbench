@@ -37,6 +37,7 @@ Every suite comes with a ready-made **starter campaign** (frozen at 1 run per pa
 | 5 · No app | [Haptic buttons](../examples/haptic-buttons/README.md) (synthetic: 18 participants; hand size, tactile sensitivity, gaming, VR experience, practice movement) | Individual forecasts with background and movement data, measured task data as input |
 | 6 · No app | [Haptic buttons, between subjects](../examples/haptic-buttons-between/README.md) (synthetic: 3 groups × 12; VR experience, haptic devices, motion sickness) | Between-subjects analysis: group tests, absolute values, no rankings or individual forecasts |
 | 7 · No app | [Mid-air text entry](../examples/text-entry/README.md) (synthetic: 24 participants; typing speed, swipe use, first language, arm length) | Forecasts made before the study (no measured inputs), a second-model arm |
+| 8 · visionOS | [Graphics quality on Apple Vision Pro](../examples/graphics-quality-visionos/README.md) (suite 3's study and synthetic data, with an Apple Vision Pro app) | Real runs in the visionOS simulator through the included bridge (a Mac with Xcode); compare with suite 3's WebXR runs |
 
 **Without a coding agent**, read [Start your own study](getting-started.md).
 

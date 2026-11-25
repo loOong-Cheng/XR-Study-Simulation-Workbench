@@ -10,7 +10,7 @@ import { join, resolve } from "node:path";
 import { verifyCampaign, type Campaign } from "../src/core/campaign.js";
 import { until } from "./until.js";
 
-const SUITES = ["examples/ecolar", "examples/graphics-quality", "examples/haptic-buttons", "examples/haptic-buttons-between", "examples/material-cues", "examples/selection", "examples/text-entry"];
+const SUITES = ["examples/ecolar", "examples/graphics-quality", "examples/graphics-quality-visionos", "examples/haptic-buttons", "examples/haptic-buttons-between", "examples/material-cues", "examples/selection", "examples/text-entry"];
 const REBUILD = "Rebuild the starters from the suites' current files with `npm run starters` and commit examples/*/starter/.";
 const removeDir = (dir: string) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 });
 
@@ -52,7 +52,7 @@ test("starters: every example suite has a starter that is current with its files
     assert.ok(!campaign.parentDigest && !campaign.continuation, `${id}: a starter is a fresh freeze`);
     // The engine suites say which configurations need a bridge; the others need none.
     const engine = starter.configurations.filter((c: { runtime: string }) => ["unreal", "unity", "visionos"].includes(c.runtime));
-    assert.equal(engine.length > 0, ["examples/ecolar", "examples/selection"].includes(id), id);
+    assert.equal(engine.length > 0, ["examples/ecolar", "examples/selection", "examples/graphics-quality-visionos"].includes(id), id);
     if (engine.length) assert.ok(starter.notes.some((n: string) => /study bridge in Settings → Runtimes; until one is set they can only be simulated/.test(n)), id);
   }
 });
