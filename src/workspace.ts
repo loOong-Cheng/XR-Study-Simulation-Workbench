@@ -219,16 +219,26 @@ export function sourceFingerprints(dir: string, study: Study, manifest: Workspac
   );
 }
 const fingerprintFile = (id: string, campaignId: string) => join(workspaceDir(id), "campaigns", campaignId, "sources.json");
+/** What a campaign's sources.json records: the sources its configurations read and the WebXR app, as they are on disk now. */
+export interface SourceRecord {
+  campaignId: string;
+  recordedAt: string;
+  sources: Record<string, SourceFingerprint>;
+  app: AppFingerprint | null;
+}
+export function sourceRecord(dir: string, manifest: WorkspaceManifest, campaign: Campaign, recordedAt = new Date().toISOString()): SourceRecord | null {
+  const study = campaign.suite.study;
+  if (!study) return null;
+  const used = [...new Set(campaign.suite.conditions.flatMap((c) => c.recipe.protocol?.sourceIds ?? []))];
+  return { campaignId: campaign.id, recordedAt, sources: sourceFingerprints(dir, study, manifest, used), app: appFingerprint(dir, manifest) };
+}
+/** sources.json as freezing writes it (and the example suites' starter campaigns ship it). */
+export const sourceRecordText = (record: SourceRecord) => pretty(record);
 /** Records the sources a campaign freezes (written beside campaign.json, whose digest it does not touch). */
 export async function saveSourceFingerprints(id: string, campaign: Campaign) {
   const { dir, manifest } = await readStudyFolder(id);
-  const study = campaign.suite.study;
-  if (!study) return;
-  const used = [...new Set(campaign.suite.conditions.flatMap((c) => c.recipe.protocol?.sourceIds ?? []))];
-  await writeFile(
-    fingerprintFile(id, campaign.id),
-    pretty({ campaignId: campaign.id, recordedAt: new Date().toISOString(), sources: sourceFingerprints(dir, study, manifest, used), app: appFingerprint(dir, manifest) }),
-  );
+  const record = sourceRecord(dir, manifest, campaign);
+  if (record) await writeFile(fingerprintFile(id, campaign.id), sourceRecordText(record));
 }
 // ---------- what a campaign froze: the WebXR app ----------
 /** The WebXR app as served to agents: its folder's files, its query and what workspace.json declares about it. */
@@ -420,7 +430,8 @@ export async function listWorkspaces(): Promise<WorkspaceInfo[]> {
           engine: study.runtime.engine,
           hasAgents: existsSync(join(dir, "agents.json")),
           hasHuman: existsSync(join(dir, "human.json")),
-          campaigns: existsSync(join(dir, "campaigns")) ? (await readdir(join(dir, "campaigns"))).length : 0,
+          // Campaign folders only (not campaigns/.starters.json, which records an installed starter).
+          campaigns: existsSync(join(dir, "campaigns")) ? (await readdir(join(dir, "campaigns"))).filter((n) => existsSync(join(dir, "campaigns", n, "campaign.json"))).length : 0,
         });
       } catch {
         // Skip folders whose study does not parse; `study-check` explains them.

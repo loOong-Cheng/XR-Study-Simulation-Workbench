@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // One-step machine setup, meant to be run by a coding agent (see AGENTS.md → "New machine").
 // Installs dependencies, builds, finds Claude Code, Chrome and Python, writes them into
-// private/settings.json, and reports what is ready. Plain Node, no dependencies.
+// private/settings.json, installs the example suites' starter campaigns, and reports what is ready.
+// Plain Node, no dependencies.
 //
 //   node scripts/setup.mjs            install (if needed), build, detect, write settings, report
 //   node scripts/setup.mjs --test     also run the test suite
@@ -165,13 +166,37 @@ if (win) {
     notes.push(`This folder's path is ${root.length} characters long. Long paths are enabled, but some engine tools still stop at 260 characters; ${shorter}.`);
 }
 
-// 9 · Studies
+// 9 · Starter campaigns: every example suite that has no campaign yet gets its ready-made starter
+// (examples/<suite>/starter/, frozen at 1 run per participant), so Simulate and Start work at once.
+// Once per study: a starter that was deleted is not installed again (campaigns/.starters.json).
+if (!check) {
+  const { installStarters } = await import(pathToFileURL(join(root, "dist", "starters.js")).href);
+  const results = await installStarters();
+  const installed = results.filter((r) => r.state === "installed");
+  say("\nStarter campaigns (examples/<suite>/starter/):");
+  for (const r of results)
+    say(
+      `  ${r.id}: ${
+        r.state === "installed"
+          ? `installed (${r.sessions} sessions)`
+          : r.state === "installed-before"
+            ? "installed earlier"
+            : r.state === "has-campaigns"
+              ? "not installed (the study has campaigns)"
+              : r.message
+      }`,
+    );
+  for (const r of results.filter((x) => x.state === "out-of-date")) notes.push(`${r.id}: ${r.message}`);
+  if (installed.length) notes.push(`Installed ${installed.length} starter campaign(s): open a suite under Open study, then Run agents → Simulate (free) or one real session (Run this session only). See docs/testing-with-example-suites.md.`);
+}
+
+// 10 · Studies
 const { listWorkspaces } = await import(pathToFileURL(join(root, "dist", "workspace.js")).href);
 say("\nStudies:");
 for (const w of await listWorkspaces())
   say(`  ${w.id}  ·  ${w.title}  ·  engine ${w.engine}${w.synthetic ? " · synthetic" : ""}${w.hasHuman ? " · human data" : ""} · ${w.campaigns} campaign(s)`);
 
-// 10 · Tests
+// 11 · Tests
 if (flags.has("--test") && !check) {
   say("\nRunning tests …");
   const t = run("npm", ["test"], { stdio: "inherit" });

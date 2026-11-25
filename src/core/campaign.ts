@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from "node:crypto";
-import { agentLevel, hash, jobPacket, verifyPlan } from "./planner.js";
+import { agentLevel, freezePlan, hash, jobPacket, verifyPlan, withDefaultRuns } from "./planner.js";
 import {
   checkModelSettings,
   checkNewConfigurations,
@@ -1337,6 +1337,22 @@ export function campaignFromPlan(
           .map((a) => [a.id, { ...a.model }]),
       );
   return freezeCampaign(suite, base, null, id, createdAt, overrides);
+}
+/**
+ * The campaign Freeze & campaigns → Freeze campaign makes: the study and its configurations, each
+ * without its own run count given `perParticipant` runs per participant (withDefaultRuns), every
+ * configuration with its planned model. The example suites' starter campaigns (src/starters.ts) are
+ * frozen with this too, with a fixed ID and date.
+ */
+export function campaignFromStudy(
+  study: Study,
+  agents: AgentProtocol[],
+  perParticipant: number,
+  id?: string,
+  createdAt?: string,
+): Campaign {
+  const plan = freezePlan(study, withDefaultRuns(study, agents, perParticipant), perParticipant, createdAt);
+  return campaignFromPlan(plan, undefined, id, createdAt);
 }
 /** Digest of everything that defines scoring (contrasts excluded: they only add tests). */
 export function scoringDigest(suite: CampaignSuite): string {

@@ -5,13 +5,13 @@ import { readFile } from "node:fs/promises";
 import { join, sep } from "node:path";
 import { readChecked, ReadRefused, realPath } from "./runtimes/guard.js";
 import { choice, flag, int, object, objects, text, texts, type Body } from "./request.js";
-import { campaignFromPlan, campaignPlan, conditionModel, continueFromStatus, lineageJobIndex, type Campaign, type CampaignContinuation } from "./core/campaign.js";
+import { campaignFromStudy, campaignPlan, conditionModel, continueFromStatus, lineageJobIndex, type Campaign, type CampaignContinuation } from "./core/campaign.js";
 import { analyzeCampaign, mergeCampaignResults, simulatedJobIds, type CampaignAnalysis } from "./core/campaign-study.js";
 import type { AnalysisMemo } from "./core/analyzer.js";
 import { compareAgents } from "./core/agent-comparison.js";
 import { compareCampaignScores } from "./core/campaign-comparison.js";
 import { agentVsHumanFigure, agreementFigure, correlationFigure, figureSelection, humanFigure, populationVsIndividualFigure, trajectoryFigure } from "./core/figures.js";
-import { agentLevel, agentTargets, freezePlan, methodGets, proposeAgents, withDefaultRuns } from "./core/planner.js";
+import { agentLevel, agentTargets, methodGets, proposeAgents } from "./core/planner.js";
 import { extractProposal } from "./core/proposal.js";
 import { studyWarnings } from "./core/explain.js";
 import { fairnessWarnings } from "./core/fairness.js";
@@ -49,6 +49,7 @@ import {
   workspaceDir,
 } from "./workspace.js";
 import { campaignSummaries, deleteCampaign, forgetSummaries, sameDesignKey, sessionAttempts, writeLabel } from "./history.js";
+import { installStarter } from "./starters.js";
 import { evidenceOverview, knowledgeDraft, leakCheck, participantKnowledgeOverview, saveKnowledge, sourceText } from "./sources.js";
 
 type Json = (value: unknown, status?: number) => void;
@@ -242,6 +243,12 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
     case "/api/workspace": {
       // Opens even when the saved study and configurations disagree: the problem is returned to show and fix.
       const ws = await readWorkspaceForEditing(id);
+      // An example suite opened with no campaign yet gets its starter campaign, once (src/starters.ts).
+      if (id.startsWith("examples/"))
+        await installStarter(id).then(
+          (r) => r.state === "installed" && console.log(`${id}: ${r.message}`),
+          (e) => console.error(`${id}: the starter campaign could not be installed:`, (e as Error).message),
+        );
       const settings = await readSettings();
       const agents = await configs(ws.study, ws.agents, settings);
       const each = <T>(f: (a: AgentProtocol) => T, fallback: T) =>
@@ -421,8 +428,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       const ws = await readWorkspace(id);
       const settings = await readSettings();
       const agents = await configs(ws.study, ws.agents, settings);
-      const plan = freezePlan(ws.study, withDefaultRuns(ws.study, agents, perParticipant), perParticipant);
-      const campaign = campaignFromPlan(plan);
+      const campaign = campaignFromStudy(ws.study, agents, perParticipant);
       if (check) {
         // Warn before repeating a campaign: same configurations, models and sessions.
         const key = sameDesignKey(campaign);
