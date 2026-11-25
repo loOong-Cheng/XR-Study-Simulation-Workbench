@@ -1,0 +1,412 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-selection",
+  "title": "Selecting and placing objects in XR",
+  "researchQuestion": "How do selection techniques differ in task performance and subjective experience?",
+  "agentQuestions": "Which agent workflows reproduce those differences?",
+  "synthetic": true,
+  "design": "within-subjects",
+  "predictionLevel": "population",
+  "predictionTiming": "after-experience",
+  "conditions": [
+    {
+      "id": "ray",
+      "label": "Ray selection"
+    },
+    {
+      "id": "direct",
+      "label": "Direct touch"
+    },
+    {
+      "id": "hybrid",
+      "label": "Hybrid selection"
+    }
+  ],
+  "phases": [
+    {
+      "id": "practice",
+      "label": "Guided practice",
+      "kind": "practice"
+    },
+    {
+      "id": "main",
+      "label": "Scored tasks",
+      "kind": "main"
+    },
+    {
+      "id": "questionnaire",
+      "label": "Questionnaires",
+      "kind": "questionnaire"
+    },
+    {
+      "id": "break",
+      "label": "Session break",
+      "kind": "break"
+    }
+  ],
+  "cases": [
+    {
+      "id": "ray-practice",
+      "conditionId": "ray",
+      "phaseId": "practice",
+      "label": "Practice a selection and placement",
+      "requiredActions": [
+        "select",
+        "place"
+      ],
+      "minActions": 2
+    },
+    {
+      "id": "ray-main",
+      "conditionId": "ray",
+      "phaseId": "main",
+      "label": "Select and place the target",
+      "requiredActions": [
+        "select",
+        "place"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "direct-practice",
+      "conditionId": "direct",
+      "phaseId": "practice",
+      "label": "Practice a selection and placement",
+      "requiredActions": [
+        "select",
+        "place"
+      ],
+      "minActions": 2
+    },
+    {
+      "id": "direct-main",
+      "conditionId": "direct",
+      "phaseId": "main",
+      "label": "Select and place the target",
+      "requiredActions": [
+        "select",
+        "place"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "hybrid-practice",
+      "conditionId": "hybrid",
+      "phaseId": "practice",
+      "label": "Practice a selection and placement",
+      "requiredActions": [
+        "select",
+        "place"
+      ],
+      "minActions": 2
+    },
+    {
+      "id": "hybrid-main",
+      "conditionId": "hybrid",
+      "phaseId": "main",
+      "label": "Select and place the target",
+      "requiredActions": [
+        "select",
+        "place"
+      ],
+      "minActions": 12
+    }
+  ],
+  "participants": [
+    {
+      "id": "P01",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "ray",
+        "direct",
+        "hybrid"
+      ]
+    },
+    {
+      "id": "P02",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "direct",
+        "hybrid",
+        "ray"
+      ]
+    },
+    {
+      "id": "P03",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "hybrid",
+        "ray",
+        "direct"
+      ]
+    },
+    {
+      "id": "P04",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "ray",
+        "hybrid",
+        "direct"
+      ]
+    },
+    {
+      "id": "P05",
+      "stratum": "order-5",
+      "conditionOrder": [
+        "hybrid",
+        "direct",
+        "ray"
+      ]
+    },
+    {
+      "id": "P06",
+      "stratum": "order-6",
+      "conditionOrder": [
+        "direct",
+        "ray",
+        "hybrid"
+      ]
+    },
+    {
+      "id": "P07",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "ray",
+        "direct",
+        "hybrid"
+      ]
+    },
+    {
+      "id": "P08",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "direct",
+        "hybrid",
+        "ray"
+      ]
+    },
+    {
+      "id": "P09",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "hybrid",
+        "ray",
+        "direct"
+      ]
+    },
+    {
+      "id": "P10",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "ray",
+        "hybrid",
+        "direct"
+      ]
+    },
+    {
+      "id": "P11",
+      "stratum": "order-5",
+      "conditionOrder": [
+        "hybrid",
+        "direct",
+        "ray"
+      ]
+    },
+    {
+      "id": "P12",
+      "stratum": "order-6",
+      "conditionOrder": [
+        "direct",
+        "ray",
+        "hybrid"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "brief",
+      "label": "Study instructions",
+      "kind": "brief",
+      "description": "Task instructions and controls, without measured participant outcomes."
+    },
+    {
+      "id": "project",
+      "label": "Approved project snapshot",
+      "kind": "project",
+      "description": "Scene layout and interaction implementation; supplied on the worker."
+    },
+    {
+      "id": "evidence",
+      "label": "Computational evidence",
+      "kind": "evidence",
+      "description": "Independently specified models; no fitted target answers."
+    },
+    {
+      "id": "demographics",
+      "label": "Participant background",
+      "kind": "demographics",
+      "description": "data/raw/demographics.csv: invented background per participant (age band, XR experience, gaming hours, handedness); never results.",
+      "fields": [
+        "age_band",
+        "xr_experience",
+        "gaming_hours_per_week",
+        "handedness"
+      ]
+    }
+  ],
+  "runtime": {
+    "engine": "unity",
+    "backend": "editor",
+    "deviceProfile": "quest-3",
+    "observation": "stereo-pair",
+    "requiredCapabilities": [
+      "head-pose",
+      "hand-poses",
+      "controller-input",
+      "stereo-capture",
+      "phase-events"
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "completion-time",
+      "label": "Completion time",
+      "domain": "objective",
+      "unit": "seconds",
+      "scale": "continuous",
+      "aggregation": "geometric",
+      "family": "task-time",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Positive time from target onset to submit; questionnaire and break periods excluded."
+    },
+    {
+      "id": "accuracy",
+      "label": "Selection accuracy",
+      "domain": "objective",
+      "unit": "proportion correct",
+      "scale": "proportion",
+      "aggregation": "arithmetic",
+      "family": "task-accuracy",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Correct selections / scored selections; include errors."
+    },
+    {
+      "id": "teleports",
+      "label": "Teleport count",
+      "domain": "objective",
+      "unit": "completed teleports / task",
+      "scale": "continuous",
+      "aggregation": "arithmetic",
+      "family": "navigation",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Completed events only, within scored task windows."
+    },
+    {
+      "id": "workload",
+      "label": "Modified five-item workload",
+      "domain": "subjective",
+      "unit": "1–7 item mean",
+      "scale": "ordinal",
+      "range": [1, 7],
+      "aggregation": "arithmetic",
+      "family": "workload",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "components": [
+        "mental",
+        "physical",
+        "temporal",
+        "effort",
+        "frustration"
+      ],
+      "description": "Mean of these five retained items, without Performance. A six-item total scaled by 5/6 is not this outcome."
+    },
+    {
+      "id": "appeal",
+      "label": "Visual appeal",
+      "domain": "subjective",
+      "unit": "1–7 mean",
+      "scale": "ordinal",
+      "range": [1, 7],
+      "aggregation": "arithmetic",
+      "family": "aesthetics",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "Declared aesthetic composite after experience."
+    },
+    {
+      "id": "interaction-preference",
+      "label": "Interaction preference",
+      "domain": "subjective",
+      "unit": "mean rank; 1 = first",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "interaction-preference",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "Which technique is preferred to interact with? Keep separate from overall preference."
+    },
+    {
+      "id": "overall-preference",
+      "label": "Overall preference",
+      "domain": "subjective",
+      "unit": "mean rank; 1 = first",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "overall-preference",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "Overall design preference after the full session."
+    }
+  ],
+  "analysis": {
+    "mode": "both",
+    "familyWeights": {
+      "task-time": 0.4,
+      "task-accuracy": 0.4,
+      "navigation": 0.2,
+      "workload": 0.4,
+      "aesthetics": 0.2,
+      "interaction-preference": 0.2,
+      "overall-preference": 0.2
+    },
+    "bootstrapDraws": 1000,
+    "seed": 2147,
+    "tieTolerance": 1e-08,
+    "contrasts": [
+      {
+        "id": "uses-app-vs-reads-project-objective",
+        "baseline": "reads-project",
+        "candidate": "uses-app",
+        "domain": "objective"
+      },
+      {
+        "id": "uses-app-vs-reads-project-subjective",
+        "baseline": "reads-project",
+        "candidate": "uses-app",
+        "domain": "subjective"
+      }
+    ]
+  }
+}

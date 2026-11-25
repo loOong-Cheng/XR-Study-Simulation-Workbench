@@ -1,0 +1,72 @@
+{
+  "schemaVersion": "xr-starter/1",
+  "label": "Starter · 1 run per participant",
+  "campaignId": "campaign-starter-307a73434585",
+  "campaignDigest": "93b5a0ad4fe03037ac5c42544e5519e13a8cf7f6cc29669dff44d680e553ff7e",
+  "runsPerParticipant": 1,
+  "sessions": 112,
+  "configurations": [
+    {
+      "id": "text-only",
+      "label": "Text only",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 16,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "reads-evidence",
+      "label": "Text + general evidence",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 16,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "app-only",
+      "label": "Uses the app only",
+      "level": "population",
+      "runtime": "webxr",
+      "sessions": 16,
+      "needs": "Chrome (built-in WebXR runtime)"
+    },
+    {
+      "id": "uses-app",
+      "label": "Uses the app + project files",
+      "level": "population",
+      "runtime": "webxr",
+      "sessions": 16,
+      "needs": "Chrome (built-in WebXR runtime)"
+    },
+    {
+      "id": "text-with-task-data",
+      "label": "Text + measured task data",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 16,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-participant",
+      "label": "Text + participant background (individual)",
+      "level": "individual",
+      "runtime": "none",
+      "sessions": 16,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-participant-evidence",
+      "label": "Text + participant background + general evidence (individual)",
+      "level": "individual",
+      "runtime": "none",
+      "sessions": 16,
+      "needs": "nothing (app-free)"
+    }
+  ],
+  "notes": [
+    "Frozen from this suite's study.json and agents.json at 1 run per participant (configurations with their own run count keep it), exactly as Freeze & campaigns → Freeze campaign freezes them, with a fixed ID and date so every machine gets the same campaign.",
+    "Installed into campaigns/ when the study opens with no campaign yet (and by node scripts/setup.mjs); deleting it does not bring it back. Freeze another campaign at any time.",
+    "Simulate works for every configuration at no cost. Real sessions (Mode: Run agents) use your Claude Code login: start with one session (Run this session only)."
+  ],
+  "rebuild": "npm run starters (after changing the suite's study.json, agents.json, workspace.json or a source file)"
+}

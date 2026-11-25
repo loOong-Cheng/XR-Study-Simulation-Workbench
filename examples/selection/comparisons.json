@@ -1,0 +1,17 @@
+[
+  {
+    "candidate": "uses-app",
+    "baseline": "reads-project",
+    "domain": "objective"
+  },
+  {
+    "candidate": "uses-app",
+    "baseline": "reads-project",
+    "domain": "subjective"
+  },
+  {
+    "candidate": "uses-app-people",
+    "baseline": "knows-participant",
+    "domain": "subjective"
+  }
+]

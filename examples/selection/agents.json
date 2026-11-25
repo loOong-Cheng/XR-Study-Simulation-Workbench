@@ -1,0 +1,200 @@
+[
+  {
+    "id": "text-only",
+    "label": "Text only",
+    "rationale": "Baseline: how well can people's results be predicted from the written description alone, without seeing the app?",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 0,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+    "repetitions": 3,
+    "runtime": "none"
+  },
+  {
+    "id": "reads-project",
+    "label": "Reads the project files",
+    "rationale": "Does inspecting the app's files (code, scenes, materials) without running it beat the description alone?",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project"
+    ],
+    "tools": [
+      "read-files"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "project"
+    ],
+    "maxToolCalls": 50,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+    "repetitions": 3,
+    "runtime": "none"
+  },
+  {
+    "id": "uses-app",
+    "label": "Uses the app",
+    "rationale": "Does experiencing the app like a participant (looking around and doing the practice and main tasks) beat only reading its files?",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact"
+    ],
+    "observation": "stereo-pair",
+    "requiredCaseIds": [
+      "ray-practice",
+      "ray-main",
+      "direct-practice",
+      "direct-main",
+      "hybrid-practice",
+      "hybrid-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project"
+    ],
+    "maxToolCalls": 150,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+    "repetitions": 3,
+    "runtime": "unity"
+  },
+  {
+    "id": "reads-evidence",
+    "label": "Reads the project + your evidence",
+    "rationale": "Does your evidence document (published findings, a computational model) add anything beyond reading the files?",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "evidence"
+    ],
+    "tools": [
+      "read-files",
+      "read-evidence"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "evidence"
+    ],
+    "maxToolCalls": 50,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+    "repetitions": 3,
+    "runtime": "none"
+  },
+  {
+    "id": "knows-participant",
+    "label": "Text + participant background (individual)",
+    "rationale": "Individual forecasts from the description and each person's background only (invented background that drives the invented outcomes).",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "none"
+  },
+  {
+    "id": "uses-app-people",
+    "label": "Uses the app + knows the participant (individual)",
+    "rationale": "Does experiencing the techniques add to knowing each person's background?",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project",
+      "demographics"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact",
+      "read-participant-data"
+    ],
+    "observation": "stereo-pair",
+    "requiredCaseIds": [
+      "ray-practice",
+      "ray-main",
+      "direct-practice",
+      "direct-main",
+      "hybrid-practice",
+      "hybrid-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project",
+      "demographics"
+    ],
+    "maxToolCalls": 150,
+    "maxOutputTokens": 64000,
+    "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+    "runtime": "unity",
+    "level": "individual"
+  }
+]

@@ -1,0 +1,401 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-material-cues",
+  "title": "Material cues at two rendering qualities (WebXR)",
+  "researchQuestion": "RQ1: How does the rendering quality of a WebXR room (low: flat, unlit colours; high: physically based materials) affect how quickly and accurately people find objects defined by their material, how well they identify materials, how present they feel, how visually appealing they find the room, and which quality they prefer?",
+  "agentQuestions": "RQ2: Which agent methods (text only, general evidence, experiencing the app, reading the app's files, measured task data) reproduce the human differences between the two rendering qualities? RQ3: Does knowing each participant's background (vision correction, colour vision, art or design training, VR experience, age), with or without general evidence about observer differences, give useful individual forecasts?",
+  "synthetic": true,
+  "design": "within-subjects",
+  "predictionLevel": "population",
+  "predictionTiming": "after-experience",
+  "conditions": [
+    {
+      "id": "low",
+      "label": "Low rendering quality (flat, unlit colours)"
+    },
+    {
+      "id": "high",
+      "label": "High rendering quality (physically based materials, reflections, soft shadows)"
+    }
+  ],
+  "phases": [
+    {
+      "id": "practice",
+      "label": "Practice trial",
+      "kind": "practice"
+    },
+    {
+      "id": "main",
+      "label": "Scored search and identification trials",
+      "kind": "main"
+    },
+    {
+      "id": "questionnaire",
+      "label": "Questionnaire after each design; preference at the end",
+      "kind": "questionnaire"
+    },
+    {
+      "id": "break",
+      "label": "Break between the designs",
+      "kind": "break"
+    }
+  ],
+  "cases": [
+    {
+      "id": "low-practice",
+      "conditionId": "low",
+      "phaseId": "practice",
+      "label": "Practice: select the wooden box",
+      "requiredActions": [
+        "look-around",
+        "select-target"
+      ],
+      "minActions": 1
+    },
+    {
+      "id": "low-main",
+      "conditionId": "low",
+      "phaseId": "main",
+      "label": "Main: four search trials (select the glossy ceramic mug, the brushed-metal bowl and the glass vase), then six identification trials (name the material of the marked object)",
+      "requiredActions": [
+        "look-around",
+        "select-target",
+        "identify"
+      ],
+      "minActions": 18
+    },
+    {
+      "id": "high-practice",
+      "conditionId": "high",
+      "phaseId": "practice",
+      "label": "Practice: select the wooden box",
+      "requiredActions": [
+        "look-around",
+        "select-target"
+      ],
+      "minActions": 1
+    },
+    {
+      "id": "high-main",
+      "conditionId": "high",
+      "phaseId": "main",
+      "label": "Main: four search trials (select the glossy ceramic mug, the brushed-metal bowl and the glass vase), then six identification trials (name the material of the marked object)",
+      "requiredActions": [
+        "look-around",
+        "select-target",
+        "identify"
+      ],
+      "minActions": 18
+    }
+  ],
+  "participants": [
+    {
+      "id": "P01",
+      "stratum": "low-high",
+      "conditionOrder": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "P02",
+      "stratum": "high-low",
+      "conditionOrder": [
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "P03",
+      "stratum": "low-high",
+      "conditionOrder": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "P04",
+      "stratum": "high-low",
+      "conditionOrder": [
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "P05",
+      "stratum": "low-high",
+      "conditionOrder": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "P06",
+      "stratum": "high-low",
+      "conditionOrder": [
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "P07",
+      "stratum": "low-high",
+      "conditionOrder": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "P08",
+      "stratum": "high-low",
+      "conditionOrder": [
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "P09",
+      "stratum": "low-high",
+      "conditionOrder": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "P10",
+      "stratum": "high-low",
+      "conditionOrder": [
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "P11",
+      "stratum": "low-high",
+      "conditionOrder": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "P12",
+      "stratum": "high-low",
+      "conditionOrder": [
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "P13",
+      "stratum": "low-high",
+      "conditionOrder": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "P14",
+      "stratum": "high-low",
+      "conditionOrder": [
+        "high",
+        "low"
+      ]
+    },
+    {
+      "id": "P15",
+      "stratum": "low-high",
+      "conditionOrder": [
+        "low",
+        "high"
+      ]
+    },
+    {
+      "id": "P16",
+      "stratum": "high-low",
+      "conditionOrder": [
+        "high",
+        "low"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "brief",
+      "label": "Study brief",
+      "kind": "brief",
+      "description": "examples/material-cues/agent-brief.md: the room, the two rendering qualities, the tasks and the questionnaire, without any participant answers."
+    },
+    {
+      "id": "project",
+      "label": "WebXR project",
+      "kind": "project",
+      "description": "examples/material-cues/webxr-app/: the scene, the materials per rendering quality and the task logic. Layouts are drawn at random per session, so the code holds no layout. Run it with ?quality=low|high&study=1."
+    },
+    {
+      "id": "evidence-rendering",
+      "label": "Background: rendering and material perception",
+      "kind": "evidence",
+      "description": "examples/material-cues/evidence/rendering-and-material-perception.md: invented, literature-style background on material cues, visual search, presence and visual preference. Written without this study's data."
+    },
+    {
+      "id": "evidence-observers",
+      "label": "Background: observer differences",
+      "kind": "evidence",
+      "description": "examples/material-cues/evidence/observer-differences.md: invented, literature-style background on how colour vision, training, VR experience, age and vision correction relate to material judgements and VR studies. Written without this study's data."
+    },
+    {
+      "id": "background",
+      "label": "Participant background",
+      "kind": "demographics",
+      "description": "data/raw/background.csv: invented background per participant; never results. Population forecasts get a cohort summary, individual forecasts the person's own row.",
+      "fields": [
+        "age_band",
+        "vision_correction",
+        "color_vision",
+        "art_or_design_training",
+        "vr_hours_total"
+      ]
+    }
+  ],
+  "runtime": {
+    "engine": "custom",
+    "backend": "custom",
+    "deviceProfile": "webxr-desktop-browser-1280x720",
+    "observation": "mono",
+    "requiredCapabilities": [
+      "screenshot",
+      "look",
+      "pointer-select",
+      "actions",
+      "phase-events",
+      "quality-lock"
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "search-time",
+      "label": "Search time",
+      "domain": "objective",
+      "unit": "seconds per search trial",
+      "scale": "continuous",
+      "range": [
+        0,
+        120
+      ],
+      "aggregation": "geometric",
+      "family": "task-time",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Seconds from the start of a search trial until its third target is selected (wrong selections included), geometric mean over the four search trials; practice excluded. The experimenter stops a trial at 120 s."
+    },
+    {
+      "id": "wrong-selections",
+      "label": "Wrong selections",
+      "domain": "objective",
+      "unit": "wrong selections in the four search trials",
+      "scale": "count",
+      "aggregation": "arithmetic",
+      "family": "search-errors",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Number of non-target objects selected in the four search trials together (a whole number per person and design)."
+    },
+    {
+      "id": "identification-accuracy",
+      "label": "Material identification accuracy",
+      "domain": "objective",
+      "unit": "proportion of six identification trials correct",
+      "scale": "proportion",
+      "range": [
+        0,
+        1
+      ],
+      "aggregation": "arithmetic",
+      "family": "identification",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Share of the six identification trials (each look-alike marked once) whose material was named correctly from five options."
+    },
+    {
+      "id": "presence",
+      "label": "Presence (4 items)",
+      "domain": "subjective",
+      "unit": "1-7 item mean",
+      "scale": "ordinal",
+      "range": [
+        1,
+        7
+      ],
+      "aggregation": "arithmetic",
+      "family": "presence",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "components": [
+        "general",
+        "spatial",
+        "involvement",
+        "realness"
+      ],
+      "componentRule": "mean",
+      "description": "Mean of four 1-7 presence items (general, spatial, involvement, realness), asked after each design."
+    },
+    {
+      "id": "appeal",
+      "label": "Visual appeal",
+      "domain": "subjective",
+      "unit": "1-7",
+      "scale": "ordinal",
+      "range": [
+        1,
+        7
+      ],
+      "aggregation": "arithmetic",
+      "family": "aesthetics",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "'How visually appealing was the room?' (1-7), asked after each design."
+    },
+    {
+      "id": "preference",
+      "label": "Preference",
+      "domain": "subjective",
+      "unit": "rank; 1 = preferred",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "At the end of the session: which of the two designs the participant preferred (rank 1) and which not (rank 2)."
+    }
+  ],
+  "analysis": {
+    "mode": "both",
+    "familyWeights": {
+      "task-time": 0.5,
+      "search-errors": 0.5,
+      "identification": 0.5,
+      "presence": 0.3,
+      "aesthetics": 0.2,
+      "preference": 0.2
+    },
+    "bootstrapDraws": 1000,
+    "seed": 2026,
+    "tieTolerance": 1e-08,
+    "contrasts": []
+  }
+}

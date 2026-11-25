@@ -1,0 +1,11 @@
+{
+  "title": "Haptic feedback for mid-air buttons in VR",
+  "suite": "Suite 5 · Haptic buttons",
+  "description": "Synthetic within-subjects study of three kinds of press feedback (visual only, vibrotactile buzz, patterned pulse) on a mid-air keypad, 18 invented participants. There is no runnable app: every configuration is app-free and runs with Claude Code. Invented background and practice movement drive the invented outcomes.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "evidence": "evidence/haptics-evidence.md",
+    "demographics": "data/raw/demographics.csv",
+    "trajectory": "data/raw/movement_practice.csv"
+  }
+}

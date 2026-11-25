@@ -1,0 +1,17 @@
+[
+  {
+    "candidate": "reads-evidence",
+    "baseline": "text-only",
+    "domain": "objective"
+  },
+  {
+    "candidate": "knows-cohort",
+    "baseline": "text-only",
+    "domain": "objective"
+  },
+  {
+    "candidate": "knows-participant-evidence",
+    "baseline": "knows-participant",
+    "domain": "subjective"
+  }
+]

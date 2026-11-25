@@ -1,0 +1,961 @@
+participant,keyboard,position,phrase,presented,transcribed,seconds
+P01,raycast,1,1,the map was folded the wrong way,the map was folded the wrong way,32.89
+P01,raycast,1,2,my phone battery is almost empty,my phone battery is almost empty,19.73
+P01,raycast,1,3,the printer needs new paper,the printer needs new paper,18.94
+P01,raycast,1,4,my sister plays the cello,jy sister plays the cello,19.37
+P01,raycast,1,5,the library closes early on friday,the library closes early on friday,23.29
+P01,raycast,1,6,we watched the sunrise from the hill,we watched the sunrise from the hill,26.78
+P01,raycast,1,7,she knits warm socks for winter,she knits warm socks for winter,23.11
+P01,raycast,1,8,the kettle is on the stove,the kettle is on the stove,20.00
+P01,raycast,1,9,a long walk clears the mind,a long walk clearsthe mind,22.15
+P01,raycast,1,10,the meeting moved to tuesday,the meeting moved to tuesday,23.30
+P01,drum,2,1,they planted apple trees in spring,they plantedapple trees in spring,28.70
+P01,drum,2,2,the cat sleeps on the windowsill,the cat sleeps on the windowsill,21.56
+P01,drum,2,3,the river froze last winter,the river froze last winter,22.32
+P01,drum,2,4,we found a path through the park,we found a path through the park,32.32
+P01,drum,2,5,leave the keys under the mat,leave the keys under the mat,24.22
+P01,drum,2,6,dinner will be ready soon,dinner wull be ready soon,22.77
+P01,drum,2,7,fresh bread smells wonderful,fresh bread smells wonderful,26.26
+P01,drum,2,8,keep the receipt for the shoes,keep the receipt for the shoes,30.45
+P01,drum,2,9,call me when you get home,call me when you get home,23.82
+P01,drum,2,10,we ran out of milk,we ran out of milk,15.05
+P01,split,3,1,she painted the fence bright blue,she painted the fence bright blue,44.47
+P01,split,3,2,the bridge is closed for repairs,the bridge is closed for repairs,33.15
+P01,split,3,3,the old clock still keeps time,the old clock still keeps time,38.81
+P01,split,3,4,turn left after the bakery,turn left after the bakery,33.60
+P01,split,3,5,the puppy chewed my slipper,the puppy chewed my slipper,31.09
+P01,split,3,6,the concert starts at eight,the concert starts at eight,33.24
+P01,split,3,7,please water the plants today,please water the plants today,33.14
+P01,split,3,8,the children built a sand castle,the children built a dand castle,33.98
+P01,split,3,9,bring a coat in case it rains,bring a coat in case it rains,34.02
+P01,split,3,10,the kite got stuck in a tree,the kite got stuck in a tree,34.10
+P01,swipe,4,1,his garden grows huge pumpkins,his grain grows huge pumpkins,26.88
+P01,swipe,4,2,the train was full this morning,the train was full this morning,27.26
+P01,swipe,4,3,the museum opens at ten,the museum opens at ten,22.32
+P01,swipe,4,4,please close the door quietly,please close the deer quietly,29.81
+P01,swipe,4,5,the soup needs a pinch of salt,the soup needs a pinch of salt,30.47
+P01,swipe,4,6,he forgot his umbrella again,he forgot his umbrella again,26.23
+P01,swipe,4,7,the elevator is out of order,the evening is out of order,28.02
+P01,swipe,4,8,the lake is calm this evening,the lake is calm this elevator,31.19
+P01,swipe,4,9,our bus leaves at seven,our bus leaves at seven,30.56
+P01,swipe,4,10,a quiet room helps me think,a quiet room helps me think,25.04
+P02,drum,1,1,the old clock still keeps time,the old clock still keeps time,21.34
+P02,drum,1,2,the river froze last winter,the river froze last winter,22.27
+P02,drum,1,3,they planted apple trees in spring,tjy planted apple trees in sprinh,26.85
+P02,drum,1,4,the soup needs a pinch of salt,the soup needs a pinch pf salt,18.97
+P02,drum,1,5,bring a coat in case it rains,bring s coat in case it rains,25.96
+P02,drum,1,6,the lake is calm this evening,the lake is calm this evening,22.33
+P02,drum,1,7,his garden grows huge pumpkins,his garden grows huge pumpkins,26.40
+P02,drum,1,8,the map was folded the wrong way,the map was flded the wrong way,31.17
+P02,drum,1,9,the museum opens at ten,the museum opens at ten,19.92
+P02,drum,1,10,we watched the sunrise from the hill,we eatched the sjnrise fron the hill,28.82
+P02,swipe,2,1,keep the receipt for the shoes,keep the receipt for the shoes,16.44
+P02,swipe,2,2,call me when you get home,call me when you get home,17.53
+P02,swipe,2,3,she painted the fence bright blue,she painted the fence bright blue,16.58
+P02,swipe,2,4,we found a path through the park,we found a path through the park,23.03
+P02,swipe,2,5,our bus leaves at seven,our bus leaves at seven,12.05
+P02,swipe,2,6,the cat sleeps on the windowsill,tune cat sleeps on the windowsill,17.93
+P02,swipe,2,7,a quiet room helps me think,a quiet room helps me think,16.99
+P02,swipe,2,8,the library closes early on friday,the library closes early oak friday,20.05
+P02,swipe,2,9,she knits warm socks for winter,she knits warm socks for winter,19.72
+P02,swipe,2,10,the meeting moved to tuesday,test meeting moved to tuesday,15.91
+P02,raycast,3,1,leave the keys under the mat,leave the keys under the mat,23.12
+P02,raycast,3,2,my phone battery is almost empty,my phone battery  is almost empty,36.01
+P02,raycast,3,3,the kite got stuck in a tree,the kite got stuck in aq tree,27.91
+P02,raycast,3,4,dinner will be ready soon,dinner will he ready soon,23.35
+P02,raycast,3,5,the children built a sand castle,the children built a sand castle,33.60
+P02,raycast,3,6,we ran out of milk,we ranout of milk,15.16
+P02,raycast,3,7,turn left after the bakery,turn left after the  bakery,20.90
+P02,raycast,3,8,the kettle is on the stove,the kettle is n the stove,21.18
+P02,raycast,3,9,a long walk clears the mind,a long walk clears the mimd,18.01
+P02,raycast,3,10,fresh bread smells wonderful,fresh bread smelld wonderful,22.49
+P02,split,4,1,the bridge is closed for repairs,the bridge is closed for repairs,44.81
+P02,split,4,2,the puppy chewed my slipper,the puppy chewed my slipper,40.05
+P02,split,4,3,please water the plants today,please water the plants today,42.34
+P02,split,4,4,he forgot his umbrella again,he forgot his umbrellaagain,41.22
+P02,split,4,5,my sister plays the cello,my sister plays the cello,39.30
+P02,split,4,6,the train was full this morning,the train was full this morning,51.93
+P02,split,4,7,the concert starts at eight,the concert starts at eight,40.73
+P02,split,4,8,the printer needs new paper,the printer needs new paper,33.32
+P02,split,4,9,the elevator is out of order,the elevator is out of order,48.20
+P02,split,4,10,please close the door quietly,please close the door quietly,48.15
+P03,swipe,1,1,he forgot his umbrella again,he forgot his umbrella again,30.79
+P03,swipe,1,2,we ran out of milk,we ran out of milk,16.98
+P03,swipe,1,3,keep the receipt for the shoes,keep the receipt for the shoes,38.75
+P03,swipe,1,4,the concert starts at eight,the concert starts at eight,35.06
+P03,swipe,1,5,the kettle is on the stove,the knits is on the stove,33.27
+P03,swipe,1,6,she painted the fence bright blue,she painted the firm bright blue,52.51
+P03,swipe,1,7,the cat sleeps on the windowsill,the cat sleeps on the windowsill,38.55
+P03,swipe,1,8,his garden grows huge pumpkins,hit garden grows huge pumpkins,41.27
+P03,swipe,1,9,our bus leaves at seven,our bus leaves at seven,33.69
+P03,swipe,1,10,please close the door quietly,please close the door quietly,39.27
+P03,split,2,1,the bridge is closed for repairs,the bridge is closd for repairs,49.01
+P03,split,2,2,turn left after the bakery,turn left after the bakery,33.23
+P03,split,2,3,a quiet room helps me think,a quiet room helps me think,45.34
+P03,split,2,4,leave the keys under the mat,leave the keys under the mat,33.94
+P03,split,2,5,call me when you get home,call me when you get home,39.60
+P03,split,2,6,the soup needs a pinch of salt,the soup newds a pinch of salt,65.47
+P03,split,2,7,fresh bread smells wonderful,fresh bread smells wonderful,51.06
+P03,split,2,8,a long walk clears the mind,a long walk clears the mind,44.62
+P03,split,2,9,the puppy chewed my slipper,the puppy chewed my slipper,57.19
+P03,split,2,10,the elevator is out of order,the elevator is out of order,45.27
+P03,drum,3,1,the museum opens at ten,the museum opens qt ten,13.15
+P03,drum,3,2,bring a coat in case it rains,bring a coat in case it rains,23.98
+P03,drum,3,3,we found a path through the park,wd fojnd a path thfough the parl,25.73
+P03,drum,3,4,the lake is calm this evening,the lake is calm this evening,23.54
+P03,drum,3,5,the library closes early on friday,the library closes earlyon froday,24.96
+P03,drum,3,6,we watched the sunrise from the hill,we watched the sunrise from the hill,29.72
+P03,drum,3,7,the map was folded the wrong way,the map was folded the wrong way,22.99
+P03,drum,3,8,dinner will be ready soon,dinner will be ready soon,19.47
+P03,drum,3,9,please water the plants today,olease water the plants today,24.39
+P03,drum,3,10,the old clock still keeps time,the od clofk till keeps time,19.87
+P03,raycast,4,1,the kite got stuck in a tree,the kitr got stuck in a tree,24.94
+P03,raycast,4,2,the printer needs new paper,the printer needs new pper,24.11
+P03,raycast,4,3,the meeting moved to tuesday,the meeting moved to tuesday,22.90
+P03,raycast,4,4,the children built a sand castle,the children built a sand castle,25.93
+P03,raycast,4,5,the train was full this morning,the train was full this morning,30.02
+P03,raycast,4,6,she knits warm socks for winter,she knits warm socks for winter,35.80
+P03,raycast,4,7,the river froze last winter,the rkver froze last winter,18.32
+P03,raycast,4,8,my sister plays the cello,my sister pkays the cello,26.60
+P03,raycast,4,9,they planted apple trees in spring,they planted apple trees in spring,27.99
+P03,raycast,4,10,my phone battery is almost empty,my phone battery is almost empty,37.66
+P04,split,1,1,the lake is calm this evening,the lake is calm this evening,46.08
+P04,split,1,2,the old clock still keeps time,the old clock still keeps time,59.36
+P04,split,1,3,the concert starts at eight,the concert starts at eight,47.51
+P04,split,1,4,the children built a sand castle,the children built a sand castle,59.82
+P04,split,1,5,the river froze last winter,the river froze last winter,46.77
+P04,split,1,6,she knits warm socks for winter,she knits warm socks for winter,47.48
+P04,split,1,7,the puppy chewed my slipper,the puppy chewed my slipper,49.63
+P04,split,1,8,keep the receipt for the shoes,keep the receipt for the shoes,57.22
+P04,split,1,9,the kite got stuck in a tree,the kite got stuck in a tree,45.87
+P04,split,1,10,they planted apple trees in spring,they planted apple trees in spring,56.36
+P04,raycast,2,1,we found a path through the park,we found a path through the park,33.47
+P04,raycast,2,2,leave the keys under the mat,leave the kwys under the mat,25.43
+P04,raycast,2,3,the cat sleeps on the windowsill,the cat sleeps on the windowsill,30.81
+P04,raycast,2,4,bring a coat in case it rains,bring a coat in case it rains,29.28
+P04,raycast,2,5,the train was full this morning,the train was full this morning,24.77
+P04,raycast,2,6,our bus leaves at seven,our bus leavces at seven,19.63
+P04,raycast,2,7,call me when you get home,call me when you get home,21.84
+P04,raycast,2,8,the kettle is on the stove,the kettle is on the stove,24.77
+P04,raycast,2,9,we watched the sunrise from the hill,we watched the unrise from the hill,35.16
+P04,raycast,2,10,my phone battery is almost empty,my phone battedry is almost empty,34.63
+P04,swipe,3,1,the printer needs new paper,the printer needs new paper,25.24
+P04,swipe,3,2,please water the plants today,please water the plants trim,29.78
+P04,swipe,3,3,we ran out of milk,we ran out of milk,19.01
+P04,swipe,3,4,turn left after the bakery,turn left after the bakery,27.74
+P04,swipe,3,5,the map was folded the wrong way,tent map was folded the wrong way,24.36
+P04,swipe,3,6,the elevator is out of order,the elevator is out of open,20.27
+P04,swipe,3,7,please close the door quietly,please close the door quietly,30.50
+P04,swipe,3,8,a long walk clears the mind,a long walk cheap the mind,26.90
+P04,swipe,3,9,fresh bread smells wonderful,fresh bread smells wonderful,29.68
+P04,swipe,3,10,a quiet room helps me think,a quiet room helps me think,26.94
+P04,drum,4,1,my sister plays the cello,my sister plays the cello,18.30
+P04,drum,4,2,the meeting moved to tuesday,the meeting moved to tuesday,20.94
+P04,drum,4,3,he forgot his umbrella again,je forgot his umbrella again,24.98
+P04,drum,4,4,his garden grows huge pumpkins,his garden grows huge pumpkins,26.55
+P04,drum,4,5,the library closes early on friday,the library closes early on friday,26.21
+P04,drum,4,6,the museum opens at ten,the museum opens at ten,17.41
+P04,drum,4,7,the bridge is closed for repairs,the bridge is closed for repairs,33.25
+P04,drum,4,8,dinner will be ready soon,dinner wiol be ready soon,21.52
+P04,drum,4,9,she painted the fence bright blue,shepainted the fence bright blue,25.27
+P04,drum,4,10,the soup needs a pinch of salt,the soup needs a pinch of salt,19.52
+P05,raycast,1,1,the library closes early on friday,the library closes early on friday,26.87
+P05,raycast,1,2,the kite got stuck in a tree,the kite got sguck in a tree,23.88
+P05,raycast,1,3,we ran out of milk,we ran out of milk,12.21
+P05,raycast,1,4,dinner will be ready soon,dnner will be ready soon,22.18
+P05,raycast,1,5,a quiet room helps me think,a quiet room helps me think,18.34
+P05,raycast,1,6,the train was full this morning,the train was full this morningt,25.43
+P05,raycast,1,7,bring a coat in case it rains,bring a coat in case it rains,20.94
+P05,raycast,1,8,the river froze last winter,the river ftoze last winter,20.92
+P05,raycast,1,9,she knits warm socks for winter,she knits warm socks for winter,24.45
+P05,raycast,1,10,the puppy chewed my slipper,the puppy chewed my slipper,19.44
+P05,drum,2,1,the bridge is closed for repairs,the bridge is closed for repairs,29.60
+P05,drum,2,2,the meeting moved to tuesday,the meeting moved to tuesday,18.19
+P05,drum,2,3,the children built a sand castle,the children built a sand castle,28.59
+P05,drum,2,4,the cat sleeps on the windowsill,the cat sleeps on the windowsill,20.54
+P05,drum,2,5,she painted the fence bright blue,she painted the fence bright nlue,19.72
+P05,drum,2,6,fresh bread smells wonderful,fresh bread smells wonderful,17.20
+P05,drum,2,7,the soup needs a pinch of salt,the soup needs a pinch of salt,20.11
+P05,drum,2,8,the printer needs new paper,theprinter needs new paper,16.52
+P05,drum,2,9,the lake is calm this evening,the lame is xalm this evening,18.63
+P05,drum,2,10,call me when you get home,call me when you get home,22.69
+P05,split,3,1,leave the keys under the mat,leave the keys under the mat,33.86
+P05,split,3,2,a long walk clears the mind,a long walk clears the mind,30.18
+P05,split,3,3,he forgot his umbrella again,he forgot his umbrella again,34.72
+P05,split,3,4,please close the door quietly,please close the door quietly,33.74
+P05,split,3,5,please water the plants today,please water the plznts today,37.57
+P05,split,3,6,the concert starts at eight,the concert stars at eight,27.01
+P05,split,3,7,the map was folded the wrong way,the map was folded the wrong way,40.34
+P05,split,3,8,the kettle is on the stove,the kettle is on the stove,27.19
+P05,split,3,9,we found a path through the park,we found a path through the park,37.10
+P05,split,3,10,turn left after the bakery,turn left after the bakery,29.27
+P05,swipe,4,1,the museum opens at ten,the museum opens at ten,13.52
+P05,swipe,4,2,our bus leaves at seven,our bus leaves at seven,12.85
+P05,swipe,4,3,the elevator is out of order,the evening is out of order,13.88
+P05,swipe,4,4,his garden grows huge pumpkins,his garden grows huge pumpkins,14.23
+P05,swipe,4,5,they planted apple trees in spring,they planted apple trees in spring,16.82
+P05,swipe,4,6,the old clock still keeps time,the old clock still keeps time,12.48
+P05,swipe,4,7,my sister plays the cello,my sister plays the cello,10.65
+P05,swipe,4,8,my phone battery is almost empty,my phone battery is almost empty,16.15
+P05,swipe,4,9,we watched the sunrise from the hill,we watched the sunrise from the hill,22.06
+P05,swipe,4,10,keep the receipt for the shoes,keep the receipt for the shoes,16.32
+P06,drum,1,1,please water the plants today,please waterthe plants today,18.22
+P06,drum,1,2,the museum opens at ten,the museum opens at ten,21.28
+P06,drum,1,3,the bridge is closed for repairs,the bridge i closed for rewpairs,23.22
+P06,drum,1,4,dinner will be ready soon,dinner will be ready soon,21.06
+P06,drum,1,5,keep the receipt for the shoes,keep the receipt for the shoes,19.09
+P06,drum,1,6,the kite got stuck in a tree,the kite got stuck in a tree,20.68
+P06,drum,1,7,we found a path through the park,we found a path through the park,25.41
+P06,drum,1,8,the concert starts at eight,the concert starts at eiht,19.36
+P06,drum,1,9,she knits warm socks for winter,she knits warm socks for winter,20.43
+P06,drum,1,10,fresh bread smells wonderful,resh bread smells wonderful,25.65
+P06,swipe,2,1,we ran out of milk,we ran out oak milk,10.88
+P06,swipe,2,2,a quiet room helps me think,a quiet room helps me think,17.00
+P06,swipe,2,3,they planted apple trees in spring,they planted apple trees in spring,21.61
+P06,swipe,2,4,the train was full this morning,the train was full this morning,17.95
+P06,swipe,2,5,the river froze last winter,the river froze last winter,14.86
+P06,swipe,2,6,the printer needs new paper,the printer needs new paper,14.57
+P06,swipe,2,7,the elevator is out of order,the elevator is out of order,18.33
+P06,swipe,2,8,turn left after the bakery,turn lamp after the bakery,16.01
+P06,swipe,2,9,my phone battery is almost empty,my phone battery is almost empty,15.61
+P06,swipe,2,10,his garden grows huge pumpkins,hope garden grows huge pumpkins,15.68
+P06,raycast,3,1,the meeting moved to tuesday,the meeting moved to tuesday,19.65
+P06,raycast,3,2,the children built a sand castle,the children built s sand castle,30.64
+P06,raycast,3,3,we watched the sunrise from the hill,we watched the sunfise from the hill,25.15
+P06,raycast,3,4,the lake is calm this evening,the lake is calm this evening,22.20
+P06,raycast,3,5,the map was folded the wrong way,the map was folded the wrong way,25.28
+P06,raycast,3,6,she painted the fence bright blue,she painted the fence bright blue,22.42
+P06,raycast,3,7,the kettle is on the stove,the kettle is on the stove,17.06
+P06,raycast,3,8,the puppy chewed my slipper,the puppy chewed my  slipper,19.32
+P06,raycast,3,9,bring a coat in case it rains,bring a coat in case it rains,22.90
+P06,raycast,3,10,he forgot his umbrella again,he forgot his umbrella again,20.89
+P06,split,4,1,please close the door quietly,please close the door quitly,32.44
+P06,split,4,2,leave the keys under the mat,leave the keys under the mat,29.76
+P06,split,4,3,a long walk clears the mind,a long walk clears the mind,29.14
+P06,split,4,4,my sister plays the cello,my sister plays the cello,29.51
+P06,split,4,5,the library closes early on friday,the library closes early on friday,26.31
+P06,split,4,6,call me when you get home,call me when you get home,27.86
+P06,split,4,7,the cat sleeps on the windowsill,the cat sleeps on the windowwill,37.41
+P06,split,4,8,the old clock still keeps time,the old clock still keeps time,31.37
+P06,split,4,9,the soup needs a pinch of salt,the soup needs a pinch of salt,26.70
+P06,split,4,10,our bus leaves at seven,our bus leaves at seven,27.61
+P07,swipe,1,1,the river froze last winter,the river froze last winter,32.19
+P07,swipe,1,2,the map was folded the wrong way,the map was folded the wrong way,45.25
+P07,swipe,1,3,we found a path through the park,we found a path through the park,40.49
+P07,swipe,1,4,she knits warm socks for winter,she knits warm soon for winter,30.86
+P07,swipe,1,5,we ran out of milk,we ran out of milk,19.91
+P07,swipe,1,6,my sister plays the cello,my sister plays talk cello,39.62
+P07,swipe,1,7,turn left after the bakery,turn left after the bakery,39.71
+P07,swipe,1,8,please water the plants today,please water the plays today,35.07
+P07,swipe,1,9,the kite got stuck in a tree,the kite got stuck in a tree,33.88
+P07,swipe,1,10,the library closes early on friday,the leaves chain early on friday,37.29
+P07,split,2,1,the train was full this morning,the train was full this morning,69.73
+P07,split,2,2,dinner will be ready soon,dinner will be ready soon,41.79
+P07,split,2,3,keep the receipt for the shoes,keep the receipt for the shoes,69.01
+P07,split,2,4,our bus leaves at seven,our bus leaves at seven,48.75
+P07,split,2,5,the children built a sand castle,the childreb built a sand castle,83.35
+P07,split,2,6,the elevator is out of order,the elevator is out of order,45.57
+P07,split,2,7,she painted the fence bright blue,she painted the fence bright blue,63.01
+P07,split,2,8,the kettle is on the stove,the kettle is on the stove,48.39
+P07,split,2,9,fresh bread smells wonderful,fresh bread smells woderful,46.31
+P07,split,2,10,the puppy chewed my slipper,the puppy chewed my slipper,57.89
+P07,drum,3,1,his garden grows huge pumpkins,his garden grows huge pumpkinms,27.60
+P07,drum,3,2,the cat sleeps on the windowsill,the cat sleeps on the windowsill,29.07
+P07,drum,3,3,the lake is calm this evening,the lake is calm this evening,25.90
+P07,drum,3,4,bring a coat in case it rains,bring a coat in case it rains,23.52
+P07,drum,3,5,the concert starts at eight,the concert starts at eight,22.59
+P07,drum,3,6,the old clock still keeps time,the old clock still keeos time,34.86
+P07,drum,3,7,the meeting moved to tuesday,the meeging moved to tuesday,24.85
+P07,drum,3,8,please close the door quietly,please close the door quietly,23.31
+P07,drum,3,9,they planted apple trees in spring,the planted apple trees in spring,27.01
+P07,drum,3,10,the bridge is closed for repairs,the bridge is closed for fepairsz,32.21
+P07,raycast,4,1,the printer needs new paper,the printer needs new paper,26.65
+P07,raycast,4,2,the soup needs a pinch of salt,the soup needs a pinch of salt,29.90
+P07,raycast,4,3,call me when you get home,call me when you gethome,24.82
+P07,raycast,4,4,we watched the sunrise from the hill,we watched the sunrise from the hill,34.23
+P07,raycast,4,5,he forgot his umbrella again,he forgot his umbrella again,30.32
+P07,raycast,4,6,the museum opens at ten,the museum opens at ten,21.08
+P07,raycast,4,7,a long walk clears the mind,a long wal clears the mind,26.01
+P07,raycast,4,8,leave the keys under the mat,leave the keys under the mat,26.96
+P07,raycast,4,9,a quiet room helps me think,a quietroom helps me think,25.45
+P07,raycast,4,10,my phone battery is almost empty,my phone battery is almost empty,30.49
+P08,split,1,1,the printer needs new paper,the printer needsnew paper,35.84
+P08,split,1,2,please close the door quietly,please close the door quietly,40.30
+P08,split,1,3,the museum opens at ten,the museum opens at ten,25.95
+P08,split,1,4,they planted apple trees in spring,they planted apple trees in spring,45.88
+P08,split,1,5,the concert starts at eight,the concert starts at eight,38.76
+P08,split,1,6,the train was full this morning,the trasion was full this morning,45.62
+P08,split,1,7,fresh bread smells wonderful,fresg bread smells wonderful,42.15
+P08,split,1,8,his garden grows huge pumpkins,his garden grows huge pumpkins,39.74
+P08,split,1,9,the old clock still keeps time,the old clock still keeps time,37.58
+P08,split,1,10,turn left after the bakery,turn left after the bakery,32.59
+P08,raycast,2,1,he forgot his umbrella again,he forgot his umbrella again,24.26
+P08,raycast,2,2,the puppy chewed my slipper,the puppu chewed my slipper,23.61
+P08,raycast,2,3,she painted the fence bright blue,she painted the fence bright blue,30.90
+P08,raycast,2,4,the bridge is closed for repairs,the bridge is closed for repairs,30.32
+P08,raycast,2,5,the cat sleeps on the windowsill,the cat sleeps on the windowsill,32.26
+P08,raycast,2,6,the soup needs a pinch of salt,the soup needs a pknch of salt,22.29
+P08,raycast,2,7,leave the keys under the mat,leave the keys under the mat,27.76
+P08,raycast,2,8,our bus leaves at seven,our bus leaves at seven,26.76
+P08,raycast,2,9,the kettle is on the stove,the kettle is on the stove,22.26
+P08,raycast,2,10,we found a path through the park,we found a path through the park,31.01
+P08,swipe,3,1,keep the receipt for the shoes,keep the receipt for the shoes,23.82
+P08,swipe,3,2,please water the plants today,please wore the plants today,24.53
+P08,swipe,3,3,the river froze last winter,the river froze last winter,22.44
+P08,swipe,3,4,the map was folded the wrong way,the map was folded the wrong way,27.20
+P08,swipe,3,5,a long walk clears the mind,a long walk clears the mind,23.83
+P08,swipe,3,6,my sister plays the cello,map sister plays the cook,20.54
+P08,swipe,3,7,dinner will be ready soon,dinner will be ready soon,17.80
+P08,swipe,3,8,we watched the sunrise from the hill,we watched the sunrise from the hill,35.91
+P08,swipe,3,9,a quiet room helps me think,a quiet room helps me think,24.22
+P08,swipe,3,10,the kite got stuck in a tree,the kite got stuck in a tree,24.48
+P08,drum,4,1,the meeting moved to tuesday,te meetung moved yo tuesday,19.52
+P08,drum,4,2,the children built a sand castle,the cnildren built a sdand castle,18.84
+P08,drum,4,3,we ran out of milk,we ran out of milk,13.77
+P08,drum,4,4,she knits warm socks for winter,she knit warm socks for winter,25.00
+P08,drum,4,5,the lake is calm this evening,the lake is calm this evening,18.38
+P08,drum,4,6,call me when you get home,call me when you get home,16.20
+P08,drum,4,7,the library closes early on friday,the ibrafy closes early on friday,25.07
+P08,drum,4,8,the elevator is out of order,the elevator s out of order,20.69
+P08,drum,4,9,bring a coat in case it rains,brihg a coat im case it rains,19.02
+P08,drum,4,10,my phone battery is almost empty,my phone battery is almost empty,25.19
+P09,raycast,1,1,the kettle is on the stove,the kettle is on the stove,29.46
+P09,raycast,1,2,our bus leaves at seven,our bus leaves at seven,30.77
+P09,raycast,1,3,the kite got stuck in a tree,the kite got stuck in a tree,35.38
+P09,raycast,1,4,dinner will be ready soon,dinner will be ready soo,29.26
+P09,raycast,1,5,the map was folded the wrong way,the map was folded the wrong way,38.60
+P09,raycast,1,6,she knits warm socks for winter,she knits warm socks for winter,38.13
+P09,raycast,1,7,please water the plants today,plezse water the plants today,29.19
+P09,raycast,1,8,a long walk clears the mind,a long walk clears the mind,41.40
+P09,raycast,1,9,we found a path through the park,we found a path through the park,39.64
+P09,raycast,1,10,the puppy chewed my slipper,the puppy chewed my slipper,31.13
+P09,drum,2,1,the library closes early on friday,the library coopses early on friday,40.92
+P09,drum,2,2,his garden grows huge pumpkins,his gatden grows huge pumpmins,31.68
+P09,drum,2,3,a quiet room helps me think,a quiet room helps me think,26.14
+P09,drum,2,4,turn left after the bakery,turn left after the bakery,25.32
+P09,drum,2,5,they planted apple trees in spring,they planted appke trees in spring,36.31
+P09,drum,2,6,the bridge is closed for repairs,the bridge is closed for repairs,27.72
+P09,drum,2,7,the elevator is out of order,the elevator is ou of order,29.07
+P09,drum,2,8,my sister plays the cello,my sister plays the cello,20.25
+P09,drum,2,9,keep the receipt for the shoes,keep the receipt for the shoes,28.95
+P09,drum,2,10,the river froze last winter,the river froze last winter,22.05
+P09,split,3,1,leave the keys under the mat,leave the keys under the mat,42.21
+P09,split,3,2,the lake is calm this evening,the lake is calm this evening,51.71
+P09,split,3,3,she painted the fence bright blue,she oainted the fence bright blue,58.28
+P09,split,3,4,bring a coat in case it rains,bring a coat in case it rains,61.71
+P09,split,3,5,the train was full this morning,the train was full this morning,55.12
+P09,split,3,6,the soup needs a pinch of salt,the soup needs a pinch of salt,51.81
+P09,split,3,7,the museum opens at ten,the museum opens at ten,30.79
+P09,split,3,8,my phone battery is almost empty,my phone battery is almost empty,54.96
+P09,split,3,9,call me when you get home,call me when you get home,46.20
+P09,split,3,10,he forgot his umbrella again,he forgot his umbrella again,48.19
+P09,swipe,4,1,please close the door quietly,puppy code the dance quietly,41.67
+P09,swipe,4,2,the cat sleeps on the windowsill,the cat sleeps on team windowsill,37.79
+P09,swipe,4,3,the children built a sand castle,the children built a sand castle,35.45
+P09,swipe,4,4,the concert starts at eight,the concert sister an eight,31.14
+P09,swipe,4,5,we watched the sunrise from the hill,we watched the sunrise from the hole,42.85
+P09,swipe,4,6,fresh bread smells wonderful,fresh bread smells windowsill,38.11
+P09,swipe,4,7,we ran out of milk,wax ran out of milk,24.33
+P09,swipe,4,8,the meeting moved to tuesday,the meeting move to through,32.11
+P09,swipe,4,9,the old clock still keeps time,told old clock still keeps time,37.68
+P09,swipe,4,10,the printer needs new paper,the printer name new paper,35.59
+P10,drum,1,1,call me when you get home,call me when you get home,25.72
+P10,drum,1,2,the kite got stuck in a tree,the kite got stuck in a tree,24.06
+P10,drum,1,3,turn left after the bakery,turn left after the bakery,23.04
+P10,drum,1,4,the soup needs a pinch of salt,the soupneeds a pinch of salt,26.78
+P10,drum,1,5,the concert starts at eight,the concert startsat eight,23.66
+P10,drum,1,6,the puppy chewed my slipper,the puppy chewed my sliper,22.51
+P10,drum,1,7,the museum opens at ten,the museumopens at ten,21.18
+P10,drum,1,8,the cat sleeps on the windowsill,the cat sleeps on the windowsill,32.92
+P10,drum,1,9,a long walk clears the mind,a long walk clears the mind,24.18
+P10,drum,1,10,we found a path through the park,we found a path through the park,31.61
+P10,swipe,2,1,his garden grows huge pumpkins,his garden grows huge pumpkins,28.82
+P10,swipe,2,2,leave the keys under the mat,luck the keys under the mat,24.67
+P10,swipe,2,3,the elevator is out of order,the elevator is out of order,24.95
+P10,swipe,2,4,fresh bread smells wonderful,fresh bread smells wonderful,28.49
+P10,swipe,2,5,bring a coat in case it rains,bring a coat in case it rains,24.48
+P10,swipe,2,6,the old clock still keeps time,the old clock still keeps time,27.93
+P10,swipe,2,7,she painted the fence bright blue,she painted the fence bright blue,26.95
+P10,swipe,2,8,keep the receipt for the shoes,keep tire receipt food the shoes,34.24
+P10,swipe,2,9,she knits warm socks for winter,she knits who socks for winter,31.86
+P10,swipe,2,10,we ran out of milk,we ran out of milk,14.60
+P10,raycast,3,1,the printer needs new paper,the printer needs new paper,28.48
+P10,raycast,3,2,our bus leaves at seven,our bus leaves at seven,28.39
+P10,raycast,3,3,the train was full this morning,the train was full this morning,31.35
+P10,raycast,3,4,they planted apple trees in spring,they planted apple trees in spring,31.88
+P10,raycast,3,5,the kettle is on the stove,the kettle is on the stove,27.20
+P10,raycast,3,6,the lake is calm this evening,the lake is  cazlm this evening,30.53
+P10,raycast,3,7,the meeting moved to tuesday,the meeting moved to tuesday,29.96
+P10,raycast,3,8,my sister plays the cello,my sister plays thecello,28.41
+P10,raycast,3,9,please close the door quietly,please close the door quietly,30.89
+P10,raycast,3,10,my phone battery is almost empty,my phone battery is almost empty,33.06
+P10,split,4,1,the library closes early on friday,the library closes early on friday,50.83
+P10,split,4,2,we watched the sunrise from the hill,we watched he sunrise from the hill,77.27
+P10,split,4,3,the children built a sand castle,the children built z sand castle,47.97
+P10,split,4,4,a quiet room helps me think,a quiet room helps me think,45.65
+P10,split,4,5,dinner will be ready soon,dinner will be ready soon,38.33
+P10,split,4,6,the bridge is closed for repairs,the bridge is closed for repairs,52.45
+P10,split,4,7,the river froze last winter,the river froze last winter,44.82
+P10,split,4,8,he forgot his umbrella again,he forgot his umbrella again,43.85
+P10,split,4,9,the map was folded the wrong way,the map was folded the wrong way,53.74
+P10,split,4,10,please water the plants today,please water the plants today,44.95
+P11,swipe,1,1,they planted apple trees in spring,tiny planted apple trees in spring,29.15
+P11,swipe,1,2,she knits warm socks for winter,she knits were socks fin winter,30.91
+P11,swipe,1,3,the river froze last winter,the river froze last winter,26.60
+P11,swipe,1,4,the kite got stuck in a tree,the kite got stuck in a tree,28.81
+P11,swipe,1,5,the concert starts at eight,the concert starts at eight,27.11
+P11,swipe,1,6,the bridge is closed for repairs,the bridge is closed full receipt,33.18
+P11,swipe,1,7,we watched the sunrise from the hill,wit watched the sunrise from the hill,30.49
+P11,swipe,1,8,my phone battery is almost empty,my phone battery is almost empty,34.43
+P11,swipe,1,9,his garden grows huge pumpkins,his garden grows huge pumpkins,34.71
+P11,swipe,1,10,we found a path through the park,we found a path tuesday top park,34.87
+P11,split,2,1,the meeting moved to tuesday,the meeting moved to tuesday,41.74
+P11,split,2,2,my sister plays the cello,my sister plays the cello,38.08
+P11,split,2,3,the kettle is on the stove,the kettle is on the stove,32.11
+P11,split,2,4,the cat sleeps on the windowsill,the cat slees on the windowaill,54.12
+P11,split,2,5,she painted the fence bright blue,she painted the fence briught blue,46.66
+P11,split,2,6,a long walk clears the mind,a long walk clearsw the mind,35.65
+P11,split,2,7,dinner will be ready soon,dinner will be ready soon,32.71
+P11,split,2,8,keep the receipt for the shoes,keep the receipt for the shoes,42.66
+P11,split,2,9,the old clock still keeps time,the old clock still keeps time,39.51
+P11,split,2,10,the library closes early on friday,the library closes early on friday,53.52
+P11,drum,3,1,please close the door quietly,please close the oor quietly,19.04
+P11,drum,3,2,the soup needs a pinch of salt,the soup needs a pich of saly,24.10
+P11,drum,3,3,the train was full this morning,the train was full this mrning,21.08
+P11,drum,3,4,leave the keys under the mat,leave the keys uner the mat,17.31
+P11,drum,3,5,bring a coat in case it rains,bring a coat in case it rainjs,24.61
+P11,drum,3,6,the printer needs new paper,the printer needs new paper,17.98
+P11,drum,3,7,please water the plants today,please water the plants toda,20.19
+P11,drum,3,8,the elevator is out of order,thed elevator is out of order,22.51
+P11,drum,3,9,he forgot his umbrella again,he forgot his umbrella again,24.28
+P11,drum,3,10,our bus leaves at seven,our bus leaves at seven,19.39
+P11,raycast,4,1,the puppy chewed my slipper,the puppu chewed my slipper,15.20
+P11,raycast,4,2,the children built a sand castle,the children built a sand castle,22.92
+P11,raycast,4,3,fresh bread smells wonderful,fresh bread smells wonderful,22.66
+P11,raycast,4,4,the museum opens at ten,the museum opens at ten,11.71
+P11,raycast,4,5,call me when you get home,call me when you get home,19.55
+P11,raycast,4,6,turn left after the bakery,turn left after the bakery,22.12
+P11,raycast,4,7,the map was folded the wrong way,the map was folded the wrong way,20.31
+P11,raycast,4,8,the lake is calm this evening,the lake is calm this evening,20.40
+P11,raycast,4,9,a quiet room helps me think,a quiet room helps me think,17.38
+P11,raycast,4,10,we ran out of milk,we ran out of milk,12.57
+P12,split,1,1,our bus leaves at seven,our bus leaves at seven,47.43
+P12,split,1,2,they planted apple trees in spring,they planted apple trees in spring,53.34
+P12,split,1,3,the old clock still keeps time,the old clock still keeps time,48.87
+P12,split,1,4,call me when you get home,call me when you get nome,42.68
+P12,split,1,5,the kite got stuck in a tree,the kite got stuck in a tree,45.38
+P12,split,1,6,she painted the fence bright blue,she painted the fence bright blue,67.12
+P12,split,1,7,please water the plants today,please water the plants today,59.71
+P12,split,1,8,the kettle is on the stove,the kettle ison the stove,49.41
+P12,split,1,9,the meeting moved to tuesday,the meeting moved to tuesday,49.60
+P12,split,1,10,my sister plays the cello,my sister plays the cello,55.82
+P12,raycast,2,1,the printer needs new paper,the printer needs new paper,31.92
+P12,raycast,2,2,the library closes early on friday,the library closes early on friday,35.17
+P12,raycast,2,3,a quiet room helps me think,a wuiet room helps me think,31.55
+P12,raycast,2,4,we ran out of milk,we ran out of milk,24.84
+P12,raycast,2,5,we found a path through the park,we found a path through the park,31.38
+P12,raycast,2,6,the map was folded the wrong way,the map was folded the wrong way,44.24
+P12,raycast,2,7,fresh bread smells wonderful,fresh brrad smells wonderful,32.18
+P12,raycast,2,8,the museum opens at ten,the museum opens at ten,22.32
+P12,raycast,2,9,the soup needs a pinch of salt,the soup needs a pinch of salt,34.37
+P12,raycast,2,10,the train was full this morning,the train was full this morning,35.00
+P12,swipe,3,1,the lake is calm this evening,the like is calm this elevator,40.10
+P12,swipe,3,2,the river froze last winter,the river froze live winter,29.93
+P12,swipe,3,3,the concert starts at eight,the concert starts at eight,33.88
+P12,swipe,3,4,a long walk clears the mind,a long wide clears the mind,29.53
+P12,swipe,3,5,she knits warm socks for winter,she knits warm socks for winter,39.20
+P12,swipe,3,6,the puppy chewed my slipper,the poem chewed my slipper,32.30
+P12,swipe,3,7,his garden grows huge pumpkins,his grand grows home pumpkins,36.29
+P12,swipe,3,8,bring a coat in case it rains,bring a coat in case it rush,35.58
+P12,swipe,3,9,we watched the sunrise from the hill,we winter the sunrise from the hill,44.90
+P12,swipe,3,10,my phone battery is almost empty,my phone bakery is almost empty,39.54
+P12,drum,4,1,the elevator is out of order,the elevator is iut of order,21.80
+P12,drum,4,2,dinner will be ready soon,dinner ill be ready soon,15.58
+P12,drum,4,3,he forgot his umbrella again,he forgot his umbrella again,26.06
+P12,drum,4,4,the children built a sand castle,the children built a sans castle,20.31
+P12,drum,4,5,leave the keys under the mat,leave the keys under the mat,22.89
+P12,drum,4,6,turn left after the bakery,turn left after the bakery,21.49
+P12,drum,4,7,the cat sleeps on the windowsill,the cat sleeps on the windowsill,27.83
+P12,drum,4,8,please close the door quietly,please close rhe door quietly,23.37
+P12,drum,4,9,keep the receipt for the shoes,keep the receipt for the shoes,21.57
+P12,drum,4,10,the bridge is closed for repairs,the bridge is closed for repairs,31.13
+P13,raycast,1,1,call me when you get home,call me when you get home,18.60
+P13,raycast,1,2,the train was full this morning,the train was full this morning,23.39
+P13,raycast,1,3,my phone battery is almost empty,my phone battery is almost empty,25.59
+P13,raycast,1,4,the meeting moved to tuesday,the meeting moved to tuesday,20.45
+P13,raycast,1,5,the children built a sand castle,the children built a sand castle,24.86
+P13,raycast,1,6,the elevator is out of order,the elevator is out of order,16.22
+P13,raycast,1,7,please water the plants today,please water the plants today,18.54
+P13,raycast,1,8,the bridge is closed for repairs,the bridge is clped for repairs,21.23
+P13,raycast,1,9,a quiet room helps me think,s quiet room helps me think,20.25
+P13,raycast,1,10,please close the door quietly,please close the door quietly,20.69
+P13,drum,2,1,they planted apple trees in spring,they planted apple trees in pring,30.75
+P13,drum,2,2,a long walk clears the mind,a long walkclears the mind,21.76
+P13,drum,2,3,the map was folded the wrong way,the mzp was folxed the wrong way,27.06
+P13,drum,2,4,she painted the fence bright blue,she painted the fence bright blue,30.41
+P13,drum,2,5,she knits warm socks for winter,she knits warm socks for winter,27.17
+P13,drum,2,6,the cat sleeps on the windowsill,the cat sleeps on the windowsill,26.58
+P13,drum,2,7,the puppy chewed my slipper,the puppy chewed my slipper,22.29
+P13,drum,2,8,the library closes early on friday,the library closes early on friday,36.86
+P13,drum,2,9,our bus leaves at seven,our buw leaves at seven,20.27
+P13,drum,2,10,fresh bread smells wonderful,fresh bread smells wonderful,33.82
+P13,split,3,1,bring a coat in case it rains,bring a coat in case it rains,39.47
+P13,split,3,2,the river froze last winter,the river froze last winter,35.28
+P13,split,3,3,his garden grows huge pumpkins,his garden grows huge pumpkins,36.65
+P13,split,3,4,the printer needs new paper,the printer needs new paper,36.26
+P13,split,3,5,leave the keys under the mat,leave the keys under the mat,36.14
+P13,split,3,6,we watched the sunrise from the hill,we watched the sunrise from the hill,55.36
+P13,split,3,7,the soup needs a pinch of salt,the soup needs a pinch of salt,40.38
+P13,split,3,8,the kettle is on the stove,the kettle is on the stove,46.29
+P13,split,3,9,we ran out of milk,we ran out of milk,24.47
+P13,split,3,10,we found a path through the park,we found a path through the park,47.89
+P13,swipe,4,1,the museum opens at ten,the museum opens at ten,25.03
+P13,swipe,4,2,keep the receipt for the shoes,keep the receipt for the shoes,23.23
+P13,swipe,4,3,the kite got stuck in a tree,the kite good stuck in a tree,26.21
+P13,swipe,4,4,the lake is calm this evening,the lake is calm this evening,24.73
+P13,swipe,4,5,my sister plays the cello,my sister plays the cello,21.71
+P13,swipe,4,6,the old clock still keeps time,the old clock still keeps time,33.79
+P13,swipe,4,7,the concert starts at eight,the concert starts at eight,28.66
+P13,swipe,4,8,he forgot his umbrella again,he forgot his umbrella again,26.21
+P13,swipe,4,9,dinner will be ready soon,dinner will be ready soon,24.30
+P13,swipe,4,10,turn left after the bakery,turn left after the bakery,22.74
+P14,drum,1,1,we found a path through the park,we found a path through the park,28.12
+P14,drum,1,2,the bridge is closed for repairs,the bridge isx closed for repairs,28.61
+P14,drum,1,3,the river froze last winter,te river froze lst winter,21.67
+P14,drum,1,4,the soup needs a pinch of salt,the soup needs a pinch of salt,26.83
+P14,drum,1,5,bring a coat in case it rains,bring a coat in case it rains,22.68
+P14,drum,1,6,the printer needs new paper,the printer needs new paper,23.09
+P14,drum,1,7,please water the plants today,please water the plants today,27.90
+P14,drum,1,8,we watched the sunrise from the hill,we watched the sunrise from the hill,30.84
+P14,drum,1,9,dinner will be ready soon,dinner will be readysoon,22.93
+P14,drum,1,10,the map was folded the wrong way,the map was folded the wrong way,27.40
+P14,swipe,2,1,the museum opens at ten,the museum opens at ten,16.78
+P14,swipe,2,2,the kettle is on the stove,the kettle in on the stove,15.56
+P14,swipe,2,3,we ran out of milk,we ran out of milk,11.25
+P14,swipe,2,4,the elevator is out of order,the elevator is out of order,18.94
+P14,swipe,2,5,turn left after the bakery,turn left after the bakery,21.59
+P14,swipe,2,6,the lake is calm this evening,tend lake is calm this evening,18.76
+P14,swipe,2,7,the old clock still keeps time,the old clock show keeps time,21.53
+P14,swipe,2,8,he forgot his umbrella again,he forgot his umbrella again,17.88
+P14,swipe,2,9,she knits warm socks for winter,she knits warm socks for winter,20.27
+P14,swipe,2,10,my phone battery is almost empty,my phone battery is almost empty,24.48
+P14,raycast,3,1,she painted the fence bright blue,she painted the fence bright blue,24.91
+P14,raycast,3,2,my sister plays the cello,y sister plays the cello,23.43
+P14,raycast,3,3,they planted apple trees in spring,they planted apple trees in spring,34.76
+P14,raycast,3,4,the meeting moved to tuesday,the meeting moved to tuesday,31.80
+P14,raycast,3,5,call me when you get home,call me when you get home,22.98
+P14,raycast,3,6,keep the receipt for the shoes,keep the receipt for the shoes,29.39
+P14,raycast,3,7,the children built a sand castle,the children built a sand castle,31.78
+P14,raycast,3,8,the library closes early on friday,the library closes early on friday,37.70
+P14,raycast,3,9,our bus leaves at seven,our bus leaves at seven,21.17
+P14,raycast,3,10,the kite got stuck in a tree,the kite got stuck in a tree,23.90
+P14,split,4,1,please close the door quietly,please close the door quietly,45.10
+P14,split,4,2,a long walk clears the mind,a long walk clears the mind,39.66
+P14,split,4,3,his garden grows huge pumpkins,his garden grows huge pumpkins,44.08
+P14,split,4,4,the cat sleeps on the windowsill,the cat sleepson the windowsill,57.32
+P14,split,4,5,leave the keys under the mat,leave the keys under the ma,48.58
+P14,split,4,6,the puppy chewed my slipper,the puppy chewed my slipper,47.34
+P14,split,4,7,the train was full this morning,the train was full this morning,52.48
+P14,split,4,8,a quiet room helps me think,a quiet room helps me think,38.01
+P14,split,4,9,fresh bread smells wonderful,fresh bread smellswonderful,43.04
+P14,split,4,10,the concert starts at eight,the concert starts at eight,36.67
+P15,swipe,1,1,keep the receipt for the shoes,keep the receipt for the shoes,34.75
+P15,swipe,1,2,turn left after the bakery,turn left after the bakery,22.50
+P15,swipe,1,3,please close the door quietly,please close the door quietly,34.62
+P15,swipe,1,4,we ran out of milk,we ran out of milk,16.55
+P15,swipe,1,5,the map was folded the wrong way,the map was folded the wrong way,32.53
+P15,swipe,1,6,the elevator is out of order,the elevator is out of order,24.73
+P15,swipe,1,7,call me when you get home,call me when you get home,22.62
+P15,swipe,1,8,the soup needs a pinch of salt,ton soup needs a pinch of salt,32.52
+P15,swipe,1,9,the bridge is closed for repairs,the bridge is closed for repairs,30.46
+P15,swipe,1,10,the printer needs new paper,the printer needs new paper,26.92
+P15,split,2,1,the kettle is on the stove,the kettle is on the stove,42.94
+P15,split,2,2,the puppy chewed my slipper,the puppy chewed my slipper,35.66
+P15,split,2,3,the lake is calm this evening,the lake is calm this evening,38.78
+P15,split,2,4,a quiet room helps me think,a qauiet room helps me think,37.57
+P15,split,2,5,we watched the sunrise from the hill,we watched the sunrise from the hill,47.81
+P15,split,2,6,a long walk clears the mind,a long walk clears the mind,29.39
+P15,split,2,7,she painted the fence bright blue,she painted the fence bright blue,58.66
+P15,split,2,8,we found a path through the park,we found a path through the park,36.54
+P15,split,2,9,please water the plants today,please water the plants today,42.69
+P15,split,2,10,his garden grows huge pumpkins,his garden grows huge pumpkins,43.81
+P15,drum,3,1,bring a coat in case it rains,bring a coat in case it rains,32.78
+P15,drum,3,2,they planted apple trees in spring,they planted apple trees in spring,26.70
+P15,drum,3,3,the museum opens at ten,the museum open at ten,16.32
+P15,drum,3,4,she knits warm socks for winter,she knits warm socks for winter,28.47
+P15,drum,3,5,the meeting moved to tuesday,th meeting moved to tuesday,27.28
+P15,drum,3,6,my phone battery is almost empty,my phone battery is almost empty,27.76
+P15,drum,3,7,the old clock still keeps time,the old clock sill keeps tie,27.34
+P15,drum,3,8,the library closes early on friday,the library closes early on frisay,34.88
+P15,drum,3,9,the train was full this morning,the train was full this morning,29.42
+P15,drum,3,10,leave the keys under the mat,leave the keys under the mat,27.19
+P15,raycast,4,1,our bus leaves at seven,our bus eaves ar seven,18.03
+P15,raycast,4,2,the concert starts at eight,the concert starts at eight,20.18
+P15,raycast,4,3,fresh bread smells wonderful,frwsh bread smells wonderfcul,25.00
+P15,raycast,4,4,he forgot his umbrella again,hw forgot his umbrella again,25.48
+P15,raycast,4,5,the river froze last winter,the river froze kast winter,20.02
+P15,raycast,4,6,dinner will be ready soon,dinner will be ready soon,23.35
+P15,raycast,4,7,the children built a sand castle,the children built a sand castle,26.09
+P15,raycast,4,8,my sister plays the cello,my sister plays the cello,22.92
+P15,raycast,4,9,the kite got stuck in a tree,the kite got stuck in a tree,17.73
+P15,raycast,4,10,the cat sleeps on the windowsill,the cat sleeps on the windowsill,26.87
+P16,split,1,1,turn left after the bakery,turn left after the bakery,30.04
+P16,split,1,2,bring a coat in case it rains,bring a coat in case it rains,39.21
+P16,split,1,3,the train was full this morning,the train was full this morning,45.54
+P16,split,1,4,the printer needs new paper,the printer needs new paper,42.69
+P16,split,1,5,call me when you get home,call me when you get home,35.27
+P16,split,1,6,his garden grows huge pumpkins,his garden grtows huge pumpkins,44.96
+P16,split,1,7,the bridge is closed for repairs,the bridge is closed for repairs,43.08
+P16,split,1,8,the meeting moved to tuesday,the meeting moged to tuesday,38.75
+P16,split,1,9,please close the door quietly,please close the door quietly,36.19
+P16,split,1,10,he forgot his umbrella again,he forgit his umbrella again,41.57
+P16,raycast,2,1,the cat sleeps on the windowsill,the cat sleeps on the windowsill,16.53
+P16,raycast,2,2,keep the receipt for the shoes,keep the receipt for the shoes,19.90
+P16,raycast,2,3,my sister plays the cello,my sister plays the cello,14.60
+P16,raycast,2,4,we found a path through the park,wr found a path throuh the park,15.09
+P16,raycast,2,5,she knits warm socks for winter,she knits warm socks for winter,19.90
+P16,raycast,2,6,the museum opens at ten,the museum opens at ten,10.55
+P16,raycast,2,7,we watched the sunrise from the hill,we watched the sunrise from the hill,20.98
+P16,raycast,2,8,the concert starts at eight,the concert starts at eight,15.65
+P16,raycast,2,9,the kite got stuck in a tree,the kite got stuck in a tree,16.15
+P16,raycast,2,10,the old clock still keeps time,the old clock still keeps time,21.03
+P16,swipe,3,1,the children built a sand castle,the children built a sand castle,21.70
+P16,swipe,3,2,please water the plants today,please water the plants today,22.72
+P16,swipe,3,3,the puppy chewed my slipper,the puppy chewed my slipper,19.92
+P16,swipe,3,4,the soup needs a pinch of salt,the soup needs a pinch of salt,21.16
+P16,swipe,3,5,dinner will be ready soon,dinner will be ready soon,13.92
+P16,swipe,3,6,she painted the fence bright blue,she painted the fence bright brew,27.67
+P16,swipe,3,7,leave the keys under the mat,leave the keys under tell mat,23.91
+P16,swipe,3,8,a long walk clears the mind,a long walk clears the mind,20.18
+P16,swipe,3,9,the elevator is out of order,the elevator is out of order,22.77
+P16,swipe,3,10,fresh bread smells wonderful,fresh bread smells wonderful,15.87
+P16,drum,4,1,the library closes early on friday,the librry closes early on friday,21.93
+P16,drum,4,2,we ran out of milk,we ran ot of milk,8.83
+P16,drum,4,3,a quiet room helps me think,a quiet room helps me think,18.96
+P16,drum,4,4,the kettle is on the stove,the kettle is on the stove,19.67
+P16,drum,4,5,they planted apple trees in spring,they planted apple trees in spring,18.81
+P16,drum,4,6,the map was folded the wrong way,the map was folded the wrong  way,17.88
+P16,drum,4,7,the river froze last winter,the river froze last winter,15.18
+P16,drum,4,8,the lake is calm this evening,the lake is calm this evening,14.52
+P16,drum,4,9,my phone battery is almost empty,my phone battery is almost empty,18.94
+P16,drum,4,10,our bus leaves at seven,our bus leaves at seven,13.37
+P17,raycast,1,1,she knits warm socks for winter,sheknits warm socks for winter,20.82
+P17,raycast,1,2,the old clock still keeps time,the old clock still keeps time,24.40
+P17,raycast,1,3,please water the plants today,please water the plants today,28.41
+P17,raycast,1,4,we ran out of milk,we ran out of miok,16.48
+P17,raycast,1,5,the river froze last winter,the river froze last winter,22.37
+P17,raycast,1,6,my sister plays the cello,my sister plays the cello,20.03
+P17,raycast,1,7,dinner will be ready soon,dinner will be ready soon,18.82
+P17,raycast,1,8,the elevator is out of order,yhe levator is out pf order,19.25
+P17,raycast,1,9,he forgot his umbrella again,he forgot his umbrella again,25.30
+P17,raycast,1,10,his garden grows huge pumpkins,his  garden grtows huge pumpkins,27.15
+P17,drum,2,1,the concert starts at eight,the concert starts at eight,18.87
+P17,drum,2,2,we found a path through the park,wr found a path through the park,29.74
+P17,drum,2,3,the museum opens at ten,the museum opens at ten,21.67
+P17,drum,2,4,the train was full this morning,the train was full this morning,26.24
+P17,drum,2,5,the printer needs new paper,the printer neees new paper,28.24
+P17,drum,2,6,the meeting moved to tuesday,the meeting moved to tuesday,24.73
+P17,drum,2,7,a quiet room helps me think,a quiet room helps me think,19.31
+P17,drum,2,8,fresh bread smells wonderful,fresh bread smells wonderful,23.85
+P17,drum,2,9,the kettle is on the stove,the kettle is on the tove,19.12
+P17,drum,2,10,the lake is calm this evening,the lake is calm this evening,20.21
+P17,split,3,1,a long walk clears the mind,a long walk clears the mind,32.97
+P17,split,3,2,the children built a sand castle,the children built a sand castle,45.91
+P17,split,3,3,call me when you get home,call me when you get home,38.10
+P17,split,3,4,bring a coat in case it rains,bring a coat in case it rains,44.22
+P17,split,3,5,she painted the fence bright blue,she painted the fence bright blue,52.42
+P17,split,3,6,the soup needs a pinch of salt,the soup needs a pinch of salt,45.37
+P17,split,3,7,the puppy chewed my slipper,the pppy chewed my slipper,38.98
+P17,split,3,8,keep the receipt for the shoes,keep the receipt for the shoes,36.33
+P17,split,3,9,the bridge is closed for repairs,the bridge is closed for repairs,50.62
+P17,split,3,10,my phone battery is almost empty,my phone battery is almost empty,48.90
+P17,swipe,4,1,turn left after the bakery,turn left after the bakery,17.40
+P17,swipe,4,2,we watched the sunrise from the hill,we watched tune sunrise from the hill,29.52
+P17,swipe,4,3,they planted apple trees in spring,they planted apple this in spring,31.22
+P17,swipe,4,4,our bus leaves at seven,our bus leaves at seven,19.96
+P17,swipe,4,5,leave the keys under the mat,leave the knot under the mat,20.06
+P17,swipe,4,6,please close the door quietly,please close the door quietly,26.68
+P17,swipe,4,7,the kite got stuck in a tree,the kite got stuck in a toy,21.13
+P17,swipe,4,8,the map was folded the wrong way,the map was folded the wrong way,20.32
+P17,swipe,4,9,the library closes early on friday,the library closes early on friday,36.69
+P17,swipe,4,10,the cat sleeps on the windowsill,twin cat sleeps on the windowsill,25.09
+P18,drum,1,1,my phone battery is almost empty,my phone battery is almost empty,32.41
+P18,drum,1,2,the old clock still keeps time,the old clock still keeps time,23.26
+P18,drum,1,3,the museum opens at ten,themuseum opens at ten,20.61
+P18,drum,1,4,dinner will be ready soon,dinner will be ready soon,17.90
+P18,drum,1,5,we ran out of milk,we ran out of milk,12.63
+P18,drum,1,6,the elevator is out of order,the elevator is out of order,25.95
+P18,drum,1,7,he forgot his umbrella again,he forgot his umbrella again,19.78
+P18,drum,1,8,leave the keys under the mat,leave the keys under the mat,27.25
+P18,drum,1,9,they planted apple trees in spring,they planted apple trees in spring,27.89
+P18,drum,1,10,the kite got stuck in a tree,the kite got stuck in a tree,25.89
+P18,swipe,2,1,the library closes early on friday,the library clear early on froze,29.92
+P18,swipe,2,2,she knits warm socks for winter,she knits warm socks for winter,28.58
+P18,swipe,2,3,the meeting moved to tuesday,the morning moved to tuesday,25.77
+P18,swipe,2,4,the kettle is on the stove,tank kettle is our the stove,25.29
+P18,swipe,2,5,a quiet room helps me think,a quiet room helps me think,24.90
+P18,swipe,2,6,turn left after the bakery,turn left after the bakery,20.19
+P18,swipe,2,7,the map was folded the wrong way,the map wash folded the wrong way,34.84
+P18,swipe,2,8,his garden grows huge pumpkins,his garden grows huge pumpkins,31.51
+P18,swipe,2,9,my sister plays the cello,my sister plays the cello,23.78
+P18,swipe,2,10,the lake is calm this evening,the lake is calm this evening,36.49
+P18,raycast,3,1,the soup needs a pinch of salt,the soup needs a pinch of salt,27.28
+P18,raycast,3,2,fresh bread smells wonderful,fresh bead smells wonderful,20.81
+P18,raycast,3,3,bring a coat in case it rains,bring a coat in case it rains,29.56
+P18,raycast,3,4,we found a path through the park,we found a path through the park,30.93
+P18,raycast,3,5,the children built a sand castle,the children built a sand castle,23.07
+P18,raycast,3,6,the train was full this morning,the train was full this morning,25.64
+P18,raycast,3,7,the concert starts at eight,the concer starts at eight,19.31
+P18,raycast,3,8,a long walk clears the mind,a long walk clears the mind,24.40
+P18,raycast,3,9,the puppy chewed my slipper,the puppy chewed my slipper,21.59
+P18,raycast,3,10,please close the door quietly,please close the door quietly,29.34
+P18,split,4,1,keep the receipt for the shoes,keep the receipt for the shes,45.53
+P18,split,4,2,the bridge is closed for repairs,the bridge is closed for repairs,50.46
+P18,split,4,3,she painted the fence bright blue,she painted the fence bright blue,54.13
+P18,split,4,4,the printer needs new paper,the printer needs new paper,32.35
+P18,split,4,5,we watched the sunrise from the hill,we watched the sunrise from the hill,59.48
+P18,split,4,6,the cat sleeps on the windowsill,tge cat sleeps on the windowsill,47.31
+P18,split,4,7,please water the plants today,please water the plants today,51.42
+P18,split,4,8,call me when you get home,call me when you get home,45.95
+P18,split,4,9,our bus leaves at seven,our bus leaves at seven,34.12
+P18,split,4,10,the river froze last winter,the river froze last winter,36.26
+P19,swipe,1,1,his garden grows huge pumpkins,his garden gate huge pumpkins,28.97
+P19,swipe,1,2,our bus leaves at seven,our bus leaves a seven,17.93
+P19,swipe,1,3,the puppy chewed my slipper,the port chewed my slipper,27.71
+P19,swipe,1,4,the cat sleeps on the windowsill,the cat sleeps on the windowsill,24.19
+P19,swipe,1,5,the meeting moved to tuesday,the meeting moved to tuesday,28.38
+P19,swipe,1,6,the old clock still keeps time,the open clock still keeps time,27.86
+P19,swipe,1,7,he forgot his umbrella again,he forgot his umbrella again,25.09
+P19,swipe,1,8,leave the keys under the mat,leave tank keys under the mat,29.94
+P19,swipe,1,9,we watched the sunrise from the hill,we winter tile sunrise from the hill,37.80
+P19,swipe,1,10,keep the receipt for the shoes,keep the receipt for the shoes,37.15
+P19,split,2,1,my phone battery is almost empty,my phone battery is almost empty,47.71
+P19,split,2,2,the children built a sand castle,the children built a sandcastle,44.36
+P19,split,2,3,please close the door quietly,please clopse the door quirtly,29.69
+P19,split,2,4,the lake is calm this evening,the lake is calm this evening,41.46
+P19,split,2,5,a quiet room helps me think,a quiet room helps me think,36.42
+P19,split,2,6,the printer needs new paper,the printer needsnew paper,37.05
+P19,split,2,7,the map was folded the wrong way,the map was folsed the wrong way,40.32
+P19,split,2,8,we ran out of milk,we ran out of mjilk,22.33
+P19,split,2,9,the river froze last winter,the river froze last wintdr,39.21
+P19,split,2,10,bring a coat in case it rains,bring a coat in case it rains,30.46
+P19,drum,3,1,a long walk clears the mind,a lonh walk clears the mind,16.39
+P19,drum,3,2,my sister plays the cello,my sister plays the cello,16.20
+P19,drum,3,3,the library closes early on friday,the library closes early on friday,20.15
+P19,drum,3,4,the museum opens at ten,thd museum opens at ten,13.72
+P19,drum,3,5,turn left after the bakery,tufn left after the bakery,16.89
+P19,drum,3,6,the train was full this morning,the train was full this morning,16.79
+P19,drum,3,7,the concert starts at eight,the concert starts at eight,15.18
+P19,drum,3,8,please water the plants today,please water the planrs today,18.48
+P19,drum,3,9,dinner will be ready soon,dinner will be ready soon,16.33
+P19,drum,3,10,we found a path through the park,we found a path through the park,23.00
+P19,raycast,4,1,the bridge is closed for repairs,the bridge is closed for repairs,23.27
+P19,raycast,4,2,call me when you get home,call me when you get home,19.16
+P19,raycast,4,3,she knits warm socks for winter,she knits warm socks for winter,21.59
+P19,raycast,4,4,the soup needs a pinch of salt,the soup needs a pinch of salt,25.79
+P19,raycast,4,5,she painted the fence bright blue,sgw painted the fence bright blue,25.44
+P19,raycast,4,6,the elevator is out of order,the elevatgor is out of order,19.13
+P19,raycast,4,7,the kite got stuck in a tree,the kite got stjck in a tree,18.24
+P19,raycast,4,8,the kettle is on the stove,tne kettle is on the stove,17.47
+P19,raycast,4,9,fresh bread smells wonderful,fresh bread smells wonderful,18.99
+P19,raycast,4,10,they planted apple trees in spring,they planted apple trees in spring,27.80
+P20,split,1,1,please water the plants today,please water the plants today,51.99
+P20,split,1,2,they planted apple trees in spring,they planted apple trees in sprinv,65.98
+P20,split,1,3,she knits warm socks for winter,she knits warm socks for winter,48.61
+P20,split,1,4,the cat sleeps on the windowsill,the cat sleeps on the windowsill,54.67
+P20,split,1,5,his garden grows huge pumpkins,his garden grows huge pumpkins,52.49
+P20,split,1,6,the concert starts at eight,the concert starts at eight,46.91
+P20,split,1,7,the library closes early on friday,the library closes early on friday,66.31
+P20,split,1,8,my sister plays the cello,my sister plays the cello,42.75
+P20,split,1,9,the museum opens at ten,the museum opens at ten,35.38
+P20,split,1,10,the bridge is closed for repairs,the bridge is closed for repairs,58.02
+P20,raycast,2,1,call me when you get home,call me when you get home,23.85
+P20,raycast,2,2,our bus leaves at seven,our bus leaves at seven,25.16
+P20,raycast,2,3,bring a coat in case it rains,bring a coat in case it rains,29.39
+P20,raycast,2,4,the kettle is on the stove,the kettle is on the stove,27.12
+P20,raycast,2,5,dinner will be ready soon,dinner wikl be ready soon,21.25
+P20,raycast,2,6,the river froze last winter,the river froze last winter,30.11
+P20,raycast,2,7,the old clock still keeps time,the ol clock still keeps time,38.93
+P20,raycast,2,8,a quiet room helps me think,a quiet room helps me think,30.54
+P20,raycast,2,9,a long walk clears the mind,a long walk clears the mind,27.87
+P20,raycast,2,10,we found a path through the park,we found a path through the park,27.16
+P20,swipe,3,1,we ran out of milk,we ran out of milk,11.54
+P20,swipe,3,2,the kite got stuck in a tree,the kite got stuck in a tree,19.37
+P20,swipe,3,3,the children built a sand castle,the children built a sand castle,21.70
+P20,swipe,3,4,the soup needs a pinch of salt,the soup needs a pinch of salt,22.87
+P20,swipe,3,5,he forgot his umbrella again,he forgot his umbrella again,16.66
+P20,swipe,3,6,the lake is calm this evening,the lake is calm this evening,19.81
+P20,swipe,3,7,please close the door quietly,please close the door quietly,19.43
+P20,swipe,3,8,the train was full this morning,the train was full this morning,21.89
+P20,swipe,3,9,she painted the fence bright blue,she painted the fence bright bread,24.93
+P20,swipe,3,10,keep the receipt for the shoes,keep the receipt for the shoes,19.46
+P20,drum,4,1,the map was folded the wrong way,the mapwas folded the wrong way,27.17
+P20,drum,4,2,the puppy chewed my slipper,the puppy chewed my slippere,25.17
+P20,drum,4,3,leave the keys under the mat,leave the keys under the mat,26.45
+P20,drum,4,4,we watched the sunrise from the hill,we watgched the sunrise from the hill,31.48
+P20,drum,4,5,turn left after the bakery,turn left agter the bakery,29.19
+P20,drum,4,6,my phone battery is almost empty,my phone battery is almost empty,31.44
+P20,drum,4,7,the elevator is out of order,the elevator is out of order,23.45
+P20,drum,4,8,fresh bread smells wonderful,freshbread smells wondetful,24.40
+P20,drum,4,9,the printer needs new paper,the printer needs new paper,21.71
+P20,drum,4,10,the meeting moved to tuesday,the meeting moved to tuesday,21.89
+P21,raycast,1,1,please close the door quietly,please close the door quietly,15.34
+P21,raycast,1,2,my phone battery is almost empty,jy phone battery is almost empty,26.75
+P21,raycast,1,3,dinner will be ready soon,dinner will be ready soon,17.60
+P21,raycast,1,4,we watched the sunrise from the hill,we watcd the sunrise from the hill,24.00
+P21,raycast,1,5,the library closes early on friday,the library closes early on friday,24.42
+P21,raycast,1,6,leave the keys under the mat,leave the keys under the mat,18.01
+P21,raycast,1,7,the old clock still keeps time,the old clock still keeps time,18.02
+P21,raycast,1,8,our bus leaves at seven,our bus leaves at seven,16.17
+P21,raycast,1,9,the bridge is closed for repairs,the bridge is closed for repairs,20.75
+P21,raycast,1,10,the printer needs new paper,the printer needs new paper,18.21
+P21,drum,2,1,keep the receipt for the shoes,keep the receipt for the shoes,20.37
+P21,drum,2,2,please water the plants today,please water the plants today,18.39
+P21,drum,2,3,call me when you get home,call me when you get home,23.52
+P21,drum,2,4,a long walk clears the mind,a long walk clears the mind,24.24
+P21,drum,2,5,they planted apple trees in spring,they planted apple trees in spring,24.36
+P21,drum,2,6,he forgot his umbrella again,he forgt his umbrella again,20.21
+P21,drum,2,7,bring a coat in case it rains,brihg a coatin case it rains,24.34
+P21,drum,2,8,we ran out of milk,we ran lut of milk,12.09
+P21,drum,2,9,the river froze last winter,the river froze last winrer,21.25
+P21,drum,2,10,the cat sleeps on the windowsill,the cat sleeps on the windowsill,28.64
+P21,split,3,1,she painted the fence bright blue,she painted the fence bright blue,39.37
+P21,split,3,2,the children built a sand castle,the children built a sand castle,33.24
+P21,split,3,3,the museum opens at ten,the museum opens at ten,23.17
+P21,split,3,4,a quiet room helps me think,a quiet room helps me think,34.96
+P21,split,3,5,turn left after the bakery,turn left after the bakery,33.16
+P21,split,3,6,the concert starts at eight,the concert starts at eight,26.42
+P21,split,3,7,the soup needs a pinch of salt,the soup needs a pinch of salt,38.74
+P21,split,3,8,the lake is calm this evening,the lake is calm this evening,32.70
+P21,split,3,9,the meeting moved to tuesday,the meeting moved to tuesday,33.54
+P21,split,3,10,the puppy chewed my slipper,the puppy chewed my slipper,28.54
+P21,swipe,4,1,the kettle is on the stove,the kettle is on the stove,28.54
+P21,swipe,4,2,the map was folded the wrong way,the map was folded the wrong way,28.26
+P21,swipe,4,3,my sister plays the cello,my sister plays this cove,26.29
+P21,swipe,4,4,fresh bread smells wonderful,fresh bread smells wonderful,32.34
+P21,swipe,4,5,the elevator is out of order,the elevator is out of order,29.46
+P21,swipe,4,6,the train was full this morning,the train was full this morning,41.47
+P21,swipe,4,7,she knits warm socks for winter,she knits wore socks for winter,27.83
+P21,swipe,4,8,we found a path through the park,we found a path through the park,40.30
+P21,swipe,4,9,his garden grows huge pumpkins,his garden grows huge pumpkins,29.20
+P21,swipe,4,10,the kite got stuck in a tree,the kite got stuck in a tire,40.18
+P22,drum,1,1,call me when you get home,call me when you get home,20.65
+P22,drum,1,2,the river froze last winter,the river froz last winter,27.08
+P22,drum,1,3,the children built a sand castle,the children built a sand vastle,30.09
+P22,drum,1,4,a long walk clears the mind,a long walk clears the mind,20.40
+P22,drum,1,5,dinner will be ready soon,dinner eill be ready soon,22.23
+P22,drum,1,6,bring a coat in case it rains,bring a coat in case it rains,27.07
+P22,drum,1,7,the bridge is closed for repairs,rhe bridge is closed forrepairs,33.95
+P22,drum,1,8,a quiet room helps me think,a quiet room helps me think,26.13
+P22,drum,1,9,the library closes early on friday,the library closes early on friday,29.00
+P22,drum,1,10,the train was full this morning,the train was full this morning,31.04
+P22,swipe,2,1,the old clock still keeps time,the old clock still keeps time,21.04
+P22,swipe,2,2,we found a path through the park,we found a path through the park,20.61
+P22,swipe,2,3,the meeting moved to tuesday,the meeting moved to tuesday,17.31
+P22,swipe,2,4,the soup needs a pinch of salt,the soup needs a pinch of step,17.32
+P22,swipe,2,5,his garden grows huge pumpkins,his garden grows hat pumpkins,20.54
+P22,swipe,2,6,leave the keys under the mat,leave tape keys under the mat,21.08
+P22,swipe,2,7,the elevator is out of order,the elevator is out of order,19.34
+P22,swipe,2,8,the concert starts at eight,the concert starts at eight,19.07
+P22,swipe,2,9,keep the receipt for the shoes,keep the receipt for the shoes,18.68
+P22,swipe,2,10,my sister plays the cello,my sister plays the cello,16.85
+P22,raycast,3,1,our bus leaves at seven,oir bus leavesat seven,18.72
+P22,raycast,3,2,she knits warm socks for winter,she knits warm scks for einter,27.08
+P22,raycast,3,3,the map was folded the wrong way,the map was folded the wrong way,28.46
+P22,raycast,3,4,they planted apple trees in spring,they planted apple trees in spring,29.65
+P22,raycast,3,5,please water the plants today,please water the plants today,27.43
+P22,raycast,3,6,the puppy chewed my slipper,the puppy chewed my slipper,20.54
+P22,raycast,3,7,we watched the sunrise from the hill,we watched the sunrise from the hill,31.79
+P22,raycast,3,8,please close the door quietly,please close the door quietly,26.75
+P22,raycast,3,9,fresh bread smells wonderful,fresh bread smells wonderful,23.15
+P22,raycast,3,10,the kite got stuck in a tree,the kite got stuck in a tree,25.19
+P22,split,4,1,the museum opens at ten,the museum opens at ten,42.81
+P22,split,4,2,the kettle is on the stove,the kettle is on thestove,46.51
+P22,split,4,3,turn left after the bakery,turn left after thw bakeryh,38.36
+P22,split,4,4,the lake is calm this evening,yhe lake is calm this evening,45.73
+P22,split,4,5,she painted the fence bright blue,she painted the fence bright blue,38.08
+P22,split,4,6,we ran out of milk,we ran out pf milk,28.40
+P22,split,4,7,the cat sleeps on the windowsill,the cat sleeps on the windowsill,42.29
+P22,split,4,8,he forgot his umbrella again,he forgot his umbrella again,47.14
+P22,split,4,9,the printer needs new paper,the printer needs new paper,47.27
+P22,split,4,10,my phone battery is almost empty,my phone battery is almost empty,56.14
+P23,swipe,1,1,the concert starts at eight,the concert starts at eight,16.97
+P23,swipe,1,2,the museum opens at ten,the museum opens at ten,14.76
+P23,swipe,1,3,we ran out of milk,we ran out of milk,10.36
+P23,swipe,1,4,the old clock still keeps time,the old coat still keeps time,16.66
+P23,swipe,1,5,she painted the fence bright blue,she painted the fence bright blue,19.02
+P23,swipe,1,6,the library closes early on friday,the library closes early on friday,21.18
+P23,swipe,1,7,we found a path through the park,we found a path through the park,22.61
+P23,swipe,1,8,bring a coat in case it rains,bring a coat in case it rains,23.01
+P23,swipe,1,9,the bridge is closed for repairs,the bridge is closed for repairs,19.35
+P23,swipe,1,10,the soup needs a pinch of salt,the soup needs a pinch of salt,21.04
+P23,split,2,1,the river froze last winter,thw river froze last winter,37.88
+P23,split,2,2,the printer needs new paper,the printer needs new paper,27.58
+P23,split,2,3,the children built a sand castle,the children built a sand castle,39.70
+P23,split,2,4,we watched the sunrise from the hill,we watched the sunrise from the hill,54.29
+P23,split,2,5,the map was folded the wrong way,the map was folded the wrong way,46.47
+P23,split,2,6,she knits warm socks for winter,she knits warm socks for winter,50.69
+P23,split,2,7,please water the plants today,please water the plants today,34.82
+P23,split,2,8,call me when you get home,call me when you get home,27.81
+P23,split,2,9,my sister plays the cello,my sister plays the cello,35.45
+P23,split,2,10,leave the keys under the mat,leave the keys under the mat,32.67
+P23,drum,3,1,please close the door quietly,please close the door quietly,26.47
+P23,drum,3,2,dinner will be ready soon,dinner wilk be ready soon,19.97
+P23,drum,3,3,a quiet room helps me think,a quoet room helps me think,17.12
+P23,drum,3,4,the lake is calm this evening,the lake is calm this evening,16.90
+P23,drum,3,5,a long walk clears the mind,a long walk clears the mind,20.15
+P23,drum,3,6,the kettle is on the stove,the kettle is on the stove,17.85
+P23,drum,3,7,the elevator is out of order,the eloevator is out ofd order,21.66
+P23,drum,3,8,our bus leaves at seven,our bus leafes at seven,19.90
+P23,drum,3,9,fresh bread smells wonderful,fcresh bread smells wonderful,22.40
+P23,drum,3,10,the kite got stuck in a tree,thye kite got stuck in a tree,19.50
+P23,raycast,4,1,the meeting moved to tuesday,themeeting moved to tuesday,16.66
+P23,raycast,4,2,turn left after the bakery,turn left after the bakery,18.74
+P23,raycast,4,3,his garden grows huge pumpkins,his garden grows huge pumpkins,19.87
+P23,raycast,4,4,my phone battery is almost empty,my phonw battery is alkost empty,20.27
+P23,raycast,4,5,they planted apple trees in spring,they planted apple trees in spring,23.02
+P23,raycast,4,6,the train was full this morning,the trzin was full this morning,19.70
+P23,raycast,4,7,he forgot his umbrella again,he forgot his umbrella again,16.26
+P23,raycast,4,8,the cat sleeps on the windowsill,the cat sleeps on the windowsill,22.34
+P23,raycast,4,9,keep the receipt for the shoes,keep the receipt for the shoes,20.78
+P23,raycast,4,10,the puppy chewed my slipper,the puppy chewed my slipper,14.41
+P24,split,1,1,the printer needs new paper,the printer needs new paper,49.83
+P24,split,1,2,a long walk clears the mind,a long walk clears the mind,46.31
+P24,split,1,3,the children built a sand castle,the children built a sand castle,53.96
+P24,split,1,4,the cat sleeps on the windowsill,the cat sleeps on the windowsill,53.74
+P24,split,1,5,the kettle is on the stove,the kettle is on the stove,40.69
+P24,split,1,6,our bus leaves at seven,our bus leaves at seven,41.20
+P24,split,1,7,we watched the sunrise from the hill,we watched the sunrise from the hill,64.74
+P24,split,1,8,turn left after the bakery,turh left after the bakery,45.60
+P24,split,1,9,the soup needs a pinch of salt,the soup needs a poinch of salt,49.56
+P24,split,1,10,the museum opens at ten,the museum opens at ten,40.21
+P24,raycast,2,1,we found a path through the park,we fund a path through the park,25.40
+P24,raycast,2,2,the elevator is out of order,the elevator is out of order,17.71
+P24,raycast,2,3,the old clock still keeps time,the old clock still keeps time,27.77
+P24,raycast,2,4,we ran out of milk,we ranout lf mnilk,15.73
+P24,raycast,2,5,she knits warm socks for winter,she knits warm socks for winter,25.73
+P24,raycast,2,6,please water the plants today,pleasd water the plants today,23.03
+P24,raycast,2,7,the river froze last winter,the river froze lastwinter,21.61
+P24,raycast,2,8,she painted the fence bright blue,she painted the fence bright blue,30.54
+P24,raycast,2,9,the meeting moved to tuesday,the meetig moved totuesday,24.96
+P24,raycast,2,10,the kite got stuck in a tree,the kite got stuck in a tree,28.05
+P24,swipe,3,1,fresh bread smells wonderful,fresh bread smells wonderful,19.53
+P24,swipe,3,2,my phone battery is almost empty,my phone battery is almost empty,24.79
+P24,swipe,3,3,he forgot his umbrella again,he forgot hunt umbrella again,20.05
+P24,swipe,3,4,leave the keys under the mat,leave the keys under the must,21.97
+P24,swipe,3,5,please close the door quietly,please close the door quietly,24.36
+P24,swipe,3,6,the lake is calm this evening,the lake is calm this evening,18.73
+P24,swipe,3,7,bring a coat in case it rains,bring a coat in case it roll,19.73
+P24,swipe,3,8,the train was full this morning,the train was full this morning,22.78
+P24,swipe,3,9,my sister plays the cello,my sister plays the cello,20.34
+P24,swipe,3,10,the concert starts at eight,the concert starts at edge,19.19
+P24,drum,4,1,the puppy chewed my slipper,the puppy chewed my slipper,20.51
+P24,drum,4,2,the map was folded the wrong way,rhe map was fplded the wrong way,21.93
+P24,drum,4,3,the bridge is closed for repairs,the bridge is closed for repairs,26.44
+P24,drum,4,4,call me when you get home,call me when you get home,16.89
+P24,drum,4,5,the library closes early on friday,the library closes early on friday,30.48
+P24,drum,4,6,a quiet room helps me think,a quiet foom helps me think,23.49
+P24,drum,4,7,they planted apple trees in spring,they planred apple trees in spring,24.29
+P24,drum,4,8,his garden grows huge pumpkins,his garden grows huge pumpkins,23.08
+P24,drum,4,9,keep the receipt for the shoes,keep the receipt for the shoes,20.34
+P24,drum,4,10,dinner will be ready soon,dinner will be ready soon,15.55

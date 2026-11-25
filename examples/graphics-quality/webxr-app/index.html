@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Graphics Quality Room — toy WebXR study</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #111;
+        color: #eee;
+        font: 14px/1.4 system-ui, sans-serif;
+        overflow: hidden;
+      }
+      #hud {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        max-width: 420px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px 14px;
+        border-radius: 8px;
+      }
+      #hud h1 {
+        font-size: 15px;
+        margin: 0 0 6px;
+      }
+      #hud p {
+        margin: 4px 0;
+      }
+      #quality {
+        position: fixed;
+        top: 12px;
+        right: 12px;
+        display: flex;
+        gap: 6px;
+      }
+      #quality button,
+      #hud button {
+        background: #2c684f;
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font: inherit;
+      }
+      #quality button[aria-pressed="true"] {
+        background: #f0c419;
+        color: #111;
+      }
+      .muted {
+        color: #bbb;
+        font-size: 12px;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/build/three.module.js",
+          "three/addons/": "./vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <div id="hud" aria-live="polite">
+      <h1 id="task-title">Loading…</h1>
+      <p id="task-text"></p>
+      <p class="muted" id="task-status"></p>
+      <p><button id="start">Start practice</button> <button id="download" hidden>Download log</button></p>
+      <p class="muted">Drag to look around, click objects to select them. In a headset, use the controller trigger.</p>
+    </div>
+    <div id="quality" role="group" aria-label="Graphics quality"></div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

@@ -1,0 +1,1319 @@
+{
+ "schemaVersion": "1.0",
+ "studyId": "synthetic-material-cues",
+ "synthetic": true,
+ "measurements": [
+  {
+   "participantId": "P01",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 7.2402
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 2
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 10.895
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 4
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.8333
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 9.4193
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 1
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 7.2643
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 4
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 9.8637
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 1
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 10.6406
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 2
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.8333
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 8.2855
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 1
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 6.9335
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 3
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 8.9772
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 9.6721
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 7
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 17.4588
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 2
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 16.9837
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 6
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.8333
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 7.7386
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 1
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 7.4068
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 3
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.8333
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 5.31
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 1
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.8333
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 4.5632
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 3
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.3333
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 9.1876
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 0
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 12.0494
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 5
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.3333
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 9.2513
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 2
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 11.1485
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 6
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.3333
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 7.6292
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 0
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.8333
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 9.7998
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 3
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 9.4718
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 0
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 9.5446
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 5
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.0
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 9.8637
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 1
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 14.0876
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 5
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 11.2274
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 2
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 8.695
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 4
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 1.0
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 6.6141
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 2
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.8333
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 6.907
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 4
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "high",
+   "outcomeId": "search-time",
+   "value": 9.0244
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "high",
+   "outcomeId": "wrong-selections",
+   "value": 2
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "high",
+   "outcomeId": "identification-accuracy",
+   "value": 0.6667
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "low",
+   "outcomeId": "search-time",
+   "value": 8.7276
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "low",
+   "outcomeId": "wrong-selections",
+   "value": 8
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "low",
+   "outcomeId": "identification-accuracy",
+   "value": 0.5
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 6,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 4,
+    "involvement": 6,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 7
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 3,
+    "involvement": 5,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 5,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 6,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 7,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 3,
+    "involvement": 3,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 6
+   }
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 3,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 6,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 5,
+    "involvement": 5,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 2
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 3,
+    "involvement": 3,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 5,
+    "involvement": 3,
+    "realness": 3
+   }
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 3,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 7
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 6
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 5,
+    "spatial": 2,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 3,
+    "spatial": 5,
+    "involvement": 3,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 3
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 2,
+    "spatial": 3,
+    "involvement": 4,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "high",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 5,
+    "involvement": 4,
+    "realness": 5
+   }
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "high",
+   "outcomeId": "appeal",
+   "value": 5
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "low",
+   "outcomeId": "presence",
+   "components": {
+    "general": 4,
+    "spatial": 4,
+    "involvement": 6,
+    "realness": 4
+   }
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "low",
+   "outcomeId": "appeal",
+   "value": 4
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P01",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P02",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P03",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P04",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P05",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P06",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P07",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P08",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P09",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P10",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P11",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P12",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P13",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P14",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P15",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "low",
+   "outcomeId": "preference",
+   "value": 1
+  },
+  {
+   "participantId": "P16",
+   "conditionId": "high",
+   "outcomeId": "preference",
+   "value": 2
+  }
+ ]
+}

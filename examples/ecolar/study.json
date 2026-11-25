@@ -1,0 +1,674 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-ecolar-vr-temperature",
+  "title": "Building-scale temperature visualization in VR (synthetic)",
+  "researchQuestion": "RQ1: How do four VR temperature visualization designs (Spheres, Volume, Probe Plane, Handheld Probe) differ in task performance and subjective experience?",
+  "agentQuestions": "RQ2: How well do LLM agents with different access (description, project files, the running Unreal app, model evidence, demographics, participant data) forecast these differences, at population and individual level? All participant data in this example are invented.",
+  "synthetic": true,
+  "design": "within-subjects",
+  "predictionLevel": "population",
+  "predictionTiming": "after-experience",
+  "conditions": [
+    {
+      "id": "SP",
+      "label": "Spheres"
+    },
+    {
+      "id": "VO",
+      "label": "Volume"
+    },
+    {
+      "id": "PP",
+      "label": "Probe Plane"
+    },
+    {
+      "id": "HP",
+      "label": "Handheld Probe"
+    }
+  ],
+  "phases": [
+    {
+      "id": "practice",
+      "label": "Practice",
+      "kind": "practice"
+    },
+    {
+      "id": "main",
+      "label": "Place and zone trials",
+      "kind": "main"
+    },
+    {
+      "id": "questionnaire",
+      "label": "Questionnaires",
+      "kind": "questionnaire"
+    }
+  ],
+  "cases": [
+    {
+      "id": "SP-practice",
+      "conditionId": "SP",
+      "phaseId": "practice",
+      "label": "Spheres: practice",
+      "requiredActions": [
+        "complete-task"
+      ],
+      "minActions": 3
+    },
+    {
+      "id": "SP-main",
+      "conditionId": "SP",
+      "phaseId": "main",
+      "label": "Spheres: 8 place and 4 zone trials",
+      "requiredActions": [
+        "complete-task"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "VO-practice",
+      "conditionId": "VO",
+      "phaseId": "practice",
+      "label": "Volume: practice",
+      "requiredActions": [
+        "complete-task"
+      ],
+      "minActions": 3
+    },
+    {
+      "id": "VO-main",
+      "conditionId": "VO",
+      "phaseId": "main",
+      "label": "Volume: 8 place and 4 zone trials",
+      "requiredActions": [
+        "complete-task"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "PP-practice",
+      "conditionId": "PP",
+      "phaseId": "practice",
+      "label": "Probe Plane: practice",
+      "requiredActions": [
+        "complete-task"
+      ],
+      "minActions": 3
+    },
+    {
+      "id": "PP-main",
+      "conditionId": "PP",
+      "phaseId": "main",
+      "label": "Probe Plane: 8 place and 4 zone trials",
+      "requiredActions": [
+        "complete-task"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "HP-practice",
+      "conditionId": "HP",
+      "phaseId": "practice",
+      "label": "Handheld Probe: practice",
+      "requiredActions": [
+        "complete-task"
+      ],
+      "minActions": 3
+    },
+    {
+      "id": "HP-main",
+      "conditionId": "HP",
+      "phaseId": "main",
+      "label": "Handheld Probe: 8 place and 4 zone trials",
+      "requiredActions": [
+        "complete-task"
+      ],
+      "minActions": 12
+    }
+  ],
+  "participants": [
+    {
+      "id": "P01",
+      "stratum": "SP-VO-HP-PP",
+      "conditionOrder": [
+        "SP",
+        "VO",
+        "HP",
+        "PP"
+      ]
+    },
+    {
+      "id": "P02",
+      "stratum": "VO-PP-SP-HP",
+      "conditionOrder": [
+        "VO",
+        "PP",
+        "SP",
+        "HP"
+      ]
+    },
+    {
+      "id": "P03",
+      "stratum": "PP-HP-VO-SP",
+      "conditionOrder": [
+        "PP",
+        "HP",
+        "VO",
+        "SP"
+      ]
+    },
+    {
+      "id": "P04",
+      "stratum": "HP-SP-PP-VO",
+      "conditionOrder": [
+        "HP",
+        "SP",
+        "PP",
+        "VO"
+      ]
+    },
+    {
+      "id": "P05",
+      "stratum": "SP-VO-HP-PP",
+      "conditionOrder": [
+        "SP",
+        "VO",
+        "HP",
+        "PP"
+      ]
+    },
+    {
+      "id": "P06",
+      "stratum": "VO-PP-SP-HP",
+      "conditionOrder": [
+        "VO",
+        "PP",
+        "SP",
+        "HP"
+      ]
+    },
+    {
+      "id": "P07",
+      "stratum": "PP-HP-VO-SP",
+      "conditionOrder": [
+        "PP",
+        "HP",
+        "VO",
+        "SP"
+      ]
+    },
+    {
+      "id": "P08",
+      "stratum": "HP-SP-PP-VO",
+      "conditionOrder": [
+        "HP",
+        "SP",
+        "PP",
+        "VO"
+      ]
+    },
+    {
+      "id": "P09",
+      "stratum": "SP-VO-HP-PP",
+      "conditionOrder": [
+        "SP",
+        "VO",
+        "HP",
+        "PP"
+      ]
+    },
+    {
+      "id": "P10",
+      "stratum": "VO-PP-SP-HP",
+      "conditionOrder": [
+        "VO",
+        "PP",
+        "SP",
+        "HP"
+      ]
+    },
+    {
+      "id": "P11",
+      "stratum": "PP-HP-VO-SP",
+      "conditionOrder": [
+        "PP",
+        "HP",
+        "VO",
+        "SP"
+      ]
+    },
+    {
+      "id": "P12",
+      "stratum": "HP-SP-PP-VO",
+      "conditionOrder": [
+        "HP",
+        "SP",
+        "PP",
+        "VO"
+      ]
+    },
+    {
+      "id": "P13",
+      "stratum": "SP-VO-HP-PP",
+      "conditionOrder": [
+        "SP",
+        "VO",
+        "HP",
+        "PP"
+      ]
+    },
+    {
+      "id": "P14",
+      "stratum": "VO-PP-SP-HP",
+      "conditionOrder": [
+        "VO",
+        "PP",
+        "SP",
+        "HP"
+      ]
+    },
+    {
+      "id": "P15",
+      "stratum": "PP-HP-VO-SP",
+      "conditionOrder": [
+        "PP",
+        "HP",
+        "VO",
+        "SP"
+      ]
+    },
+    {
+      "id": "P16",
+      "stratum": "HP-SP-PP-VO",
+      "conditionOrder": [
+        "HP",
+        "SP",
+        "PP",
+        "VO"
+      ]
+    },
+    {
+      "id": "P17",
+      "stratum": "SP-VO-HP-PP",
+      "conditionOrder": [
+        "SP",
+        "VO",
+        "HP",
+        "PP"
+      ]
+    },
+    {
+      "id": "P18",
+      "stratum": "VO-PP-SP-HP",
+      "conditionOrder": [
+        "VO",
+        "PP",
+        "SP",
+        "HP"
+      ]
+    },
+    {
+      "id": "P19",
+      "stratum": "PP-HP-VO-SP",
+      "conditionOrder": [
+        "PP",
+        "HP",
+        "VO",
+        "SP"
+      ]
+    },
+    {
+      "id": "P20",
+      "stratum": "HP-SP-PP-VO",
+      "conditionOrder": [
+        "HP",
+        "SP",
+        "PP",
+        "VO"
+      ]
+    },
+    {
+      "id": "P21",
+      "stratum": "SP-VO-HP-PP",
+      "conditionOrder": [
+        "SP",
+        "VO",
+        "HP",
+        "PP"
+      ]
+    },
+    {
+      "id": "P22",
+      "stratum": "VO-PP-SP-HP",
+      "conditionOrder": [
+        "VO",
+        "PP",
+        "SP",
+        "HP"
+      ]
+    },
+    {
+      "id": "P23",
+      "stratum": "PP-HP-VO-SP",
+      "conditionOrder": [
+        "PP",
+        "HP",
+        "VO",
+        "SP"
+      ]
+    },
+    {
+      "id": "P24",
+      "stratum": "HP-SP-PP-VO",
+      "conditionOrder": [
+        "HP",
+        "SP",
+        "PP",
+        "VO"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "brief",
+      "label": "Task brief",
+      "kind": "brief",
+      "description": "agent-brief.md: building, task, the four designs and the questionnaires, without any participant answers."
+    },
+    {
+      "id": "project",
+      "label": "Unreal project snapshot",
+      "kind": "project",
+      "description": "project-snapshot/: outcome-blind description of the Unreal app (levels, design settings, task logic)."
+    },
+    {
+      "id": "evidence",
+      "label": "Computational model evidence",
+      "kind": "evidence",
+      "description": "evidence/model-evidence.md: invented outputs of simple computational user models. Not fitted to the synthetic answers."
+    },
+    {
+      "id": "demographics",
+      "label": "Demographics",
+      "kind": "demographics",
+      "description": "data/raw/demographics.csv: the person's background (individual) or a cohort summary (population).",
+      "fields": [
+        "age",
+        "gender",
+        "education",
+        "field",
+        "handedness",
+        "vr_experience"
+      ]
+    },
+    {
+      "id": "trajectory",
+      "label": "Main-task movement (compact)",
+      "kind": "trajectory",
+      "description": "data/raw/trajectories_main.csv: the person's movement summary in each design's main task.",
+      "fields": [
+        "design",
+        "phase",
+        "duration_s",
+        "head_path_m",
+        "head_turn_deg",
+        "teleports",
+        "hand_path_m"
+      ]
+    },
+    {
+      "id": "trajectory-full",
+      "label": "Practice and main movement (full)",
+      "kind": "trajectory",
+      "description": "data/raw/trajectories.csv: the person's movement summary in each design's practice and main tasks.",
+      "fields": [
+        "design",
+        "phase",
+        "duration_s",
+        "head_path_m",
+        "head_turn_deg",
+        "teleports",
+        "hand_path_m"
+      ]
+    }
+  ],
+  "runtime": {
+    "engine": "unreal",
+    "backend": "editor",
+    "observation": "mono",
+    "deviceProfile": "Head-mounted display (participants); desktop editor screenshots (agents)",
+    "requiredCapabilities": []
+  },
+  "outcomes": [
+    {
+      "id": "place-accuracy",
+      "label": "Place-comparison accuracy",
+      "domain": "objective",
+      "unit": "proportion correct",
+      "scale": "proportion",
+      "aggregation": "arithmetic",
+      "family": "accuracy",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Proportion of the 8 place-comparison trials answered correctly (which of two places is warmer)."
+    },
+    {
+      "id": "zone-accuracy",
+      "label": "Zone accuracy",
+      "domain": "objective",
+      "unit": "proportion correct",
+      "scale": "proportion",
+      "aggregation": "arithmetic",
+      "family": "accuracy",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Proportion of the 4 zone trials answered correctly (which building zone is warmest)."
+    },
+    {
+      "id": "place-time",
+      "label": "Place-comparison time",
+      "domain": "objective",
+      "unit": "seconds (median per person)",
+      "scale": "continuous",
+      "aggregation": "geometric",
+      "family": "time",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Median seconds per place-comparison trial."
+    },
+    {
+      "id": "zone-time",
+      "label": "Zone time",
+      "domain": "objective",
+      "unit": "seconds (median per person)",
+      "scale": "continuous",
+      "aggregation": "geometric",
+      "family": "time",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Median seconds per zone trial."
+    },
+    {
+      "id": "place-confidence",
+      "label": "Place-comparison confidence",
+      "domain": "subjective",
+      "unit": "1–5",
+      "scale": "ordinal",
+      "range": [1, 5],
+      "aggregation": "arithmetic",
+      "family": "confidence",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Mean confidence (1-5) after each place-comparison trial."
+    },
+    {
+      "id": "zone-confidence",
+      "label": "Zone confidence",
+      "domain": "subjective",
+      "unit": "1–5",
+      "scale": "ordinal",
+      "range": [1, 5],
+      "aggregation": "arithmetic",
+      "family": "confidence",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Mean confidence (1-5) after each zone trial."
+    },
+    {
+      "id": "workload",
+      "label": "Workload (TLX raw)",
+      "domain": "subjective",
+      "unit": "1–7",
+      "scale": "ordinal",
+      "range": [1, 7],
+      "aggregation": "arithmetic",
+      "family": "workload",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Perceived workload after each design (1-7, higher = more demanding)."
+    },
+    {
+      "id": "beauvis",
+      "label": "BeauVis",
+      "domain": "subjective",
+      "unit": "1–7",
+      "scale": "ordinal",
+      "range": [1, 7],
+      "aggregation": "arithmetic",
+      "family": "aesthetics",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "BeauVis aesthetic pleasure of the visualization (1-7)."
+    },
+    {
+      "id": "ssq",
+      "label": "SSQ total",
+      "domain": "subjective",
+      "unit": "0–235.62",
+      "scale": "continuous",
+      "range": [0, 235.62],
+      "aggregation": "arithmetic",
+      "family": "sickness",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Simulator Sickness Questionnaire total score after each design (0-235.62)."
+    },
+    {
+      "id": "rank-places",
+      "label": "Preference: places",
+      "domain": "subjective",
+      "unit": "rank, 1 = best",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference-places",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Final ranking: best design for comparing places (1 = best)."
+    },
+    {
+      "id": "rank-zones",
+      "label": "Preference: zones",
+      "domain": "subjective",
+      "unit": "rank, 1 = best",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference-zones",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Final ranking: best design for judging zones (1 = best)."
+    },
+    {
+      "id": "rank-interaction",
+      "label": "Preference: interaction",
+      "domain": "subjective",
+      "unit": "rank, 1 = best",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference-interaction",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Final ranking: most pleasant interaction (1 = best)."
+    },
+    {
+      "id": "rank-building",
+      "label": "Preference: building",
+      "domain": "subjective",
+      "unit": "rank, 1 = best",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference-building",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Final ranking: best overview of the building (1 = best)."
+    },
+    {
+      "id": "rank-overall",
+      "label": "Preference: overall",
+      "domain": "subjective",
+      "unit": "rank, 1 = best",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference-overall",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Final ranking: overall preference (1 = best)."
+    }
+  ],
+  "analysis": {
+    "mode": "both",
+    "familyWeights": {
+      "accuracy": 1,
+      "time": 1,
+      "confidence": 1,
+      "workload": 1,
+      "aesthetics": 1,
+      "sickness": 1,
+      "preference-places": 1,
+      "preference-zones": 1,
+      "preference-interaction": 1,
+      "preference-building": 1,
+      "preference-overall": 1
+    },
+    "bootstrapDraws": 1000,
+    "seed": 2026,
+    "tieTolerance": 1e-08,
+    "contrasts": []
+  }
+}

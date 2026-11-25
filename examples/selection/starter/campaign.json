@@ -1,0 +1,1312 @@
+{
+  "schemaVersion": "xr-campaign/1",
+  "id": "campaign-starter-b10899af9fdf",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "parentDigest": null,
+  "suite": {
+    "schemaVersion": "xr-campaign-suite/1",
+    "id": "study-synthetic-selection",
+    "title": "Selecting and placing objects in XR",
+    "synthetic": true,
+    "study": {
+      "schemaVersion": "1.0",
+      "id": "synthetic-selection",
+      "title": "Selecting and placing objects in XR",
+      "researchQuestion": "How do selection techniques differ in task performance and subjective experience?",
+      "agentQuestions": "Which agent workflows reproduce those differences?",
+      "synthetic": true,
+      "design": "within-subjects",
+      "predictionLevel": "population",
+      "predictionTiming": "after-experience",
+      "conditions": [
+        {
+          "id": "ray",
+          "label": "Ray selection"
+        },
+        {
+          "id": "direct",
+          "label": "Direct touch"
+        },
+        {
+          "id": "hybrid",
+          "label": "Hybrid selection"
+        }
+      ],
+      "phases": [
+        {
+          "id": "practice",
+          "label": "Guided practice",
+          "kind": "practice"
+        },
+        {
+          "id": "main",
+          "label": "Scored tasks",
+          "kind": "main"
+        },
+        {
+          "id": "questionnaire",
+          "label": "Questionnaires",
+          "kind": "questionnaire"
+        },
+        {
+          "id": "break",
+          "label": "Session break",
+          "kind": "break"
+        }
+      ],
+      "cases": [
+        {
+          "id": "ray-practice",
+          "conditionId": "ray",
+          "phaseId": "practice",
+          "label": "Practice a selection and placement",
+          "requiredActions": [
+            "select",
+            "place"
+          ],
+          "minActions": 2
+        },
+        {
+          "id": "ray-main",
+          "conditionId": "ray",
+          "phaseId": "main",
+          "label": "Select and place the target",
+          "requiredActions": [
+            "select",
+            "place"
+          ],
+          "minActions": 12
+        },
+        {
+          "id": "direct-practice",
+          "conditionId": "direct",
+          "phaseId": "practice",
+          "label": "Practice a selection and placement",
+          "requiredActions": [
+            "select",
+            "place"
+          ],
+          "minActions": 2
+        },
+        {
+          "id": "direct-main",
+          "conditionId": "direct",
+          "phaseId": "main",
+          "label": "Select and place the target",
+          "requiredActions": [
+            "select",
+            "place"
+          ],
+          "minActions": 12
+        },
+        {
+          "id": "hybrid-practice",
+          "conditionId": "hybrid",
+          "phaseId": "practice",
+          "label": "Practice a selection and placement",
+          "requiredActions": [
+            "select",
+            "place"
+          ],
+          "minActions": 2
+        },
+        {
+          "id": "hybrid-main",
+          "conditionId": "hybrid",
+          "phaseId": "main",
+          "label": "Select and place the target",
+          "requiredActions": [
+            "select",
+            "place"
+          ],
+          "minActions": 12
+        }
+      ],
+      "participants": [
+        {
+          "id": "P01",
+          "stratum": "order-1",
+          "conditionOrder": [
+            "ray",
+            "direct",
+            "hybrid"
+          ]
+        },
+        {
+          "id": "P02",
+          "stratum": "order-2",
+          "conditionOrder": [
+            "direct",
+            "hybrid",
+            "ray"
+          ]
+        },
+        {
+          "id": "P03",
+          "stratum": "order-3",
+          "conditionOrder": [
+            "hybrid",
+            "ray",
+            "direct"
+          ]
+        },
+        {
+          "id": "P04",
+          "stratum": "order-4",
+          "conditionOrder": [
+            "ray",
+            "hybrid",
+            "direct"
+          ]
+        },
+        {
+          "id": "P05",
+          "stratum": "order-5",
+          "conditionOrder": [
+            "hybrid",
+            "direct",
+            "ray"
+          ]
+        },
+        {
+          "id": "P06",
+          "stratum": "order-6",
+          "conditionOrder": [
+            "direct",
+            "ray",
+            "hybrid"
+          ]
+        },
+        {
+          "id": "P07",
+          "stratum": "order-1",
+          "conditionOrder": [
+            "ray",
+            "direct",
+            "hybrid"
+          ]
+        },
+        {
+          "id": "P08",
+          "stratum": "order-2",
+          "conditionOrder": [
+            "direct",
+            "hybrid",
+            "ray"
+          ]
+        },
+        {
+          "id": "P09",
+          "stratum": "order-3",
+          "conditionOrder": [
+            "hybrid",
+            "ray",
+            "direct"
+          ]
+        },
+        {
+          "id": "P10",
+          "stratum": "order-4",
+          "conditionOrder": [
+            "ray",
+            "hybrid",
+            "direct"
+          ]
+        },
+        {
+          "id": "P11",
+          "stratum": "order-5",
+          "conditionOrder": [
+            "hybrid",
+            "direct",
+            "ray"
+          ]
+        },
+        {
+          "id": "P12",
+          "stratum": "order-6",
+          "conditionOrder": [
+            "direct",
+            "ray",
+            "hybrid"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "brief",
+          "label": "Study instructions",
+          "kind": "brief",
+          "description": "Task instructions and controls, without measured participant outcomes."
+        },
+        {
+          "id": "project",
+          "label": "Approved project snapshot",
+          "kind": "project",
+          "description": "Scene layout and interaction implementation; supplied on the worker."
+        },
+        {
+          "id": "evidence",
+          "label": "Computational evidence",
+          "kind": "evidence",
+          "description": "Independently specified models; no fitted target answers."
+        },
+        {
+          "id": "demographics",
+          "label": "Participant background",
+          "kind": "demographics",
+          "description": "data/raw/demographics.csv: invented background per participant (age band, XR experience, gaming hours, handedness); never results.",
+          "fields": [
+            "age_band",
+            "xr_experience",
+            "gaming_hours_per_week",
+            "handedness"
+          ]
+        }
+      ],
+      "runtime": {
+        "engine": "unity",
+        "backend": "editor",
+        "deviceProfile": "quest-3",
+        "observation": "stereo-pair",
+        "requiredCapabilities": [
+          "head-pose",
+          "hand-poses",
+          "controller-input",
+          "stereo-capture",
+          "phase-events"
+        ]
+      },
+      "outcomes": [
+        {
+          "id": "completion-time",
+          "label": "Completion time",
+          "domain": "objective",
+          "unit": "seconds",
+          "scale": "continuous",
+          "aggregation": "geometric",
+          "family": "task-time",
+          "weight": 1,
+          "phaseIds": [
+            "main"
+          ],
+          "description": "Positive time from target onset to submit; questionnaire and break periods excluded."
+        },
+        {
+          "id": "accuracy",
+          "label": "Selection accuracy",
+          "domain": "objective",
+          "unit": "proportion correct",
+          "scale": "proportion",
+          "aggregation": "arithmetic",
+          "family": "task-accuracy",
+          "weight": 1,
+          "phaseIds": [
+            "main"
+          ],
+          "description": "Correct selections / scored selections; include errors."
+        },
+        {
+          "id": "teleports",
+          "label": "Teleport count",
+          "domain": "objective",
+          "unit": "completed teleports / task",
+          "scale": "continuous",
+          "aggregation": "arithmetic",
+          "family": "navigation",
+          "weight": 1,
+          "phaseIds": [
+            "main"
+          ],
+          "description": "Completed events only, within scored task windows."
+        },
+        {
+          "id": "workload",
+          "label": "Modified five-item workload",
+          "domain": "subjective",
+          "unit": "1–7 item mean",
+          "scale": "ordinal",
+          "range": [
+            1,
+            7
+          ],
+          "aggregation": "arithmetic",
+          "family": "workload",
+          "weight": 1,
+          "phaseIds": [
+            "practice",
+            "main"
+          ],
+          "components": [
+            "mental",
+            "physical",
+            "temporal",
+            "effort",
+            "frustration"
+          ],
+          "description": "Mean of these five retained items, without Performance. A six-item total scaled by 5/6 is not this outcome."
+        },
+        {
+          "id": "appeal",
+          "label": "Visual appeal",
+          "domain": "subjective",
+          "unit": "1–7 mean",
+          "scale": "ordinal",
+          "range": [
+            1,
+            7
+          ],
+          "aggregation": "arithmetic",
+          "family": "aesthetics",
+          "weight": 1,
+          "phaseIds": [
+            "practice",
+            "main"
+          ],
+          "description": "Declared aesthetic composite after experience."
+        },
+        {
+          "id": "interaction-preference",
+          "label": "Interaction preference",
+          "domain": "subjective",
+          "unit": "mean rank; 1 = first",
+          "scale": "rank",
+          "aggregation": "arithmetic",
+          "family": "interaction-preference",
+          "weight": 1,
+          "phaseIds": [
+            "practice",
+            "main"
+          ],
+          "description": "Which technique is preferred to interact with? Keep separate from overall preference."
+        },
+        {
+          "id": "overall-preference",
+          "label": "Overall preference",
+          "domain": "subjective",
+          "unit": "mean rank; 1 = first",
+          "scale": "rank",
+          "aggregation": "arithmetic",
+          "family": "overall-preference",
+          "weight": 1,
+          "phaseIds": [
+            "practice",
+            "main"
+          ],
+          "description": "Overall design preference after the full session."
+        }
+      ],
+      "analysis": {
+        "mode": "both",
+        "familyWeights": {
+          "task-time": 0.4,
+          "task-accuracy": 0.4,
+          "navigation": 0.2,
+          "workload": 0.4,
+          "aesthetics": 0.2,
+          "interaction-preference": 0.2,
+          "overall-preference": 0.2
+        },
+        "bootstrapDraws": 1000,
+        "seed": 2147,
+        "tieTolerance": 1e-8,
+        "contrasts": [
+          {
+            "id": "uses-app-vs-reads-project-objective",
+            "baseline": "reads-project",
+            "candidate": "uses-app",
+            "domain": "objective"
+          },
+          {
+            "id": "uses-app-vs-reads-project-subjective",
+            "baseline": "reads-project",
+            "candidate": "uses-app",
+            "domain": "subjective"
+          }
+        ]
+      }
+    },
+    "assets": [],
+    "conditions": [
+      {
+        "id": "text-only",
+        "label": "Text only",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 0,
+            "maxOutputTokens": 64000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions."
+          ],
+          "protocol": {
+            "id": "text-only",
+            "label": "Text only",
+            "rationale": "Baseline: how well can people's results be predicted from the written description alone, without seeing the app?",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief"
+            ],
+            "tools": [],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief"
+            ],
+            "maxToolCalls": 0,
+            "maxOutputTokens": 64000,
+            "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+            "repetitions": 3,
+            "runtime": "none"
+          }
+        },
+        "jobs": [
+          {
+            "id": "text-only-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r3",
+            "repetition": 3,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "reads-project",
+        "label": "Reads the project files",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": true,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 50,
+            "maxOutputTokens": 64000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions."
+          ],
+          "protocol": {
+            "id": "reads-project",
+            "label": "Reads the project files",
+            "rationale": "Does inspecting the app's files (code, scenes, materials) without running it beat the description alone?",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "project"
+            ],
+            "tools": [
+              "read-files"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "project"
+            ],
+            "maxToolCalls": 50,
+            "maxOutputTokens": 64000,
+            "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+            "repetitions": 3,
+            "runtime": "none"
+          }
+        },
+        "jobs": [
+          {
+            "id": "reads-project-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "reads-project-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "reads-project-r3",
+            "repetition": 3,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "uses-app",
+        "label": "Uses the app",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": true,
+          "pie": true,
+          "evidence": false,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 150,
+            "maxOutputTokens": 64000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions."
+          ],
+          "protocol": {
+            "id": "uses-app",
+            "label": "Uses the app",
+            "rationale": "Does experiencing the app like a participant (looking around and doing the practice and main tasks) beat only reading its files?",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "project"
+            ],
+            "tools": [
+              "read-files",
+              "xr-interact"
+            ],
+            "observation": "stereo-pair",
+            "requiredCaseIds": [
+              "ray-practice",
+              "ray-main",
+              "direct-practice",
+              "direct-main",
+              "hybrid-practice",
+              "hybrid-main"
+            ],
+            "requiredSourceIds": [
+              "brief",
+              "project"
+            ],
+            "maxToolCalls": 150,
+            "maxOutputTokens": 64000,
+            "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+            "repetitions": 3,
+            "runtime": "unity"
+          }
+        },
+        "jobs": [
+          {
+            "id": "uses-app-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r3",
+            "repetition": 3,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "reads-evidence",
+        "label": "Reads the project + your evidence",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": true,
+          "pie": false,
+          "evidence": true,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 50,
+            "maxOutputTokens": 64000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions."
+          ],
+          "protocol": {
+            "id": "reads-evidence",
+            "label": "Reads the project + your evidence",
+            "rationale": "Does your evidence document (published findings, a computational model) add anything beyond reading the files?",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "project",
+              "evidence"
+            ],
+            "tools": [
+              "read-files",
+              "read-evidence"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "project",
+              "evidence"
+            ],
+            "maxToolCalls": 50,
+            "maxOutputTokens": 64000,
+            "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+            "repetitions": 3,
+            "runtime": "none"
+          }
+        },
+        "jobs": [
+          {
+            "id": "reads-evidence-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r3",
+            "repetition": 3,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "knows-participant",
+        "label": "Text + participant background (individual)",
+        "stage": "individual",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [
+            "demographics"
+          ],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "knows-participant",
+            "label": "Text + participant background (individual)",
+            "rationale": "Individual forecasts from the description and each person's background only (invented background that drives the invented outcomes).",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "tools": [
+              "read-participant-data"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "individual",
+            "runtime": "none",
+            "repetitions": 1
+          }
+        },
+        "jobs": [
+          {
+            "id": "knows-participant-P01-r1",
+            "repetition": 1,
+            "participantId": "P01",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P02-r1",
+            "repetition": 1,
+            "participantId": "P02",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P03-r1",
+            "repetition": 1,
+            "participantId": "P03",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P04-r1",
+            "repetition": 1,
+            "participantId": "P04",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P05-r1",
+            "repetition": 1,
+            "participantId": "P05",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P06-r1",
+            "repetition": 1,
+            "participantId": "P06",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P07-r1",
+            "repetition": 1,
+            "participantId": "P07",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P08-r1",
+            "repetition": 1,
+            "participantId": "P08",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P09-r1",
+            "repetition": 1,
+            "participantId": "P09",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P10-r1",
+            "repetition": 1,
+            "participantId": "P10",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P11-r1",
+            "repetition": 1,
+            "participantId": "P11",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P12-r1",
+            "repetition": 1,
+            "participantId": "P12",
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "uses-app-people",
+        "label": "Uses the app + knows the participant (individual)",
+        "stage": "individual",
+        "kind": "llm",
+        "recipe": {
+          "files": true,
+          "pie": true,
+          "evidence": false,
+          "personalInformation": [
+            "demographics"
+          ],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 150,
+            "maxOutputTokens": 64000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions."
+          ],
+          "protocol": {
+            "id": "uses-app-people",
+            "label": "Uses the app + knows the participant (individual)",
+            "rationale": "Does experiencing the techniques add to knowing each person's background?",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "project",
+              "demographics"
+            ],
+            "tools": [
+              "read-files",
+              "xr-interact",
+              "read-participant-data"
+            ],
+            "observation": "stereo-pair",
+            "requiredCaseIds": [
+              "ray-practice",
+              "ray-main",
+              "direct-practice",
+              "direct-main",
+              "hybrid-practice",
+              "hybrid-main"
+            ],
+            "requiredSourceIds": [
+              "brief",
+              "project",
+              "demographics"
+            ],
+            "maxToolCalls": 150,
+            "maxOutputTokens": 64000,
+            "forecastInstruction": "Predict the declared human outcomes for every design under the planned order and measurement windows. Keep measured agent behavior, simulation time and predicted human time separate. Use only supplied sources. Do not inspect target human answers. Return every requested numeric outcome, including the named retained items for composites. Report uncertainty and limitations separately; do not change the output definitions.",
+            "runtime": "unity",
+            "level": "individual",
+            "repetitions": 1
+          }
+        },
+        "jobs": [
+          {
+            "id": "uses-app-people-P01-r1",
+            "repetition": 1,
+            "participantId": "P01",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P02-r1",
+            "repetition": 1,
+            "participantId": "P02",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P03-r1",
+            "repetition": 1,
+            "participantId": "P03",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P04-r1",
+            "repetition": 1,
+            "participantId": "P04",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P05-r1",
+            "repetition": 1,
+            "participantId": "P05",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P06-r1",
+            "repetition": 1,
+            "participantId": "P06",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P07-r1",
+            "repetition": 1,
+            "participantId": "P07",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P08-r1",
+            "repetition": 1,
+            "participantId": "P08",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P09-r1",
+            "repetition": 1,
+            "participantId": "P09",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P10-r1",
+            "repetition": 1,
+            "participantId": "P10",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P11-r1",
+            "repetition": 1,
+            "participantId": "P11",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-people-P12-r1",
+            "repetition": 1,
+            "participantId": "P12",
+            "assetIds": []
+          }
+        ]
+      }
+    ],
+    "scoring": {
+      "adapter": "xr-study-sim-analyzer/1",
+      "assetIds": [],
+      "notes": [
+        "Built-in deterministic analyzer using the embedded study outcomes, family weights, tie tolerance, bootstrap draws and seed.",
+        "Contrasts may be added by later continuations; they do not change the scoring definition of existing outcomes."
+      ]
+    },
+    "notes": [
+      "Frozen from workbench plan b6e264357e13bf416425317351b218760ba1369323dd35eb2913726072f12606.",
+      "Each condition is one agent protocol. Continuations may add models, protocols and repetitions; unchanged jobs are reused."
+    ]
+  },
+  "protocolDigest": "6f94ab9812ca6a47318e13b47dacde3327ac3604247404a337ddce26e73e5d68",
+  "model": {
+    "provider": "claude-code",
+    "model": "claude-opus-5-5",
+    "reasoning": "default"
+  },
+  "jobs": [
+    {
+      "id": "campaign-starter-b10899af9fdf--text-only-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "text-only-r1",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--text-only-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--text-only-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "text-only-r2",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--text-only-r2"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--text-only-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "text-only-r3",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--text-only-r3"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--reads-project-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "reads-project-r1",
+      "conditionId": "reads-project",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--reads-project-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--reads-project-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "reads-project-r2",
+      "conditionId": "reads-project",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--reads-project-r2"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--reads-project-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "reads-project-r3",
+      "conditionId": "reads-project",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--reads-project-r3"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "uses-app-r1",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "uses-app-r2",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-r2"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "uses-app-r3",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-r3"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--reads-evidence-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r1",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--reads-evidence-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--reads-evidence-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r2",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--reads-evidence-r2"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--reads-evidence-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r3",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--reads-evidence-r3"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P01-r1",
+      "repetition": 1,
+      "participantId": "P01",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P01-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P01-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P02-r1",
+      "repetition": 1,
+      "participantId": "P02",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P02-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P02-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P03-r1",
+      "repetition": 1,
+      "participantId": "P03",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P03-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P03-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P04-r1",
+      "repetition": 1,
+      "participantId": "P04",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P04-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P04-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P05-r1",
+      "repetition": 1,
+      "participantId": "P05",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P05-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P05-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P06-r1",
+      "repetition": 1,
+      "participantId": "P06",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P06-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P06-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P07-r1",
+      "repetition": 1,
+      "participantId": "P07",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P07-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P07-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P08-r1",
+      "repetition": 1,
+      "participantId": "P08",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P08-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P08-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P09-r1",
+      "repetition": 1,
+      "participantId": "P09",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P09-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P09-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P10-r1",
+      "repetition": 1,
+      "participantId": "P10",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P10-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P10-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P11-r1",
+      "repetition": 1,
+      "participantId": "P11",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P11-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P11-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--knows-participant-P12-r1",
+      "repetition": 1,
+      "participantId": "P12",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P12-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--knows-participant-P12-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P01-r1",
+      "repetition": 1,
+      "participantId": "P01",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P01-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P01-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P02-r1",
+      "repetition": 1,
+      "participantId": "P02",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P02-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P02-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P03-r1",
+      "repetition": 1,
+      "participantId": "P03",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P03-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P03-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P04-r1",
+      "repetition": 1,
+      "participantId": "P04",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P04-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P04-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P05-r1",
+      "repetition": 1,
+      "participantId": "P05",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P05-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P05-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P06-r1",
+      "repetition": 1,
+      "participantId": "P06",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P06-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P06-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P07-r1",
+      "repetition": 1,
+      "participantId": "P07",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P07-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P07-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P08-r1",
+      "repetition": 1,
+      "participantId": "P08",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P08-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P08-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P09-r1",
+      "repetition": 1,
+      "participantId": "P09",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P09-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P09-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P10-r1",
+      "repetition": 1,
+      "participantId": "P10",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P10-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P10-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P11-r1",
+      "repetition": 1,
+      "participantId": "P11",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P11-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P11-r1"
+    },
+    {
+      "id": "campaign-starter-b10899af9fdf--uses-app-people-P12-r1",
+      "repetition": 1,
+      "participantId": "P12",
+      "assetIds": [],
+      "templateJobId": "uses-app-people-P12-r1",
+      "conditionId": "uses-app-people",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-b10899af9fdf--uses-app-people-P12-r1"
+    }
+  ],
+  "digest": "0a6b1efac3a9b665d34774c725ddad7ba7a674f1383551284e995fe7819f564c"
+}

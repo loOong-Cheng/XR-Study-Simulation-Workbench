@@ -1,0 +1,10 @@
+{
+  "title": "Haptic feedback for mid-air buttons in VR, between subjects",
+  "suite": "Suite 6 · Haptic buttons, between-subjects",
+  "description": "Synthetic between-subjects study: 36 invented people, 12 per feedback design (visual only, vibrotactile buzz, patterned pulse), each person one design. No study app: four app-free population configurations that run with Claude Code. Invented participant background drives the invented outcomes.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "evidence": "evidence/tactile-feedback-note.md",
+    "demographics": "data/raw/background.csv"
+  }
+}

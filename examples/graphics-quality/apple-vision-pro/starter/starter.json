@@ -1,0 +1,73 @@
+{
+  "schemaVersion": "xr-starter/1",
+  "label": "Starter · 1 run per participant",
+  "campaignId": "campaign-starter-60c8f211ad43",
+  "campaignDigest": "7addf047f60690909f7269ee5a5bee32f9b82d4ec427dc077cd1f89b9c0b889e",
+  "runsPerParticipant": 1,
+  "sessions": 126,
+  "configurations": [
+    {
+      "id": "text-only",
+      "label": "Text only",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "reads-project",
+      "label": "Reads the project files",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "uses-app",
+      "label": "Uses the app",
+      "level": "population",
+      "runtime": "visionos",
+      "sessions": 18,
+      "needs": "an Apple Vision Pro study bridge (Settings → Runtimes → visionos)"
+    },
+    {
+      "id": "reads-evidence",
+      "label": "Reads the project + your evidence",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "text-with-task-data",
+      "label": "Text + measured task data",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-participant",
+      "label": "Text + participant background (individual)",
+      "level": "individual",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "uses-app-people",
+      "label": "Uses the app + knows the participant (individual)",
+      "level": "individual",
+      "runtime": "visionos",
+      "sessions": 18,
+      "needs": "an Apple Vision Pro study bridge (Settings → Runtimes → visionos)"
+    }
+  ],
+  "notes": [
+    "Frozen from this suite's study.json and agents.json at 1 run per participant (configurations with their own run count keep it), exactly as Freeze & campaigns → Freeze campaign freezes them, with a fixed ID and date so every machine gets the same campaign.",
+    "Installed into campaigns/ when the study opens with no campaign yet (and by node scripts/setup.mjs); deleting it does not bring it back. Freeze another campaign at any time.",
+    "Simulate works for every configuration at no cost. Real sessions (Mode: Run agents) use your Claude Code login: start with one session (Run this session only).",
+    "The configurations that use the app (uses-app, uses-app-people) need an Apple Vision Pro study bridge in Settings → Runtimes; until one is set they can only be simulated. The app-free ones (text-only, reads-project, reads-evidence, text-with-task-data, knows-participant) run as real sessions on any machine with Claude Code."
+  ],
+  "rebuild": "npm run starters (after changing the suite's study.json, agents.json, workspace.json or a source file)"
+}

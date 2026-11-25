@@ -1,0 +1,14 @@
+# Text files are stored with LF everywhere, so hashes of study files, briefs and evidence are the
+# same on Windows and macOS/Linux (test-PC finding S6). Binary fixtures are never converted.
+* text=auto eol=lf
+*.pdf binary
+*.docx binary
+*.zip binary
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.glb binary
+*.wasm binary
+*.ico binary
+*.gif binary
+*.mp4 binary

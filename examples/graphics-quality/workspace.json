@@ -1,0 +1,17 @@
+{
+  "title": "Graphics quality and subjective experience in WebXR",
+  "suite": "Suite 3 \u00b7 WebXR graphics quality",
+  "description": "Synthetic study with a runnable WebXR app (three graphics-quality levels). Real agent runs use Claude Code + the built-in WebXR runtime.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "project": "webxr-app",
+    "evidence": "evidence/toy-evidence.md",
+    "demographics": "data/raw/demographics.csv"
+  },
+  "app": {
+    "serve": "webxr-app",
+    "query": "?quality={condition}&study=1&participant={participant}",
+    "capabilities": ["look", "pointer-select", "phase-events", "quality-lock"],
+    "instructions": "look orbits the viewpoint around the table: polar about 60 looks down at the table, 89 is almost level with its top. Objects off screen are listed without a position; turn towards them to see them."
+  }
+}

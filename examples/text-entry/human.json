@@ -1,0 +1,4135 @@
+{
+  "schemaVersion": "1.0",
+  "studyId": "synthetic-text-entry",
+  "synthetic": true,
+  "measurements": [
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P01",
+      "value": 13.156018206412915
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P01",
+      "value": 0.006941176470588235
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P01",
+      "value": 24.25824422460864
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P01",
+      "value": 15.222001174953974
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P01",
+      "value": 0.007703703703703704
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P01",
+      "value": 22.642481459887108
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P01",
+      "value": 9.763818042431057
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P01",
+      "value": 0.003125
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P01",
+      "value": 34.787081016799945
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P01",
+      "value": 11.596997685041456
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P01",
+      "value": 0.058325123152709366
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P01",
+      "value": 27.643645865406505
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P02",
+      "value": 14.351133487620563
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P02",
+      "value": 0.02706347194050034
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P02",
+      "value": 24.10706674961169
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P02",
+      "value": 13.304269976963232
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P02",
+      "value": 0.03085912427291737
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P02",
+      "value": 23.41570058320533
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P02",
+      "value": 7.658166483924563
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P02",
+      "value": 0.0035714285714285713
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P02",
+      "value": 42.69637371185086
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P02",
+      "value": 19.832271622771483
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P02",
+      "value": 0.02211971936109867
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P02",
+      "value": 17.39808457146902
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P03",
+      "value": 15.339070593778624
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P03",
+      "value": 0.03617845489020196
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P03",
+      "value": 22.323532311269396
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P03",
+      "value": 12.78602082360409
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P03",
+      "value": 0.014978835978835977
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P03",
+      "value": 26.882618528247644
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P03",
+      "value": 7.1339577335111155
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P03",
+      "value": 0.006458333333333332
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P03",
+      "value": 45.535351062004786
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P03",
+      "value": 9.06319024496888
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P03",
+      "value": 0.03083916083916084
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P03",
+      "value": 34.80924932118814
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P04",
+      "value": 14.468039283274157
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P04",
+      "value": 0.010601731601731602
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P04",
+      "value": 22.972430645304833
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P04",
+      "value": 12.398950739810841
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P04",
+      "value": 0.013546176046176046
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P04",
+      "value": 27.483947786137588
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P04",
+      "value": 6.665098735554965
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P04",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P04",
+      "value": 51.32048754494946
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P04",
+      "value": 12.060931405711397
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P04",
+      "value": 0.04470940936458177
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P04",
+      "value": 25.754595054610558
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P05",
+      "value": 16.60047962441732
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P05",
+      "value": 0.013630558458144666
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P05",
+      "value": 20.786644212415407
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P05",
+      "value": 15.083022403486499
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P05",
+      "value": 0.014400132275132274
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P05",
+      "value": 21.02441094759139
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P05",
+      "value": 9.977883236670635
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P05",
+      "value": 0.007151979565772669
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P05",
+      "value": 32.81284217812786
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P05",
+      "value": 22.887197578004844
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P05",
+      "value": 0.02142857142857143
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P05",
+      "value": 14.619625774590553
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P06",
+      "value": 15.370196926015831
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P06",
+      "value": 0.01697340813720124
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P06",
+      "value": 21.308176208807122
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P06",
+      "value": 15.684471552572735
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P06",
+      "value": 0.009474206349206349
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P06",
+      "value": 22.272630019181367
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P06",
+      "value": 11.03625420115291
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P06",
+      "value": 0.006573275862068966
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P06",
+      "value": 29.6575614169427
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P06",
+      "value": 20.220055965112145
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P06",
+      "value": 0.031742196682773935
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P06",
+      "value": 16.0235158984106
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P07",
+      "value": 13.04844363256419
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P07",
+      "value": 0.0191323508875691
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P07",
+      "value": 26.839342871722284
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P07",
+      "value": 11.748622150110648
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P07",
+      "value": 0.011407407407407408
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P07",
+      "value": 27.3645451189895
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P07",
+      "value": 5.850618815156669
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P07",
+      "value": 0.006696428571428571
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P07",
+      "value": 56.019686604072334
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P07",
+      "value": 9.252814030114582
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P07",
+      "value": 0.060465373793908775
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P07",
+      "value": 34.69317468000961
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P08",
+      "value": 16.39893455748525
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P08",
+      "value": 0.036351031463247654
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P08",
+      "value": 19.822794042551024
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P08",
+      "value": 12.542022084335292
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P08",
+      "value": 0.007037037037037036
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P08",
+      "value": 26.892931079484274
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P08",
+      "value": 8.688879859263361
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P08",
+      "value": 0.013335738335738334
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P08",
+      "value": 37.975538817423505
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P08",
+      "value": 13.65051555026189
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P08",
+      "value": 0.0343448275862069
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P08",
+      "value": 24.102253523084542
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P09",
+      "value": 12.019091639535178
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P09",
+      "value": 0.018893557422969186
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P09",
+      "value": 28.25684555386801
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P09",
+      "value": 9.488613388450746
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P09",
+      "value": 0.007448275862068965
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P09",
+      "value": 33.9922075779479
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P09",
+      "value": 6.775536492259936
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P09",
+      "value": 0.0030303030303030303
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P09",
+      "value": 49.27927496708689
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P09",
+      "value": 9.364593625268459
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P09",
+      "value": 0.15550792648298647
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P09",
+      "value": 35.264248333248744
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P10",
+      "value": 12.410818591361947
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P10",
+      "value": 0.01508856682769726
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P10",
+      "value": 25.32162917694304
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P10",
+      "value": 10.963891526025538
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P10",
+      "value": 0.010451612903225807
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P10",
+      "value": 29.963260800415572
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P10",
+      "value": 7.101367883592405
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P10",
+      "value": 0.005902777777777778
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P10",
+      "value": 49.13935642038458
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P10",
+      "value": 12.527396624767283
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P10",
+      "value": 0.036463133640552994
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P10",
+      "value": 26.128829966397173
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P11",
+      "value": 15.491855448426104
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P11",
+      "value": 0.027142062609248375
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P11",
+      "value": 20.89340038152589
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P11",
+      "value": 17.08611577822022
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P11",
+      "value": 0.0037037037037037034
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P11",
+      "value": 18.024083998481462
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P11",
+      "value": 8.206458916648886
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P11",
+      "value": 0.012762605042016806
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P11",
+      "value": 41.04097102872786
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P11",
+      "value": 11.695618170409036
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P11",
+      "value": 0.0704031053651547
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P11",
+      "value": 30.88281903862914
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P12",
+      "value": 14.726866992883078
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P12",
+      "value": 0.014144704433497534
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P12",
+      "value": 22.839109538771602
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P12",
+      "value": 10.170616796594018
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P12",
+      "value": 0.007275132275132275
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P12",
+      "value": 31.79349026258653
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P12",
+      "value": 6.286747628453584
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P12",
+      "value": 0.007846153846153846
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P12",
+      "value": 51.50178433301634
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P12",
+      "value": 9.390527846751368
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P12",
+      "value": 0.1143023627075351
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P12",
+      "value": 35.82797351797898
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P13",
+      "value": 12.723958166302475
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P13",
+      "value": 0.01724270626124846
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P13",
+      "value": 27.228176615300548
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P13",
+      "value": 16.292189962715106
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P13",
+      "value": 0.009953703703703704
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P13",
+      "value": 20.797464806810986
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P13",
+      "value": 8.321146998209127
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P13",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P13",
+      "value": 38.98534674609086
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P13",
+      "value": 12.37913347289576
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P13",
+      "value": 0.006896551724137931
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P13",
+      "value": 25.467066086634627
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P14",
+      "value": 13.251383852177543
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P14",
+      "value": 0.014437710437710439
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P14",
+      "value": 25.8342164017435
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P14",
+      "value": 12.138616522667716
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P14",
+      "value": 0.004
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P14",
+      "value": 27.68099211598184
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P14",
+      "value": 7.333077390566982
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P14",
+      "value": 0.010267857142857143
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P14",
+      "value": 44.821229460436264
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P14",
+      "value": 16.938188717239825
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P14",
+      "value": 0.027179487179487184
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P14",
+      "value": 18.33959002350899
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P15",
+      "value": 12.536190406514095
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P15",
+      "value": 0.017527097795639997
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P15",
+      "value": 27.358472902556368
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P15",
+      "value": 14.245420548939094
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P15",
+      "value": 0.02286733617318325
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P15",
+      "value": 22.333008814926504
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P15",
+      "value": 8.496549252388393
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P15",
+      "value": 0.0035714285714285713
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P15",
+      "value": 40.730718556227
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P15",
+      "value": 11.715230900254639
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P15",
+      "value": 0.006666666666666666
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P15",
+      "value": 27.147001444358803
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P16",
+      "value": 19.65713307563047
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P16",
+      "value": 0.011527035056446821
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P16",
+      "value": 16.338598880971997
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P16",
+      "value": 20.325388596999566
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P16",
+      "value": 0.00625
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P16",
+      "value": 16.709387038270126
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P16",
+      "value": 8.401706848886251
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P16",
+      "value": 0.010368663594470046
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P16",
+      "value": 39.44540071549211
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P16",
+      "value": 16.276654409236716
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P16",
+      "value": 0.01943573667711599
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P16",
+      "value": 20.628906850274312
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P17",
+      "value": 14.052502704096892
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P17",
+      "value": 0.01067485754985755
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P17",
+      "value": 22.89997073703983
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P17",
+      "value": 14.152678100550668
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P17",
+      "value": 0.025745647721454174
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P17",
+      "value": 21.996757316756437
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P17",
+      "value": 7.995045091726195
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P17",
+      "value": 0.0037037037037037034
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P17",
+      "value": 42.929654990249205
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P17",
+      "value": 14.531789141515631
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P17",
+      "value": 0.04474841533665064
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P17",
+      "value": 24.158209128877882
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P18",
+      "value": 13.837648583876177
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P18",
+      "value": 0.004347826086956522
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P18",
+      "value": 22.64609806136789
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P18",
+      "value": 13.553461359767471
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P18",
+      "value": 0.007275132275132275
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P18",
+      "value": 24.900331350664022
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P18",
+      "value": 7.555872470881489
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P18",
+      "value": 0.006458333333333332
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P18",
+      "value": 44.87180634219779
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P18",
+      "value": 12.118743146985453
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P18",
+      "value": 0.055131143366437485
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P18",
+      "value": 27.70980688265889
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P19",
+      "value": 18.74570299793521
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P19",
+      "value": 0.015345959498883038
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P19",
+      "value": 17.143880210101795
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P19",
+      "value": 16.008559620797524
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P19",
+      "value": 0.016926464340257442
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P19",
+      "value": 21.41911610119849
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P19",
+      "value": 9.028901937567076
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P19",
+      "value": 0.025587231968810915
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P19",
+      "value": 36.12022600980895
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P19",
+      "value": 12.081027277474776
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P19",
+      "value": 0.07196266562059471
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P19",
+      "value": 27.944720855774463
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P20",
+      "value": 12.998050769366017
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P20",
+      "value": 0.020388142263142263
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P20",
+      "value": 26.017095702076176
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P20",
+      "value": 11.27161033331162
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P20",
+      "value": 0.007333333333333333
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P20",
+      "value": 27.796992839734454
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P20",
+      "value": 6.653803199092346
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P20",
+      "value": 0.0029411764705882353
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P20",
+      "value": 51.47542641456546
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P20",
+      "value": 17.067877292189586
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P20",
+      "value": 0.011764705882352941
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P20",
+      "value": 19.400836144542755
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P21",
+      "value": 15.00210414970698
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P21",
+      "value": 0.01972723955482576
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P21",
+      "value": 21.256243238938453
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P21",
+      "value": 17.357948070939244
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P21",
+      "value": 0.008680555555555556
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P21",
+      "value": 19.606159352988023
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P21",
+      "value": 10.19700897208594
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P21",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P21",
+      "value": 32.00070615135715
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P21",
+      "value": 10.647524238725548
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P21",
+      "value": 0.03759447004608295
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P21",
+      "value": 31.93253921726011
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P22",
+      "value": 12.5847015019079
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P22",
+      "value": 0.017078703703703704
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P22",
+      "value": 26.407954852592617
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P22",
+      "value": 13.28087577096269
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P22",
+      "value": 0.01514726507713885
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P22",
+      "value": 25.570745051051308
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P22",
+      "value": 7.40033008692495
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P22",
+      "value": 0.020257392671185773
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P22",
+      "value": 42.66455223750156
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P22",
+      "value": 17.45320601218635
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P22",
+      "value": 0.026896551724137928
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P22",
+      "value": 19.121518009048817
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P23",
+      "value": 15.907538027284124
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P23",
+      "value": 0.025614748181464825
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P23",
+      "value": 20.022716121037384
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P23",
+      "value": 18.10551056957457
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P23",
+      "value": 0.013047235023041476
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P23",
+      "value": 19.022084120141006
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P23",
+      "value": 8.980983486255797
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P23",
+      "value": 0.0037037037037037034
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P23",
+      "value": 37.79553240532407
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P23",
+      "value": 18.18368839656029
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P23",
+      "value": 0.01
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P23",
+      "value": 18.058776814278392
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "drum",
+      "participantId": "P24",
+      "value": 15.658167082212907
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "drum",
+      "participantId": "P24",
+      "value": 0.01289488017429194
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "drum",
+      "participantId": "P24",
+      "value": 21.910576432585234
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "raycast",
+      "participantId": "P24",
+      "value": 13.657561915591799
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "raycast",
+      "participantId": "P24",
+      "value": 0.03408650337529647
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "raycast",
+      "participantId": "P24",
+      "value": 23.609086591957162
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "split",
+      "participantId": "P24",
+      "value": 6.749118293586247
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "split",
+      "participantId": "P24",
+      "value": 0.007071960297766749
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "split",
+      "participantId": "P24",
+      "value": 48.078654865910316
+    },
+    {
+      "outcomeId": "wpm",
+      "conditionId": "swipe",
+      "participantId": "P24",
+      "value": 15.739730140982473
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "swipe",
+      "participantId": "P24",
+      "value": 0.0421455938697318
+    },
+    {
+      "outcomeId": "entry-time",
+      "conditionId": "swipe",
+      "participantId": "P24",
+      "value": 21.04866224721219
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P01",
+      "components": {
+        "mental": 45.0,
+        "physical": 40.0,
+        "temporal": 25.0,
+        "performance": 40.0,
+        "effort": 55.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P01",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P01",
+      "components": {
+        "mental": 60.0,
+        "physical": 50.0,
+        "temporal": 50.0,
+        "performance": 45.0,
+        "effort": 45.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P01",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P01",
+      "components": {
+        "mental": 70.0,
+        "physical": 20.0,
+        "temporal": 50.0,
+        "performance": 45.0,
+        "effort": 60.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P01",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P01",
+      "components": {
+        "mental": 60.0,
+        "physical": 40.0,
+        "temporal": 50.0,
+        "performance": 100.0,
+        "effort": 55.0,
+        "frustration": 80.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P01",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P02",
+      "components": {
+        "mental": 45.0,
+        "physical": 80.0,
+        "temporal": 45.0,
+        "performance": 75.0,
+        "effort": 55.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P02",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P02",
+      "components": {
+        "mental": 15.0,
+        "physical": 20.0,
+        "temporal": 30.0,
+        "performance": 80.0,
+        "effort": 40.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P02",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P02",
+      "components": {
+        "mental": 40.0,
+        "physical": 35.0,
+        "temporal": 40.0,
+        "performance": 80.0,
+        "effort": 50.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P02",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P02",
+      "components": {
+        "mental": 60.0,
+        "physical": 30.0,
+        "temporal": 55.0,
+        "performance": 25.0,
+        "effort": 55.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P02",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P03",
+      "components": {
+        "mental": 45.0,
+        "physical": 30.0,
+        "temporal": 15.0,
+        "performance": 60.0,
+        "effort": 40.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P03",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P03",
+      "components": {
+        "mental": 40.0,
+        "physical": 30.0,
+        "temporal": 45.0,
+        "performance": 40.0,
+        "effort": 55.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P03",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P03",
+      "components": {
+        "mental": 25.0,
+        "physical": 35.0,
+        "temporal": 25.0,
+        "performance": 45.0,
+        "effort": 40.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P03",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P03",
+      "components": {
+        "mental": 20.0,
+        "physical": 20.0,
+        "temporal": 30.0,
+        "performance": 25.0,
+        "effort": 30.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P03",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P04",
+      "components": {
+        "mental": 70.0,
+        "physical": 25.0,
+        "temporal": 55.0,
+        "performance": 30.0,
+        "effort": 60.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P04",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P04",
+      "components": {
+        "mental": 40.0,
+        "physical": 60.0,
+        "temporal": 45.0,
+        "performance": 65.0,
+        "effort": 30.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P04",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P04",
+      "components": {
+        "mental": 40.0,
+        "physical": 35.0,
+        "temporal": 45.0,
+        "performance": 95.0,
+        "effort": 35.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P04",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P04",
+      "components": {
+        "mental": 50.0,
+        "physical": 45.0,
+        "temporal": 30.0,
+        "performance": 65.0,
+        "effort": 50.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P04",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P05",
+      "components": {
+        "mental": 40.0,
+        "physical": 25.0,
+        "temporal": 45.0,
+        "performance": 40.0,
+        "effort": 35.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P05",
+      "components": {
+        "mental": 40.0,
+        "physical": 55.0,
+        "temporal": 40.0,
+        "performance": 55.0,
+        "effort": 50.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P05",
+      "components": {
+        "mental": 65.0,
+        "physical": 45.0,
+        "temporal": 55.0,
+        "performance": 35.0,
+        "effort": 60.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P05",
+      "value": 7.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P05",
+      "components": {
+        "mental": 35.0,
+        "physical": 30.0,
+        "temporal": 25.0,
+        "performance": 30.0,
+        "effort": 10.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P06",
+      "components": {
+        "mental": 40.0,
+        "physical": 55.0,
+        "temporal": 70.0,
+        "performance": 85.0,
+        "effort": 50.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P06",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P06",
+      "components": {
+        "mental": 40.0,
+        "physical": 35.0,
+        "temporal": 40.0,
+        "performance": 55.0,
+        "effort": 30.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P06",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P06",
+      "components": {
+        "mental": 65.0,
+        "physical": 50.0,
+        "temporal": 50.0,
+        "performance": 35.0,
+        "effort": 45.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P06",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P06",
+      "components": {
+        "mental": 75.0,
+        "physical": 30.0,
+        "temporal": 65.0,
+        "performance": 55.0,
+        "effort": 70.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P06",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P07",
+      "components": {
+        "mental": 65.0,
+        "physical": 45.0,
+        "temporal": 60.0,
+        "performance": 90.0,
+        "effort": 55.0,
+        "frustration": 85.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P07",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P07",
+      "components": {
+        "mental": 65.0,
+        "physical": 30.0,
+        "temporal": 55.0,
+        "performance": 50.0,
+        "effort": 65.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P07",
+      "value": 7.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P07",
+      "components": {
+        "mental": 50.0,
+        "physical": 45.0,
+        "temporal": 45.0,
+        "performance": 65.0,
+        "effort": 45.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P07",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P07",
+      "components": {
+        "mental": 45.0,
+        "physical": 40.0,
+        "temporal": 35.0,
+        "performance": 60.0,
+        "effort": 35.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P07",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P08",
+      "components": {
+        "mental": 60.0,
+        "physical": 45.0,
+        "temporal": 55.0,
+        "performance": 75.0,
+        "effort": 65.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P08",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P08",
+      "components": {
+        "mental": 60.0,
+        "physical": 50.0,
+        "temporal": 50.0,
+        "performance": 35.0,
+        "effort": 55.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P08",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P08",
+      "components": {
+        "mental": 50.0,
+        "physical": 40.0,
+        "temporal": 45.0,
+        "performance": 80.0,
+        "effort": 40.0,
+        "frustration": 75.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P08",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P08",
+      "components": {
+        "mental": 50.0,
+        "physical": 70.0,
+        "temporal": 35.0,
+        "performance": 100.0,
+        "effort": 55.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P08",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P09",
+      "components": {
+        "mental": 50.0,
+        "physical": 50.0,
+        "temporal": 45.0,
+        "performance": 35.0,
+        "effort": 40.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P09",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P09",
+      "components": {
+        "mental": 50.0,
+        "physical": 75.0,
+        "temporal": 45.0,
+        "performance": 55.0,
+        "effort": 50.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P09",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P09",
+      "components": {
+        "mental": 75.0,
+        "physical": 40.0,
+        "temporal": 65.0,
+        "performance": 40.0,
+        "effort": 75.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P09",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P09",
+      "components": {
+        "mental": 70.0,
+        "physical": 65.0,
+        "temporal": 50.0,
+        "performance": 100.0,
+        "effort": 55.0,
+        "frustration": 100.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P09",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P10",
+      "components": {
+        "mental": 50.0,
+        "physical": 75.0,
+        "temporal": 50.0,
+        "performance": 80.0,
+        "effort": 60.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P10",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P10",
+      "components": {
+        "mental": 60.0,
+        "physical": 50.0,
+        "temporal": 45.0,
+        "performance": 95.0,
+        "effort": 50.0,
+        "frustration": 80.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P10",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P10",
+      "components": {
+        "mental": 55.0,
+        "physical": 60.0,
+        "temporal": 45.0,
+        "performance": 60.0,
+        "effort": 60.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P10",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P10",
+      "components": {
+        "mental": 75.0,
+        "physical": 45.0,
+        "temporal": 65.0,
+        "performance": 60.0,
+        "effort": 75.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P10",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P11",
+      "components": {
+        "mental": 60.0,
+        "physical": 60.0,
+        "temporal": 50.0,
+        "performance": 100.0,
+        "effort": 50.0,
+        "frustration": 80.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P11",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P11",
+      "components": {
+        "mental": 75.0,
+        "physical": 60.0,
+        "temporal": 75.0,
+        "performance": 85.0,
+        "effort": 80.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P11",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P11",
+      "components": {
+        "mental": 70.0,
+        "physical": 65.0,
+        "temporal": 55.0,
+        "performance": 100.0,
+        "effort": 60.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P11",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P11",
+      "components": {
+        "mental": 60.0,
+        "physical": 55.0,
+        "temporal": 65.0,
+        "performance": 40.0,
+        "effort": 40.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P11",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P12",
+      "components": {
+        "mental": 55.0,
+        "physical": 40.0,
+        "temporal": 70.0,
+        "performance": 60.0,
+        "effort": 70.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P12",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P12",
+      "components": {
+        "mental": 50.0,
+        "physical": 50.0,
+        "temporal": 45.0,
+        "performance": 35.0,
+        "effort": 60.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P12",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P12",
+      "components": {
+        "mental": 65.0,
+        "physical": 55.0,
+        "temporal": 55.0,
+        "performance": 100.0,
+        "effort": 40.0,
+        "frustration": 100.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P12",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P12",
+      "components": {
+        "mental": 45.0,
+        "physical": 85.0,
+        "temporal": 60.0,
+        "performance": 55.0,
+        "effort": 60.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P12",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P13",
+      "components": {
+        "mental": 30.0,
+        "physical": 25.0,
+        "temporal": 25.0,
+        "performance": 40.0,
+        "effort": 40.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P13",
+      "value": 7.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P13",
+      "components": {
+        "mental": 50.0,
+        "physical": 60.0,
+        "temporal": 50.0,
+        "performance": 45.0,
+        "effort": 35.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P13",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P13",
+      "components": {
+        "mental": 60.0,
+        "physical": 35.0,
+        "temporal": 55.0,
+        "performance": 25.0,
+        "effort": 55.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P13",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P13",
+      "components": {
+        "mental": 35.0,
+        "physical": 30.0,
+        "temporal": 35.0,
+        "performance": 35.0,
+        "effort": 35.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P13",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P14",
+      "components": {
+        "mental": 45.0,
+        "physical": 65.0,
+        "temporal": 40.0,
+        "performance": 80.0,
+        "effort": 50.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P14",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P14",
+      "components": {
+        "mental": 35.0,
+        "physical": 40.0,
+        "temporal": 15.0,
+        "performance": 65.0,
+        "effort": 25.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P14",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P14",
+      "components": {
+        "mental": 50.0,
+        "physical": 45.0,
+        "temporal": 40.0,
+        "performance": 40.0,
+        "effort": 40.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P14",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P14",
+      "components": {
+        "mental": 65.0,
+        "physical": 40.0,
+        "temporal": 45.0,
+        "performance": 65.0,
+        "effort": 55.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P14",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P15",
+      "components": {
+        "mental": 30.0,
+        "physical": 60.0,
+        "temporal": 40.0,
+        "performance": 20.0,
+        "effort": 50.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P15",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P15",
+      "components": {
+        "mental": 50.0,
+        "physical": 25.0,
+        "temporal": 50.0,
+        "performance": 50.0,
+        "effort": 55.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P15",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P15",
+      "components": {
+        "mental": 40.0,
+        "physical": 50.0,
+        "temporal": 35.0,
+        "performance": 60.0,
+        "effort": 50.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P15",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P15",
+      "components": {
+        "mental": 35.0,
+        "physical": 30.0,
+        "temporal": 45.0,
+        "performance": 25.0,
+        "effort": 25.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P15",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P16",
+      "components": {
+        "mental": 60.0,
+        "physical": 55.0,
+        "temporal": 40.0,
+        "performance": 70.0,
+        "effort": 60.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P16",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P16",
+      "components": {
+        "mental": 45.0,
+        "physical": 35.0,
+        "temporal": 45.0,
+        "performance": 50.0,
+        "effort": 35.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P16",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P16",
+      "components": {
+        "mental": 45.0,
+        "physical": 40.0,
+        "temporal": 35.0,
+        "performance": 45.0,
+        "effort": 40.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P16",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P16",
+      "components": {
+        "mental": 45.0,
+        "physical": 70.0,
+        "temporal": 50.0,
+        "performance": 45.0,
+        "effort": 65.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P16",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P17",
+      "components": {
+        "mental": 40.0,
+        "physical": 45.0,
+        "temporal": 30.0,
+        "performance": 100.0,
+        "effort": 45.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P17",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P17",
+      "components": {
+        "mental": 35.0,
+        "physical": 50.0,
+        "temporal": 35.0,
+        "performance": 45.0,
+        "effort": 60.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P17",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P17",
+      "components": {
+        "mental": 60.0,
+        "physical": 45.0,
+        "temporal": 50.0,
+        "performance": 50.0,
+        "effort": 70.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P17",
+      "value": 7.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P17",
+      "components": {
+        "mental": 45.0,
+        "physical": 35.0,
+        "temporal": 45.0,
+        "performance": 80.0,
+        "effort": 45.0,
+        "frustration": 95.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P17",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P18",
+      "components": {
+        "mental": 50.0,
+        "physical": 75.0,
+        "temporal": 45.0,
+        "performance": 55.0,
+        "effort": 60.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P18",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P18",
+      "components": {
+        "mental": 60.0,
+        "physical": 50.0,
+        "temporal": 45.0,
+        "performance": 95.0,
+        "effort": 45.0,
+        "frustration": 100.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P18",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P18",
+      "components": {
+        "mental": 45.0,
+        "physical": 60.0,
+        "temporal": 40.0,
+        "performance": 75.0,
+        "effort": 50.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P18",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P18",
+      "components": {
+        "mental": 60.0,
+        "physical": 55.0,
+        "temporal": 60.0,
+        "performance": 35.0,
+        "effort": 55.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P18",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P19",
+      "components": {
+        "mental": 50.0,
+        "physical": 50.0,
+        "temporal": 50.0,
+        "performance": 100.0,
+        "effort": 50.0,
+        "frustration": 100.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P19",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P19",
+      "components": {
+        "mental": 55.0,
+        "physical": 35.0,
+        "temporal": 60.0,
+        "performance": 80.0,
+        "effort": 60.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P19",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P19",
+      "components": {
+        "mental": 35.0,
+        "physical": 55.0,
+        "temporal": 40.0,
+        "performance": 35.0,
+        "effort": 50.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P19",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P19",
+      "components": {
+        "mental": 40.0,
+        "physical": 30.0,
+        "temporal": 25.0,
+        "performance": 40.0,
+        "effort": 30.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P19",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P20",
+      "components": {
+        "mental": 50.0,
+        "physical": 40.0,
+        "temporal": 60.0,
+        "performance": 25.0,
+        "effort": 60.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P20",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P20",
+      "components": {
+        "mental": 35.0,
+        "physical": 30.0,
+        "temporal": 30.0,
+        "performance": 35.0,
+        "effort": 40.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P20",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P20",
+      "components": {
+        "mental": 25.0,
+        "physical": 45.0,
+        "temporal": 25.0,
+        "performance": 25.0,
+        "effort": 20.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P20",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P20",
+      "components": {
+        "mental": 40.0,
+        "physical": 75.0,
+        "temporal": 35.0,
+        "performance": 95.0,
+        "effort": 40.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P20",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P21",
+      "components": {
+        "mental": 55.0,
+        "physical": 50.0,
+        "temporal": 45.0,
+        "performance": 50.0,
+        "effort": 45.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P21",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P21",
+      "components": {
+        "mental": 65.0,
+        "physical": 70.0,
+        "temporal": 55.0,
+        "performance": 70.0,
+        "effort": 55.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P21",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P21",
+      "components": {
+        "mental": 70.0,
+        "physical": 50.0,
+        "temporal": 65.0,
+        "performance": 45.0,
+        "effort": 70.0,
+        "frustration": 75.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P21",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P21",
+      "components": {
+        "mental": 65.0,
+        "physical": 70.0,
+        "temporal": 60.0,
+        "performance": 60.0,
+        "effort": 65.0,
+        "frustration": 75.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P21",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P22",
+      "components": {
+        "mental": 55.0,
+        "physical": 80.0,
+        "temporal": 65.0,
+        "performance": 65.0,
+        "effort": 65.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P22",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P22",
+      "components": {
+        "mental": 60.0,
+        "physical": 35.0,
+        "temporal": 40.0,
+        "performance": 65.0,
+        "effort": 45.0,
+        "frustration": 65.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P22",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P22",
+      "components": {
+        "mental": 65.0,
+        "physical": 55.0,
+        "temporal": 40.0,
+        "performance": 50.0,
+        "effort": 45.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P22",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P22",
+      "components": {
+        "mental": 60.0,
+        "physical": 55.0,
+        "temporal": 70.0,
+        "performance": 55.0,
+        "effort": 55.0,
+        "frustration": 70.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P22",
+      "value": 7.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P23",
+      "components": {
+        "mental": 35.0,
+        "physical": 40.0,
+        "temporal": 45.0,
+        "performance": 45.0,
+        "effort": 35.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P23",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P23",
+      "components": {
+        "mental": 50.0,
+        "physical": 45.0,
+        "temporal": 55.0,
+        "performance": 35.0,
+        "effort": 55.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P23",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P23",
+      "components": {
+        "mental": 35.0,
+        "physical": 55.0,
+        "temporal": 45.0,
+        "performance": 100.0,
+        "effort": 40.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P23",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P23",
+      "components": {
+        "mental": 40.0,
+        "physical": 45.0,
+        "temporal": 40.0,
+        "performance": 45.0,
+        "effort": 55.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P23",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "split",
+      "participantId": "P24",
+      "components": {
+        "mental": 60.0,
+        "physical": 45.0,
+        "temporal": 55.0,
+        "performance": 40.0,
+        "effort": 50.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "split",
+      "participantId": "P24",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "raycast",
+      "participantId": "P24",
+      "components": {
+        "mental": 45.0,
+        "physical": 35.0,
+        "temporal": 35.0,
+        "performance": 80.0,
+        "effort": 30.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "raycast",
+      "participantId": "P24",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "swipe",
+      "participantId": "P24",
+      "components": {
+        "mental": 30.0,
+        "physical": 35.0,
+        "temporal": 10.0,
+        "performance": 40.0,
+        "effort": 30.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "swipe",
+      "participantId": "P24",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "tlx",
+      "conditionId": "drum",
+      "participantId": "P24",
+      "components": {
+        "mental": 35.0,
+        "physical": 70.0,
+        "temporal": 35.0,
+        "performance": 20.0,
+        "effort": 50.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "arm-comfort",
+      "conditionId": "drum",
+      "participantId": "P24",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P01",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P01",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P01",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P01",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P02",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P02",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P02",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P02",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P03",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P03",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P03",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P03",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P04",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P04",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P04",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P04",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P05",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P05",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P05",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P05",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P06",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P06",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P06",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P06",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P07",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P07",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P07",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P07",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P08",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P08",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P08",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P08",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P09",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P09",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P09",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P09",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P10",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P10",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P10",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P10",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P11",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P11",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P11",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P11",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P12",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P12",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P12",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P12",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P13",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P13",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P13",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P13",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P14",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P14",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P14",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P14",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P15",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P15",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P15",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P15",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P16",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P16",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P16",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P16",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P17",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P17",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P17",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P17",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P18",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P18",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P18",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P18",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P19",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P19",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P19",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P19",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P20",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P20",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P20",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P20",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P21",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P21",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P21",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P21",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P22",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P22",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P22",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P22",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P23",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P23",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P23",
+      "value": 4
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P23",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "raycast",
+      "participantId": "P24",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "drum",
+      "participantId": "P24",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "swipe",
+      "participantId": "P24",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "split",
+      "participantId": "P24",
+      "value": 4
+    }
+  ]
+}

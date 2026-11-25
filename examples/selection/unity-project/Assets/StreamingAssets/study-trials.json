@@ -1,0 +1,33 @@
+{
+  "version": 1,
+  "note": "Suite 2 (selecting and placing objects). Fixed layout and tasks, identical for every technique, participant and agent run. Object ids are neutral; positions in metres (y up, the table is along +z from the start).",
+  "start": { "x": 0.0, "z": -1.35, "yaw": 0.0 },
+  "eyeHeightM": 1.6,
+  "ipdM": 0.064,
+  "reachM": 0.75,
+  "teleportMaxM": 4.0,
+  "playAreaHalfM": 1.0,
+  "room": { "name": "room", "xMin": -3.0, "xMax": 3.0, "zMin": -2.5, "zMax": 2.5 },
+  "obstacles": [
+    { "name": "table", "xMin": -1.2, "xMax": 1.2, "zMin": -1.0, "zMax": 0.0 },
+    { "name": "side table", "xMin": 1.2, "xMax": 1.8, "zMin": -1.65, "zMax": -1.05 },
+    { "name": "shelf", "xMin": -3.0, "xMax": -2.62, "zMin": -1.1, "zMax": -0.1 }
+  ],
+  "goalZone": { "x": 1.5, "y": 0.905, "z": -1.35, "size": 0.3 },
+  "objects": [
+    { "id": "obj-7",  "shape": "cube",     "color": "red",    "band": false, "x": -0.8,  "y": 0.9, "z": -0.78 },
+    { "id": "obj-2",  "shape": "cube",     "color": "red",    "band": true,  "x": -0.5,  "y": 0.9, "z": -0.78 },
+    { "id": "obj-10", "shape": "cylinder", "color": "blue",   "band": false, "x": -0.1,  "y": 0.9, "z": -0.78 },
+    { "id": "obj-4",  "shape": "sphere",   "color": "yellow", "band": false, "x": 0.3,   "y": 0.9, "z": -0.78 },
+    { "id": "obj-12", "shape": "cylinder", "color": "blue",   "band": true,  "x": 0.7,   "y": 0.9, "z": -0.78 },
+    { "id": "obj-1",  "shape": "cube",     "color": "yellow", "band": false, "x": -0.85, "y": 0.9, "z": -0.22 },
+    { "id": "obj-9",  "shape": "cube",     "color": "blue",   "band": false, "x": -0.45, "y": 0.9, "z": -0.22 },
+    { "id": "obj-5",  "shape": "cube",     "color": "blue",   "band": true,  "x": -0.15, "y": 0.9, "z": -0.22 },
+    { "id": "obj-11", "shape": "cylinder", "color": "yellow", "band": false, "x": 0.35,  "y": 0.9, "z": -0.22 },
+    { "id": "obj-3",  "shape": "sphere",   "color": "red",    "band": false, "x": 0.8,   "y": 0.9, "z": -0.22 },
+    { "id": "obj-8",  "shape": "cylinder", "color": "red",    "band": false, "x": -2.8,  "y": 1.1, "z": -0.75 },
+    { "id": "obj-6",  "shape": "cylinder", "color": "red",    "band": true,  "x": -2.8,  "y": 1.1, "z": -0.45 }
+  ],
+  "practice": ["obj-10"],
+  "main": ["obj-7", "obj-5", "obj-6", "obj-4", "obj-11", "obj-8"]
+}

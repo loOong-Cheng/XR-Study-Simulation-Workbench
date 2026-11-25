@@ -1,0 +1,11 @@
+{
+  "title": "Graphics quality and subjective experience on Apple Vision Pro",
+  "suite": "Suite 3-a · Apple Vision Pro graphics quality",
+  "description": "Suite 3's study (same designs, participants and synthetic data) with an Apple Vision Pro app: real agent runs use Claude Code + the study bridge in runtime/, which drives the app in the visionOS simulator.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "project": "visionos-app/GraphicsQuality",
+    "evidence": "evidence/toy-evidence.md",
+    "demographics": "data/raw/demographics.csv"
+  }
+}

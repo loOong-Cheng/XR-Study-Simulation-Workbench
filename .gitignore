@@ -1,0 +1,32 @@
+node_modules/
+dist/
+.test-build/
+artifacts/
+coverage/
+# Builds of example apps (the visionOS app: runtime/build.mjs)
+.build/
+xcuserdata/
+.env
+.env.*
+!.env.example
+.DS_Store
+*.log
+__pycache__/
+*.pyc
+private/
+
+# Campaigns and runs created when trying the examples, with their labels and deleted campaigns
+examples/*/campaigns/
+examples/*/runs/
+examples/*/deleted/
+examples/*/campaign-labels.json
+examples/*/study.approval.json
+# … and of a study inside a study (suite 3-a in examples/graphics-quality/apple-vision-pro)
+examples/*/*/campaigns/
+examples/*/*/runs/
+examples/*/*/deleted/
+examples/*/*/campaign-labels.json
+examples/*/*/study.approval.json
+
+# Worktrees of coding agents
+.claude/worktrees/

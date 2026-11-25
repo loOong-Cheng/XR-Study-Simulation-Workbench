@@ -1,0 +1,11 @@
+{
+  "title": "Selecting and placing objects in XR",
+  "suite": "Suite 2 · Selecting and placing objects",
+  "description": "Synthetic study of three selection techniques in a Unity app (unity-project/). App-free configurations run with Claude Code; 'Uses the app' needs the Unity bridge (runtime/bridge.py) and the Unity Editor open on the project. Invented participant background drives the invented outcomes.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "project": "project-snapshot",
+    "evidence": "evidence/toy-evidence.md",
+    "demographics": "data/raw/demographics.csv"
+  }
+}
