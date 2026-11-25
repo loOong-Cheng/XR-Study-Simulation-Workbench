@@ -62,10 +62,15 @@ function fakeResponse() {
 
 // ---------- the analysis: same statistics, computed faster ----------
 
-/** The statistics of a report (no texts): what the pinned digests below cover. */
+/**
+ * The statistics of a report (no texts): what the pinned digests below cover. Numbers are rounded to
+ * 10 significant digits first: Node versions differ in the last bit of some floating-point results
+ * (e.g. Node 22 on CI vs Node 23 on a Mac), which is not a change in the statistics.
+ */
+const rounded = (_key: string, v: unknown) => (typeof v === "number" && Number.isFinite(v) ? Number(v.toPrecision(10)) : v);
 const statistics = (r: AnalysisReport) =>
   createHash("sha256")
-    .update(JSON.stringify([r.summaries, r.contrasts, r.metrics, r.runScores, r.values, r.humanValues, r.humanPairs, r.absoluteFit, r.significantOnly?.summaries ?? null, r.significantOnly?.humanPairs ?? null]))
+    .update(JSON.stringify([r.summaries, r.contrasts, r.metrics, r.runScores, r.values, r.humanValues, r.humanPairs, r.absoluteFit, r.significantOnly?.summaries ?? null, r.significantOnly?.humanPairs ?? null], rounded))
     .digest("hex")
     .slice(0, 16);
 async function example(name: string) {
@@ -81,19 +86,24 @@ async function example(name: string) {
 test("analysis: the statistics on the three examples are exactly those computed before the speed-ups", async () => {
   // Digests of every score, interval, contrast, per-run score, value and human pair test, computed
   // with the implementation that scored every run in every bootstrap draw (before this change).
-  // The faster one must give the same numbers, bit for bit.
+  // The faster one must give the same numbers (to 10 significant digits, see `statistics`).
   const pinned: Record<string, string> = {
-    "graphics-quality": "99ba95c4b6646f76",
-    "graphics-quality without comparisons": "894bacf68cfee54d",
-    ecolar: "1329288000484d95",
-    "ecolar without comparisons": "a1bb1fcd25763697",
-    selection: "748d652f2452a610",
-    "selection without comparisons": "c995e25b3570175d",
+    "graphics-quality": "befb84b3c23f0963",
+    "graphics-quality without comparisons": "65cf59a9cb0711ea",
+    ecolar: "080d4b51a5445ee7",
+    "ecolar without comparisons": "c3460e3c3bb7bc2b",
+    selection: "109c1072996736d5",
+    "selection without comparisons": "a9b346ab64571f6b",
   };
+  const actual: Record<string, string> = {};
   for (const name of ["graphics-quality", "ecolar", "selection"]) {
     const { c, human, comparisons, bundle } = await example(name);
-    assert.equal(statistics(analyzeCampaign(c, human, [bundle], comparisons).report), pinned[name], name);
-    assert.equal(statistics(analyzeCampaign(c, human, [bundle]).report), pinned[`${name} without comparisons`], `${name} without comparisons`);
+    actual[name] = statistics(analyzeCampaign(c, human, [bundle], comparisons).report);
+    actual[`${name} without comparisons`] = statistics(analyzeCampaign(c, human, [bundle]).report);
+  }
+  assert.deepEqual(actual, pinned);
+  for (const name of ["graphics-quality", "ecolar", "selection"]) {
+    const { c, human, comparisons, bundle } = await example(name);
     // Kept scores (AnalysisMemo): other comparisons reuse them and give exactly the same analysis.
     const memo: AnalysisMemo = new Map();
     const plain = analyzeCampaign(c, human, [bundle]);

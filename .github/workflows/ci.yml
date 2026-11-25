@@ -1,5 +1,11 @@
 name: TypeScript and research contracts
-on: [push, pull_request]
+# Pull requests, pushes to main, and on demand (Actions → Run workflow). Working branches do not use
+# CI minutes on every push; open a pull request to test them.
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
 jobs:
   check:
     # Windows too: path separators, line endings, process spawning and file locks differ there
