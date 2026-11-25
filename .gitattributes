@@ -10,3 +10,5 @@
 *.glb binary
 *.wasm binary
 *.ico binary
+*.gif binary
+*.mp4 binary

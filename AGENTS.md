@@ -6,7 +6,7 @@ This repository tests how well AI agents forecast the results of a **finished** 
 - **The framework** checks, freezes, runs and scores.
 - **The local website** is where the researcher reviews and approves, watches runs and looks at results.
 
-The README is two sentences on purpose. Requirements, the example suites and the scope of the analysis are in [docs/overview.md](docs/overview.md).
+The README is two sentences and a short feature list (one sentence or the video per feature) on purpose. Requirements, the example suites and the scope of the analysis are in [docs/overview.md](docs/overview.md).
 
 ## Roles: who does what
 

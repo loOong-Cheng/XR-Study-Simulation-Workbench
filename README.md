@@ -3,3 +3,13 @@
 XR Study Sim lets AI agents forecast the results of a finished XR user study (from its description, project files, the running app or participant background) and measures how closely they match the real participants.
 
 To start, open this folder in Claude Code or Codex and ask it to set up the workbench for your study or for an example suite; it follows [AGENTS.md](AGENTS.md), installs everything and gives you the link to the local website.
+
+## Features
+
+- **Modular agent configurations:** build each configuration from its level (population or individual), model, runtime, the information it gets (description, project files, the running app, evidence, participant background) and the measures it predicts or takes as inputs.
+- **Multi-session agent run and preview:**
+
+  [![Six sessions of the WebXR suite run in parallel; each preview shows the agent's latest screenshot, its notes, tool calls and tokens](docs/6sessions.gif)](docs/6sessions.mp4)
+
+- **Live data analysis and plotting:** compare agents with each other and with the human participants while runs come in, and plot agreement, agent vs human, correlation, population vs individual and participant lines with Holm-corrected rank tests, saved as SVG or PNG.
+- **Multi-platform support:** agents use XR apps in WebXR (built in), Unity, Unreal and Apple Vision Pro (through a study bridge), and the workbench runs on Windows, macOS and Linux.
