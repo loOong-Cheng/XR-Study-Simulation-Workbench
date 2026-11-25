@@ -1,0 +1,17 @@
+participant,age_band,vision_correction,color_vision,art_or_design_training,vr_hours_total
+P01,18-24,none,normal,none,8
+P02,25-34,glasses,normal,some,2
+P03,35-44,none,normal,professional,0
+P04,18-24,contacts,normal,none,45
+P05,25-34,none,deficient,none,15
+P06,45-54,glasses,normal,some,1
+P07,25-34,none,normal,professional,6
+P08,18-24,glasses,normal,none,120
+P09,35-44,contacts,normal,some,4
+P10,25-34,none,normal,none,0
+P11,18-24,none,normal,some,30
+P12,35-44,glasses,deficient,professional,3
+P13,45-54,none,normal,none,10
+P14,25-34,contacts,normal,professional,2
+P15,18-24,glasses,normal,some,70
+P16,25-34,none,normal,none,5
