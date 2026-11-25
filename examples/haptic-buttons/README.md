@@ -27,6 +27,8 @@ A synthetic within-subjects study of three kinds of press feedback for a keypad 
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are deterministic (seeded) and write UTF-8 with LF line endings, so a rerun reproduces the committed files byte for byte.
 
+About this dataset: apparatus, stimuli, what every data column means: [`data/README.md`](data/README.md).
+
 ## Designs and task
 
 Participants stand in a headset with hand tracking and type 4-digit sequences on a phone-style keypad floating at chest height, pressing with the right index finger, which wears a small vibration actuator. A key activates when the fingertip crosses its activation plane, 1 cm behind the key face; nothing stops the finger.

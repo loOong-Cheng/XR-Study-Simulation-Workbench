@@ -31,6 +31,8 @@ Each person experienced one design, so the designs are compared as **independent
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are seeded and write UTF-8 with LF line ends, so rerunning reproduces the committed files byte for byte.
 
+About this dataset: apparatus, stimuli, what every data column means: [`data/README.md`](data/README.md).
+
 ## Participants and their background
 
 Before the task, every person answered a short background questionnaire (`data/raw/background.csv`, complete for all 36):

@@ -16,6 +16,8 @@ You are forecasting how a group of people performed and felt when they typed num
 
 There is no sound in any design.
 
+**The feedback in detail.** The actuator is a coin-type linear resonant actuator, 10 mm across, held against the finger pad by an elastic strap; it is worn in all three designs and stays silent with visual feedback only. It vibrates at its resonant frequency of 175 Hz; full drive gives a peak acceleration of about 1.5 g at the skin, and each burst reaches full amplitude and is braked to a stop within about 4 ms. A vibration starts about 18 ms after the tracking frame that triggers it. The visual feedback is the same in every design: on the next displayed frame after activation, the key face turns from mid-grey to bright light blue for 200 ms and moves 3 mm back, and the digit appears on the panel. The buzz is one 20 ms burst at full drive at activation. In the patterned pulse, the approach ticks are 8 ms bursts at 30% of full drive; the interval from one tick to the next shrinks linearly with depth, from 120 ms at the key face to 30 ms just before the activation plane. At activation the ticks stop and the double pulse plays: two 15 ms bursts at full drive with a 25 ms pause between them. Nothing vibrates while the finger moves back out of the key.
+
 **The procedure.** 18 adults each use all three designs, one block per design, in a counterbalanced order: each of the six possible orders is used by three people. With each design they:
 
 1. type three practice sequences (not scored), then

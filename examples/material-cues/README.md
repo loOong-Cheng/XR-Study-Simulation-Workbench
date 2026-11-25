@@ -21,6 +21,8 @@ A synthetic within-subjects study with a runnable WebXR app: 16 invented partici
 | `evidence/` | Two invented, literature-style background notes (rendering and material perception; observer differences), written without the data |
 | `webxr-app/` | The app; exposes `window.xrStudy` for the built-in WebXR runtime; three.js 0.160.0 vendored (MIT), runs offline |
 
+About this dataset: apparatus, stimuli, what every data column means: [`data/README.md`](data/README.md).
+
 ## The app and the task
 
 Two mugs, two bowls and two vases come in pairs that share shape and almost share colour: each material keeps a slight tint of its own, mostly along the red–green axis. They differ in material: glossy vs matte ceramic, brushed metal vs plastic, glass vs plastic. A wooden box, a cushion and a plant stand beside them.

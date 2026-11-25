@@ -21,6 +21,8 @@ A synthetic within-subjects study of four VR keyboards (raycast QWERTY, drum-lik
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are seeded and write UTF-8 with LF line endings, so rerunning them reproduces the committed files byte for byte.
 
+About this dataset: apparatus, stimuli, what every data column means: [`data/README.md`](data/README.md).
+
 ## The study
 
 - **Keyboards:**
