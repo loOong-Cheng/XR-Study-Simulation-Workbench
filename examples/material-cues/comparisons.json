@@ -1,0 +1,17 @@
+[
+  {
+    "candidate": "app-only",
+    "baseline": "text-only",
+    "domain": "objective"
+  },
+  {
+    "candidate": "reads-evidence",
+    "baseline": "text-only",
+    "domain": "objective"
+  },
+  {
+    "candidate": "knows-participant-evidence",
+    "baseline": "knows-participant",
+    "domain": "objective"
+  }
+]

@@ -1,0 +1,26 @@
+{
+  "title": "Material cues at two rendering qualities",
+  "suite": "Suite 4 · Material cues (WebXR)",
+  "description": "Synthetic study with a runnable WebXR app: finding and identifying objects by their material at low and high rendering quality. 16 invented participants whose background drives the invented outcomes. Real agent runs use Claude Code + the built-in WebXR runtime.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "project": "webxr-app",
+    "evidence-rendering": "evidence/rendering-and-material-perception.md",
+    "evidence-observers": "evidence/observer-differences.md",
+    "background": "data/raw/background.csv"
+  },
+  "app": {
+    "serve": "webxr-app",
+    "query": "?quality={condition}&study=1&participant={participant}",
+    "capabilities": ["look", "pointer-select", "actions", "phase-events", "quality-lock"],
+    "actions": [
+      {
+        "name": "identify",
+        "description": "In an identification trial, name the material of the object marked by the yellow ring and cone",
+        "params": { "material": "glossy ceramic, matte ceramic, brushed metal, plastic or glass" },
+        "scored": true
+      }
+    ],
+    "instructions": "look orbits the viewpoint around the table: polar about 60 looks down at the table, 89 is almost level with its top. Objects off screen are listed without a position; turn towards them to see them. In the search trials, select the three target objects. In the identification trials a yellow ring and cone mark one object (list_objects marks it too); answer with act identify and its material."
+  }
+}

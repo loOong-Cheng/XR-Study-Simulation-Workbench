@@ -1,0 +1,237 @@
+[
+  {
+    "id": "text-only",
+    "label": "Text only",
+    "rationale": "Baseline: the written description alone (the brief), without evidence, the app or the participants. Every other population configuration adds one ingredient to it or to a neighbour.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 64000,
+    "maxTokens": 100000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "reads-evidence",
+    "label": "Text + general evidence",
+    "rationale": "Compared with Text only, one ingredient: the two general background documents (rendering and material perception; observer differences), written without this study's data.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "evidence-rendering",
+      "evidence-observers"
+    ],
+    "tools": [
+      "read-evidence"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "evidence-rendering",
+      "evidence-observers"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 64000,
+    "maxTokens": 150000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "app-only",
+    "label": "Uses the app only",
+    "rationale": "Compared with Text only, one ingredient: experiencing the running app like a participant (looking around and doing the practice, search and identification trials at both qualities), without the project files.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [
+      "xr-interact"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "low-practice",
+      "low-main",
+      "high-practice",
+      "high-main"
+    ],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 150,
+    "maxOutputTokens": 64000,
+    "maxTokens": 3000000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "webxr"
+  },
+  {
+    "id": "uses-app",
+    "label": "Uses the app + project files",
+    "rationale": "Compared with Uses the app only, one ingredient: the project files (scene, materials per rendering quality, task logic), read as well as played. Layouts are drawn at random per session, so the files hold no answers.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "project"
+    ],
+    "tools": [
+      "read-files",
+      "xr-interact"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "low-practice",
+      "low-main",
+      "high-practice",
+      "high-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "project"
+    ],
+    "maxToolCalls": 150,
+    "maxOutputTokens": 64000,
+    "maxTokens": 3000000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "webxr"
+  },
+  {
+    "id": "text-with-task-data",
+    "label": "Text + measured task data",
+    "rationale": "Compared with Text only, one ingredient: the measured task performance (search time, wrong selections, identification accuracy, as cohort means from the human data). It predicts only how people experienced each design (presence, appeal, preference).",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 64000,
+    "maxTokens": 100000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none",
+    "targets": [
+      "presence",
+      "appeal",
+      "preference"
+    ],
+    "inputs": [
+      "search-time",
+      "wrong-selections",
+      "identification-accuracy"
+    ]
+  },
+  {
+    "id": "knows-participant",
+    "label": "Text + participant background (individual)",
+    "rationale": "Individual forecasts. Compared with Text only, one ingredient: the person's own background (age band, vision correction, colour vision, art or design training, VR hours; invented, and it drives the invented outcomes).",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "background"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "background"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 64000,
+    "maxTokens": 100000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "none"
+  },
+  {
+    "id": "knows-participant-evidence",
+    "label": "Text + participant background + general evidence (individual)",
+    "rationale": "Individual forecasts. Compared with Text + participant background, one ingredient: the two general background documents, including how colour vision, training and VR experience relate to material judgements.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "background",
+      "evidence-rendering",
+      "evidence-observers"
+    ],
+    "tools": [
+      "read-participant-data",
+      "read-evidence"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "background",
+      "evidence-rendering",
+      "evidence-observers"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 64000,
+    "maxTokens": 150000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "none"
+  }
+]

@@ -1,0 +1,193 @@
+participant,quality,block,item,object,answer,correct
+P01,low,1,1,plastic-bowl,plastic,1
+P01,low,1,2,glossy-mug,glossy ceramic,1
+P01,low,1,3,plastic-vase,plastic,1
+P01,low,1,4,matte-mug,glossy ceramic,0
+P01,low,1,5,metal-bowl,brushed metal,1
+P01,low,1,6,glass-vase,glass,1
+P01,high,2,1,glossy-mug,matte ceramic,0
+P01,high,2,2,plastic-bowl,plastic,1
+P01,high,2,3,plastic-vase,glass,0
+P01,high,2,4,metal-bowl,brushed metal,1
+P01,high,2,5,glass-vase,plastic,0
+P01,high,2,6,matte-mug,matte ceramic,1
+P02,high,1,1,plastic-bowl,plastic,1
+P02,high,1,2,plastic-vase,glass,0
+P02,high,1,3,glossy-mug,glossy ceramic,1
+P02,high,1,4,glass-vase,plastic,0
+P02,high,1,5,metal-bowl,brushed metal,1
+P02,high,1,6,matte-mug,matte ceramic,1
+P02,low,2,1,glass-vase,glass,1
+P02,low,2,2,matte-mug,glossy ceramic,0
+P02,low,2,3,glossy-mug,glossy ceramic,1
+P02,low,2,4,plastic-bowl,plastic,1
+P02,low,2,5,plastic-vase,glass,0
+P02,low,2,6,metal-bowl,brushed metal,1
+P03,low,1,1,glossy-mug,glossy ceramic,1
+P03,low,1,2,plastic-bowl,plastic,1
+P03,low,1,3,glass-vase,glass,1
+P03,low,1,4,metal-bowl,brushed metal,1
+P03,low,1,5,matte-mug,glossy ceramic,0
+P03,low,1,6,plastic-vase,plastic,1
+P03,high,2,1,glass-vase,glass,1
+P03,high,2,2,plastic-bowl,plastic,1
+P03,high,2,3,matte-mug,matte ceramic,1
+P03,high,2,4,metal-bowl,brushed metal,1
+P03,high,2,5,glossy-mug,glossy ceramic,1
+P03,high,2,6,plastic-vase,plastic,1
+P04,high,1,1,matte-mug,matte ceramic,1
+P04,high,1,2,glass-vase,plastic,0
+P04,high,1,3,plastic-vase,glass,0
+P04,high,1,4,plastic-bowl,plastic,1
+P04,high,1,5,glossy-mug,glossy ceramic,1
+P04,high,1,6,metal-bowl,brushed metal,1
+P04,low,2,1,plastic-vase,plastic,1
+P04,low,2,2,matte-mug,glossy ceramic,0
+P04,low,2,3,glass-vase,plastic,0
+P04,low,2,4,metal-bowl,plastic,0
+P04,low,2,5,glossy-mug,glossy ceramic,1
+P04,low,2,6,plastic-bowl,plastic,1
+P05,low,1,1,glossy-mug,matte ceramic,0
+P05,low,1,2,matte-mug,matte ceramic,1
+P05,low,1,3,plastic-vase,plastic,1
+P05,low,1,4,glass-vase,glass,1
+P05,low,1,5,plastic-bowl,brushed metal,0
+P05,low,1,6,metal-bowl,plastic,0
+P05,high,2,1,glossy-mug,glossy ceramic,1
+P05,high,2,2,plastic-vase,plastic,1
+P05,high,2,3,matte-mug,matte ceramic,1
+P05,high,2,4,metal-bowl,brushed metal,1
+P05,high,2,5,plastic-bowl,plastic,1
+P05,high,2,6,glass-vase,glass,1
+P06,high,1,1,metal-bowl,brushed metal,1
+P06,high,1,2,glossy-mug,glossy ceramic,1
+P06,high,1,3,glass-vase,glass,1
+P06,high,1,4,matte-mug,matte ceramic,1
+P06,high,1,5,plastic-bowl,plastic,1
+P06,high,1,6,plastic-vase,plastic,1
+P06,low,2,1,glossy-mug,glossy ceramic,1
+P06,low,2,2,metal-bowl,brushed metal,1
+P06,low,2,3,plastic-bowl,brushed metal,0
+P06,low,2,4,glass-vase,glass,1
+P06,low,2,5,matte-mug,matte ceramic,1
+P06,low,2,6,plastic-vase,plastic,1
+P07,low,1,1,plastic-bowl,plastic,1
+P07,low,1,2,glossy-mug,glossy ceramic,1
+P07,low,1,3,glass-vase,glass,1
+P07,low,1,4,plastic-vase,glass,0
+P07,low,1,5,metal-bowl,brushed metal,1
+P07,low,1,6,matte-mug,matte ceramic,1
+P07,high,2,1,metal-bowl,brushed metal,1
+P07,high,2,2,glass-vase,glass,1
+P07,high,2,3,glossy-mug,glossy ceramic,1
+P07,high,2,4,plastic-bowl,plastic,1
+P07,high,2,5,matte-mug,matte ceramic,1
+P07,high,2,6,plastic-vase,plastic,1
+P08,high,1,1,glossy-mug,glossy ceramic,1
+P08,high,1,2,metal-bowl,brushed metal,1
+P08,high,1,3,glass-vase,glass,1
+P08,high,1,4,plastic-vase,glass,0
+P08,high,1,5,matte-mug,matte ceramic,1
+P08,high,1,6,plastic-bowl,plastic,1
+P08,low,2,1,metal-bowl,plastic,0
+P08,low,2,2,glass-vase,glass,1
+P08,low,2,3,plastic-bowl,brushed metal,0
+P08,low,2,4,plastic-vase,glass,0
+P08,low,2,5,matte-mug,matte ceramic,1
+P08,low,2,6,glossy-mug,matte ceramic,0
+P09,low,1,1,glass-vase,plastic,0
+P09,low,1,2,plastic-bowl,brushed metal,0
+P09,low,1,3,glossy-mug,glossy ceramic,1
+P09,low,1,4,plastic-vase,glass,0
+P09,low,1,5,matte-mug,glossy ceramic,0
+P09,low,1,6,metal-bowl,brushed metal,1
+P09,high,2,1,plastic-vase,plastic,1
+P09,high,2,2,glossy-mug,glossy ceramic,1
+P09,high,2,3,metal-bowl,brushed metal,1
+P09,high,2,4,plastic-bowl,plastic,1
+P09,high,2,5,matte-mug,matte ceramic,1
+P09,high,2,6,glass-vase,glass,1
+P10,high,1,1,glass-vase,plastic,0
+P10,high,1,2,plastic-vase,glass,0
+P10,high,1,3,plastic-bowl,plastic,1
+P10,high,1,4,metal-bowl,brushed metal,1
+P10,high,1,5,glossy-mug,glossy ceramic,1
+P10,high,1,6,matte-mug,matte ceramic,1
+P10,low,2,1,plastic-vase,plastic,1
+P10,low,2,2,matte-mug,matte ceramic,1
+P10,low,2,3,plastic-bowl,brushed metal,0
+P10,low,2,4,metal-bowl,plastic,0
+P10,low,2,5,glossy-mug,matte ceramic,0
+P10,low,2,6,glass-vase,plastic,0
+P11,low,1,1,plastic-vase,plastic,1
+P11,low,1,2,matte-mug,matte ceramic,1
+P11,low,1,3,glass-vase,plastic,0
+P11,low,1,4,glossy-mug,matte ceramic,0
+P11,low,1,5,metal-bowl,brushed metal,1
+P11,low,1,6,plastic-bowl,brushed metal,0
+P11,high,2,1,glossy-mug,glossy ceramic,1
+P11,high,2,2,plastic-bowl,plastic,1
+P11,high,2,3,plastic-vase,plastic,1
+P11,high,2,4,metal-bowl,plastic,0
+P11,high,2,5,glass-vase,glass,1
+P11,high,2,6,matte-mug,matte ceramic,1
+P12,high,1,1,metal-bowl,brushed metal,1
+P12,high,1,2,glossy-mug,glossy ceramic,1
+P12,high,1,3,plastic-vase,plastic,1
+P12,high,1,4,glass-vase,glass,1
+P12,high,1,5,plastic-bowl,plastic,1
+P12,high,1,6,matte-mug,matte ceramic,1
+P12,low,2,1,plastic-bowl,brushed metal,0
+P12,low,2,2,matte-mug,glossy ceramic,0
+P12,low,2,3,plastic-vase,glass,0
+P12,low,2,4,glossy-mug,matte ceramic,0
+P12,low,2,5,glass-vase,plastic,0
+P12,low,2,6,metal-bowl,plastic,0
+P13,low,1,1,plastic-bowl,plastic,1
+P13,low,1,2,plastic-vase,plastic,1
+P13,low,1,3,metal-bowl,plastic,0
+P13,low,1,4,matte-mug,glossy ceramic,0
+P13,low,1,5,glossy-mug,glossy ceramic,1
+P13,low,1,6,glass-vase,glass,1
+P13,high,2,1,plastic-bowl,plastic,1
+P13,high,2,2,matte-mug,matte ceramic,1
+P13,high,2,3,glass-vase,glass,1
+P13,high,2,4,glossy-mug,matte ceramic,0
+P13,high,2,5,plastic-vase,plastic,1
+P13,high,2,6,metal-bowl,plastic,0
+P14,high,1,1,plastic-bowl,brushed metal,0
+P14,high,1,2,metal-bowl,brushed metal,1
+P14,high,1,3,glossy-mug,glossy ceramic,1
+P14,high,1,4,matte-mug,matte ceramic,1
+P14,high,1,5,plastic-vase,plastic,1
+P14,high,1,6,glass-vase,plastic,0
+P14,low,2,1,matte-mug,matte ceramic,1
+P14,low,2,2,plastic-bowl,plastic,1
+P14,low,2,3,plastic-vase,plastic,1
+P14,low,2,4,glass-vase,glass,1
+P14,low,2,5,glossy-mug,glossy ceramic,1
+P14,low,2,6,metal-bowl,brushed metal,1
+P15,low,1,1,matte-mug,matte ceramic,1
+P15,low,1,2,plastic-vase,plastic,1
+P15,low,1,3,glass-vase,glass,1
+P15,low,1,4,plastic-bowl,brushed metal,0
+P15,low,1,5,glossy-mug,glossy ceramic,1
+P15,low,1,6,metal-bowl,plastic,0
+P15,high,2,1,plastic-vase,plastic,1
+P15,high,2,2,glossy-mug,matte ceramic,0
+P15,high,2,3,metal-bowl,brushed metal,1
+P15,high,2,4,matte-mug,matte ceramic,1
+P15,high,2,5,glass-vase,glass,1
+P15,high,2,6,plastic-bowl,plastic,1
+P16,high,1,1,matte-mug,glossy ceramic,0
+P16,high,1,2,glass-vase,glass,1
+P16,high,1,3,plastic-vase,glass,0
+P16,high,1,4,metal-bowl,brushed metal,1
+P16,high,1,5,glossy-mug,glossy ceramic,1
+P16,high,1,6,plastic-bowl,plastic,1
+P16,low,2,1,glossy-mug,glossy ceramic,1
+P16,low,2,2,plastic-bowl,plastic,1
+P16,low,2,3,matte-mug,glossy ceramic,0
+P16,low,2,4,plastic-vase,glass,0
+P16,low,2,5,metal-bowl,plastic,0
+P16,low,2,6,glass-vase,glass,1
