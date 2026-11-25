@@ -18,6 +18,7 @@ A synthetic within-subjects study of four VR keyboards (raycast QWERTY, drum-lik
 | `agent-brief.md` | What every agent is told: the task, the keyboards, the phrases, the procedure and the measures; no results |
 | `evidence/text-entry-in-vr.md` | A short, neutral background note on text entry in VR (measures, keyboard families, arm fatigue), with references; no results of this study |
 | `workspace.json` | Where each source lives |
+| `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are seeded and write UTF-8 with LF line endings, so rerunning them reproduces the committed files byte for byte.
 

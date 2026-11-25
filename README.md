@@ -30,6 +30,8 @@ npm start                # http://127.0.0.1:4317 → Open study (XR_STUDY_PORT=<
 
 Setup prints any `PROBLEM` to fix and the address the website will use. Ctrl+C stops the website and any agent sessions it runs.
 
+Every suite comes with a ready-made **starter campaign** (frozen at 1 run per participant), installed by setup or when you first open the suite: go straight to **Run agents** and **Simulate** (free) or run one real session. To test the workbench on another machine from a git clone, and to report back, follow [Testing with the example suites](docs/testing-with-example-suites.md).
+
 | Suite | Study | What you can do here |
 | --- | --- | --- |
 | 1 · Unreal | [VR temperature visualization](examples/ecolar/README.md) (synthetic version of the Ecolar study: 24 invented participants, 16 configurations at population and individual level) | Simulate; run the app-free configurations with Claude Code; app configurations need an Unreal study bridge |

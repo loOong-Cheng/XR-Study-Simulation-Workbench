@@ -24,6 +24,7 @@ A synthetic within-subjects study of three kinds of press feedback for a keypad 
 | `agent-brief.md` | What every agent is told: setup, keypad, task, designs, procedure, measures; no results |
 | `evidence/haptics-evidence.md` | A short, neutral background note on haptic feedback for mid-air buttons; no results of this study |
 | `workspace.json` | Title, suite name and where each source lives |
+| `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are deterministic (seeded) and write UTF-8 with LF line endings, so a rerun reproduces the committed files byte for byte.
 

@@ -16,7 +16,7 @@ The website at `http://127.0.0.1:<port>` (`XR_STUDY_PORT`, default 4317) uses th
 | Route | Query | Returns |
 | --- | --- | --- |
 | `/api/workspaces` | | every study: `id`, `title`, engine, campaigns, human data or not |
-| `/api/workspace` | `id` | study, agent configurations (templates if none are saved), approval, sources, campaigns, a `problem` if the files disagree |
+| `/api/workspace` | `id` | study, agent configurations (templates if none are saved), approval, sources, campaigns, a `problem` if the files disagree. An example suite with no campaign gets its starter campaign (`starter/`) installed first, once per study (`src/starters.ts`) |
 | `/api/workspace/campaigns` | `id` | every campaign with label, parent, progress and cost |
 | `/api/workspace/campaign-inputs` | `id`, `campaign` | the frozen sources the campaign's agents get, and whether each still exists |
 | `/api/workspace/evidence` | `id` | brief, general knowledge and participant knowledge, with the outcome-blind check |

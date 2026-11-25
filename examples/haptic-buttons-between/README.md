@@ -28,6 +28,7 @@ Each person experienced one design, so the designs are compared as **independent
 | `evidence/tactile-feedback-note.md` | A short, neutral, invented note on tactile feedback; written without the data (leak check: no participant IDs, no number equal to a group mean, no sentence flagged as a prediction) |
 | `comparisons.json` | Two planned comparisons between configurations |
 | `workspace.json` | Title, suite name and where each source lives |
+| `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are seeded and write UTF-8 with LF line ends, so rerunning reproduces the committed files byte for byte.
 

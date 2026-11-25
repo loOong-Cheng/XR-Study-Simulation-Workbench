@@ -14,6 +14,7 @@ This is **suite 3**: a complete, synthetic study you can run from start to finis
 | `study.json` | Designs, measures, participants and orders, sources | Drafted from your document with **Understand study**, then reviewed |
 | `agents.json` | Seven agent configurations (population and individual, with and without the app, one with measured inputs) | Your configurations |
 | `workspace.json` | Where each source lives; how to serve the app (`?quality={condition}&study=1&participant={participant}`) | Same, for your project |
+| `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) | Not needed: freeze your own |
 | `human.json` | Human reference (invented), used only by the executor for declared inputs and by the analyzer | Written by your converter |
 | `comparisons.json` | Which configurations to test against each other | Chosen at analysis |
 | `webxr-app/` | The app; exposes `window.xrStudy` for the WebXR runtime | Your app or engine project |

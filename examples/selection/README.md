@@ -15,6 +15,7 @@ A synthetic within-subjects study of three selection techniques (ray, direct tou
 | `unity-project/` | The Unity study app itself (`Assets/Study`, `Assets/StreamingAssets`, `Packages/manifest.json`); see [UNITY_SETUP.md](UNITY_SETUP.md) |
 | `runtime/bridge.py` | The study bridge the executor starts for *Uses the app* sessions |
 | `comparisons.json`, `workspace.json`, `proposal.md` | Comparisons for the analyzer; where each source lives; a short proposal for trying **Understand study** |
+| `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py` (deterministic).
 

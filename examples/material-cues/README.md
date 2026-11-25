@@ -15,6 +15,7 @@ A synthetic within-subjects study with a runnable WebXR app: 16 invented partici
 | `agents.json` | 7 configurations (below) |
 | `comparisons.json` | 3 planned comparisons for the analyzer |
 | `workspace.json` | Where each source lives; how to serve the app (`?quality={condition}&study=1&participant={participant}`), its capabilities and its `identify` action |
+| `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
 | `human.json` | Invented human reference, written by `data/convert_to_human.py`; never given to agents |
 | `data/generate_synthetic.py`, `data/raw/` | Seeded generator and the invented raw data: background, search trials, identification trials, questionnaires, preferences |
 | `agent-brief.md` | What every agent is told: room, designs, procedure, measures (no results) |

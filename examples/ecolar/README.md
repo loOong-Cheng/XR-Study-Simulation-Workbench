@@ -14,6 +14,7 @@ This is **suite 1**. It follows the design of the Ecolar VR study, which compare
 | `study.json` | 4 designs, 14 measures, 24 invented participants in a Williams square, sources |
 | `agents.json` | 16 configurations (described below) |
 | `workspace.json` | Where each source lives |
+| `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
 | `human.json` | Invented human reference, written by `data/convert_to_human.py` |
 | `comparisons.json` | Configurations to compare at analysis |
 | `agent-brief.md` | What every agent is told |

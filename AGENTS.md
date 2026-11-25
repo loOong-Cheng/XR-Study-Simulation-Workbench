@@ -40,6 +40,7 @@ The researcher copies this folder to a machine and asks you to set it up. Do the
    - finds Claude Code (the native `claude.exe` on Windows; npm's `claude.cmd` cannot start sessions), Chrome and a real Python 3 (never the Windows Store stub);
    - writes them into `private/settings.json` (a bridge command `python`/`py` becomes this machine's interpreter);
    - lists the local (stdio) MCP servers Claude Code already knows (not claude.ai connectors or remote servers), and the studies;
+   - installs each example suite's starter campaign into a suite that has no campaign yet;
    - on Windows, says when long paths are off or the folder's path is long (engine run files reach about 240 characters);
    - runs the tests.
 
@@ -73,30 +74,21 @@ Several workbenches (checkouts, ports) may run on one machine, and every one is 
 
 ## "Test this suite and set it up"
 
-When the researcher asks you to test an example suite (or "suite 1/2/3"), prepare everything; the researcher reviews, clicks run and analyses.
+When the researcher asks you to test an example suite (or "suite 1–7"), follow [Testing with the example suites](docs/testing-with-example-suites.md): you prepare, the researcher runs and analyses.
 
-1. **Machine.** If `node scripts/setup.mjs` has not completed on this machine, do "New machine" above first.
-2. **Runtime for the suite:**
+1. **Machine.** Do "New machine" above (`node scripts/setup.mjs --test`). Setup also installs every suite's **starter campaign** (`examples/<suite>/starter/`, frozen at 1 run per participant), so the researcher can Simulate or Start without freezing. Opening a study with no campaign installs it too, once; a deleted starter is not put back.
+2. **Runtime**, only for app configurations:
+   - Suite 1 (`examples/ecolar`): C, C-Dem, D, D-Dem and the U-series need an Unreal study bridge (`UNREAL_SETUP.md`; use a lab bridge under `private/studies/<name>/runtime/` if one exists).
+   - Suite 2 (`examples/selection`): "Uses the app" needs the Unity project and `runtime/bridge.py`.
+   - Suites 3–4 need Chrome; check suite 4 with `node dist/cli.js app-check examples/material-cues`.
+   - Suites 5–7 need nothing.
 
-   | Suite | Folder | What to prepare |
-   | --- | --- | --- |
-   | 1 | `examples/ecolar` | Unreal configurations (C, C-Dem, D, D-Dem and the U-series) need a study bridge over the Unreal project (`UNREAL_SETUP.md`). A bridge built for a specific lab project is kept under `private/studies/<name>/runtime/`; use it if one exists there. A, B, F, A-Dem, B-Dem and F-Dem need nothing. |
-   | 2 | `examples/selection` | "Uses the app" needs the Unity project and the bridge `examples/selection/runtime/bridge.py` (Python, standard library). The other configurations need nothing. |
-   | 3 | `examples/graphics-quality` | Nothing beyond Chrome; the WebXR runtime is built in. |
-   | 4 | `examples/material-cues` | Nothing beyond Chrome; check the app with `node dist/cli.js app-check examples/material-cues`. |
-   | 5–7 | `examples/haptic-buttons`, `examples/haptic-buttons-between`, `examples/text-entry` | Nothing: no app; every configuration is app-free. |
-
-   If an engine part is not ready, say which configurations can run now and which cannot. Do not fake a runtime.
+   If an engine part is not ready, say which configurations can run now; do not fake a runtime.
 3. **Check:** `node dist/cli.js study-check <folder>/study.json --agents <folder>/agents.json --human <folder>/human.json`.
-4. **Start the website** (`npm start`, or preview `xr-workbench`) and give the researcher the link to the study, for example `http://127.0.0.1:4317/?study=examples%2Fgraphics-quality` (with the port of `XR_STUDY_PORT` if it is set).
-5. **Hand over** with the clicks they make:
-   1. **Agent configurations:** review, then **Approve study and configurations**.
-   2. **Freeze & campaigns:** check the session table, then **Freeze campaign**.
-   3. **Run agents:** set **Mode** to *Run agents*. Select one session, press **Run this session only** and watch it; for a small pilot use **Choose sessions to run** (**Start selected**); then **Start all not run yet** (or Mode *Simulate* to try the pipeline at no cost). Real and simulated runs of one configuration are never pooled in the analysis.
-   4. **Compare agents** (no human data), then **Compare with humans**: **Show human data** for the participants alone, or **Analyze campaign**, choose configurations and views, and save figures.
-
-   Do not freeze or start real sessions yourself.
-6. **When something fails,** read the job's folder (`runs/<campaign>/jobs/<job>/a<n>/`: `stream.jsonl`, `trace.jsonl`, `execution-manifest.json`) and the website log, fix the cause, and tell the researcher what changed.
+4. **Start the website** and give the link, for example `http://127.0.0.1:4317/?study=examples%2Fgraphics-quality` (with the port of `XR_STUDY_PORT` if set).
+5. **Hand over** the guide's "First steps": **Run agents** shows the starter. Use Mode *Simulate* (free), or *Run agents* with one session and **Run this session only**. Then **Compare agents** and **Compare with humans**. Do not freeze or start real sessions yourself.
+6. **When something fails,** read the job's folder (`runs/<campaign>/jobs/<job>/a<n>/`: `stream.jsonl`, `trace.jsonl`, `execution-manifest.json`) and the website log. Fix the cause and tell the researcher what changed.
+7. **After changing a suite's files,** run `npm run starters` and commit the rebuilt `starter/` files. `npm test` fails while a starter is out of date.
 
 ## A study is a folder
 
@@ -107,7 +99,8 @@ private/studies/<name>/            (or examples/<name>/ for synthetic studies)
   workspace.json    title, where each source lives, and for WebXR apps: {"app": {"serve": "<folder>", "query": "?design={condition}&participant={participant}", "capabilities": [...]}} ({participant} is "population" for population jobs; capabilities and actions: docs/runtime-adapters.md)
   human.json        human reference (one record per participant × design × measure)
   comparisons.json  configurations to test against each other (chosen at analysis)
-  campaigns/  runs/ written by the workbench
+  campaigns/  runs/ written by the workbench (git-ignored)
+  starter/          example suites only, in git: the starter campaign (campaign.json, sources.json, starter.json), installed into campaigns/ once
 ```
 
 **Where sources may point (enforced; configurations that break it are blocked):**
@@ -187,6 +180,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
 | Score and compare | `campaign-status <campaign.json> [receipts…]`, `campaign-analyze … [--comparisons c.json]`, `campaign-compare` |
 | Continue | `campaign-continue <campaign.json> <changes.json> <dir> --receipts …`, `campaign-rerun` |
 | Verify | `campaign-verify <campaign.json or folder> [parent.json]` (digest, every file in `manifest.json`, lineage), `npm test` |
+| Starters | `npm run starters` rebuilds every example suite's `starter/` from its files; `npm run starters -- --check` only lists out-of-date ones |
 
 `node dist/cli.js` (or `help`) lists every command. Options may come anywhere after the command; output folders and files must be new.
 
@@ -204,7 +198,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
 6. **Haptic buttons, between subjects.** Synthetic, no app: 3 groups × 12; group comparisons with independent-samples tests, no rankings, population configurations only.
 7. **Mid-air text entry.** Synthetic, no app: 24 participants, four keyboards, forecasts made before the study (no measured inputs); background (typing speed, swipe use, first language, arm length); a second-model arm.
 
-Each suite's `data/generate_synthetic.py` and `convert_to_human.py` regenerate its data exactly (seeded); its README states the invented effects.
+Each suite's `data/generate_synthetic.py` and `convert_to_human.py` regenerate its data exactly (seeded); its README states the invented effects. Each suite's `starter/` holds its starter campaign ([testing with the example suites](docs/testing-with-example-suites.md)).
 
 ## Changing the framework
 
