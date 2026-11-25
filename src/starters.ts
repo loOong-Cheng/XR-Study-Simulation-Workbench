@@ -93,7 +93,7 @@ export async function buildStarter(id: string): Promise<{ campaign: Campaign; fi
   };
   return { campaign, files: { "campaign.json": pretty(campaign), "sources.json": sourceRecordText(sources), "starter.json": pretty(starter) } };
 }
-/** The example suites that ship a starter: every examples/<name> with a study.json. */
+/** The example suites that ship a starter: every examples/<name> (and examples/<name>/<variant>) with a study.json. */
 export async function exampleSuites(): Promise<string[]> {
   return (await listWorkspaces()).map((w) => w.id).filter((id) => id.startsWith("examples/")).sort();
 }

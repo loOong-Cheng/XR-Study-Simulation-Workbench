@@ -21,6 +21,12 @@ examples/*/runs/
 examples/*/deleted/
 examples/*/campaign-labels.json
 examples/*/study.approval.json
+# … and of a study inside a study (suite 3-a in examples/graphics-quality/apple-vision-pro)
+examples/*/*/campaigns/
+examples/*/*/runs/
+examples/*/*/deleted/
+examples/*/*/campaign-labels.json
+examples/*/*/study.approval.json
 
 # Worktrees of coding agents
 .claude/worktrees/

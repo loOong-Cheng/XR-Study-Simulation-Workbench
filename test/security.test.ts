@@ -248,6 +248,49 @@ test("study IDs: only the canonical spelling opens a study", async () => {
   }
 });
 
+test("study IDs: a study one level inside another (a variant) has its own ID; record folders, deeper levels and non-study parents are refused", async () => {
+  const { workspaceDir, listWorkspaces } = await import("../src/workspace.js");
+  const { agentRefusal } = await import("../src/runtimes/guard.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  const name = a.id.split("/").pop()!;
+  const group = resolve("private/studies", `${name}-group`);
+  try {
+    // Suite 3-a: the shipped variant inside suite 3.
+    assert.equal(workspaceDir("examples/graphics-quality/apple-vision-pro"), resolve("examples/graphics-quality/apple-vision-pro"));
+    const study = await readFile(join(a.dir, "study.json"), "utf8");
+    await mkdir(join(a.dir, "variant"), { recursive: true });
+    await writeFile(join(a.dir, "variant", "study.json"), study);
+    assert.equal(workspaceDir(`${a.id}/variant`), join(a.dir, "variant"));
+    const listed = (await listWorkspaces()).map((w) => w.id);
+    assert.ok(listed.includes(`${a.id}/variant`) && listed.includes(a.id) && listed.includes("examples/graphics-quality/apple-vision-pro"));
+    // Never inside the parent's record folders or starter, even with a study.json there.
+    for (const records of ["campaigns", "runs", "deleted", "starter"]) {
+      await mkdir(join(a.dir, records), { recursive: true });
+      await writeFile(join(a.dir, records, "study.json"), study);
+      assert.throws(() => workspaceDir(`${a.id}/${records}`), /Invalid study ID/, records);
+      assert.ok(!(await listWorkspaces()).some((w) => w.id === `${a.id}/${records}`), records);
+    }
+    // One level only, canonical spellings only, and only inside a study.
+    await mkdir(join(a.dir, "variant", "deeper"), { recursive: true });
+    await writeFile(join(a.dir, "variant", "deeper", "study.json"), study);
+    for (const bad of [`${a.id}/variant/deeper`, `${a.id}/variant/`, `${a.id}//variant`, `${a.id}/./variant`, `${a.id}/variant.`])
+      assert.throws(() => workspaceDir(bad), /Invalid study ID/, bad);
+    assert.throws(() => workspaceDir(`${a.id}/VARIANT`), /No study found/);
+    await mkdir(join(group, "inner"), { recursive: true });
+    await writeFile(join(group, "inner", "study.json"), study);
+    assert.throws(() => workspaceDir(`private/studies/${name}-group/inner`), /No study found/, "the parent must be a study");
+    // Agents never get the variant's records, nor the parent's (the guard walks up every study folder).
+    await mkdir(join(a.dir, "variant", "runs"), { recursive: true });
+    await writeFile(join(a.dir, "variant", "runs", "r.json"), "{}");
+    assert.equal(agentRefusal(join(a.dir, "variant", "runs", "r.json")), "records");
+    await writeFile(join(a.dir, "campaigns", "c.json"), "{}");
+    assert.equal(agentRefusal(join(a.dir, "campaigns", "c.json")), "records");
+  } finally {
+    await removeDir(a.dir);
+    await removeDir(group);
+  }
+});
+
 // ---------- 1. screenshots ----------
 
 test("screenshots: only this campaign's screenshots, symlinks resolved", async () => {

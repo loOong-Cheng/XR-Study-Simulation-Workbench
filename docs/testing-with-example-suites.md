@@ -1,6 +1,6 @@
 # Testing the workbench with the example suites
 
-This guide is for testing XR Study Sim on a machine from a **git clone**: set it up, try each of the eight synthetic example suites, and report what you find. Every suite ships a ready-made **starter campaign**, so you can press **Simulate** or **Start** right after setup, without approving or freezing anything first.
+This guide is for testing XR Study Sim on a machine from a **git clone**: set it up, try each of the seven synthetic example suites and suite 3-a (suite 3 on Apple Vision Pro), and report what you find. Every suite ships a ready-made **starter campaign**, so you can press **Simulate** or **Start** right after setup, without approving or freezing anything first.
 
 All participants and data in `examples/` are invented. **Simulated runs test the pipeline, not prediction quality.**
 
@@ -22,7 +22,7 @@ You need:
 - for real sessions, [Claude Code](https://claude.com/claude-code), logged in;
 - for the WebXR suites (3 and 4), Google Chrome;
 - for suite 2's Unity bridge and for regenerating data, Python 3;
-- for suite 8 (Apple Vision Pro), a Mac with Xcode and its visionOS simulator runtime (Xcode → Settings → Components → visionOS, about 8 GB).
+- for suite 3-a (Apple Vision Pro), a Mac with Xcode and its visionOS simulator runtime (Xcode → Settings → Components → visionOS, about 8 GB).
 
 Setup says what is missing.
 
@@ -114,6 +114,16 @@ Each starter's `starter.json` lists its sessions per configuration and what each
 | Try first | Simulate all. One real *Text only* session, then one *Uses the app* session; watch its latest screenshot. Compare agents (tool calls, time, cost), then Compare with humans → Agreement, Agent vs human (Visual discomfort), Correlation. |
 | Expect | App sessions open the app in headless Chrome, look around, take screenshots and do the tasks before they submit. *Text + measured task data* gets the measured search time and errors and predicts only the experience measures. Chrome renders the app in software: a screenshot of the high design takes a few seconds, and by default one WebXR session runs per 4 logical cores (Settings → Runtimes). The website stays usable while they run. |
 
+### Suite 3-a · Graphics quality on Apple Vision Pro (visionOS), `examples/graphics-quality/apple-vision-pro`
+
+| | |
+| --- | --- |
+| Exercises | The **visionOS runtime**: suite 3's study (same designs, participants, synthetic data and configurations) with an Apple Vision Pro app (SwiftUI + RealityKit, `visionos-app/`) and a study bridge (`runtime/bridge.mjs`) that plays it in the visionOS simulator. The bridge offers the WebXR runtime's tools, so suites 3 and 3-a compare the two runtimes on one study. |
+| Needs | **A Mac** with Xcode and the visionOS simulator runtime, for Uses the app and Uses the app + knows the participant: build the app with `node examples/graphics-quality/apple-vision-pro/runtime/build.mjs`, set Settings → Runtimes → visionos (command `node`, arguments `examples/graphics-quality/apple-vision-pro/runtime/bridge.mjs {jobFile}`, capabilities `screenshot, look, pointer-select, phase-events, quality-lock`), and check it with `node examples/graphics-quality/apple-vision-pro/runtime/check.mjs`. **Nothing** for the other configurations. See `VISIONOS_SETUP.md`. |
+| Starter | 126 sessions (as suite 3). |
+| Try first | Simulate all. Run `check.mjs` and look at its screenshots. Then one real *Uses the app* session; select it to see what the headset showed. Compare its agreement and tool calls with suite 3's *Uses the app*. |
+| Expect | The bridge boots a dedicated simulator, "XR Study Sim (Apple Vision Pro)", on the first session (a minute or two) and leaves it running for the next. Each design starts the app afresh and calibrates the view (a few seconds). Screenshots are mono (one view, no left/right pair). Like other engines, one visionOS session runs at a time. On Windows or without the simulator, the app configurations can only be simulated. |
+
 ### Suite 4 · Material cues (WebXR), `examples/material-cues`
 
 | | |
@@ -153,16 +163,6 @@ Each starter's `starter.json` lists its sessions per configuration and what each
 | Starter | 144 sessions. |
 | Try first | Simulate all. One real *Text only* session and one session of the model arm. Compare agents (the two models side by side), then Compare with humans → Population vs individual. |
 | Expect | **No measured inputs**: Give as input is disabled, and configurations get only what is known before anyone types. If the model arm's model is not available, its first session fails with "Claude Code does not know the model …". Change the model on Agent configurations, then freeze a new campaign (the starter keeps the model it was frozen with). |
-
-### Suite 8 · Graphics quality on Apple Vision Pro (visionOS), `examples/graphics-quality-visionos`
-
-| | |
-| --- | --- |
-| Exercises | The **visionOS runtime**: suite 3's study (same designs, participants, synthetic data and configurations) with an Apple Vision Pro app (SwiftUI + RealityKit, `visionos-app/`) and a study bridge (`runtime/bridge.mjs`) that plays it in the visionOS simulator. The bridge offers the WebXR runtime's tools, so suites 3 and 8 compare the two runtimes on one study. |
-| Needs | **A Mac** with Xcode and the visionOS simulator runtime, for Uses the app and Uses the app + knows the participant: build the app with `node examples/graphics-quality-visionos/runtime/build.mjs`, set Settings → Runtimes → visionos (command `node`, arguments `examples/graphics-quality-visionos/runtime/bridge.mjs {jobFile}`, capabilities `screenshot, look, pointer-select, phase-events, quality-lock`), and check it with `node examples/graphics-quality-visionos/runtime/check.mjs`. **Nothing** for the other configurations. See `VISIONOS_SETUP.md`. |
-| Starter | 126 sessions (as suite 3). |
-| Try first | Simulate all. Run `check.mjs` and look at its screenshots. Then one real *Uses the app* session; select it to see what the headset showed. Compare its agreement and tool calls with suite 3's *Uses the app*. |
-| Expect | The bridge boots a dedicated simulator, "XR Study Sim (Apple Vision Pro)", on the first session (a minute or two) and leaves it running for the next. Each design starts the app afresh and calibrates the view (a few seconds). Screenshots are mono (one view, no left/right pair). Like other engines, one visionOS session runs at a time. On Windows or without the simulator, the app configurations can only be simulated. |
 
 ## 6 · Cost of real sessions
 

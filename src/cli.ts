@@ -515,7 +515,7 @@ function reviewFolder(studyPath: string): { id: string; problem?: string } {
       id,
       problem: `The website cannot open ${id}: ${(e as Error).message}${
         nested
-          ? " The study folder must sit directly in examples/ or private/studies/."
+          ? " The study folder must sit in examples/ or private/studies/, or one level inside a study there (a variant, not in its campaigns/, runs/, deleted/ or starter/)."
           : badName
           ? " Rename the folder: letters, digits, dots, dashes and underscores only, starting with a letter, digit or underscore."
           : ""

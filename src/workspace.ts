@@ -401,15 +401,28 @@ const pretty = (x: unknown) => JSON.stringify(x, null, 2) + "\n";
  * accepted (root/name exactly as listed, same letter case), so a study has exactly one ID: "./",
  * "//", a trailing "/" or another letter case would otherwise give the same folder a second
  * executor, cache entry or lock.
+ *
+ * A study may also sit one level inside another study, as a variant of it
+ * ("examples/graphics-quality/apple-vision-pro": suite 3-a inside suite 3). Its parent must be a
+ * study, and the variant's folder is never one of the parent's record folders (campaigns/, runs/,
+ * deleted/) or its starter/. The variant has its own ID, campaigns and runs; the parent's sources
+ * never include it, and agents never get the records of either (runtimes/guard.ts).
  */
-const STUDY_ID = /^(examples|private\/studies)\/([A-Za-z0-9_][A-Za-z0-9_.-]{0,99})$/;
+const NAME = "[A-Za-z0-9_][A-Za-z0-9_.-]{0,99}";
+const STUDY_ID = new RegExp(`^(examples|private/studies)/(${NAME})(?:/(${NAME}))?$`);
+/** Folders inside a study that hold its records or starter, never a variant study. */
+const NOT_A_VARIANT = new Set(["campaigns", "runs", "deleted", "starter"]);
 export function workspaceDir(id: string): string {
   const m = typeof id === "string" ? STUDY_ID.exec(id) : null;
-  requireThat(m && !m[2].endsWith("."), "Invalid study ID. Use the form examples/<name> or private/studies/<name>, as listed on the home page.");
+  requireThat(
+    m && !m[2].endsWith(".") && !(m[3] ?? "").endsWith(".") && !(m[3] && NOT_A_VARIANT.has(m[3].toLowerCase())),
+    "Invalid study ID. Use the form examples/<name> or private/studies/<name> (or <study>/<variant> for a study inside a study), as listed on the home page.",
+  );
   const base = resolve(repoRoot, m![1]);
-  const dir = join(base, m![2]);
-  // Case-insensitive file systems (macOS, Windows) would also open "Study" for "study": require the exact name.
-  requireThat(existsSync(join(dir, "study.json")) && readdirSync(base).includes(m![2]), `No study found at ${id}.`);
+  const top = join(base, m![2]);
+  const dir = m![3] ? join(top, m![3]) : top;
+  // Case-insensitive file systems (macOS, Windows) would also open "Study" for "study": require the exact names.
+  requireThat(existsSync(join(dir, "study.json")) && readdirSync(base).includes(m![2]) && (!m![3] || (existsSync(join(top, "study.json")) && readdirSync(top).includes(m![3]))), `No study found at ${id}.`);
   return dir;
 }
 export async function listWorkspaces(): Promise<WorkspaceInfo[]> {
@@ -417,14 +430,23 @@ export async function listWorkspaces(): Promise<WorkspaceInfo[]> {
   for (const r of roots) {
     const base = resolve(repoRoot, r);
     if (!existsSync(base)) continue;
+    // Each study folder, and each variant study one level inside it (see workspaceDir).
+    const found: { dir: string; id: string }[] = [];
     for (const entry of await readdir(base, { withFileTypes: true })) {
       const dir = join(base, entry.name);
       if (!entry.isDirectory() || !existsSync(join(dir, "study.json"))) continue;
+      const id = `${r.split(sep).join("/")}/${entry.name}`;
+      found.push({ dir, id });
+      for (const inner of await readdir(dir, { withFileTypes: true }))
+        if (inner.isDirectory() && !NOT_A_VARIANT.has(inner.name.toLowerCase()) && !inner.name.startsWith(".") && existsSync(join(dir, inner.name, "study.json")))
+          found.push({ dir: join(dir, inner.name), id: `${id}/${inner.name}` });
+    }
+    for (const { dir, id } of found) {
       try {
         const study = await load<Study>(join(dir, "study.json"));
         const manifest = await loadManifest(dir);
         out.push({
-          id: `${r.split(sep).join("/")}/${entry.name}`,
+          id,
           // Bounded, so one oversized file cannot bloat the study list for everyone.
           title: String(manifest.title ?? study.title).slice(0, 300),
           suite: typeof manifest.suite === "string" ? manifest.suite.slice(0, 300) : null,

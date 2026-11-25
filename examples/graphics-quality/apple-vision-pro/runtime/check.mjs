@@ -3,7 +3,7 @@
 // design through the bridge in the simulator, takes a screenshot, reads the state, lists the
 // objects, turns the view and takes another screenshot. Prints where the screenshots are; exits
 // with 2 when something fails. No Claude usage.
-//   node examples/graphics-quality-visionos/runtime/check.mjs [--design high] [--app <GraphicsQuality.app>] [--device <name or UDID>]
+//   node examples/graphics-quality/apple-vision-pro/runtime/check.mjs [--design high] [--app <GraphicsQuality.app>] [--device <name or UDID>]
 import { spawn } from "node:child_process";
 import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";

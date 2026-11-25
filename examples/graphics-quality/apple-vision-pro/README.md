@@ -1,6 +1,6 @@
 # Toy example: graphics quality on Apple Vision Pro (visionOS)
 
-This is **suite 8**: suite 3's synthetic study (the same three graphics-quality levels, 18 invented participants, measures, data and agent configurations) with an **Apple Vision Pro app** in place of the WebXR app. Its app configurations play the app in the **visionOS simulator** through the study bridge in `runtime/`. With suites 3 and 8 you can compare two runtimes on one study: the same reference, the same configurations, the same participant tools.
+This is **suite 3-a**, inside suite 3's folder and a study of its own (ID `examples/graphics-quality/apple-vision-pro`): suite 3's synthetic study (the same three graphics-quality levels, 18 invented participants, measures, data and agent configurations) with an **Apple Vision Pro app** in place of the WebXR app. Its app configurations play the app in the **visionOS simulator** through the study bridge in `runtime/`. With suites 3 and 3-a you can compare two runtimes on one study: the same reference, the same configurations, the same participant tools.
 
 **Research questions** (as in suite 3)
 
@@ -46,7 +46,7 @@ They were invented for a WebXR study, so here they stand for an imagined Apple V
 ## Try it
 
 1. **Simulate** the starter campaign (free, anywhere).
-2. **On a Mac:** follow [`VISIONOS_SETUP.md`](VISIONOS_SETUP.md): install the visionOS simulator runtime, build the app (`node examples/graphics-quality-visionos/runtime/build.mjs`), set Settings → Runtimes → visionos, and run `node examples/graphics-quality-visionos/runtime/check.mjs`.
+2. **On a Mac:** follow [`VISIONOS_SETUP.md`](VISIONOS_SETUP.md): install the visionOS simulator runtime, build the app (`node examples/graphics-quality/apple-vision-pro/runtime/build.mjs`), set Settings → Runtimes → visionos, and run `node examples/graphics-quality/apple-vision-pro/runtime/check.mjs`.
 3. **Run agents:** one *Uses the app* session with **Run this session only**; select it to see the latest screenshot from the simulated headset.
 4. **Compare with humans**, and compare with suite 3's *Uses the app* runs (Compare agents in each suite: tool calls, time, cost; Compare with humans: agreement).
 
@@ -63,7 +63,7 @@ The bridge gives app sessions the same tools as the WebXR runtime:
 | `select(object)` | Selects an object as a pinch would; wrong selections count |
 | `app_state()` | The instruction and the progress shown in the task panel |
 
-Every step goes into the audit trace in the shapes of the [study bridge contract](../../docs/runtime-adapters.md#study-bridge-contract). The configurations that use the app also read `visionos-app/GraphicsQuality/`, which holds the seeded layout, as in suite 3 (see `docs/methodology.md`, audit).
+Every step goes into the audit trace in the shapes of the [study bridge contract](../../../docs/runtime-adapters.md#study-bridge-contract). The configurations that use the app also read `visionos-app/GraphicsQuality/`, which holds the seeded layout, as in suite 3 (see `docs/methodology.md`, audit).
 
 ## Use it as a template for a visionOS study
 

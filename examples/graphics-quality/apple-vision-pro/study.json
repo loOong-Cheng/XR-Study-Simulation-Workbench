@@ -281,19 +281,19 @@
       "id": "brief",
       "label": "Study brief",
       "kind": "brief",
-      "description": "examples/graphics-quality-visionos/agent-brief.md: room, task, the three quality levels and the questionnaire items, without any participant answers."
+      "description": "examples/graphics-quality/apple-vision-pro/agent-brief.md: room, task, the three quality levels and the questionnaire items, without any participant answers."
     },
     {
       "id": "project",
       "label": "visionOS project",
       "kind": "project",
-      "description": "examples/graphics-quality-visionos/visionos-app/GraphicsQuality/: the Swift (SwiftUI + RealityKit) sources of the Apple Vision Pro app: the scene, the material settings per quality level and the task logic."
+      "description": "examples/graphics-quality/apple-vision-pro/visionos-app/GraphicsQuality/: the Swift (SwiftUI + RealityKit) sources of the Apple Vision Pro app: the scene, the material settings per quality level and the task logic."
     },
     {
       "id": "evidence",
       "label": "Toy evidence note",
       "kind": "evidence",
-      "description": "examples/graphics-quality-visionos/evidence/toy-evidence.md: invented, general statements about visual fidelity and experience. Not fitted to the synthetic answers."
+      "description": "examples/graphics-quality/apple-vision-pro/evidence/toy-evidence.md: invented, general statements about visual fidelity and experience. Not fitted to the synthetic answers."
     },
     {
       "id": "demographics",

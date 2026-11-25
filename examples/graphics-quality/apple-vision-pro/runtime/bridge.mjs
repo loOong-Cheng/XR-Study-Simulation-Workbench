@@ -4,9 +4,9 @@
 // same participant tools as the built-in WebXR runtime (open_design, screenshot, app_state, look,
 // list_objects, select), so the two runtimes can be compared on one study. Settings → Runtimes → visionos:
 //   command  node
-//   args     examples/graphics-quality-visionos/runtime/bridge.mjs {jobFile}
+//   args     examples/graphics-quality/apple-vision-pro/runtime/bridge.mjs {jobFile}
 //   optional --app <GraphicsQuality.app> --device <simulator name or UDID>
-// Build the app first: node examples/graphics-quality-visionos/runtime/build.mjs. macOS, Node 22+,
+// Build the app first: node examples/graphics-quality/apple-vision-pro/runtime/build.mjs. macOS, Node 22+,
 // standard library only.
 import { createHash, randomInt } from "node:crypto";
 import { appendFileSync, existsSync, mkdirSync, readFileSync, renameSync, rmdirSync, statSync, writeFileSync } from "node:fs";

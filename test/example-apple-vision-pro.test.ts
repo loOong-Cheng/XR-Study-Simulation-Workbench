@@ -1,4 +1,4 @@
-// Suite 8 (examples/graphics-quality-visionos): suite 3's study with an Apple Vision Pro app and a study
+// Suite 3-a (examples/graphics-quality/apple-vision-pro): suite 3's study with an Apple Vision Pro app and a study
 // bridge for the visionOS simulator. Checks that it is the same study as suite 3 apart from the
 // runtime (same designs, measures, participants, synthetic data and configurations), that its files
 // are valid and fair, that the bridge's projection math (calibration markers → screen positions) is
@@ -19,11 +19,11 @@ import { runtimeFor } from "../src/executor/runtimes.js";
 import type { AgentProtocol, HumanData, Study } from "../src/core/types.js";
 
 // Run from the repository root (npm test).
-const dir = resolve("examples/graphics-quality-visionos");
+const dir = resolve("examples/graphics-quality/apple-vision-pro");
 const suite3 = resolve("examples/graphics-quality");
 const json = async <T>(base: string, p: string) => JSON.parse(await readFile(join(base, p), "utf8")) as T;
 
-test("suite 8: the same study as suite 3, with the visionOS runtime for the app configurations", async () => {
+test("suite 3-a: the same study as suite 3, with the visionOS runtime for the app configurations", async () => {
   const study = validateStudy(await json<Study>(dir, "study.json"));
   const agents = validateAgents(study, await json<AgentProtocol[]>(dir, "agents.json"));
   const human = await json<HumanData>(dir, "human.json");
@@ -58,7 +58,7 @@ test("suite 8: the same study as suite 3, with the visionOS runtime for the app 
   assert.equal(ws.sources.project, "visionos-app/GraphicsQuality");
 });
 
-test("suite 8: the bridge finds the projection from calibration markers and maps head points to the screen", async () => {
+test("suite 3-a: the bridge finds the projection from calibration markers and maps head points to the screen", async () => {
   const sim = await import(pathToFileURL(join(dir, "runtime/sim.mjs")).href);
   // A pinhole view as the simulator's: 60° vertical field of view, 16:9, looking down -Z, slightly off centre.
   const f = 0.5 / Math.tan((30 * Math.PI) / 180);
@@ -101,7 +101,7 @@ test("suite 8: the bridge finds the projection from calibration markers and maps
   assert.ok(Math.abs(found[0][0] - 10.5 / w) < 1e-9 && Math.abs(found[0][1] - 8.5 / h) < 1e-9, JSON.stringify(found));
 });
 
-test("suite 8: a frozen simulated campaign analyses without errors", async () => {
+test("suite 3-a: a frozen simulated campaign analyses without errors", async () => {
   const study = validateStudy(await json<Study>(dir, "study.json"));
   const agents = validateAgents(study, await json<AgentProtocol[]>(dir, "agents.json"));
   const human = await json<HumanData>(dir, "human.json");
@@ -111,7 +111,7 @@ test("suite 8: a frozen simulated campaign analyses without errors", async () =>
   assert.ok(report.audits.length > 0);
 });
 
-test("suite 8: files use LF line endings; the app's sources and the bridge are in place", async () => {
+test("suite 3-a: files use LF line endings; the app's sources and the bridge are in place", async () => {
   const files: string[] = [];
   const walk = async (d: string): Promise<void> => {
     for (const e of await readdir(d, { withFileTypes: true }))

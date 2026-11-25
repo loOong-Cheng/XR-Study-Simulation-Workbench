@@ -1,8 +1,8 @@
-// Suite 8's study bridge (examples/graphics-quality-visionos/runtime/bridge.mjs) against the real visionOS
+// Suite 3-a's study bridge (examples/graphics-quality/apple-vision-pro/runtime/bridge.mjs) against the real visionOS
 // simulator: one "Uses the app" session through the executor, with a stand-in Claude Code
 // (test/fixtures/fake-claude-bridge.cjs, plan "select") that does every task, then the audit.
 // Skipped unless this is a Mac with a visionOS simulator runtime and the app is built
-// (node examples/graphics-quality-visionos/runtime/build.mjs). No real Claude Code session is started.
+// (node examples/graphics-quality/apple-vision-pro/runtime/build.mjs). No real Claude Code session is started.
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
@@ -16,7 +16,7 @@ import { analyzeCampaign } from "../src/core/campaign-study.js";
 import type { TraceEvent } from "../src/core/types.js";
 import { until } from "./until.js";
 
-const suite = resolve("examples/graphics-quality-visionos");
+const suite = resolve("examples/graphics-quality/apple-vision-pro");
 const bridge = join(suite, "runtime/bridge.mjs");
 const app = resolve(".build/visionos-graphics-quality/Build/Products/Debug-xrsimulator/GraphicsQuality.app");
 const fakeClaude = resolve("test/fixtures/fake-claude-bridge.cjs");

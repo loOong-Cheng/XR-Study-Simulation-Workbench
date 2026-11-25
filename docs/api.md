@@ -7,7 +7,7 @@ The website at `http://127.0.0.1:<port>` (`XR_STUDY_PORT`, default 4317) uses th
 - A POST with an `Origin` header must come from the workbench's own origin. Without one (curl, Node), it is accepted.
 - POST bodies are one JSON object, at most 12 MB (400 MB for `runs/import` and `assistant/understand`).
 - Errors come back as `{"error": "<plain message>"}` with 400 (a request the workbench refuses), 403, 404, 413, or 500 (`Something went wrong: …`; the details are in the server's terminal).
-- `id` is a study ID, exactly `examples/<name>` or `private/studies/<name>`. `campaign` / `campaignId` is a campaign ID of that study.
+- `id` is a study ID, exactly `examples/<name>` or `private/studies/<name>`, or `<that>/<variant>` for a study one level inside another (suite 3-a: `examples/graphics-quality/apple-vision-pro`). `campaign` / `campaignId` is a campaign ID of that study.
 
 **Never start real agent sessions** (`executor/start` with `"mode": "agent"`) without the researcher's OK: they use the researcher's Claude usage.
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Builds the visionOS study app for the simulator, where the study bridge (bridge.mjs) installs it:
-//   node examples/graphics-quality-visionos/runtime/build.mjs
+//   node examples/graphics-quality/apple-vision-pro/runtime/build.mjs
 // Output: .build/visionos-graphics-quality/Build/Products/Debug-xrsimulator/GraphicsQuality.app
 // (outside the app's source folder, so building never changes what agents read or what a campaign
 // fingerprints). Needs Xcode with the visionOS simulator SDK; macOS only.
@@ -13,7 +13,7 @@ if (process.platform !== "darwin") {
   console.error("The visionOS app builds on a Mac with Xcode only.");
   process.exit(2);
 }
-const project = join(repoRoot, "examples/graphics-quality-visionos/visionos-app/GraphicsQuality.xcodeproj");
+const project = join(repoRoot, "examples/graphics-quality/apple-vision-pro/visionos-app/GraphicsQuality.xcodeproj");
 const derived = join(repoRoot, ".build/visionos-graphics-quality");
 const args = ["-project", project, "-scheme", "GraphicsQuality", "-sdk", "xrsimulator", "-configuration", "Debug", "-derivedDataPath", derived, "build"];
 console.log(`xcodebuild ${args.join(" ")}`);

@@ -1,6 +1,6 @@
-# Running suite 8 in the visionOS simulator
+# Running suite 3-a in the visionOS simulator
 
-Suite 8's app configurations (*Uses the app*, *Uses the app + knows the participant*) play the Apple Vision Pro app in the visionOS simulator through the study bridge in `runtime/`. This needs a Mac. Everything else in the suite (Simulate, the text configurations, the analysis) runs anywhere.
+Suite 3-a's app configurations (*Uses the app*, *Uses the app + knows the participant*) play the Apple Vision Pro app in the visionOS simulator through the study bridge in `runtime/`. This needs a Mac. Everything else in the suite (Simulate, the text configurations, the analysis) runs anywhere.
 
 ## 1 · Xcode and the visionOS simulator
 
@@ -16,7 +16,7 @@ Suite 8's app configurations (*Uses the app*, *Uses the app + knows the particip
 ## 2 · Build the app
 
 ```bash
-node examples/graphics-quality-visionos/runtime/build.mjs
+node examples/graphics-quality/apple-vision-pro/runtime/build.mjs
 ```
 
 It builds `visionos-app/GraphicsQuality.xcodeproj` for the simulator into `.build/visionos-graphics-quality/` at the top of the repository (git-ignored, outside the app's source folder, so building never changes what agents read or what a campaign fingerprints). Build again after changing the app. You can also open the project in Xcode and run it on an Apple Vision Pro simulator to try it yourself: look around by dragging, select objects by clicking (a pinch).
@@ -28,7 +28,7 @@ In the website, **Settings → Runtimes → visionos**, or in `private/settings.
 ```json
 { "runtimes": { "visionos": {
   "command": "node",
-  "args": ["examples/graphics-quality-visionos/runtime/bridge.mjs", "{jobFile}"],
+  "args": ["examples/graphics-quality/apple-vision-pro/runtime/bridge.mjs", "{jobFile}"],
   "capabilities": ["screenshot", "look", "pointer-select", "phase-events", "quality-lock"],
   "instructions": "look orbits the viewpoint around the table: polar about 60 looks down at the table, 89 is almost level with its top. Objects off screen are listed without a position; turn towards them to see them."
 } } }
@@ -39,7 +39,7 @@ Optional bridge arguments after `{jobFile}`: `--app <path to GraphicsQuality.app
 ## 4 · Check it without an agent
 
 ```bash
-node examples/graphics-quality-visionos/runtime/check.mjs
+node examples/graphics-quality/apple-vision-pro/runtime/check.mjs
 ```
 
 It opens each design through the bridge in the simulator, takes screenshots, lists the objects and turns the view, and prints where the screenshots are and how well the view calibration fits. Look at the screenshots, then run one real session in the website (**Run agents** → select one *Uses the app* session → **Run this session only**). `npm test` also runs a full session through the executor and the audit in the simulator (`test/visionos-bridge.test.ts`; skipped when the simulator or the app is missing).
@@ -51,7 +51,7 @@ It opens each design through the bridge in the simulator, takes screenshots, lis
 - **The view.** The room is anchored to the simulated head. `look(azimuth, polar)` orbits a virtual camera around the table as in the WebXR app, by moving the room relative to the head.
 - **Screenshots.** `xcrun simctl io <device> screenshot`, turned into a JPEG with its longest side 1280 px (`sips`), as the agent gets it. One view: no left/right pair.
 - **Where objects are on the screen.** After each design opens, the app shows seven coloured markers at known positions on black, the bridge finds them in one screenshot and fits the projection from head coordinates to the screen. `list_objects` maps each object's centre through it. The agent never sees this step.
-- **The audit trace and object IDs** follow the [study bridge contract](../../docs/runtime-adapters.md#study-bridge-contract): neutral IDs drawn afresh for every design (`object-ids.jsonl`), `phase`, `case-start`, `observation`, `action` and `case-end` events, the app's own log in `app-logs/`, and the shared tool-call budget.
+- **The audit trace and object IDs** follow the [study bridge contract](../../../docs/runtime-adapters.md#study-bridge-contract): neutral IDs drawn afresh for every design (`object-ids.jsonl`), `phase`, `case-start`, `observation`, `action` and `case-end` events, the app's own log in `app-logs/`, and the shared tool-call budget.
 - **Restarts.** A bridge that Claude Code starts again resumes from `bridge-state.json` and starts the running task again from its first trial, as the contract says.
 
 ## Limits

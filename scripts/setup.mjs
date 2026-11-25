@@ -138,15 +138,15 @@ for (const id of ["unreal", "unity", "visionos"]) {
 }
 if (python && !settings.runtimes.unity?.command)
   say(`  (Suite 2's Unity bridge: command ${python.exe}, arguments examples/selection/runtime/bridge.py {jobFile})`);
-// Suite 8 (Apple Vision Pro): a Mac with Xcode and a visionOS simulator runtime, and the app built.
+// Suite 3-a (Apple Vision Pro): a Mac with Xcode and a visionOS simulator runtime, and the app built.
 if (process.platform === "darwin") {
   const rts = run("xcrun", ["simctl", "list", "runtimes"], { shell: false, timeout: 60_000 });
   const vision = rts.status === 0 && /xrOS|visionOS/.test(rts.stdout ?? "");
   const built = existsSync(join(root, ".build/visionos-graphics-quality/Build/Products/Debug-xrsimulator/GraphicsQuality.app/Info.plist"));
-  say(`  visionOS simulator: ${vision ? "installed" : "not installed"}; Suite 8's app: ${built ? "built" : "not built"}`);
-  if (!settings.runtimes.visionos?.command) say(`  (Suite 8's visionOS bridge: command node, arguments examples/graphics-quality-visionos/runtime/bridge.mjs {jobFile})`);
+  say(`  visionOS simulator: ${vision ? "installed" : "not installed"}; Suite 3-a's app: ${built ? "built" : "not built"}`);
+  if (!settings.runtimes.visionos?.command) say(`  (Suite 3-a's visionOS bridge: command node, arguments examples/graphics-quality/apple-vision-pro/runtime/bridge.mjs {jobFile})`);
   if (settings.runtimes.visionos?.command && !vision) notes.push("The visionos runtime is set, but no visionOS simulator runtime is installed: install it in Xcode → Settings → Components → visionOS (a download of about 8 GB).");
-  if (settings.runtimes.visionos?.command && vision && !built) notes.push("Suite 8's visionOS app is not built yet: node examples/graphics-quality-visionos/runtime/build.mjs");
+  if (settings.runtimes.visionos?.command && vision && !built) notes.push("Suite 3-a's visionOS app is not built yet: node examples/graphics-quality/apple-vision-pro/runtime/build.mjs");
 }
 if (claudePath) {
   // `claude mcp list` prints "name: command args - status" per server. Only local stdio servers can

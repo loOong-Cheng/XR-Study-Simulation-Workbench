@@ -18,6 +18,7 @@ This is **suite 3**: a complete, synthetic study you can run from start to finis
 | `human.json` | Human reference (invented), used only by the executor for declared inputs and by the analyzer | Written by your converter |
 | `comparisons.json` | Which configurations to test against each other | Chosen at analysis |
 | `webxr-app/` | The app; exposes `window.xrStudy` for the WebXR runtime | Your app or engine project |
+| `apple-vision-pro/` | **Suite 3-a**: this study with an Apple Vision Pro app, a study of its own (see below) | Another platform for your study |
 | `agent-brief.md`, `evidence/` | What agents are told; an invented evidence note | Your brief and evidence |
 | `proposal.md` | A short proposal for trying **Understand study** | Your protocol or manuscript |
 | `data/generate_synthetic.py`, `data/convert_to_human.py` | Invented raw data and the converter to `human.json` | Your logs/questionnaires and converter |
@@ -68,6 +69,12 @@ npm start      # http://127.0.0.1:4317 → Open study → Graphics quality
 - To build another WebXR study, copy `webxr-app/` and expose `window.xrStudy` as described in [the window.xrStudy contract](../../docs/runtime-adapters.md#the-windowxrstudy-contract): `getState` and `start` always, plus the functions of the capabilities your app declares in `workspace.json` → `app.capabilities` (this app: `look`, `listObjects` and `select`; a pointing study would use `pointer-xy` instead of selecting by ID). Screenshots are taken by Chrome itself.
 
 To see the app yourself: `cd examples/graphics-quality/webxr-app && python3 -m http.server 8123 --bind 127.0.0.1`, then open http://127.0.0.1:8123/?quality=low (or `medium`, `high`).
+
+## Suite 3-a: the same study on Apple Vision Pro
+
+[`apple-vision-pro/`](apple-vision-pro/README.md) holds **suite 3-a**: this study (the same designs, participants, synthetic data and configurations) with an Apple Vision Pro app (SwiftUI + RealityKit) in place of the WebXR app. Its app configurations play the app in the visionOS simulator through a study bridge that offers the same tools as the WebXR runtime. It is a study of its own (ID `examples/graphics-quality/apple-vision-pro`, with its own campaigns and runs) that sits inside this folder; this study's sources never include it.
+
+Suite 3 has been run with real agents on both platforms: on WebXR (headless Chrome, on Windows and macOS) and on Apple Vision Pro (the visionOS simulator on a Mac). There, a *Uses the app* session did every task of the three designs and passed the audit. To compare the two runtimes, run the same configuration in both suites and compare their agreement, tool calls, time and cost.
 
 ## What a simulated run does and does not show
 

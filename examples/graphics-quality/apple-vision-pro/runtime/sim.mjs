@@ -16,11 +16,16 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
-export const repoRoot = resolve(here, "../../..");
+/** The repository: the nearest folder above this one that holds package.json. */
+export const repoRoot = (() => {
+  let dir = here;
+  while (!existsSync(join(dir, "package.json")) && dirname(dir) !== dir) dir = dirname(dir);
+  return dir;
+})();
 export const BUNDLE_ID = "org.xrstudysim.graphicsquality";
 export const DEFAULT_APP = join(repoRoot, ".build/visionos-graphics-quality/Build/Products/Debug-xrsimulator/GraphicsQuality.app");
 export const DEVICE_NAME = "XR Study Sim (Apple Vision Pro)";
-export const BUILD_HINT = "node examples/graphics-quality-visionos/runtime/build.mjs";
+export const BUILD_HINT = "node examples/graphics-quality/apple-vision-pro/runtime/build.mjs";
 
 export class SimError extends Error {}
 
