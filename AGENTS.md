@@ -83,6 +83,8 @@ When the researcher asks you to test an example suite (or "suite 1/2/3"), prepar
    | 1 | `examples/ecolar` | Unreal configurations (C, C-Dem, D, D-Dem and the U-series) need a study bridge over the Unreal project (`UNREAL_SETUP.md`). A bridge built for a specific lab project is kept under `private/studies/<name>/runtime/`; use it if one exists there. A, B, F, A-Dem, B-Dem and F-Dem need nothing. |
    | 2 | `examples/selection` | "Uses the app" needs the Unity project and the bridge `examples/selection/runtime/bridge.py` (Python, standard library). The other configurations need nothing. |
    | 3 | `examples/graphics-quality` | Nothing beyond Chrome; the WebXR runtime is built in. |
+   | 4 | `examples/material-cues` | Nothing beyond Chrome; check the app with `node dist/cli.js app-check examples/material-cues`. |
+   | 5–7 | `examples/haptic-buttons`, `examples/haptic-buttons-between`, `examples/text-entry` | Nothing: no app; every configuration is app-free. |
 
    If an engine part is not ready, say which configurations can run now and which cannot. Do not fake a runtime.
 3. **Check:** `node dist/cli.js study-check <folder>/study.json --agents <folder>/agents.json --human <folder>/human.json`.
@@ -126,7 +128,7 @@ private/studies/<name>/            (or examples/<name>/ for synthetic studies)
 
 **Attempts** always start in a fresh, empty folder `jobs/<job>/a<n>/` (never one that exists); only the forecast the study MCP server accepted in that attempt counts. Each starts with a marker, `attempt.json` (start, mode, the claude process, the workbench process), and ends with a receipt, also when stopped. If the workbench is stopped (Ctrl+C) or crashes, running sessions are recorded as **interrupted**; after a crash the next start stops the processes left behind (only those whose command line names the attempt folder) and finishes an attempt whose forecast was already accepted, marked "completed after a workbench restart". **Parallel sessions** and each runtime's sessions-at-a-time are one limit for all campaigns together.
 
-Templates: `examples/graphics-quality/` (WebXR, runnable), `examples/ecolar/` (Unreal; mixed levels, measured inputs, movement data), `examples/selection/` (Unity app and bridge; participant background). Contracts: `src/core/types.ts`, `docs/data-contract.md`.
+Templates: `examples/graphics-quality/` (WebXR, runnable), `examples/material-cues/` (WebXR app with declared actions), `examples/ecolar/` (Unreal; mixed levels, measured inputs, movement data), `examples/selection/` (Unity app and bridge; participant background), `examples/haptic-buttons/` (background + practice-only movement), `examples/haptic-buttons-between/` (between-subjects), `examples/text-entry/` (forecasts before the study), `examples/bridge-template/` (a study bridge skeleton). Contracts: `src/core/types.ts`, `docs/data-contract.md`.
 
 ## Workflow for a new study
 
@@ -197,6 +199,12 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
    App-free configurations run with Claude Code. App configurations need an Unreal study bridge.
 2. **Selection (Unity).** Synthetic: 12 invented participants whose background drives the invented outcomes, 4 population and 2 individual configurations. The Unity study app is in `examples/selection/unity-project/` and its Python bridge in `runtime/bridge.py` (see `UNITY_SETUP.md`); app configurations run once the bridge is set in Settings → Runtimes → unity, otherwise they can only be simulated.
 3. **Graphics quality (WebXR).** Synthetic and fully runnable with Claude Code and the built-in WebXR runtime.
+4. **Material cues (WebXR).** Synthetic: 16 participants, low vs high rendering quality of materials, its own app with search and `identify` actions; background (vision correction, colour vision, design training, VR hours) drives the invented outcomes. Shows app-only vs uses-app.
+5. **Haptic buttons.** Synthetic, no app: 18 participants, three feedback types; background (handedness, hand length, tactile sensitivity, gaming, VR experience) and practice-only movement for individual configurations; measured task data as input.
+6. **Haptic buttons, between subjects.** Synthetic, no app: 3 groups × 12; group comparisons with independent-samples tests, no rankings, population configurations only.
+7. **Mid-air text entry.** Synthetic, no app: 24 participants, four keyboards, forecasts made before the study (no measured inputs); background (typing speed, swipe use, first language, arm length); a second-model arm.
+
+Each suite's `data/generate_synthetic.py` and `convert_to_human.py` regenerate its data exactly (seeded); its README states the invented effects.
 
 ## Changing the framework
 

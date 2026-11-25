@@ -21,7 +21,7 @@ It does not claim that an agent experiences VR like a person, or that simulation
 
 **With a coding agent (planned usage).** Open this repository in Claude Code or Codex and describe your study: protocol or manuscript, research questions, XR project, data folder, models. The agent follows [AGENTS.md](AGENTS.md) and opens the website for you to review, run and analyse.
 
-**Try the three example suites:**
+**Try the example suites:**
 
 ```bash
 node scripts/setup.mjs   # installs, builds, finds Claude Code, Chrome and Python, writes private/settings.json
@@ -35,6 +35,10 @@ Setup prints any `PROBLEM` to fix and the address the website will use. Ctrl+C s
 | 1 · Unreal | [VR temperature visualization](examples/ecolar/README.md) (synthetic version of the Ecolar study: 24 invented participants, 16 configurations at population and individual level) | Simulate; run the app-free configurations with Claude Code; app configurations need an Unreal study bridge |
 | 2 · Unity | [Selecting and placing objects](examples/selection/README.md) (synthetic: 12 invented participants with background, population and individual configurations; Unity app and bridge included) | Simulate; run the app-free configurations with Claude Code; app configurations run with Unity 6 and the included bridge |
 | 3 · WebXR | [Graphics quality](examples/graphics-quality/README.md) (synthetic) | Real agent runs with Claude Code in your Chrome, or simulate |
+| 4 · WebXR | [Material cues at two rendering qualities](examples/material-cues/README.md) (synthetic: 16 participants; vision, colour vision, design training, VR hours) | Real runs with its own WebXR app (search and identify actions), app-only vs uses-app, individual configurations |
+| 5 · No app | [Haptic buttons](examples/haptic-buttons/README.md) (synthetic: 18 participants; hand size, tactile sensitivity, gaming, VR experience, practice movement) | Individual forecasts with background and movement data, measured task data as input |
+| 6 · No app | [Haptic buttons, between subjects](examples/haptic-buttons-between/README.md) (synthetic: 3 groups × 12; VR experience, haptic devices, motion sickness) | Between-subjects analysis: group tests, absolute values, no rankings or individual forecasts |
+| 7 · No app | [Mid-air text entry](examples/text-entry/README.md) (synthetic: 24 participants; typing speed, swipe use, first language, arm length) | Forecasts made before the study (no measured inputs), a second-model arm |
 
 **Without a coding agent**, read [Start your own study](docs/getting-started.md).
 
