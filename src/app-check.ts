@@ -10,7 +10,7 @@ import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
 import type { Study } from "./core/types.js";
-import { appActions, webxrCapabilities, webxrPointer, webxrPointerProblem, webxrSettleMs } from "./executor/runtimes.js";
+import { appActions, webxrCapabilities, webxrIdleFps, webxrPointer, webxrPointerProblem, webxrSettleMs } from "./executor/runtimes.js";
 import type { WorkspaceManifest } from "./workspace.js";
 
 const runtime = resolve(dirname(fileURLToPath(import.meta.url)), "runtimes/webxr-mcp.js");
@@ -99,6 +99,7 @@ export async function appCheck(studyDir: string, study: Study, manifest: Workspa
           participant: study.participants[0]?.id ?? null,
           designs: [entry],
           settleMs: webxrSettleMs(manifest),
+          idleFps: webxrIdleFps(manifest),
           pointer: webxrPointer(manifest, `app-check-${d.id}`),
         },
       }),

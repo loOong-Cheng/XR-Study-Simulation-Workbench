@@ -17,7 +17,7 @@ import { claudeEffort, effortProblem, requireThat } from "../core/validation.js"
 import { claudeCommand, claudeProblem, readSettings, runtimeLimits, type Settings } from "../settings.js";
 import { claudeFeatures, killTree, spawnTree } from "./processes.js";
 import { changedApp, changedSources, listCampaigns, listWorkspaces, missingSources, readCampaign, readHuman, readReceipts, readSourceText, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
-import { appActions, runtimeFor, runtimeStatus, webxrCapabilities, webxrPointer, webxrSettleMs } from "./runtimes.js";
+import { appActions, runtimeFor, runtimeStatus, webxrCapabilities, webxrIdleFps, webxrPointer, webxrSettleMs } from "./runtimes.js";
 import { runRecordPath } from "./archive.js";
 import { activeAttempts, appendLine, SERVER, serverAlive, stopLeftovers, unfinishedAttempts, writeMarker, type AttemptMarker } from "./attempts.js";
 import { joinScheduler, leaveScheduler, schedule, type Schedulable } from "./scheduler.js";
@@ -1306,6 +1306,8 @@ export class Executor implements Schedulable {
                   participant: job.participantId ?? null,
                   // How long a transition may follow an action, and the study's motor-noise model with this job's seed.
                   settleMs: webxrSettleMs(this.manifest),
+                  // Frames between tool calls: Chrome renders in software, so the app is not drawn on every frame.
+                  idleFps: webxrIdleFps(this.manifest),
                   pointer: webxrPointer(this.manifest, jobId),
                   designs: ordered.map((id) => ({ id, label: study.conditions.find((c) => c.id === id)!.label, practice: caseOf(id, "practice"), main: caseOf(id, "main") })),
                 }

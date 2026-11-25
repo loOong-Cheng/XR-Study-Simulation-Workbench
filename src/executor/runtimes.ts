@@ -2,7 +2,7 @@
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import type { AgentProtocol, Study } from "../core/types.js";
-import type { Settings } from "../settings.js";
+import { runtimeLimits, type Settings } from "../settings.js";
 import type { WorkspaceManifest } from "../workspace.js";
 
 export interface RuntimeStatus {
@@ -13,6 +13,8 @@ export interface RuntimeStatus {
   observations: ("mono" | "stereo-pair")[];
   capabilities: string[];
   message: string;
+  /** Sessions of this runtime at the same time, when it has its own limit (WebXR, engines). */
+  maxParallel?: number;
 }
 const labels: Record<string, string> = {
   none: "No app (text and files only)",
@@ -103,6 +105,15 @@ export function webxrSettleMs(manifest: WorkspaceManifest): number {
   const v = manifest.app?.settleMs;
   return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.min(30_000, Math.round(v)) : 3000;
 }
+/**
+ * Animation frames per second the WebXR runtime lets the app draw between tool calls
+ * (workspace.json → app.idleFps): default 0 (frames only during tool calls), at most 60 (every
+ * frame, as before pacing).
+ */
+export function webxrIdleFps(manifest: WorkspaceManifest): number {
+  const v = manifest.app?.idleFps;
+  return typeof v === "number" && Number.isFinite(v) && v >= 0 ? Math.min(60, v) : 0;
+}
 /** The motor-noise model of workspace.json → app.pointer as the runtime reads it (docs/runtime-adapters.md → "Motor noise"). */
 export type PointerModel = { scatter: "gaussian" | "fitts"; sdPx?: number | Record<string, number>; effectiveWidthPx?: number | Record<string, number> };
 /** Why workspace.json → app.pointer is not a motor-noise model the runtime can apply, or null (also null without one). */
@@ -175,6 +186,7 @@ export function runtimeStatus(id: string, settings: Settings, manifest: Workspac
     const chrome = existsSync(settings.chromePath);
     const app = !!manifest.app;
     const capabilities = webxrCapabilities(manifest);
+    const { maxParallel } = runtimeLimits(settings, "webxr");
     return {
       id,
       label: labels.webxr,
@@ -182,11 +194,12 @@ export function runtimeStatus(id: string, settings: Settings, manifest: Workspac
       builtIn: true,
       observations: ["mono"],
       capabilities,
+      maxParallel,
       message: !app
         ? "This study has no WebXR app declared in workspace.json."
         : !chrome
         ? `Chrome not found at ${settings.chromePath}. Set the Chrome path in Settings.`
-        : `${lackingNote(capabilities, "the app (workspace.json → app.capabilities)") ? `Ready${lackingNote(capabilities, "the app (workspace.json → app.capabilities)")} ` : "Ready. "}Mono screenshots only: WebXR on a desktop page provides no stereo pair.`,
+        : `${lackingNote(capabilities, "the app (workspace.json → app.capabilities)") ? `Ready${lackingNote(capabilities, "the app (workspace.json → app.capabilities)")} ` : "Ready. "}Mono screenshots only: WebXR on a desktop page provides no stereo pair. Chrome renders the app in software on this computer's CPU: at most ${maxParallel} WebXR ${maxParallel === 1 ? "session" : "sessions"} at the same time (Settings → Runtimes).`,
     };
   }
   const r = settings.runtimes[id];

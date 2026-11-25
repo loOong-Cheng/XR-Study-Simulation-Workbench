@@ -1,6 +1,7 @@
 // Machine-local workbench settings (private/settings.json, git-ignored): which
 // agent answers workbench buttons, the default forecasting model, MCP runtimes.
 import { existsSync } from "node:fs";
+import { availableParallelism } from "node:os";
 import { mkdir, writeFile } from "node:fs/promises";
 import { dirname, join } from "node:path";
 import { repoRoot } from "./workspace.js";
@@ -18,7 +19,7 @@ export interface RuntimeSetting {
   capabilities?: string[];
   /** Minutes before a session on this runtime is stopped (default: 90 for engine runtimes, else the global job timeout). */
   timeoutMinutes?: number;
-  /** Sessions on this runtime at the same time (default: 1 for engine runtimes, since one editor hosts one session). */
+  /** Sessions on this runtime at the same time (default: 1 for engine runtimes, since one editor hosts one session; WebXR: one per 4 logical cores). */
   maxParallel?: number;
   /** Seconds the bridge has to answer tools/list after the session starts; otherwise the session fails (default 60). */
   startupSeconds?: number;
@@ -51,13 +52,19 @@ export const defaultSettings = (): Settings => ({
 });
 /** Engine runtimes run in one editor that hosts one Play session at a time and need long sessions. */
 const engineRuntimes = new Set(["unreal", "unity", "visionos"]);
+/**
+ * WebXR sessions at the same time by default: one per 4 logical cores of this computer, at least 1.
+ * Each session's Chrome renders the app in software on the CPU, and a detailed scene takes several
+ * cores for each frame it draws (GitHub issue 1).
+ */
+export const webxrDefaultParallel = (): number => Math.max(1, Math.floor(availableParallelism() / 4));
 /** Per-runtime session time limit and how many sessions of it may run at once. */
 export function runtimeLimits(settings: Pick<Settings, "runtimes" | "jobTimeoutMinutes">, runtime: string): { timeoutMinutes: number; maxParallel: number; startupSeconds: number } {
   const r = settings.runtimes?.[runtime] ?? {};
   const engine = engineRuntimes.has(runtime);
   return {
     timeoutMinutes: r.timeoutMinutes ?? (engine ? Math.max(90, settings.jobTimeoutMinutes) : settings.jobTimeoutMinutes),
-    maxParallel: r.maxParallel ?? (engine ? 1 : Infinity),
+    maxParallel: r.maxParallel ?? (engine ? 1 : runtime === "webxr" ? webxrDefaultParallel() : Infinity),
     startupSeconds: r.startupSeconds ?? 60,
   };
 }

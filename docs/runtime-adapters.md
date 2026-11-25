@@ -63,9 +63,10 @@ The built-in WebXR runtime serves a study's app folder, opens it in headless Chr
 - `instructions`: how to use the app's controls, shown to agents with the tool descriptions (the WebXR runtime has no Settings entry for this).
 - `settleMs` (optional, default 3000, at most 30000): how long a transition may follow the agent's last action, in milliseconds (see [Delayed transitions](#delayed-transitions)).
 - `pointer` (optional, off by default): a motor-noise model for clicks (see [Motor noise](#motor-noise-optional)).
+- `idleFps` (optional, default 0, at most 60): animation frames per second the app gets between tool calls (see [Frames on demand](#frames-on-demand)). 60 draws every frame, as without pacing.
 - In `actions`, `"safe": true` (with `"example"` arguments) marks an action that `app-check` may run once (see [Before the first real session](#before-the-first-real-session)).
 
-`settleMs`, `pointer` and the declarations above are part of the campaign's fingerprint of the app: changing them after a freeze refuses app sessions until you freeze again or continue.
+`settleMs`, `pointer`, `idleFps` and the declarations above are part of the campaign's fingerprint of the app: changing them after a freeze refuses app sessions until you freeze again or continue.
 
 | Capability | The app implements | The agent gets |
 | --- | --- | --- |
@@ -104,6 +105,16 @@ Every function may return a value or a Promise (resolve it when the action is do
 - **`log()`** (optional): the app's own log, any JSON. The runtime saves it to `app-logs/<n>-<design>.json` in the job folder as `{design, opened, savedAt, entries}` (`entries` is what `log()` returned) when the main task ends, when the agent leaves a design and when the session ends. It never reaches the agent. *Save runs as zip* exports it, and loading a runs zip refuses an app log of another shape.
 
 **Replies.** `select`, `pointer`, `act` (and `look`, see above) may reply with `{accepted, correct, hit, reason, over, public}`. `accepted: false` means the app refused (no active trial, a wall in the way): the action is recorded as not completed and not an answer (`completed: false`, `scored: false`). `correct` / `hit` is the feedback the participant gets; return them only if the participant perceives them (a flash, a sound).
+
+<a id="frames-on-demand"></a>### Frames on demand
+
+Chrome renders the app in software on the CPU (SwiftShader), so an app that draws on every animation frame keeps several cores busy for each session, and a detailed scene takes seconds per frame. The runtime therefore paces the page's `requestAnimationFrame`:
+
+- **One fresh frame** before every screenshot and after every pointer move, so a screenshot shows the current state (the same image as with every frame drawn).
+- **Full rate** while the runtime waits for a transition after an action (`select`, `click`, `act`, `open_design`) and before it ends a task as unfinished.
+- **None** otherwise: between tool calls the app gets `idleFps` frames a second (`workspace.json` → `app.idleFps`, default 0).
+
+Time runs as usual: an app that animates by time (`performance.now()`, a `THREE.Clock`) is in the same state at its next frame, only drawn less often. Timers (`setTimeout`) and event handlers are not paced. An app whose logic advances per frame between the agent's actions (camera damping, a physics step per frame, an object that moves while the participant waits) sets `idleFps`, up to 60. The WebXR runtime and its Chrome run below normal priority, and by default one WebXR session runs per 4 logical cores (Settings → Runtimes → webxr sessions at the same time).
 
 ### What reaches the agent
 

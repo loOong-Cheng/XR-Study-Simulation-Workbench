@@ -111,7 +111,7 @@ Each starter's `starter.json` lists its sessions per configuration and what each
 | Needs | **Chrome** for Uses the app and Uses the app + knows the participant; **nothing** for the others. |
 | Starter | 126 sessions (18 runs per population configuration, 1 per person for the individual ones). |
 | Try first | Simulate all. One real *Text only* session, then one *Uses the app* session; watch its latest screenshot. Compare agents (tool calls, time, cost), then Compare with humans → Agreement, Agent vs human (Visual discomfort), Correlation. |
-| Expect | App sessions open the app in headless Chrome, look around, take screenshots and do the tasks before they submit. *Text + measured task data* gets the measured search time and errors and predicts only the experience measures. |
+| Expect | App sessions open the app in headless Chrome, look around, take screenshots and do the tasks before they submit. *Text + measured task data* gets the measured search time and errors and predicts only the experience measures. Chrome renders the app in software: a screenshot of the high design takes a few seconds, and by default one WebXR session runs per 4 logical cores (Settings → Runtimes). The website stays usable while they run. |
 
 ### Suite 4 · Material cues (WebXR), `examples/material-cues`
 

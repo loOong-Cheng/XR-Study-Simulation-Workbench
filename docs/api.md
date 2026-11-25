@@ -22,7 +22,7 @@ The website at `http://127.0.0.1:<port>` (`XR_STUDY_PORT`, default 4317) uses th
 | `/api/workspace/evidence` | `id` | brief, general knowledge and participant knowledge, with the outcome-blind check |
 | `/api/workspace/source` | `id`, `source` | one source as plain text (never human data) |
 | `/api/settings` | | `private/settings.json` (or `XR_STUDY_SETTINGS`) |
-| `/api/runtimes` | `id` | each runtime: available, capabilities, message |
+| `/api/runtimes` | `id` | each runtime: available, capabilities, message, and `maxParallel` for WebXR (its sessions at the same time on this computer) |
 | `/api/executor/state` | `id`, `campaign` | the executor's snapshot: mode, paused, counts, every session (status, tokens, cost, error) |
 | `/api/executor/events` | `id`, `campaign` | server-sent events: a snapshot, then `jobs` (session changes gathered for at most a quarter second, each entry `{jobId, …}` with only the fields that changed), `log` and `state` events (`state` carries the executor's state: mode, paused, running, queued, waiting, counts) |
 | `/api/executor/attempts` | `id`, `campaign`, `job` | every attempt of one session |

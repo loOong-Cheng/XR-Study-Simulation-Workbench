@@ -10,7 +10,7 @@ import { createHash, randomInt } from "node:crypto";
 import { createServer, type Server } from "node:http";
 import { existsSync, realpathSync, statSync } from "node:fs";
 import { appendFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { constants as osConstants, setPriority, tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
 import { normalAction, type AppAction } from "../executor/runtimes.js";
 import { agentPath } from "./guard.js";
@@ -32,6 +32,8 @@ interface WebXRSpec {
   designs: { id: string; label: string; practice: { caseId: string; phaseId: string } | null; main: { caseId: string; phaseId: string } | null }[];
   /** How long a transition may take after an action, in ms (workspace.json → app.settleMs; default 3000). */
   settleMs?: number;
+  /** Animation frames per second between tool calls (workspace.json → app.idleFps; default 0 = none, 60 = every frame). */
+  idleFps?: number;
   /** The study's motor-noise model for clicks (workspace.json → app.pointer) with this job's seed; absent: clicks land where asked. */
   pointer?: PointerNoise | null;
 }
@@ -47,6 +49,15 @@ const spec = (JSON.parse(await readFile(join(jobDir, "job.json"), "utf8")) as { 
 const caps = new Set(spec.capabilities ?? ["screenshot", "look", "pointer-select", "phase-events"]);
 const settleMs = typeof spec.settleMs === "number" && Number.isFinite(spec.settleMs) && spec.settleMs >= 0 ? Math.min(30_000, spec.settleMs) : 3000;
 const declaredActions = (spec.actions ?? []).map(normalAction).filter((a): a is AppAction => !!a);
+const idleFps = typeof spec.idleFps === "number" && Number.isFinite(spec.idleFps) && spec.idleFps >= 0 ? Math.min(60, spec.idleFps) : 0;
+// Chrome renders the app in software on the CPU. This server and the Chrome it starts (which
+// inherits the priority) run below normal priority, so the desktop and the website stay responsive
+// while sessions run.
+try {
+  setPriority(osConstants.priority.PRIORITY_BELOW_NORMAL);
+} catch {
+  // not permitted here: normal priority
+}
 const sha = (x: string | Buffer) => createHash("sha256").update(x).digest("hex");
 const log = (entry: Record<string, unknown>) =>
   appendFile(join(jobDir, "trace.jsonl"), JSON.stringify({ t: Date.now(), server: "webxr", ...entry }) + "\n");
@@ -192,6 +203,7 @@ async function browser(): Promise<void> {
     msg.error ? p.fail(new ToolError(msg.error.message)) : p.ok(msg.result);
   };
   await cdp("Page.enable");
+  if (idleFps < 60) await cdp("Page.addScriptToEvaluateOnNewDocument", { source: pacing });
   await cdp("Runtime.enable");
   await cdp("Emulation.setDeviceMetricsOverride", { width: 1280, height: 720, deviceScaleFactor: 1, mobile: false });
   await reportRuntime();
@@ -219,6 +231,84 @@ async function reportRuntime() {
       capabilities: [...caps],
     },
   });
+}
+// ---------- frames on demand ----------
+// Headless Chrome draws every frame in software (SwiftShader). An app that renders on every
+// animation frame keeps several cores busy although nothing looks at it between tool calls, and a
+// heavy scene (seconds per frame) makes every screenshot wait behind the frames queued before it.
+// The page's requestAnimationFrame is paced instead:
+//   - "one": exactly one fresh frame, before every screenshot and after a pointer move;
+//   - "run": full rate while the runtime waits for a transition after an action (settle, flush);
+//   - "stop": otherwise; between tool calls the app gets idleFps frames a second (default none).
+// Time runs as usual, so an app that animates by time (performance.now(), a clock) is in the same
+// state at the next frame; it is only drawn less often. app.idleFps: 60 turns pacing off.
+const idleMs = idleFps > 0 ? Math.round(1000 / idleFps) : 0;
+const pacing = `(() => {
+  if (window.__xrStudyFrames) return;
+  const native = window.requestAnimationFrame.bind(window);
+  const IDLE = ${idleMs};
+  let queue = new Map(), running = null, nextId = 1, live = true, last = -1e9, handle = 0, timer = 0, waiters = [];
+  const due = (ts) => live || waiters.length > 0 || (IDLE > 0 && ts - last >= IDLE - 2);
+  const run = (ts) => {
+    handle = 0;
+    if (!due(ts)) return schedule();
+    last = ts;
+    running = queue;
+    queue = new Map();
+    for (const [id, cb] of running) {
+      if (!running.has(id)) continue;
+      try { cb(ts); } catch (e) { setTimeout(() => { throw e; }); }
+    }
+    running = null;
+    const done = waiters;
+    waiters = [];
+    for (const w of done) w();
+    if (queue.size) schedule();
+  };
+  function schedule() {
+    if (handle || timer) return;
+    if (live || waiters.length) return void (handle = native(run));
+    if (!IDLE) return;
+    const rest = IDLE - (performance.now() - last);
+    if (rest > 4) timer = setTimeout(() => { timer = 0; schedule(); }, rest);
+    else handle = native(run);
+  }
+  window.requestAnimationFrame = function requestAnimationFrame(cb) {
+    const id = nextId++;
+    queue.set(id, cb);
+    schedule();
+    return id;
+  };
+  window.cancelAnimationFrame = function cancelAnimationFrame(id) {
+    queue.delete(id);
+    running?.delete(id);
+  };
+  Object.defineProperty(window, "__xrStudyFrames", {
+    value: (mode) => {
+      if (timer) { clearTimeout(timer); timer = 0; }
+      if (mode === "one")
+        return new Promise((ok) => {
+          const t = setTimeout(ok, 2000);
+          waiters.push(() => { clearTimeout(t); ok(); });
+          if (!handle) handle = native(run);
+        });
+      live = mode === "run";
+      schedule();
+    },
+  });
+})();`;
+/** Frames on demand: one fresh frame, full rate (while waiting for a transition), or paced again. */
+async function drawFrames(mode: "one" | "run" | "stop"): Promise<void> {
+  if (!ws || idleFps >= 60) return;
+  await evaluate(`window.__xrStudyFrames?.(${JSON.stringify(mode)})`).catch(() => undefined);
+}
+/** Run one tool call (or flush); frames are paced again afterwards, also when it failed. */
+async function paced<T>(f: () => Promise<T>): Promise<T> {
+  try {
+    return await f();
+  } finally {
+    await drawFrames("stop");
+  }
 }
 async function evaluate(expression: string, timeoutMs = 30_000): Promise<any> {
   const r = await cdp("Runtime.evaluate", { expression, awaitPromise: true, returnByValue: true }, timeoutMs);
@@ -350,6 +440,8 @@ const stableKey = (s: Raw) => JSON.stringify(publicState(s));
  * resolves when it is done.
  */
 async function settle(trackChanges = true): Promise<Raw> {
+  // Frames at full rate while waiting: an app may advance its transition in its animation loop.
+  await drawFrames("run");
   let s = await rawState();
   if (trackChanges) await track(s);
   let key = stableKey(s);
@@ -365,6 +457,7 @@ async function settle(trackChanges = true): Promise<Raw> {
     }
     s = next;
   }
+  await drawFrames("stop");
   last = s;
   return s;
 }
@@ -381,6 +474,7 @@ async function flush(): Promise<void> {
   if (!design || !ws || stage === "done") return;
   const open = current();
   const busyUntil = Date.now() + settleMs;
+  await drawFrames("run");
   for (;;) {
     const s = await rawState();
     await track(s);
@@ -520,6 +614,8 @@ async function pointer(x: number, y: number, kind: "move" | "down" | "up", own: 
   if (own) return evaluate(`window.xrStudy.pointer(${x}, ${y}, ${JSON.stringify(kind)})`);
   const type = kind === "move" ? "mouseMoved" : kind === "down" ? "mousePressed" : "mouseReleased";
   await cdp("Input.dispatchMouseEvent", { type, x: x * view.w, y: y * view.h, button: kind === "move" ? "none" : "left", buttons: kind === "down" ? 1 : 0, clickCount: kind === "move" ? 0 : 1, pointerType: "mouse" });
+  // One frame after a move: many apps find the object under the pointer in their animation loop.
+  if (kind === "move") await drawFrames("one");
   return null;
 }
 const replied = (r: unknown) => !!r && typeof r === "object" && ["accepted", "hit", "correct", "over"].some((k) => k in (r as Raw));
@@ -608,6 +704,8 @@ const tools: Tool[] = [
       await countCall("screenshot");
       requireOpen();
       await check();
+      // One fresh frame of the current state, then the capture (no other frames queued before it).
+      await drawFrames("one");
       const shot = await cdp("Page.captureScreenshot", { format: "jpeg", quality: 82, fromSurface: true });
       const bytes = Buffer.from(shot.data, "base64");
       frames++;
@@ -790,14 +888,14 @@ let chain: Promise<unknown> = Promise.resolve();
 for (const t of tools) {
   const run = t.handler;
   t.handler = (args) => {
-    const next = chain.then(() => run(args));
+    const next = chain.then(() => paced(() => run(args)));
     chain = next.catch(() => undefined);
     return next;
   };
 }
 /** Run `f` after the tool call in progress, as one more call in the queue. */
 function queued<T>(f: () => Promise<T>): Promise<T> {
-  const next = chain.then(f);
+  const next = chain.then(() => paced(f));
   chain = next.catch(() => undefined);
   return next;
 }

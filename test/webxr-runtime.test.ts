@@ -5,11 +5,11 @@ import assert from "node:assert/strict";
 import { spawn, type ChildProcess } from "node:child_process";
 import { existsSync, readdirSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { availableParallelism, constants as osConstants, getPriority, tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline";
 import { fileURLToPath } from "node:url";
-import { defaultSettings } from "../src/settings.js";
+import { defaultSettings, runtimeLimits } from "../src/settings.js";
 
 const chrome = process.env.CHROME_PATH || defaultSettings().chromePath;
 const server = resolve(dirname(fileURLToPath(import.meta.url)), "../../dist/runtimes/webxr-mcp.js");
@@ -57,7 +57,7 @@ function client(jobDir: string, path = server) {
   const close = () => new Promise<void>((ok) => (child.exitCode !== null || child.signalCode !== null ? ok() : (child.on("exit", () => ok()), child.stdin!.end())));
   // Ends the server (and its Chrome) when a test failed before closing it, so `node --test` never waits on it.
   const kill = () => void (child.exitCode === null && child.signalCode === null && child.kill());
-  return { rpc, call, close, kill };
+  return { rpc, call, close, kill, pid: child.pid! };
 }
 
 test("WebXR runtime: per-design object IDs, audit trace and clean shutdown", { skip: !existsSync(chrome) && `Chrome not found at ${chrome}` }, async () => {
@@ -470,4 +470,91 @@ test("exposure: a task left unfinished is not finished; calls after the forecast
   const [exposure, after] = sessionWarnings(["p", "m"], "webxr", run);
   assert.match(exposure, /submitted without required exposure \(1 of 2 required tasks not finished: m; 1 of them started but left unfinished\)/);
   assert.equal(after, "59 tool calls after the forecast was accepted (not counted)");
+});
+
+// Counts its animation frames and finishes its task inside the animation loop, 10 frames after the
+// target is selected, as an app with a frame-driven transition does. look() changes what it draws.
+const framesApp = `<!doctype html><meta charset="utf-8"><body style="margin:0;background:#888"><canvas id="c" width="1280" height="720"></canvas><script>
+const s = { frames: 0, phase: "idle", trial: -1, done: false, pending: -1, shade: 0 };
+const ctx = document.getElementById("c").getContext("2d");
+function loop() {
+  s.frames++;
+  if (s.pending >= 0 && s.frames >= s.pending) { s.done = true; s.pending = -1; }
+  ctx.fillStyle = "rgb(" + s.shade + ",40,40)";
+  ctx.fillRect(0, 0, 1280, 720);
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+window.xrStudy = {
+  getState: () => ({ phase: s.done ? "questionnaire" : s.phase, trial: s.trial, done: s.done, public: { frames: s.frames } }),
+  start: () => { s.phase = "main"; s.trial = 0; },
+  listObjects: () => [{ id: "a", x: 0.5, y: 0.5, onScreen: true }],
+  select: () => { s.pending = s.frames + 10; return { accepted: true, correct: true }; },
+  look: (azimuth) => { s.shade = Math.min(255, Math.abs(Math.round(azimuth))); },
+};
+</script></body>`;
+
+test("WebXR runtime: frames on demand (none between tool calls, a fresh one per screenshot, full rate while a transition settles), app.idleFps 60 draws every frame, below-normal priority", { skip: !existsSync(chrome) && `Chrome not found at ${chrome}` }, async () => {
+  const root = await mkdtemp(join(tmpdir(), "xr-webxr-test-"));
+  const servers: ReturnType<typeof client>[] = [];
+  try {
+    const appDir = join(root, "app");
+    await mkdir(appDir);
+    await writeFile(join(appDir, "index.html"), framesApp);
+    const open = async (idleFps?: number) => {
+      const jobDir = join(root, `job-${idleFps ?? "default"}`);
+      await mkdir(jobDir);
+      const designs = [{ id: "one", label: "one", practice: null, main: { caseId: "one-main", phaseId: "main" } }];
+      await writeFile(join(jobDir, "job.json"), JSON.stringify({ webxr: { jobId: "frames", budget: 60, chromePath: chrome, app: { dir: appDir, query: "?design={condition}" }, designs, ...(idleFps !== undefined ? { idleFps } : {}) } }));
+      const mcp = client(jobDir);
+      servers.push(mcp);
+      await mcp.rpc("initialize", { protocolVersion: "2025-06-18" });
+      assert.match((await mcp.call("open_design", { design: "one" })).text ?? "", /^Opened/);
+      const frames = async () => JSON.parse((await mcp.call("app_state")).text!).public.frames as number;
+      return { mcp, jobDir, frames };
+    };
+    const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+    // Paced (the default): the app draws nothing while the agent thinks between tool calls.
+    const paced = await open();
+    // Chrome renders in software: the runtime (and the Chrome it starts) runs below normal priority.
+    assert.equal(getPriority(paced.mcp.pid), osConstants.priority.PRIORITY_BELOW_NORMAL);
+    const f0 = await paced.frames();
+    await pause(1500);
+    const f1 = await paced.frames();
+    assert.ok(f1 - f0 <= 1, `no frames between tool calls (${f1 - f0} drawn)`);
+    // A screenshot draws one fresh frame first, so it shows what look() changed.
+    const before = (await paced.mcp.call("screenshot")).content[0].data as string;
+    await paced.mcp.call("look", { azimuth: 200, polar: 90 });
+    const after = (await paced.mcp.call("screenshot")).content[0].data as string;
+    assert.notEqual(after, before, "the screenshot after look shows the new view");
+    const f2 = await paced.frames();
+    assert.ok(f2 - f1 >= 2 && f2 - f1 <= 6, `about one frame per screenshot (${f2 - f1} for two)`);
+    // A transition the app makes in its animation loop still completes while the runtime settles.
+    const selected = JSON.parse((await paced.mcp.call("select", { object: "obj-1" })).text!);
+    assert.equal(selected.state.done, true, "the frame-driven transition finished during settle");
+    await paced.mcp.close();
+    const events = (await readFile(join(paced.jobDir, "trace.jsonl"), "utf8")).trim().split("\n").map((l) => JSON.parse(l).event).filter(Boolean);
+    assert.deepEqual(events.filter((e) => e.type === "case-end").map((e) => e.submitted), [true]);
+
+    // app.idleFps 60: every frame, as before pacing.
+    const every = await open(60);
+    // Headless Chrome takes a moment after loading before it draws frames at full rate.
+    await pause(2000);
+    const g0 = await every.frames();
+    await pause(1500);
+    assert.ok((await every.frames()) - g0 >= 20, "frames keep running between tool calls");
+    await every.mcp.close();
+  } finally {
+    servers.forEach((m) => m.kill());
+    await rm(root, { recursive: true, force: true, maxRetries: 10, retryDelay: 200 });
+  }
+});
+
+test("WebXR sessions at the same time: one per 4 logical cores by default; Settings overrides it", () => {
+  const base = { jobTimeoutMinutes: 30 };
+  assert.equal(runtimeLimits({ ...base, runtimes: {} }, "webxr").maxParallel, Math.max(1, Math.floor(availableParallelism() / 4)));
+  assert.equal(runtimeLimits({ ...base, runtimes: { webxr: { maxParallel: 5 } } }, "webxr").maxParallel, 5);
+  assert.equal(runtimeLimits({ ...base, runtimes: {} }, "unity").maxParallel, 1);
+  assert.equal(runtimeLimits({ ...base, runtimes: {} }, "none").maxParallel, Infinity);
 });

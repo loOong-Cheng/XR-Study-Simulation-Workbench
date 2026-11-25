@@ -53,6 +53,8 @@ export interface WebXRAppManifest {
   instructions?: string;
   /** How long a transition may follow an action, in ms (default 3000): the runtime waits this long before it ends a task as unfinished. */
   settleMs?: number;
+  /** Animation frames per second between tool calls (default 0: none; 60 draws every frame): the runtime paces requestAnimationFrame, since Chrome renders in software. */
+  idleFps?: number;
   /** Optional motor-noise model for clicks (pointer-xy), e.g. {"scatter": "gaussian", "sdPx": 4}; off without it. */
   pointer?: { scatter: "gaussian" | "fitts"; sdPx?: number | Record<string, number>; effectiveWidthPx?: number | Record<string, number> };
 }
@@ -262,6 +264,7 @@ export function appFingerprint(dir: string, manifest: WorkspaceManifest): AppFin
     instructions: app.instructions ?? null,
     ...(app.pointer !== undefined ? { pointer: app.pointer } : {}),
     ...(app.settleMs !== undefined ? { settleMs: app.settleMs } : {}),
+    ...(app.idleFps !== undefined ? { idleFps: app.idleFps } : {}),
   });
   return {
     serve: String(app.serve ?? ""),
