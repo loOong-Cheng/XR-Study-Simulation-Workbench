@@ -1,0 +1,2653 @@
+{
+  "schemaVersion": "1.0",
+  "studyId": "synthetic-haptic-buttons",
+  "synthetic": true,
+  "measurements": [
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P01",
+      "value": 4.681189601893764
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P01",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P01",
+      "value": 9.517073170731708
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P01",
+      "value": 4.6090113265189565
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P01",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P01",
+      "value": 5.319999999999999
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P01",
+      "value": 6.553381466359876
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P01",
+      "value": 0.13043478260869565
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P01",
+      "value": 10.000000000000002
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P02",
+      "value": 3.788292562545155
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P02",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P02",
+      "value": 9.528571428571428
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P02",
+      "value": 3.7442633121319364
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P02",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P02",
+      "value": 6.978048780487805
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P02",
+      "value": 3.8746161518995885
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P02",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P02",
+      "value": 10.388095238095238
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P03",
+      "value": 3.093822114632244
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P03",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P03",
+      "value": 7.913953488372093
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P03",
+      "value": 3.123268736812781
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P03",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P03",
+      "value": 8.265116279069769
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P03",
+      "value": 3.344039809117049
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P03",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P03",
+      "value": 10.69
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P04",
+      "value": 4.635629875913752
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P04",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P04",
+      "value": 9.973809523809525
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P04",
+      "value": 6.150771446932526
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P04",
+      "value": 0.1111111111111111
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P04",
+      "value": 7.1755555555555555
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P04",
+      "value": 6.08519975962488
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P04",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P04",
+      "value": 12.93488372093023
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P05",
+      "value": 3.336192432739017
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P05",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P05",
+      "value": 7.697619047619048
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P05",
+      "value": 4.045024910281799
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P05",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P05",
+      "value": 5.980487804878049
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P05",
+      "value": 3.9988072488690056
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P05",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P05",
+      "value": 12.043902439024391
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P06",
+      "value": 3.7167179676615016
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P06",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P06",
+      "value": 13.86829268292683
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P06",
+      "value": 3.893411306262872
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P06",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P06",
+      "value": 12.368292682926828
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P06",
+      "value": 4.664031366021131
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P06",
+      "value": 0.1111111111111111
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P06",
+      "value": 16.56888888888889
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P07",
+      "value": 3.489523447418082
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P07",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P07",
+      "value": 5.6380952380952385
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P07",
+      "value": 4.0196415399435805
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P07",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P07",
+      "value": 4.066666666666667
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P07",
+      "value": 4.567679590088424
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P07",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P07",
+      "value": 8.26046511627907
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P08",
+      "value": 4.061945748690196
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P08",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P08",
+      "value": 8.123255813953488
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P08",
+      "value": 4.413079944794872
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P08",
+      "value": 0.09090909090909091
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P08",
+      "value": 6.554545454545454
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P08",
+      "value": 3.7468282859763113
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P08",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P08",
+      "value": 7.295121951219513
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P09",
+      "value": 4.843527994840782
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P09",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P09",
+      "value": 5.583333333333333
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P09",
+      "value": 4.793879407909753
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P09",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P09",
+      "value": 3.507317073170732
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P09",
+      "value": 5.752694947962416
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P09",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P09",
+      "value": 7.604651162790698
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P10",
+      "value": 3.8160535716413913
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P10",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P10",
+      "value": 11.86
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P10",
+      "value": 4.038108678121122
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P10",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P10",
+      "value": 9.570000000000002
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P10",
+      "value": 4.747369384912008
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P10",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P10",
+      "value": 16.188095238095237
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P11",
+      "value": 4.06579306032418
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P11",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P11",
+      "value": 14.241860465116279
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P11",
+      "value": 4.6597478722630985
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P11",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P11",
+      "value": 9.844186046511627
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P11",
+      "value": 4.441991712960106
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P11",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P11",
+      "value": 13.61951219512195
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P12",
+      "value": 4.564015091531386
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P12",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P12",
+      "value": 11.319512195121952
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P12",
+      "value": 4.218279986723493
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P12",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P12",
+      "value": 8.559999999999999
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P12",
+      "value": 5.17381912121176
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P12",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P12",
+      "value": 14.006976744186046
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P13",
+      "value": 3.2475231738003156
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P13",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P13",
+      "value": 7.734146341463415
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P13",
+      "value": 3.658202674751867
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P13",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P13",
+      "value": 5.146341463414635
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P13",
+      "value": 3.9421256079797526
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P13",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P13",
+      "value": 9.658536585365853
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P14",
+      "value": 5.515792062865225
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P14",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P14",
+      "value": 10.868292682926828
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P14",
+      "value": 4.572545095737902
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P14",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P14",
+      "value": 9.185365853658537
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P14",
+      "value": 4.6927168358084845
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P14",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P14",
+      "value": 14.073170731707316
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P15",
+      "value": 4.651198924243853
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P15",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P15",
+      "value": 8.82
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P15",
+      "value": 4.525590465608754
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P15",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P15",
+      "value": 7.580487804878049
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P15",
+      "value": 4.954923193221021
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P15",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P15",
+      "value": 10.652380952380952
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P16",
+      "value": 4.265432738218798
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P16",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P16",
+      "value": 7.217073170731707
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P16",
+      "value": 3.4234968624750226
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P16",
+      "value": 0.0
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P16",
+      "value": 6.549999999999999
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P16",
+      "value": 4.129947650968011
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P16",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P16",
+      "value": 7.341463414634147
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P17",
+      "value": 4.825567519831381
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P17",
+      "value": 0.06976744186046512
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P17",
+      "value": 8.813953488372093
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P17",
+      "value": 5.217696710678829
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P17",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P17",
+      "value": 7.945238095238096
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P17",
+      "value": 4.684386934945131
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P17",
+      "value": 0.047619047619047616
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P17",
+      "value": 12.138095238095238
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "buzz",
+      "participantId": "P18",
+      "value": 5.020691597058547
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "buzz",
+      "participantId": "P18",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "buzz",
+      "participantId": "P18",
+      "value": 5.721951219512196
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "pulse",
+      "participantId": "P18",
+      "value": 4.397755763402103
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "pulse",
+      "participantId": "P18",
+      "value": 0.024390243902439025
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "pulse",
+      "participantId": "P18",
+      "value": 3.5390243902439025
+    },
+    {
+      "outcomeId": "completion-time",
+      "conditionId": "visual",
+      "participantId": "P18",
+      "value": 5.152331804643956
+    },
+    {
+      "outcomeId": "error-rate",
+      "conditionId": "visual",
+      "participantId": "P18",
+      "value": 0.09090909090909091
+    },
+    {
+      "outcomeId": "overshoot",
+      "conditionId": "visual",
+      "participantId": "P18",
+      "value": 7.5613636363636365
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P01",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P01",
+      "components": {
+        "mental": 55.0,
+        "physical": 55.0,
+        "temporal": 45.0,
+        "performance": 55.0,
+        "effort": 55.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P01",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P01",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P01",
+      "components": {
+        "mental": 30.0,
+        "physical": 15.0,
+        "temporal": 30.0,
+        "performance": 15.0,
+        "effort": 30.0,
+        "frustration": 10.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P01",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P01",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P01",
+      "components": {
+        "mental": 45.0,
+        "physical": 20.0,
+        "temporal": 35.0,
+        "performance": 15.0,
+        "effort": 30.0,
+        "frustration": 20.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P01",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P02",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P02",
+      "components": {
+        "mental": 20.0,
+        "physical": 25.0,
+        "temporal": 20.0,
+        "performance": 30.0,
+        "effort": 25.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P02",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P02",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P02",
+      "components": {
+        "mental": 35.0,
+        "physical": 40.0,
+        "temporal": 30.0,
+        "performance": 20.0,
+        "effort": 30.0,
+        "frustration": 20.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P02",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P02",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P02",
+      "components": {
+        "mental": 30.0,
+        "physical": 35.0,
+        "temporal": 35.0,
+        "performance": 25.0,
+        "effort": 30.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P02",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P03",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P03",
+      "components": {
+        "mental": 30.0,
+        "physical": 15.0,
+        "temporal": 25.0,
+        "performance": 25.0,
+        "effort": 25.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P03",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P03",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P03",
+      "components": {
+        "mental": 20.0,
+        "physical": 10.0,
+        "temporal": 15.0,
+        "performance": 5.0,
+        "effort": 25.0,
+        "frustration": 20.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P03",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P03",
+      "value": 7.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P03",
+      "components": {
+        "mental": 35.0,
+        "physical": 15.0,
+        "temporal": 30.0,
+        "performance": 25.0,
+        "effort": 35.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P03",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P04",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P04",
+      "components": {
+        "mental": 55.0,
+        "physical": 45.0,
+        "temporal": 40.0,
+        "performance": 55.0,
+        "effort": 60.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P04",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P04",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P04",
+      "components": {
+        "mental": 50.0,
+        "physical": 40.0,
+        "temporal": 45.0,
+        "performance": 50.0,
+        "effort": 40.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P04",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P04",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P04",
+      "components": {
+        "mental": 50.0,
+        "physical": 30.0,
+        "temporal": 30.0,
+        "performance": 30.0,
+        "effort": 50.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P04",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P05",
+      "components": {
+        "mental": 20.0,
+        "physical": 15.0,
+        "temporal": 10.0,
+        "performance": 10.0,
+        "effort": 25.0,
+        "frustration": 10.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P05",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P05",
+      "components": {
+        "mental": 25.0,
+        "physical": 0.0,
+        "temporal": 5.0,
+        "performance": 0.0,
+        "effort": 20.0,
+        "frustration": 5.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P05",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P05",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P05",
+      "components": {
+        "mental": 30.0,
+        "physical": 15.0,
+        "temporal": 20.0,
+        "performance": 10.0,
+        "effort": 35.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P05",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P06",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P06",
+      "components": {
+        "mental": 35.0,
+        "physical": 30.0,
+        "temporal": 10.0,
+        "performance": 10.0,
+        "effort": 20.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P06",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P06",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P06",
+      "components": {
+        "mental": 30.0,
+        "physical": 40.0,
+        "temporal": 40.0,
+        "performance": 40.0,
+        "effort": 50.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P06",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P06",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P06",
+      "components": {
+        "mental": 25.0,
+        "physical": 5.0,
+        "temporal": 20.0,
+        "performance": 15.0,
+        "effort": 30.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P06",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P07",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P07",
+      "components": {
+        "mental": 60.0,
+        "physical": 45.0,
+        "temporal": 55.0,
+        "performance": 40.0,
+        "effort": 60.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P07",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P07",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P07",
+      "components": {
+        "mental": 45.0,
+        "physical": 25.0,
+        "temporal": 30.0,
+        "performance": 30.0,
+        "effort": 40.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P07",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P07",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P07",
+      "components": {
+        "mental": 40.0,
+        "physical": 35.0,
+        "temporal": 30.0,
+        "performance": 25.0,
+        "effort": 40.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P07",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P08",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P08",
+      "components": {
+        "mental": 40.0,
+        "physical": 30.0,
+        "temporal": 35.0,
+        "performance": 35.0,
+        "effort": 45.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P08",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P08",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P08",
+      "components": {
+        "mental": 40.0,
+        "physical": 15.0,
+        "temporal": 25.0,
+        "performance": 30.0,
+        "effort": 40.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P08",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P08",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P08",
+      "components": {
+        "mental": 30.0,
+        "physical": 35.0,
+        "temporal": 30.0,
+        "performance": 20.0,
+        "effort": 50.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P08",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P09",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P09",
+      "components": {
+        "mental": 60.0,
+        "physical": 45.0,
+        "temporal": 55.0,
+        "performance": 35.0,
+        "effort": 55.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P09",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P09",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P09",
+      "components": {
+        "mental": 65.0,
+        "physical": 70.0,
+        "temporal": 55.0,
+        "performance": 55.0,
+        "effort": 70.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P09",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P09",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P09",
+      "components": {
+        "mental": 55.0,
+        "physical": 40.0,
+        "temporal": 45.0,
+        "performance": 45.0,
+        "effort": 55.0,
+        "frustration": 55.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P09",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P10",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P10",
+      "components": {
+        "mental": 55.0,
+        "physical": 40.0,
+        "temporal": 65.0,
+        "performance": 45.0,
+        "effort": 55.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P10",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P10",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P10",
+      "components": {
+        "mental": 40.0,
+        "physical": 25.0,
+        "temporal": 40.0,
+        "performance": 20.0,
+        "effort": 40.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P10",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P10",
+      "value": 7.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P10",
+      "components": {
+        "mental": 30.0,
+        "physical": 15.0,
+        "temporal": 30.0,
+        "performance": 10.0,
+        "effort": 20.0,
+        "frustration": 10.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P10",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P11",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P11",
+      "components": {
+        "mental": 35.0,
+        "physical": 15.0,
+        "temporal": 25.0,
+        "performance": 25.0,
+        "effort": 30.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P11",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P11",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P11",
+      "components": {
+        "mental": 40.0,
+        "physical": 30.0,
+        "temporal": 25.0,
+        "performance": 35.0,
+        "effort": 25.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P11",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P11",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P11",
+      "components": {
+        "mental": 40.0,
+        "physical": 35.0,
+        "temporal": 30.0,
+        "performance": 25.0,
+        "effort": 30.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P11",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P12",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P12",
+      "components": {
+        "mental": 30.0,
+        "physical": 20.0,
+        "temporal": 25.0,
+        "performance": 10.0,
+        "effort": 25.0,
+        "frustration": 10.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P12",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P12",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P12",
+      "components": {
+        "mental": 45.0,
+        "physical": 40.0,
+        "temporal": 40.0,
+        "performance": 35.0,
+        "effort": 55.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P12",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P12",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P12",
+      "components": {
+        "mental": 30.0,
+        "physical": 5.0,
+        "temporal": 10.0,
+        "performance": 0.0,
+        "effort": 20.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P12",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P13",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P13",
+      "components": {
+        "mental": 25.0,
+        "physical": 15.0,
+        "temporal": 25.0,
+        "performance": 10.0,
+        "effort": 20.0,
+        "frustration": 20.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P13",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P13",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P13",
+      "components": {
+        "mental": 10.0,
+        "physical": 5.0,
+        "temporal": 15.0,
+        "performance": 5.0,
+        "effort": 20.0,
+        "frustration": 10.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P13",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P13",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P13",
+      "components": {
+        "mental": 30.0,
+        "physical": 5.0,
+        "temporal": 20.0,
+        "performance": 10.0,
+        "effort": 15.0,
+        "frustration": 0.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P13",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P14",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P14",
+      "components": {
+        "mental": 40.0,
+        "physical": 35.0,
+        "temporal": 45.0,
+        "performance": 35.0,
+        "effort": 45.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P14",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P14",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P14",
+      "components": {
+        "mental": 40.0,
+        "physical": 35.0,
+        "temporal": 35.0,
+        "performance": 30.0,
+        "effort": 40.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P14",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P14",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P14",
+      "components": {
+        "mental": 45.0,
+        "physical": 45.0,
+        "temporal": 35.0,
+        "performance": 40.0,
+        "effort": 45.0,
+        "frustration": 35.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P14",
+      "value": 2.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P15",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P15",
+      "components": {
+        "mental": 35.0,
+        "physical": 30.0,
+        "temporal": 40.0,
+        "performance": 30.0,
+        "effort": 30.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P15",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P15",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P15",
+      "components": {
+        "mental": 30.0,
+        "physical": 25.0,
+        "temporal": 30.0,
+        "performance": 30.0,
+        "effort": 35.0,
+        "frustration": 25.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P15",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P15",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P15",
+      "components": {
+        "mental": 45.0,
+        "physical": 40.0,
+        "temporal": 35.0,
+        "performance": 30.0,
+        "effort": 30.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P15",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P16",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P16",
+      "components": {
+        "mental": 40.0,
+        "physical": 30.0,
+        "temporal": 25.0,
+        "performance": 35.0,
+        "effort": 20.0,
+        "frustration": 10.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P16",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P16",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P16",
+      "components": {
+        "mental": 35.0,
+        "physical": 25.0,
+        "temporal": 35.0,
+        "performance": 20.0,
+        "effort": 25.0,
+        "frustration": 15.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P16",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P16",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P16",
+      "components": {
+        "mental": 30.0,
+        "physical": 20.0,
+        "temporal": 15.0,
+        "performance": 5.0,
+        "effort": 35.0,
+        "frustration": 5.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P16",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P17",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P17",
+      "components": {
+        "mental": 40.0,
+        "physical": 20.0,
+        "temporal": 45.0,
+        "performance": 25.0,
+        "effort": 45.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P17",
+      "value": 7.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P17",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P17",
+      "components": {
+        "mental": 50.0,
+        "physical": 35.0,
+        "temporal": 35.0,
+        "performance": 30.0,
+        "effort": 40.0,
+        "frustration": 30.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P17",
+      "value": 5.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P17",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P17",
+      "components": {
+        "mental": 45.0,
+        "physical": 40.0,
+        "temporal": 25.0,
+        "performance": 40.0,
+        "effort": 40.0,
+        "frustration": 45.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P17",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "buzz",
+      "participantId": "P18",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "buzz",
+      "participantId": "P18",
+      "components": {
+        "mental": 55.0,
+        "physical": 30.0,
+        "temporal": 55.0,
+        "performance": 35.0,
+        "effort": 45.0,
+        "frustration": 50.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "buzz",
+      "participantId": "P18",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "visual",
+      "participantId": "P18",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "visual",
+      "participantId": "P18",
+      "components": {
+        "mental": 50.0,
+        "physical": 50.0,
+        "temporal": 60.0,
+        "performance": 50.0,
+        "effort": 75.0,
+        "frustration": 60.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "visual",
+      "participantId": "P18",
+      "value": 3.0
+    },
+    {
+      "outcomeId": "confidence",
+      "conditionId": "pulse",
+      "participantId": "P18",
+      "value": 6.0
+    },
+    {
+      "outcomeId": "workload",
+      "conditionId": "pulse",
+      "participantId": "P18",
+      "components": {
+        "mental": 55.0,
+        "physical": 40.0,
+        "temporal": 45.0,
+        "performance": 25.0,
+        "effort": 40.0,
+        "frustration": 40.0
+      }
+    },
+    {
+      "outcomeId": "presence",
+      "conditionId": "pulse",
+      "participantId": "P18",
+      "value": 4.0
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P01",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P01",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P01",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P02",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P02",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P02",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P03",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P03",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P03",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P04",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P04",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P04",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P05",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P05",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P05",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P06",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P06",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P06",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P07",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P07",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P07",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P08",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P08",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P08",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P09",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P09",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P09",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P10",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P10",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P10",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P11",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P11",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P11",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P12",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P12",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P12",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P13",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P13",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P13",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P14",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P14",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P14",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P15",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P15",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P15",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P16",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P16",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P16",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P17",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P17",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P17",
+      "value": 1
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "visual",
+      "participantId": "P18",
+      "value": 3
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "buzz",
+      "participantId": "P18",
+      "value": 2
+    },
+    {
+      "outcomeId": "preference",
+      "conditionId": "pulse",
+      "participantId": "P18",
+      "value": 1
+    }
+  ]
+}
