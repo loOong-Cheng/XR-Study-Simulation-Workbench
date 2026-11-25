@@ -1,0 +1,145 @@
+{
+  "schemaVersion": "xr-starter/1",
+  "label": "Starter · 1 run per participant",
+  "campaignId": "campaign-starter-59d40a8976af",
+  "campaignDigest": "95969ee689d74a18ee83d9733dca831d73782bdf303a2931ba180f4c20684f88",
+  "runsPerParticipant": 1,
+  "sessions": 436,
+  "configurations": [
+    {
+      "id": "A",
+      "label": "A · Direct forecast",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 10,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "A-Dem",
+      "label": "A · Direct forecast + demographics",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 10,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "B",
+      "label": "B · Static project analysis",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 10,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "B-Dem",
+      "label": "B · Static project analysis + demographics",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 10,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "C",
+      "label": "C · Files + live app",
+      "level": "population",
+      "runtime": "unreal",
+      "sessions": 10,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "C-Dem",
+      "label": "C · Files + live app + demographics",
+      "level": "population",
+      "runtime": "unreal",
+      "sessions": 10,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "D",
+      "label": "D · Files + app + model evidence",
+      "level": "population",
+      "runtime": "unreal",
+      "sessions": 10,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "D-Dem",
+      "label": "D · Files + app + model evidence + demographics",
+      "level": "population",
+      "runtime": "unreal",
+      "sessions": 10,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "F",
+      "label": "F · Files + model evidence",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 10,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "F-Dem",
+      "label": "F · Files + model evidence + demographics",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 10,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "U1",
+      "label": "U1 · Order and tasks",
+      "level": "individual",
+      "runtime": "unreal",
+      "sessions": 72,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "UD",
+      "label": "UD · + demographics",
+      "level": "individual",
+      "runtime": "unreal",
+      "sessions": 72,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "UDO",
+      "label": "UDO · + objective data",
+      "level": "individual",
+      "runtime": "unreal",
+      "sessions": 72,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "UDOT",
+      "label": "UDOT · + compact movement",
+      "level": "individual",
+      "runtime": "unreal",
+      "sessions": 72,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "UDOT-full",
+      "label": "Full · practice and main movement",
+      "level": "individual",
+      "runtime": "unreal",
+      "sessions": 24,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    },
+    {
+      "id": "UDOT-full-reason",
+      "label": "Full-Reason · movement with explicit reasoning",
+      "level": "individual",
+      "runtime": "unreal",
+      "sessions": 24,
+      "needs": "an Unreal study bridge (Settings → Runtimes → unreal)"
+    }
+  ],
+  "notes": [
+    "Frozen from this suite's study.json and agents.json at 1 run per participant (configurations with their own run count keep it), exactly as Freeze & campaigns → Freeze campaign freezes them, with a fixed ID and date so every machine gets the same campaign.",
+    "Installed into campaigns/ when the study opens with no campaign yet (and by node scripts/setup.mjs); deleting it does not bring it back. Freeze another campaign at any time.",
+    "Simulate works for every configuration at no cost. Real sessions (Mode: Run agents) use your Claude Code login: start with one session (Run this session only).",
+    "The configurations that use the app (C, C-Dem, D, D-Dem, U1, UD, UDO, UDOT, UDOT-full, UDOT-full-reason) need an Unreal study bridge in Settings → Runtimes; until one is set they can only be simulated. The app-free ones (A, A-Dem, B, B-Dem, F, F-Dem) run as real sessions on any machine with Claude Code."
+  ],
+  "rebuild": "npm run starters (after changing the suite's study.json, agents.json, workspace.json or a source file)"
+}

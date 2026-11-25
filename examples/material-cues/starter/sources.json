@@ -1,0 +1,28 @@
+{
+  "campaignId": "campaign-starter-307a73434585",
+  "recordedAt": "2026-01-01T00:00:00.000Z",
+  "sources": {
+    "brief": {
+      "path": "agent-brief.md",
+      "sha256": "754580e27c50bbe90031f61fcd72051f7ec5da0126a6a3875dab27732ff696b8"
+    },
+    "evidence-rendering": {
+      "path": "evidence/rendering-and-material-perception.md",
+      "sha256": "71c0dbc85db22c52fa6e24769583465a2baa96ac98f4dd7bbba36877dbba6c24"
+    },
+    "evidence-observers": {
+      "path": "evidence/observer-differences.md",
+      "sha256": "2ea459aa8529b656715665a405b80a0da1589555f5a772f7d39253185efdbf84"
+    },
+    "background": {
+      "path": "data/raw/background.csv",
+      "sha256": "551ef7fd97c857ba9c51dae3ff21160fbe873d8c0781c88929a53ef3d6d9e896"
+    }
+  },
+  "app": {
+    "serve": "webxr-app",
+    "query": "?quality={condition}&study=1&participant={participant}",
+    "sha256": "0fee39dbb0b09d41cddc921969bcf7317d167738f37aca2fbe11d079ed970f59",
+    "declared": "24349a64ad5ce6c46a4fc80c9c210c3351d3c9e215b5b4da595c6f7611c540ad"
+  }
+}

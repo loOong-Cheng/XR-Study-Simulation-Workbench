@@ -1,0 +1,27 @@
+{
+  "campaignId": "campaign-starter-59d40a8976af",
+  "recordedAt": "2026-01-01T00:00:00.000Z",
+  "sources": {
+    "brief": {
+      "path": "agent-brief.md",
+      "sha256": "10003775a07fd79f5b2f7936ca9eccd758affb85cfdd03de283a7ff169fe1b90"
+    },
+    "evidence": {
+      "path": "evidence/model-evidence.md",
+      "sha256": "3d381a38a3121bcae9dbdf7c074911a59cecc80fd27db2951b6441ce5cbfda06"
+    },
+    "demographics": {
+      "path": "data/raw/demographics.csv",
+      "sha256": "9ecd94afbfe7b39b9d8d721161c3c0a1332bd5116753a153d7d54cffff6a3459"
+    },
+    "trajectory": {
+      "path": "data/raw/trajectories_main.csv",
+      "sha256": "793322578bf4987bdaac0f49c737264f111d22ad47d43c31d1e4c98ab583f9d1"
+    },
+    "trajectory-full": {
+      "path": "data/raw/trajectories.csv",
+      "sha256": "9ae669e7080d22c8fe7fbb4347f30dd9a39e7bc5d566a2f5e16f41aace54a03d"
+    }
+  },
+  "app": null
+}

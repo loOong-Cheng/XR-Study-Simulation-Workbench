@@ -1,0 +1,19 @@
+{
+  "campaignId": "campaign-starter-b10899af9fdf",
+  "recordedAt": "2026-01-01T00:00:00.000Z",
+  "sources": {
+    "brief": {
+      "path": "agent-brief.md",
+      "sha256": "8b95f1745e328f715be62f248a08f10b8964800a8fb0348d000076779f26dbd6"
+    },
+    "evidence": {
+      "path": "evidence/toy-evidence.md",
+      "sha256": "70c750d92b91bbdf67a8a39ba95720966bbe4b871a6c4dd23b48d01e6d29fcc9"
+    },
+    "demographics": {
+      "path": "data/raw/demographics.csv",
+      "sha256": "7f762b7a81872d307f602cd56b73a19411a9071551348e9be686fae87c6d2d0d"
+    }
+  },
+  "app": null
+}

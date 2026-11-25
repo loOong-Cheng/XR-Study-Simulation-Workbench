@@ -1,0 +1,64 @@
+{
+  "schemaVersion": "xr-starter/1",
+  "label": "Starter · 1 run per participant",
+  "campaignId": "campaign-starter-d0c9f8daaa71",
+  "campaignDigest": "dd53f456c016d07da6e23d810c2b54273e25879ce40daf70a1d8955f99e70191",
+  "runsPerParticipant": 1,
+  "sessions": 144,
+  "configurations": [
+    {
+      "id": "text-only",
+      "label": "Text only",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 24,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "reads-evidence",
+      "label": "Text + background note on text entry",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 24,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-cohort",
+      "label": "Text + the cohort's background",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 24,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-participant",
+      "label": "Text + participant background (individual)",
+      "level": "individual",
+      "runtime": "none",
+      "sessions": 24,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-participant-evidence",
+      "label": "Text + participant background + note (individual)",
+      "level": "individual",
+      "runtime": "none",
+      "sessions": 24,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "text-only-sonnet",
+      "label": "Text only — claude-sonnet-5-5 (model arm)",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 24,
+      "needs": "nothing (app-free)"
+    }
+  ],
+  "notes": [
+    "Frozen from this suite's study.json and agents.json at 1 run per participant (configurations with their own run count keep it), exactly as Freeze & campaigns → Freeze campaign freezes them, with a fixed ID and date so every machine gets the same campaign.",
+    "Installed into campaigns/ when the study opens with no campaign yet (and by node scripts/setup.mjs); deleting it does not bring it back. Freeze another campaign at any time.",
+    "Simulate works for every configuration at no cost. Real sessions (Mode: Run agents) use your Claude Code login: start with one session (Run this session only)."
+  ],
+  "rebuild": "npm run starters (after changing the suite's study.json, agents.json, workspace.json or a source file)"
+}
