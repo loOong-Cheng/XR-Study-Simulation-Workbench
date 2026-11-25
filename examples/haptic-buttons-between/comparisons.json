@@ -1,0 +1,12 @@
+[
+  {
+    "candidate": "reads-evidence",
+    "baseline": "text-only",
+    "domain": "objective"
+  },
+  {
+    "candidate": "measured-inputs",
+    "baseline": "text-only",
+    "domain": "subjective"
+  }
+]

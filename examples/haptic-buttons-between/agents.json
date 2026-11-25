@@ -1,0 +1,127 @@
+[
+  {
+    "id": "text-only",
+    "label": "Text only",
+    "rationale": "Baseline: the written study brief alone. Each other configuration adds one ingredient to it.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 32000,
+    "maxTokens": 150000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "reads-evidence",
+    "label": "Text + evidence note",
+    "rationale": "Compared with Text only, one ingredient: the background note on tactile feedback (general knowledge, no results of this study).",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "evidence"
+    ],
+    "tools": [
+      "read-evidence"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "evidence"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 32000,
+    "maxTokens": 150000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "knows-cohort",
+    "label": "Text + cohort background",
+    "rationale": "Compared with Text only, one ingredient: a summary of who took part (counts and means of the allowed background fields over all 36 people, never their answers).",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 32000,
+    "maxTokens": 150000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "measured-inputs",
+    "label": "Text + measured task data",
+    "rationale": "Compared with Text only, one ingredient: each group's measured code entry time and error rate (group means, attached by the framework). It predicts only the subjective measures, after the experience.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 32000,
+    "maxTokens": 150000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none",
+    "targets": [
+      "presence",
+      "workload",
+      "comfort"
+    ],
+    "inputs": [
+      "completion-time",
+      "error-rate"
+    ]
+  }
+]
