@@ -1,0 +1,183 @@
+[
+  {
+    "id": "text-only",
+    "label": "Text only",
+    "rationale": "Baseline: forecasts before the study from the written brief alone (the four keyboards, the phrases, the procedure and the measures).",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 0,
+    "maxOutputTokens": 64000,
+    "maxTokens": 100000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "reads-evidence",
+    "label": "Text + background note on text entry",
+    "rationale": "Adds one ingredient to Text only: the background note on text entry in VR (how it is measured, what each keyboard family involves). Does general knowledge help a forecast made before the study?",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "evidence"
+    ],
+    "tools": [
+      "read-evidence"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "evidence"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 200000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "knows-cohort",
+    "label": "Text + the cohort's background",
+    "rationale": "Adds one ingredient to Text only: a summary of the cohort's background recorded before the study (typing test, swipe use, first language, glasses, handedness, age bands, arm length). Does knowing who takes part help a population forecast?",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "background"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "background"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 150000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "knows-participant",
+    "label": "Text + participant background (individual)",
+    "rationale": "Adds one ingredient to Text only: the person's own background, recorded before the study. Each session forecasts one person; the individual counterpart of Text + the cohort's background (population vs individual view). Invented background drives the invented outcomes.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "background"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "background"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 150000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "none"
+  },
+  {
+    "id": "knows-participant-evidence",
+    "label": "Text + participant background + note (individual)",
+    "rationale": "Adds one ingredient to Text + participant background: the background note on text entry in VR. Does general knowledge help to read a person's background?",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "background",
+      "evidence"
+    ],
+    "tools": [
+      "read-participant-data",
+      "read-evidence"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "background",
+      "evidence"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 200000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "none"
+  },
+  {
+    "id": "text-only-sonnet",
+    "label": "Text only — claude-sonnet-5-5 (model arm)",
+    "rationale": "A model arm of Text only: the same ingredients (the brief alone) on another model, claude-sonnet-5-5. It compares models, not methods.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-sonnet-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 0,
+    "maxOutputTokens": 64000,
+    "maxTokens": 100000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  }
+]

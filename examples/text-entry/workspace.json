@@ -1,0 +1,10 @@
+{
+  "title": "Mid-air text entry with four virtual keyboards",
+  "suite": "Suite 7 · Mid-air text entry",
+  "description": "Synthetic within-subjects study of four VR keyboards (raycast, drum, swipe, split), 24 invented participants in a balanced Latin square. Forecasts are made before the study: no measured outcome is ever an input. No runnable app; every configuration is app-free and runs with Claude Code. Invented participant background drives the invented outcomes.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "evidence": "evidence/text-entry-in-vr.md",
+    "background": "data/raw/background.csv"
+  }
+}
