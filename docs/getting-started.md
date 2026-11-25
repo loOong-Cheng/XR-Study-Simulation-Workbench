@@ -13,6 +13,8 @@ You need:
 
 **Try it first** with the example suites under **Open study**. [Graphics quality](../examples/graphics-quality/README.md) is a complete, runnable WebXR study with invented data. [Synthetic Ecolar](../examples/ecolar/README.md) shows a larger Unreal study with population and individual configurations, measured inputs and movement data. [Selection](../examples/selection/README.md) is a Unity study with participant background, with its Unity app and study bridge included. Four more show other kinds of study: [material cues](../examples/material-cues/README.md) (a second WebXR app), [haptic buttons](../examples/haptic-buttons/README.md) (participant background and movement), its [between-subjects version](../examples/haptic-buttons-between/README.md), and [mid-air text entry](../examples/text-entry/README.md) (forecasts before the study). Each comes with a frozen starter campaign, so **Run agents** works at once; [Testing with the example suites](testing-with-example-suites.md) says what to try in each.
 
+Requirements, the example suites at a glance and the scope of the analysis are in the [overview](overview.md).
+
 ## Your research questions, in three kinds
 
 | Kind of question | Example | Where it goes |
