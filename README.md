@@ -12,4 +12,4 @@ To start, open this folder in Claude Code or Codex and ask it to set up the work
   [![Six sessions of the WebXR suite run in parallel; each preview shows the agent's latest screenshot, its notes, tool calls and tokens](docs/6sessions.gif)](docs/6sessions.mp4)
 
 - **Live data analysis and plotting:** compare agents with each other and with the human participants while runs come in, and plot agreement, agent vs human, correlation, population vs individual and participant lines with Holm-corrected rank tests, saved as SVG or PNG.
-- **Multi-platform support:** agents use XR apps in WebXR (built in), Unity, Unreal and Apple Vision Pro (through a study bridge; suite 3 runs on both WebXR and the Apple Vision Pro simulator), and the workbench runs on Windows, macOS and Linux.
+- **Multi-platform support:** agents use XR apps in WebXR (built in), Unity, Unreal and Apple Vision Pro (through a study bridge; suite 3 runs on both WebXR and the Apple Vision Pro simulator; suites 5–7 also come with WebXR apps), and the workbench runs on Windows, macOS and Linux.

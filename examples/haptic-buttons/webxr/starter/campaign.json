@@ -1,0 +1,3113 @@
+{
+  "schemaVersion": "xr-campaign/1",
+  "id": "campaign-starter-8598647c5e3a",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "parentDigest": null,
+  "suite": {
+    "schemaVersion": "xr-campaign-suite/1",
+    "id": "study-synthetic-haptic-buttons-webxr",
+    "title": "Haptic feedback for mid-air buttons in VR (WebXR app)",
+    "synthetic": true,
+    "study": {
+      "schemaVersion": "1.0",
+      "id": "synthetic-haptic-buttons-webxr",
+      "title": "Haptic feedback for mid-air buttons in VR (WebXR app)",
+      "researchQuestion": "How do three kinds of feedback for pressing mid-air buttons in VR (visual feedback only, a vibrotactile buzz, a patterned vibrotactile pulse) differ in entry time, errors, how far the finger overshoots the button, confidence, workload, presence and preference?",
+      "agentQuestions": "Which agent configurations reproduce the human differences between the three designs? At individual level: does the person's background, their hand movement during practice, or their measured task performance (given as inputs) improve the forecasts for that person? All participants and data in this example are invented.",
+      "synthetic": true,
+      "design": "within-subjects",
+      "predictionLevel": "population",
+      "predictionTiming": "after-experience",
+      "conditions": [
+        {
+          "id": "visual",
+          "label": "Visual feedback only"
+        },
+        {
+          "id": "buzz",
+          "label": "Vibrotactile buzz"
+        },
+        {
+          "id": "pulse",
+          "label": "Patterned pulse"
+        }
+      ],
+      "phases": [
+        {
+          "id": "practice",
+          "label": "Practice: three sequences per design",
+          "kind": "practice"
+        },
+        {
+          "id": "main",
+          "label": "Scored entry: ten sequences per design",
+          "kind": "main"
+        },
+        {
+          "id": "questionnaire",
+          "label": "Questionnaire after each design",
+          "kind": "questionnaire"
+        },
+        {
+          "id": "ranking",
+          "label": "Final ranking of the designs",
+          "kind": "questionnaire"
+        }
+      ],
+      "cases": [
+        {
+          "id": "visual-practice",
+          "conditionId": "visual",
+          "phaseId": "practice",
+          "label": "Visual feedback only: three practice sequences",
+          "requiredActions": [
+            "select-target"
+          ],
+          "minActions": 12
+        },
+        {
+          "id": "visual-main",
+          "conditionId": "visual",
+          "phaseId": "main",
+          "label": "Visual feedback only: ten scored sequences",
+          "requiredActions": [
+            "select-target"
+          ],
+          "minActions": 40
+        },
+        {
+          "id": "buzz-practice",
+          "conditionId": "buzz",
+          "phaseId": "practice",
+          "label": "Vibrotactile buzz: three practice sequences",
+          "requiredActions": [
+            "select-target"
+          ],
+          "minActions": 12
+        },
+        {
+          "id": "buzz-main",
+          "conditionId": "buzz",
+          "phaseId": "main",
+          "label": "Vibrotactile buzz: ten scored sequences",
+          "requiredActions": [
+            "select-target"
+          ],
+          "minActions": 40
+        },
+        {
+          "id": "pulse-practice",
+          "conditionId": "pulse",
+          "phaseId": "practice",
+          "label": "Patterned pulse: three practice sequences",
+          "requiredActions": [
+            "select-target"
+          ],
+          "minActions": 12
+        },
+        {
+          "id": "pulse-main",
+          "conditionId": "pulse",
+          "phaseId": "main",
+          "label": "Patterned pulse: ten scored sequences",
+          "requiredActions": [
+            "select-target"
+          ],
+          "minActions": 40
+        }
+      ],
+      "participants": [
+        {
+          "id": "P01",
+          "stratum": "visual-buzz-pulse",
+          "conditionOrder": [
+            "visual",
+            "buzz",
+            "pulse"
+          ]
+        },
+        {
+          "id": "P02",
+          "stratum": "buzz-pulse-visual",
+          "conditionOrder": [
+            "buzz",
+            "pulse",
+            "visual"
+          ]
+        },
+        {
+          "id": "P03",
+          "stratum": "pulse-visual-buzz",
+          "conditionOrder": [
+            "pulse",
+            "visual",
+            "buzz"
+          ]
+        },
+        {
+          "id": "P04",
+          "stratum": "visual-pulse-buzz",
+          "conditionOrder": [
+            "visual",
+            "pulse",
+            "buzz"
+          ]
+        },
+        {
+          "id": "P05",
+          "stratum": "pulse-buzz-visual",
+          "conditionOrder": [
+            "pulse",
+            "buzz",
+            "visual"
+          ]
+        },
+        {
+          "id": "P06",
+          "stratum": "buzz-visual-pulse",
+          "conditionOrder": [
+            "buzz",
+            "visual",
+            "pulse"
+          ]
+        },
+        {
+          "id": "P07",
+          "stratum": "visual-buzz-pulse",
+          "conditionOrder": [
+            "visual",
+            "buzz",
+            "pulse"
+          ]
+        },
+        {
+          "id": "P08",
+          "stratum": "buzz-pulse-visual",
+          "conditionOrder": [
+            "buzz",
+            "pulse",
+            "visual"
+          ]
+        },
+        {
+          "id": "P09",
+          "stratum": "pulse-visual-buzz",
+          "conditionOrder": [
+            "pulse",
+            "visual",
+            "buzz"
+          ]
+        },
+        {
+          "id": "P10",
+          "stratum": "visual-pulse-buzz",
+          "conditionOrder": [
+            "visual",
+            "pulse",
+            "buzz"
+          ]
+        },
+        {
+          "id": "P11",
+          "stratum": "pulse-buzz-visual",
+          "conditionOrder": [
+            "pulse",
+            "buzz",
+            "visual"
+          ]
+        },
+        {
+          "id": "P12",
+          "stratum": "buzz-visual-pulse",
+          "conditionOrder": [
+            "buzz",
+            "visual",
+            "pulse"
+          ]
+        },
+        {
+          "id": "P13",
+          "stratum": "visual-buzz-pulse",
+          "conditionOrder": [
+            "visual",
+            "buzz",
+            "pulse"
+          ]
+        },
+        {
+          "id": "P14",
+          "stratum": "buzz-pulse-visual",
+          "conditionOrder": [
+            "buzz",
+            "pulse",
+            "visual"
+          ]
+        },
+        {
+          "id": "P15",
+          "stratum": "pulse-visual-buzz",
+          "conditionOrder": [
+            "pulse",
+            "visual",
+            "buzz"
+          ]
+        },
+        {
+          "id": "P16",
+          "stratum": "visual-pulse-buzz",
+          "conditionOrder": [
+            "visual",
+            "pulse",
+            "buzz"
+          ]
+        },
+        {
+          "id": "P17",
+          "stratum": "pulse-buzz-visual",
+          "conditionOrder": [
+            "pulse",
+            "buzz",
+            "visual"
+          ]
+        },
+        {
+          "id": "P18",
+          "stratum": "buzz-visual-pulse",
+          "conditionOrder": [
+            "buzz",
+            "visual",
+            "pulse"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "brief",
+          "label": "Study brief",
+          "kind": "brief",
+          "description": "agent-brief.md: the keypad task, the three feedback designs, the procedure and the measures, without any participant answers."
+        },
+        {
+          "id": "evidence",
+          "label": "Background note on haptic feedback",
+          "kind": "evidence",
+          "description": "evidence/haptics-evidence.md: a short, neutral note on haptic feedback for mid-air buttons, written without the synthetic data. No results of this study."
+        },
+        {
+          "id": "demographics",
+          "label": "Participant background",
+          "kind": "demographics",
+          "description": "data/raw/demographics.csv: invented background per participant (age, handedness, hand length, fingertip two-point discrimination threshold, gaming hours, VR experience). The person's own entry for individual configurations, a cohort summary for population ones; never results.",
+          "fields": [
+            "age",
+            "handedness",
+            "hand_length_cm",
+            "tactile_sensitivity_2pd_mm",
+            "gaming_hours_per_week",
+            "vr_experience"
+          ]
+        },
+        {
+          "id": "trajectory",
+          "label": "Practice hand movement",
+          "kind": "trajectory",
+          "description": "data/raw/movement_practice.csv: the person's index-fingertip movement in each practice sequence of each design (path length, mean speed, overshoot past the activation plane). Practice phase only, so it cannot stand in for the scored measures; individual configurations only.",
+          "fields": [
+            "design",
+            "phase",
+            "trial",
+            "path_length_cm",
+            "mean_speed_cm_s",
+            "overshoot_mm"
+          ],
+          "phases": [
+            "practice"
+          ]
+        }
+      ],
+      "runtime": {
+        "engine": "custom",
+        "backend": "custom",
+        "observation": "mono",
+        "deviceProfile": "webxr-desktop-browser-1280x720",
+        "requiredCapabilities": [
+          "screenshot",
+          "look",
+          "pointer-xy",
+          "phase-events",
+          "quality-lock"
+        ]
+      },
+      "outcomes": [
+        {
+          "id": "completion-time",
+          "label": "Completion time per sequence",
+          "domain": "objective",
+          "unit": "seconds per sequence",
+          "scale": "continuous",
+          "range": [
+            1,
+            60
+          ],
+          "aggregation": "geometric",
+          "family": "task-time",
+          "weight": 1,
+          "phaseIds": [
+            "main"
+          ],
+          "description": "Seconds from a sequence appearing to its last correct digit, geometric mean over the ten scored sequences of a design (practice excluded). Corrections count as part of the time."
+        },
+        {
+          "id": "error-rate",
+          "label": "Error rate",
+          "domain": "objective",
+          "unit": "proportion of digit presses",
+          "scale": "proportion",
+          "range": [
+            0,
+            1
+          ],
+          "aggregation": "arithmetic",
+          "family": "task-errors",
+          "weight": 1,
+          "phaseIds": [
+            "main"
+          ],
+          "description": "Wrong digit presses (a wrong key, or an unintended second activation of the same key) / all digit presses in the ten scored sequences. Presses of the delete key are not counted."
+        },
+        {
+          "id": "overshoot",
+          "label": "Overshoot depth",
+          "domain": "objective",
+          "unit": "mm past the activation plane",
+          "scale": "continuous",
+          "range": [
+            0,
+            40
+          ],
+          "aggregation": "arithmetic",
+          "family": "press-depth",
+          "weight": 1,
+          "phaseIds": [
+            "main"
+          ],
+          "description": "How far the index fingertip travelled past a key's activation plane before turning back, mean over all digit presses in the ten scored sequences."
+        },
+        {
+          "id": "confidence",
+          "label": "Press confidence",
+          "domain": "subjective",
+          "unit": "1–7",
+          "scale": "ordinal",
+          "range": [
+            1,
+            7
+          ],
+          "aggregation": "arithmetic",
+          "family": "confidence",
+          "weight": 1,
+          "phaseIds": [
+            "main",
+            "questionnaire"
+          ],
+          "description": "Single item after each design: \"I was confident that each press registered\" (1 = not at all, 7 = completely)."
+        },
+        {
+          "id": "workload",
+          "label": "Workload (raw NASA-TLX)",
+          "domain": "subjective",
+          "unit": "0–100 item mean",
+          "scale": "continuous",
+          "range": [
+            0,
+            100
+          ],
+          "aggregation": "arithmetic",
+          "family": "workload",
+          "weight": 1,
+          "phaseIds": [
+            "main",
+            "questionnaire"
+          ],
+          "components": [
+            "mental",
+            "physical",
+            "temporal",
+            "performance",
+            "effort",
+            "frustration"
+          ],
+          "componentRule": "mean",
+          "description": "Raw (unweighted) NASA-TLX after each design: the mean of six items, each 0–100 in steps of 5 (higher = more demanding). Performance is scored 0 = perfect, 100 = failure, so every item points the same way."
+        },
+        {
+          "id": "presence",
+          "label": "Presence (the buttons felt real)",
+          "domain": "subjective",
+          "unit": "1–7",
+          "scale": "ordinal",
+          "range": [
+            1,
+            7
+          ],
+          "aggregation": "arithmetic",
+          "family": "presence",
+          "weight": 1,
+          "phaseIds": [
+            "main",
+            "questionnaire"
+          ],
+          "description": "Single item after each design: \"I felt the buttons were really there\" (1 = not at all, 7 = completely)."
+        },
+        {
+          "id": "preference",
+          "label": "Overall preference",
+          "domain": "subjective",
+          "unit": "rank, 1 = best",
+          "scale": "rank",
+          "aggregation": "arithmetic",
+          "family": "preference",
+          "weight": 1,
+          "phaseIds": [
+            "main",
+            "ranking"
+          ],
+          "description": "At the end of the session, the three designs ranked overall (1 = best, no ties)."
+        }
+      ],
+      "analysis": {
+        "mode": "both",
+        "familyWeights": {
+          "task-time": 1,
+          "task-errors": 1,
+          "press-depth": 1,
+          "confidence": 1,
+          "workload": 1,
+          "presence": 1,
+          "preference": 1
+        },
+        "bootstrapDraws": 1000,
+        "seed": 2027,
+        "tieTolerance": 1e-8,
+        "contrasts": []
+      }
+    },
+    "assets": [],
+    "conditions": [
+      {
+        "id": "text-only",
+        "label": "Text only",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 5,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "text-only",
+            "label": "Text only",
+            "rationale": "Baseline: the study brief alone (task, designs, procedure, measures).",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief"
+            ],
+            "tools": [],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief"
+            ],
+            "maxToolCalls": 5,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "none",
+            "repetitions": 18
+          }
+        },
+        "jobs": [
+          {
+            "id": "text-only-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r18",
+            "repetition": 18,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "reads-evidence",
+        "label": "Text + evidence",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": true,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "reads-evidence",
+            "label": "Text + evidence",
+            "rationale": "Adds the background note on haptic feedback for mid-air buttons to the brief.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "evidence"
+            ],
+            "tools": [
+              "read-evidence"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "evidence"
+            ],
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "none",
+            "repetitions": 18
+          }
+        },
+        "jobs": [
+          {
+            "id": "reads-evidence-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r18",
+            "repetition": 18,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "cohort-background",
+        "label": "Text + cohort background",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [
+            "demographics"
+          ],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "cohort-background",
+            "label": "Text + cohort background",
+            "rationale": "Adds a summary of the cohort's background (means, ranges and counts over the 18 participants) to the brief.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "tools": [
+              "read-participant-data"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "none",
+            "repetitions": 18
+          }
+        },
+        "jobs": [
+          {
+            "id": "cohort-background-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "cohort-background-r18",
+            "repetition": 18,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "knows-participant",
+        "label": "Text + participant background (individual)",
+        "stage": "individual",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [
+            "demographics"
+          ],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "knows-participant",
+            "label": "Text + participant background (individual)",
+            "rationale": "Adds the person's own background (age, handedness, hand length, fingertip sensitivity, gaming hours, VR experience) to the brief; forecasts each participant.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "tools": [
+              "read-participant-data"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "individual",
+            "runtime": "none",
+            "repetitions": 1
+          }
+        },
+        "jobs": [
+          {
+            "id": "knows-participant-P01-r1",
+            "repetition": 1,
+            "participantId": "P01",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P02-r1",
+            "repetition": 1,
+            "participantId": "P02",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P03-r1",
+            "repetition": 1,
+            "participantId": "P03",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P04-r1",
+            "repetition": 1,
+            "participantId": "P04",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P05-r1",
+            "repetition": 1,
+            "participantId": "P05",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P06-r1",
+            "repetition": 1,
+            "participantId": "P06",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P07-r1",
+            "repetition": 1,
+            "participantId": "P07",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P08-r1",
+            "repetition": 1,
+            "participantId": "P08",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P09-r1",
+            "repetition": 1,
+            "participantId": "P09",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P10-r1",
+            "repetition": 1,
+            "participantId": "P10",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P11-r1",
+            "repetition": 1,
+            "participantId": "P11",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P12-r1",
+            "repetition": 1,
+            "participantId": "P12",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P13-r1",
+            "repetition": 1,
+            "participantId": "P13",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P14-r1",
+            "repetition": 1,
+            "participantId": "P14",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P15-r1",
+            "repetition": 1,
+            "participantId": "P15",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P16-r1",
+            "repetition": 1,
+            "participantId": "P16",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P17-r1",
+            "repetition": 1,
+            "participantId": "P17",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-P18-r1",
+            "repetition": 1,
+            "participantId": "P18",
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "knows-participant-and-movement",
+        "label": "Participant background + practice movement (individual)",
+        "stage": "individual",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [
+            "demographics",
+            "trajectory"
+          ],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "knows-participant-and-movement",
+            "label": "Participant background + practice movement (individual)",
+            "rationale": "Adds the person's fingertip movement during the practice sequences of each design (practice phase only) to the participant's background.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "demographics",
+              "trajectory"
+            ],
+            "tools": [
+              "read-participant-data"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "demographics",
+              "trajectory"
+            ],
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "individual",
+            "runtime": "none",
+            "repetitions": 1
+          }
+        },
+        "jobs": [
+          {
+            "id": "knows-participant-and-movement-P01-r1",
+            "repetition": 1,
+            "participantId": "P01",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P02-r1",
+            "repetition": 1,
+            "participantId": "P02",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P03-r1",
+            "repetition": 1,
+            "participantId": "P03",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P04-r1",
+            "repetition": 1,
+            "participantId": "P04",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P05-r1",
+            "repetition": 1,
+            "participantId": "P05",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P06-r1",
+            "repetition": 1,
+            "participantId": "P06",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P07-r1",
+            "repetition": 1,
+            "participantId": "P07",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P08-r1",
+            "repetition": 1,
+            "participantId": "P08",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P09-r1",
+            "repetition": 1,
+            "participantId": "P09",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P10-r1",
+            "repetition": 1,
+            "participantId": "P10",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P11-r1",
+            "repetition": 1,
+            "participantId": "P11",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P12-r1",
+            "repetition": 1,
+            "participantId": "P12",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P13-r1",
+            "repetition": 1,
+            "participantId": "P13",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P14-r1",
+            "repetition": 1,
+            "participantId": "P14",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P15-r1",
+            "repetition": 1,
+            "participantId": "P15",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P16-r1",
+            "repetition": 1,
+            "participantId": "P16",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P17-r1",
+            "repetition": 1,
+            "participantId": "P17",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-movement-P18-r1",
+            "repetition": 1,
+            "participantId": "P18",
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "knows-participant-and-task-data",
+        "label": "Participant background + measured task data (individual)",
+        "stage": "individual",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [
+            "demographics"
+          ],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "knows-participant-and-task-data",
+            "label": "Participant background + measured task data (individual)",
+            "rationale": "Adds the person's measured completion time, error rate and overshoot per design as inputs to the participant's background; predicts only the subjective measures.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "tools": [
+              "read-participant-data"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "maxToolCalls": 10,
+            "maxOutputTokens": 64000,
+            "maxTokens": 200000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "individual",
+            "runtime": "none",
+            "targets": [
+              "confidence",
+              "workload",
+              "presence",
+              "preference"
+            ],
+            "inputs": [
+              "completion-time",
+              "error-rate",
+              "overshoot"
+            ],
+            "repetitions": 1
+          }
+        },
+        "jobs": [
+          {
+            "id": "knows-participant-and-task-data-P01-r1",
+            "repetition": 1,
+            "participantId": "P01",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P02-r1",
+            "repetition": 1,
+            "participantId": "P02",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P03-r1",
+            "repetition": 1,
+            "participantId": "P03",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P04-r1",
+            "repetition": 1,
+            "participantId": "P04",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P05-r1",
+            "repetition": 1,
+            "participantId": "P05",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P06-r1",
+            "repetition": 1,
+            "participantId": "P06",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P07-r1",
+            "repetition": 1,
+            "participantId": "P07",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P08-r1",
+            "repetition": 1,
+            "participantId": "P08",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P09-r1",
+            "repetition": 1,
+            "participantId": "P09",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P10-r1",
+            "repetition": 1,
+            "participantId": "P10",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P11-r1",
+            "repetition": 1,
+            "participantId": "P11",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P12-r1",
+            "repetition": 1,
+            "participantId": "P12",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P13-r1",
+            "repetition": 1,
+            "participantId": "P13",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P14-r1",
+            "repetition": 1,
+            "participantId": "P14",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P15-r1",
+            "repetition": 1,
+            "participantId": "P15",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P16-r1",
+            "repetition": 1,
+            "participantId": "P16",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P17-r1",
+            "repetition": 1,
+            "participantId": "P17",
+            "assetIds": []
+          },
+          {
+            "id": "knows-participant-and-task-data-P18-r1",
+            "repetition": 1,
+            "participantId": "P18",
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "uses-app",
+        "label": "Uses the app",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": true,
+          "evidence": false,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 260,
+            "maxOutputTokens": 64000,
+            "maxTokens": 20000000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "uses-app",
+            "label": "Uses the app",
+            "rationale": "Compared with Text only, one ingredient: pressing the keys of the running app like a participant (three practice and ten scored sequences per design); each press shows its visual feedback and describes the vibration in words.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief"
+            ],
+            "tools": [
+              "xr-interact"
+            ],
+            "observation": "mono",
+            "requiredCaseIds": [
+              "visual-practice",
+              "visual-main",
+              "buzz-practice",
+              "buzz-main",
+              "pulse-practice",
+              "pulse-main"
+            ],
+            "requiredSourceIds": [
+              "brief"
+            ],
+            "maxToolCalls": 260,
+            "maxOutputTokens": 64000,
+            "maxTokens": 20000000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "webxr",
+            "repetitions": 18
+          }
+        },
+        "jobs": [
+          {
+            "id": "uses-app-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r18",
+            "repetition": 18,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "uses-app-knows-participant",
+        "label": "Uses the app + participant background (individual)",
+        "stage": "individual",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": true,
+          "evidence": false,
+          "personalInformation": [
+            "demographics"
+          ],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 260,
+            "maxOutputTokens": 64000,
+            "maxTokens": 20000000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "uses-app-knows-participant",
+            "label": "Uses the app + participant background (individual)",
+            "rationale": "Uses the app, plus the person's own background, forecasting each participant.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "tools": [
+              "read-participant-data",
+              "xr-interact"
+            ],
+            "observation": "mono",
+            "requiredCaseIds": [
+              "visual-practice",
+              "visual-main",
+              "buzz-practice",
+              "buzz-main",
+              "pulse-practice",
+              "pulse-main"
+            ],
+            "requiredSourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "maxToolCalls": 260,
+            "maxOutputTokens": 64000,
+            "maxTokens": 20000000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "individual",
+            "runtime": "webxr",
+            "repetitions": 1
+          }
+        },
+        "jobs": [
+          {
+            "id": "uses-app-knows-participant-P01-r1",
+            "repetition": 1,
+            "participantId": "P01",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P02-r1",
+            "repetition": 1,
+            "participantId": "P02",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P03-r1",
+            "repetition": 1,
+            "participantId": "P03",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P04-r1",
+            "repetition": 1,
+            "participantId": "P04",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P05-r1",
+            "repetition": 1,
+            "participantId": "P05",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P06-r1",
+            "repetition": 1,
+            "participantId": "P06",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P07-r1",
+            "repetition": 1,
+            "participantId": "P07",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P08-r1",
+            "repetition": 1,
+            "participantId": "P08",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P09-r1",
+            "repetition": 1,
+            "participantId": "P09",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P10-r1",
+            "repetition": 1,
+            "participantId": "P10",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P11-r1",
+            "repetition": 1,
+            "participantId": "P11",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P12-r1",
+            "repetition": 1,
+            "participantId": "P12",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P13-r1",
+            "repetition": 1,
+            "participantId": "P13",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P14-r1",
+            "repetition": 1,
+            "participantId": "P14",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P15-r1",
+            "repetition": 1,
+            "participantId": "P15",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P16-r1",
+            "repetition": 1,
+            "participantId": "P16",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P17-r1",
+            "repetition": 1,
+            "participantId": "P17",
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-knows-participant-P18-r1",
+            "repetition": 1,
+            "participantId": "P18",
+            "assetIds": []
+          }
+        ]
+      }
+    ],
+    "scoring": {
+      "adapter": "xr-study-sim-analyzer/1",
+      "assetIds": [],
+      "notes": [
+        "Built-in deterministic analyzer using the embedded study outcomes, family weights, tie tolerance, bootstrap draws and seed.",
+        "Contrasts may be added by later continuations; they do not change the scoring definition of existing outcomes."
+      ]
+    },
+    "notes": [
+      "Frozen from workbench plan bd0112d20795335299cae7bdfacd69bfa3a49a07b32cd4a03580424398bde045.",
+      "Each condition is one agent protocol. Continuations may add models, protocols and repetitions; unchanged jobs are reused."
+    ]
+  },
+  "protocolDigest": "76e6ef062b5d443f1e105609b679e192ab01b36949e28c2e71ad3924574f4bfd",
+  "model": {
+    "provider": "claude-code",
+    "model": "claude-opus-5-5",
+    "reasoning": "default"
+  },
+  "jobs": [
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "text-only-r1",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "text-only-r2",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r2"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "text-only-r3",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r3"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "text-only-r4",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r4"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "text-only-r5",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r5"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "text-only-r6",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r6"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "text-only-r7",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r7"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "text-only-r8",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r8"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "text-only-r9",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r9"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "text-only-r10",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r10"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "text-only-r11",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r11"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "text-only-r12",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r12"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "text-only-r13",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r13"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "text-only-r14",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r14"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "text-only-r15",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r15"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "text-only-r16",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r16"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "text-only-r17",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r17"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--text-only-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "text-only-r18",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--text-only-r18"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r1",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r2",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r2"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r3",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r3"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r4",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r4"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r5",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r5"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r6",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r6"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r7",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r7"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r8",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r8"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r9",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r9"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r10",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r10"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r11",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r11"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r12",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r12"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r13",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r13"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r14",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r14"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r15",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r15"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r16",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r16"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r17",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r17"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--reads-evidence-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r18",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--reads-evidence-r18"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r1",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r2",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r2"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r3",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r3"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r4",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r4"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r5",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r5"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r6",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r6"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r7",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r7"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r8",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r8"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r9",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r9"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r10",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r10"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r11",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r11"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r12",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r12"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r13",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r13"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r14",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r14"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r15",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r15"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r16",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r16"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r17",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r17"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--cohort-background-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "cohort-background-r18",
+      "conditionId": "cohort-background",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--cohort-background-r18"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P01-r1",
+      "repetition": 1,
+      "participantId": "P01",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P01-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P01-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P02-r1",
+      "repetition": 1,
+      "participantId": "P02",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P02-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P02-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P03-r1",
+      "repetition": 1,
+      "participantId": "P03",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P03-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P03-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P04-r1",
+      "repetition": 1,
+      "participantId": "P04",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P04-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P04-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P05-r1",
+      "repetition": 1,
+      "participantId": "P05",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P05-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P05-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P06-r1",
+      "repetition": 1,
+      "participantId": "P06",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P06-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P06-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P07-r1",
+      "repetition": 1,
+      "participantId": "P07",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P07-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P07-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P08-r1",
+      "repetition": 1,
+      "participantId": "P08",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P08-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P08-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P09-r1",
+      "repetition": 1,
+      "participantId": "P09",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P09-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P09-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P10-r1",
+      "repetition": 1,
+      "participantId": "P10",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P10-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P10-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P11-r1",
+      "repetition": 1,
+      "participantId": "P11",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P11-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P11-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P12-r1",
+      "repetition": 1,
+      "participantId": "P12",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P12-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P12-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P13-r1",
+      "repetition": 1,
+      "participantId": "P13",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P13-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P13-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P14-r1",
+      "repetition": 1,
+      "participantId": "P14",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P14-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P14-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P15-r1",
+      "repetition": 1,
+      "participantId": "P15",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P15-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P15-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P16-r1",
+      "repetition": 1,
+      "participantId": "P16",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P16-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P16-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P17-r1",
+      "repetition": 1,
+      "participantId": "P17",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P17-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P17-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-P18-r1",
+      "repetition": 1,
+      "participantId": "P18",
+      "assetIds": [],
+      "templateJobId": "knows-participant-P18-r1",
+      "conditionId": "knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-P18-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P01-r1",
+      "repetition": 1,
+      "participantId": "P01",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P01-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P01-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P02-r1",
+      "repetition": 1,
+      "participantId": "P02",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P02-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P02-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P03-r1",
+      "repetition": 1,
+      "participantId": "P03",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P03-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P03-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P04-r1",
+      "repetition": 1,
+      "participantId": "P04",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P04-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P04-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P05-r1",
+      "repetition": 1,
+      "participantId": "P05",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P05-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P05-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P06-r1",
+      "repetition": 1,
+      "participantId": "P06",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P06-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P06-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P07-r1",
+      "repetition": 1,
+      "participantId": "P07",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P07-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P07-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P08-r1",
+      "repetition": 1,
+      "participantId": "P08",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P08-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P08-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P09-r1",
+      "repetition": 1,
+      "participantId": "P09",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P09-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P09-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P10-r1",
+      "repetition": 1,
+      "participantId": "P10",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P10-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P10-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P11-r1",
+      "repetition": 1,
+      "participantId": "P11",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P11-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P11-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P12-r1",
+      "repetition": 1,
+      "participantId": "P12",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P12-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P12-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P13-r1",
+      "repetition": 1,
+      "participantId": "P13",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P13-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P13-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P14-r1",
+      "repetition": 1,
+      "participantId": "P14",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P14-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P14-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P15-r1",
+      "repetition": 1,
+      "participantId": "P15",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P15-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P15-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P16-r1",
+      "repetition": 1,
+      "participantId": "P16",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P16-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P16-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P17-r1",
+      "repetition": 1,
+      "participantId": "P17",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P17-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P17-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P18-r1",
+      "repetition": 1,
+      "participantId": "P18",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-movement-P18-r1",
+      "conditionId": "knows-participant-and-movement",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-movement-P18-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P01-r1",
+      "repetition": 1,
+      "participantId": "P01",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P01-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P01-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P02-r1",
+      "repetition": 1,
+      "participantId": "P02",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P02-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P02-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P03-r1",
+      "repetition": 1,
+      "participantId": "P03",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P03-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P03-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P04-r1",
+      "repetition": 1,
+      "participantId": "P04",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P04-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P04-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P05-r1",
+      "repetition": 1,
+      "participantId": "P05",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P05-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P05-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P06-r1",
+      "repetition": 1,
+      "participantId": "P06",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P06-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P06-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P07-r1",
+      "repetition": 1,
+      "participantId": "P07",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P07-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P07-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P08-r1",
+      "repetition": 1,
+      "participantId": "P08",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P08-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P08-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P09-r1",
+      "repetition": 1,
+      "participantId": "P09",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P09-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P09-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P10-r1",
+      "repetition": 1,
+      "participantId": "P10",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P10-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P10-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P11-r1",
+      "repetition": 1,
+      "participantId": "P11",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P11-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P11-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P12-r1",
+      "repetition": 1,
+      "participantId": "P12",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P12-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P12-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P13-r1",
+      "repetition": 1,
+      "participantId": "P13",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P13-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P13-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P14-r1",
+      "repetition": 1,
+      "participantId": "P14",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P14-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P14-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P15-r1",
+      "repetition": 1,
+      "participantId": "P15",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P15-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P15-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P16-r1",
+      "repetition": 1,
+      "participantId": "P16",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P16-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P16-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P17-r1",
+      "repetition": 1,
+      "participantId": "P17",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P17-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P17-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P18-r1",
+      "repetition": 1,
+      "participantId": "P18",
+      "assetIds": [],
+      "templateJobId": "knows-participant-and-task-data-P18-r1",
+      "conditionId": "knows-participant-and-task-data",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--knows-participant-and-task-data-P18-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "uses-app-r1",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "uses-app-r2",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r2"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "uses-app-r3",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r3"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "uses-app-r4",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r4"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "uses-app-r5",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r5"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "uses-app-r6",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r6"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "uses-app-r7",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r7"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "uses-app-r8",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r8"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "uses-app-r9",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r9"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "uses-app-r10",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r10"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "uses-app-r11",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r11"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "uses-app-r12",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r12"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "uses-app-r13",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r13"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "uses-app-r14",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r14"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "uses-app-r15",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r15"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "uses-app-r16",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r16"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "uses-app-r17",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r17"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "uses-app-r18",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-r18"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P01-r1",
+      "repetition": 1,
+      "participantId": "P01",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P01-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P01-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P02-r1",
+      "repetition": 1,
+      "participantId": "P02",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P02-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P02-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P03-r1",
+      "repetition": 1,
+      "participantId": "P03",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P03-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P03-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P04-r1",
+      "repetition": 1,
+      "participantId": "P04",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P04-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P04-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P05-r1",
+      "repetition": 1,
+      "participantId": "P05",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P05-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P05-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P06-r1",
+      "repetition": 1,
+      "participantId": "P06",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P06-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P06-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P07-r1",
+      "repetition": 1,
+      "participantId": "P07",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P07-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P07-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P08-r1",
+      "repetition": 1,
+      "participantId": "P08",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P08-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P08-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P09-r1",
+      "repetition": 1,
+      "participantId": "P09",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P09-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P09-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P10-r1",
+      "repetition": 1,
+      "participantId": "P10",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P10-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P10-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P11-r1",
+      "repetition": 1,
+      "participantId": "P11",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P11-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P11-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P12-r1",
+      "repetition": 1,
+      "participantId": "P12",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P12-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P12-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P13-r1",
+      "repetition": 1,
+      "participantId": "P13",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P13-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P13-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P14-r1",
+      "repetition": 1,
+      "participantId": "P14",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P14-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P14-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P15-r1",
+      "repetition": 1,
+      "participantId": "P15",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P15-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P15-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P16-r1",
+      "repetition": 1,
+      "participantId": "P16",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P16-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P16-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P17-r1",
+      "repetition": 1,
+      "participantId": "P17",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P17-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P17-r1"
+    },
+    {
+      "id": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P18-r1",
+      "repetition": 1,
+      "participantId": "P18",
+      "assetIds": [],
+      "templateJobId": "uses-app-knows-participant-P18-r1",
+      "conditionId": "uses-app-knows-participant",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-8598647c5e3a--uses-app-knows-participant-P18-r1"
+    }
+  ],
+  "digest": "eaced399e42b601d13d32147c1a9e38f1c6cab9eae095daaa9bb4d3133954f22"
+}

@@ -1,0 +1,24 @@
+{
+  "campaignId": "campaign-starter-613cf1ad23fc",
+  "recordedAt": "2026-01-01T00:00:00.000Z",
+  "sources": {
+    "brief": {
+      "path": "agent-brief.md",
+      "sha256": "a2f0443fd5cbc7963c9bc6959414373753affabe4176b3149dda11bab1aea2e1"
+    },
+    "evidence": {
+      "path": "evidence/text-entry-in-vr.md",
+      "sha256": "2d04d903a852d42860c78ff46943762f78db145dc1d73bb39e5a782c45871dd4"
+    },
+    "background": {
+      "path": "data/raw/background.csv",
+      "sha256": "5354f9684560a04f26279c7ea715cb6e9147430de4720057b833f8244751cae3"
+    }
+  },
+  "app": {
+    "serve": "webxr-app",
+    "query": "?keyboard={condition}&study=1&participant={participant}",
+    "sha256": "6b5a4e019a65a9cc52b33792ed041a4656869ac6e2e656a6f556186bcff517b7",
+    "declared": "2d2f4432c2f388c1172e61c1af415c83db07050192a75b308530d4db86b9a524"
+  }
+}

@@ -1,0 +1,484 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-haptic-buttons-webxr",
+  "title": "Haptic feedback for mid-air buttons in VR (WebXR app)",
+  "researchQuestion": "How do three kinds of feedback for pressing mid-air buttons in VR (visual feedback only, a vibrotactile buzz, a patterned vibrotactile pulse) differ in entry time, errors, how far the finger overshoots the button, confidence, workload, presence and preference?",
+  "agentQuestions": "Which agent configurations reproduce the human differences between the three designs? At individual level: does the person's background, their hand movement during practice, or their measured task performance (given as inputs) improve the forecasts for that person? All participants and data in this example are invented.",
+  "synthetic": true,
+  "design": "within-subjects",
+  "predictionLevel": "population",
+  "predictionTiming": "after-experience",
+  "conditions": [
+    {
+      "id": "visual",
+      "label": "Visual feedback only"
+    },
+    {
+      "id": "buzz",
+      "label": "Vibrotactile buzz"
+    },
+    {
+      "id": "pulse",
+      "label": "Patterned pulse"
+    }
+  ],
+  "phases": [
+    {
+      "id": "practice",
+      "label": "Practice: three sequences per design",
+      "kind": "practice"
+    },
+    {
+      "id": "main",
+      "label": "Scored entry: ten sequences per design",
+      "kind": "main"
+    },
+    {
+      "id": "questionnaire",
+      "label": "Questionnaire after each design",
+      "kind": "questionnaire"
+    },
+    {
+      "id": "ranking",
+      "label": "Final ranking of the designs",
+      "kind": "questionnaire"
+    }
+  ],
+  "cases": [
+    {
+      "id": "visual-practice",
+      "conditionId": "visual",
+      "phaseId": "practice",
+      "label": "Visual feedback only: three practice sequences",
+      "requiredActions": [
+        "select-target"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "visual-main",
+      "conditionId": "visual",
+      "phaseId": "main",
+      "label": "Visual feedback only: ten scored sequences",
+      "requiredActions": [
+        "select-target"
+      ],
+      "minActions": 40
+    },
+    {
+      "id": "buzz-practice",
+      "conditionId": "buzz",
+      "phaseId": "practice",
+      "label": "Vibrotactile buzz: three practice sequences",
+      "requiredActions": [
+        "select-target"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "buzz-main",
+      "conditionId": "buzz",
+      "phaseId": "main",
+      "label": "Vibrotactile buzz: ten scored sequences",
+      "requiredActions": [
+        "select-target"
+      ],
+      "minActions": 40
+    },
+    {
+      "id": "pulse-practice",
+      "conditionId": "pulse",
+      "phaseId": "practice",
+      "label": "Patterned pulse: three practice sequences",
+      "requiredActions": [
+        "select-target"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "pulse-main",
+      "conditionId": "pulse",
+      "phaseId": "main",
+      "label": "Patterned pulse: ten scored sequences",
+      "requiredActions": [
+        "select-target"
+      ],
+      "minActions": 40
+    }
+  ],
+  "participants": [
+    {
+      "id": "P01",
+      "stratum": "visual-buzz-pulse",
+      "conditionOrder": [
+        "visual",
+        "buzz",
+        "pulse"
+      ]
+    },
+    {
+      "id": "P02",
+      "stratum": "buzz-pulse-visual",
+      "conditionOrder": [
+        "buzz",
+        "pulse",
+        "visual"
+      ]
+    },
+    {
+      "id": "P03",
+      "stratum": "pulse-visual-buzz",
+      "conditionOrder": [
+        "pulse",
+        "visual",
+        "buzz"
+      ]
+    },
+    {
+      "id": "P04",
+      "stratum": "visual-pulse-buzz",
+      "conditionOrder": [
+        "visual",
+        "pulse",
+        "buzz"
+      ]
+    },
+    {
+      "id": "P05",
+      "stratum": "pulse-buzz-visual",
+      "conditionOrder": [
+        "pulse",
+        "buzz",
+        "visual"
+      ]
+    },
+    {
+      "id": "P06",
+      "stratum": "buzz-visual-pulse",
+      "conditionOrder": [
+        "buzz",
+        "visual",
+        "pulse"
+      ]
+    },
+    {
+      "id": "P07",
+      "stratum": "visual-buzz-pulse",
+      "conditionOrder": [
+        "visual",
+        "buzz",
+        "pulse"
+      ]
+    },
+    {
+      "id": "P08",
+      "stratum": "buzz-pulse-visual",
+      "conditionOrder": [
+        "buzz",
+        "pulse",
+        "visual"
+      ]
+    },
+    {
+      "id": "P09",
+      "stratum": "pulse-visual-buzz",
+      "conditionOrder": [
+        "pulse",
+        "visual",
+        "buzz"
+      ]
+    },
+    {
+      "id": "P10",
+      "stratum": "visual-pulse-buzz",
+      "conditionOrder": [
+        "visual",
+        "pulse",
+        "buzz"
+      ]
+    },
+    {
+      "id": "P11",
+      "stratum": "pulse-buzz-visual",
+      "conditionOrder": [
+        "pulse",
+        "buzz",
+        "visual"
+      ]
+    },
+    {
+      "id": "P12",
+      "stratum": "buzz-visual-pulse",
+      "conditionOrder": [
+        "buzz",
+        "visual",
+        "pulse"
+      ]
+    },
+    {
+      "id": "P13",
+      "stratum": "visual-buzz-pulse",
+      "conditionOrder": [
+        "visual",
+        "buzz",
+        "pulse"
+      ]
+    },
+    {
+      "id": "P14",
+      "stratum": "buzz-pulse-visual",
+      "conditionOrder": [
+        "buzz",
+        "pulse",
+        "visual"
+      ]
+    },
+    {
+      "id": "P15",
+      "stratum": "pulse-visual-buzz",
+      "conditionOrder": [
+        "pulse",
+        "visual",
+        "buzz"
+      ]
+    },
+    {
+      "id": "P16",
+      "stratum": "visual-pulse-buzz",
+      "conditionOrder": [
+        "visual",
+        "pulse",
+        "buzz"
+      ]
+    },
+    {
+      "id": "P17",
+      "stratum": "pulse-buzz-visual",
+      "conditionOrder": [
+        "pulse",
+        "buzz",
+        "visual"
+      ]
+    },
+    {
+      "id": "P18",
+      "stratum": "buzz-visual-pulse",
+      "conditionOrder": [
+        "buzz",
+        "visual",
+        "pulse"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "brief",
+      "label": "Study brief",
+      "kind": "brief",
+      "description": "agent-brief.md: the keypad task, the three feedback designs, the procedure and the measures, without any participant answers."
+    },
+    {
+      "id": "evidence",
+      "label": "Background note on haptic feedback",
+      "kind": "evidence",
+      "description": "evidence/haptics-evidence.md: a short, neutral note on haptic feedback for mid-air buttons, written without the synthetic data. No results of this study."
+    },
+    {
+      "id": "demographics",
+      "label": "Participant background",
+      "kind": "demographics",
+      "description": "data/raw/demographics.csv: invented background per participant (age, handedness, hand length, fingertip two-point discrimination threshold, gaming hours, VR experience). The person's own entry for individual configurations, a cohort summary for population ones; never results.",
+      "fields": [
+        "age",
+        "handedness",
+        "hand_length_cm",
+        "tactile_sensitivity_2pd_mm",
+        "gaming_hours_per_week",
+        "vr_experience"
+      ]
+    },
+    {
+      "id": "trajectory",
+      "label": "Practice hand movement",
+      "kind": "trajectory",
+      "description": "data/raw/movement_practice.csv: the person's index-fingertip movement in each practice sequence of each design (path length, mean speed, overshoot past the activation plane). Practice phase only, so it cannot stand in for the scored measures; individual configurations only.",
+      "fields": [
+        "design",
+        "phase",
+        "trial",
+        "path_length_cm",
+        "mean_speed_cm_s",
+        "overshoot_mm"
+      ],
+      "phases": [
+        "practice"
+      ]
+    }
+  ],
+  "runtime": {
+    "engine": "custom",
+    "backend": "custom",
+    "observation": "mono",
+    "deviceProfile": "webxr-desktop-browser-1280x720",
+    "requiredCapabilities": [
+      "screenshot",
+      "look",
+      "pointer-xy",
+      "phase-events",
+      "quality-lock"
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "completion-time",
+      "label": "Completion time per sequence",
+      "domain": "objective",
+      "unit": "seconds per sequence",
+      "scale": "continuous",
+      "range": [
+        1,
+        60
+      ],
+      "aggregation": "geometric",
+      "family": "task-time",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Seconds from a sequence appearing to its last correct digit, geometric mean over the ten scored sequences of a design (practice excluded). Corrections count as part of the time."
+    },
+    {
+      "id": "error-rate",
+      "label": "Error rate",
+      "domain": "objective",
+      "unit": "proportion of digit presses",
+      "scale": "proportion",
+      "range": [
+        0,
+        1
+      ],
+      "aggregation": "arithmetic",
+      "family": "task-errors",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Wrong digit presses (a wrong key, or an unintended second activation of the same key) / all digit presses in the ten scored sequences. Presses of the delete key are not counted."
+    },
+    {
+      "id": "overshoot",
+      "label": "Overshoot depth",
+      "domain": "objective",
+      "unit": "mm past the activation plane",
+      "scale": "continuous",
+      "range": [
+        0,
+        40
+      ],
+      "aggregation": "arithmetic",
+      "family": "press-depth",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "How far the index fingertip travelled past a key's activation plane before turning back, mean over all digit presses in the ten scored sequences."
+    },
+    {
+      "id": "confidence",
+      "label": "Press confidence",
+      "domain": "subjective",
+      "unit": "1–7",
+      "scale": "ordinal",
+      "range": [
+        1,
+        7
+      ],
+      "aggregation": "arithmetic",
+      "family": "confidence",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Single item after each design: \"I was confident that each press registered\" (1 = not at all, 7 = completely)."
+    },
+    {
+      "id": "workload",
+      "label": "Workload (raw NASA-TLX)",
+      "domain": "subjective",
+      "unit": "0–100 item mean",
+      "scale": "continuous",
+      "range": [
+        0,
+        100
+      ],
+      "aggregation": "arithmetic",
+      "family": "workload",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "components": [
+        "mental",
+        "physical",
+        "temporal",
+        "performance",
+        "effort",
+        "frustration"
+      ],
+      "componentRule": "mean",
+      "description": "Raw (unweighted) NASA-TLX after each design: the mean of six items, each 0–100 in steps of 5 (higher = more demanding). Performance is scored 0 = perfect, 100 = failure, so every item points the same way."
+    },
+    {
+      "id": "presence",
+      "label": "Presence (the buttons felt real)",
+      "domain": "subjective",
+      "unit": "1–7",
+      "scale": "ordinal",
+      "range": [
+        1,
+        7
+      ],
+      "aggregation": "arithmetic",
+      "family": "presence",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "questionnaire"
+      ],
+      "description": "Single item after each design: \"I felt the buttons were really there\" (1 = not at all, 7 = completely)."
+    },
+    {
+      "id": "preference",
+      "label": "Overall preference",
+      "domain": "subjective",
+      "unit": "rank, 1 = best",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference",
+      "weight": 1,
+      "phaseIds": [
+        "main",
+        "ranking"
+      ],
+      "description": "At the end of the session, the three designs ranked overall (1 = best, no ties)."
+    }
+  ],
+  "analysis": {
+    "mode": "both",
+    "familyWeights": {
+      "task-time": 1,
+      "task-errors": 1,
+      "press-depth": 1,
+      "confidence": 1,
+      "workload": 1,
+      "presence": 1,
+      "preference": 1
+    },
+    "bootstrapDraws": 1000,
+    "seed": 2027,
+    "tieTolerance": 1e-08,
+    "contrasts": []
+  }
+}

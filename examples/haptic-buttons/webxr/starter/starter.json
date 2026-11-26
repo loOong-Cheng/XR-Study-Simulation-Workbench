@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "xr-starter/1",
+  "label": "Starter · 1 run per participant",
+  "campaignId": "campaign-starter-8598647c5e3a",
+  "campaignDigest": "eaced399e42b601d13d32147c1a9e38f1c6cab9eae095daaa9bb4d3133954f22",
+  "runsPerParticipant": 1,
+  "sessions": 144,
+  "configurations": [
+    {
+      "id": "text-only",
+      "label": "Text only",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "reads-evidence",
+      "label": "Text + evidence",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "cohort-background",
+      "label": "Text + cohort background",
+      "level": "population",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-participant",
+      "label": "Text + participant background (individual)",
+      "level": "individual",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-participant-and-movement",
+      "label": "Participant background + practice movement (individual)",
+      "level": "individual",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "knows-participant-and-task-data",
+      "label": "Participant background + measured task data (individual)",
+      "level": "individual",
+      "runtime": "none",
+      "sessions": 18,
+      "needs": "nothing (app-free)"
+    },
+    {
+      "id": "uses-app",
+      "label": "Uses the app",
+      "level": "population",
+      "runtime": "webxr",
+      "sessions": 18,
+      "needs": "Chrome (built-in WebXR runtime)"
+    },
+    {
+      "id": "uses-app-knows-participant",
+      "label": "Uses the app + participant background (individual)",
+      "level": "individual",
+      "runtime": "webxr",
+      "sessions": 18,
+      "needs": "Chrome (built-in WebXR runtime)"
+    }
+  ],
+  "notes": [
+    "Frozen from this suite's study.json and agents.json at 1 run per participant (configurations with their own run count keep it), exactly as Freeze & campaigns → Freeze campaign freezes them, with a fixed ID and date so every machine gets the same campaign.",
+    "Installed into campaigns/ when the study opens with no campaign yet (and by node scripts/setup.mjs); deleting it does not bring it back. Freeze another campaign at any time.",
+    "Simulate works for every configuration at no cost. Real sessions (Mode: Run agents) use your Claude Code login: start with one session (Run this session only)."
+  ],
+  "rebuild": "npm run starters (after changing the suite's study.json, agents.json, workspace.json or a source file)"
+}

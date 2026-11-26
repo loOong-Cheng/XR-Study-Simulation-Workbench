@@ -1,0 +1,3335 @@
+{
+  "schemaVersion": "xr-campaign/1",
+  "id": "campaign-starter-f906f98ac4a4",
+  "createdAt": "2026-01-01T00:00:00.000Z",
+  "parentDigest": null,
+  "suite": {
+    "schemaVersion": "xr-campaign-suite/1",
+    "id": "study-synthetic-haptic-buttons-between-webxr",
+    "title": "Haptic feedback for mid-air buttons in VR, between subjects (WebXR app)",
+    "synthetic": true,
+    "study": {
+      "schemaVersion": "1.0",
+      "id": "synthetic-haptic-buttons-between-webxr",
+      "title": "Haptic feedback for mid-air buttons in VR, between subjects (WebXR app)",
+      "researchQuestion": "How does the feedback of a mid-air keypad in VR (visual feedback only, a short vibrotactile buzz, or a patterned vibrotactile pulse) affect code-entry time and errors, presence, perceived workload and comfort?",
+      "agentQuestions": "Which agent configurations (text only, adding an evidence document, the cohort's background, or the measured task performance) reproduce the significant differences between the groups, and whose absolute values fall inside each group's 95% interval?",
+      "synthetic": true,
+      "design": "between-subjects",
+      "predictionLevel": "population",
+      "predictionTiming": "after-experience",
+      "conditions": [
+        {
+          "id": "visual",
+          "label": "Visual feedback only"
+        },
+        {
+          "id": "buzz",
+          "label": "Vibrotactile buzz (one short vibration when a key registers)"
+        },
+        {
+          "id": "pulse",
+          "label": "Patterned pulse (contact tick, double pulse when a key registers, release tick)"
+        }
+      ],
+      "phases": [
+        {
+          "id": "practice",
+          "label": "Practice codes",
+          "kind": "practice"
+        },
+        {
+          "id": "main",
+          "label": "Scored codes",
+          "kind": "main"
+        },
+        {
+          "id": "questionnaire",
+          "label": "Questionnaire after the codes",
+          "kind": "questionnaire"
+        }
+      ],
+      "cases": [
+        {
+          "id": "visual-practice",
+          "conditionId": "visual",
+          "phaseId": "practice",
+          "label": "Practice: type two 4-digit codes",
+          "requiredActions": [
+            "press-key",
+            "confirm-code"
+          ],
+          "minActions": 2
+        },
+        {
+          "id": "visual-main",
+          "conditionId": "visual",
+          "phaseId": "main",
+          "label": "Type the twelve scored 4-digit codes",
+          "requiredActions": [
+            "press-key",
+            "confirm-code"
+          ],
+          "minActions": 12
+        },
+        {
+          "id": "buzz-practice",
+          "conditionId": "buzz",
+          "phaseId": "practice",
+          "label": "Practice: type two 4-digit codes",
+          "requiredActions": [
+            "press-key",
+            "confirm-code"
+          ],
+          "minActions": 2
+        },
+        {
+          "id": "buzz-main",
+          "conditionId": "buzz",
+          "phaseId": "main",
+          "label": "Type the twelve scored 4-digit codes",
+          "requiredActions": [
+            "press-key",
+            "confirm-code"
+          ],
+          "minActions": 12
+        },
+        {
+          "id": "pulse-practice",
+          "conditionId": "pulse",
+          "phaseId": "practice",
+          "label": "Practice: type two 4-digit codes",
+          "requiredActions": [
+            "press-key",
+            "confirm-code"
+          ],
+          "minActions": 2
+        },
+        {
+          "id": "pulse-main",
+          "conditionId": "pulse",
+          "phaseId": "main",
+          "label": "Type the twelve scored 4-digit codes",
+          "requiredActions": [
+            "press-key",
+            "confirm-code"
+          ],
+          "minActions": 12
+        }
+      ],
+      "participants": [
+        {
+          "id": "p01",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p02",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p03",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p04",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p05",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p06",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p07",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p08",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p09",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p10",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p11",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p12",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p13",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p14",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p15",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p16",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p17",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p18",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p19",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p20",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p21",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p22",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p23",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p24",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p25",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p26",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p27",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p28",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p29",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p30",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p31",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p32",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        },
+        {
+          "id": "p33",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p34",
+          "stratum": "group-pulse",
+          "conditionOrder": [
+            "pulse"
+          ]
+        },
+        {
+          "id": "p35",
+          "stratum": "group-buzz",
+          "conditionOrder": [
+            "buzz"
+          ]
+        },
+        {
+          "id": "p36",
+          "stratum": "group-visual",
+          "conditionOrder": [
+            "visual"
+          ]
+        }
+      ],
+      "sources": [
+        {
+          "id": "brief",
+          "label": "Study brief",
+          "kind": "brief",
+          "description": "agent-brief.md: the keypad, the three feedback designs, the procedure and the measures, without any participant answers."
+        },
+        {
+          "id": "evidence",
+          "label": "Background note on tactile feedback",
+          "kind": "evidence",
+          "description": "evidence/tactile-feedback-note.md: invented, general statements about feedback for mid-air buttons; written without the synthetic answers and not fitted to them."
+        },
+        {
+          "id": "demographics",
+          "label": "Participant background",
+          "kind": "demographics",
+          "description": "data/raw/background.csv: invented background per participant, collected before the task; never results. Population configurations get a summary of the cohort.",
+          "fields": [
+            "age",
+            "vr_experience",
+            "prior_haptic_devices",
+            "motion_sickness_susceptibility",
+            "dominant_hand"
+          ]
+        }
+      ],
+      "runtime": {
+        "engine": "custom",
+        "backend": "custom",
+        "observation": "mono",
+        "deviceProfile": "webxr-desktop-browser-1280x720",
+        "requiredCapabilities": [
+          "screenshot",
+          "look",
+          "actions",
+          "phase-events",
+          "quality-lock"
+        ]
+      },
+      "outcomes": [
+        {
+          "id": "completion-time",
+          "label": "Code entry time",
+          "domain": "objective",
+          "unit": "seconds per code",
+          "scale": "continuous",
+          "range": [
+            1,
+            60
+          ],
+          "aggregation": "geometric",
+          "family": "task-time",
+          "weight": 1,
+          "phaseIds": [
+            "main"
+          ],
+          "description": "Seconds from a code appearing to the Enter press, geometric mean over the twelve scored codes; practice excluded, corrections included."
+        },
+        {
+          "id": "error-rate",
+          "label": "Error rate",
+          "domain": "objective",
+          "unit": "proportion of digit presses",
+          "scale": "proportion",
+          "range": [
+            0,
+            1
+          ],
+          "aggregation": "arithmetic",
+          "family": "task-accuracy",
+          "weight": 1,
+          "phaseIds": [
+            "main"
+          ],
+          "description": "Wrong digit presses (a wrong key, or one key registered twice) / all digit presses in the scored codes; Delete and Enter not counted."
+        },
+        {
+          "id": "presence",
+          "label": "Presence",
+          "domain": "subjective",
+          "unit": "1–7",
+          "scale": "ordinal",
+          "range": [
+            1,
+            7
+          ],
+          "aggregation": "arithmetic",
+          "family": "presence",
+          "weight": 1,
+          "phaseIds": [
+            "practice",
+            "main"
+          ],
+          "description": "'The keypad felt as if it were really there in front of me' (1 = not at all, 7 = completely), after the codes."
+        },
+        {
+          "id": "workload",
+          "label": "Perceived workload (Raw TLX)",
+          "domain": "subjective",
+          "unit": "0–100 item mean",
+          "scale": "continuous",
+          "range": [
+            0,
+            100
+          ],
+          "aggregation": "arithmetic",
+          "family": "workload",
+          "weight": 1,
+          "phaseIds": [
+            "practice",
+            "main"
+          ],
+          "components": [
+            "mental",
+            "physical",
+            "temporal",
+            "performance",
+            "effort",
+            "frustration"
+          ],
+          "description": "Unweighted mean of the six NASA-TLX items, each 0–100 in steps of 5 (performance: 0 = perfect, 100 = failure), after the codes."
+        },
+        {
+          "id": "comfort",
+          "label": "Comfort",
+          "domain": "subjective",
+          "unit": "1–7",
+          "scale": "ordinal",
+          "range": [
+            1,
+            7
+          ],
+          "aggregation": "arithmetic",
+          "family": "comfort",
+          "weight": 1,
+          "phaseIds": [
+            "practice",
+            "main"
+          ],
+          "description": "'How comfortable was typing on the keypad?' (1 = very uncomfortable, 7 = very comfortable), after the codes."
+        }
+      ],
+      "analysis": {
+        "mode": "both",
+        "familyWeights": {
+          "task-time": 1,
+          "task-accuracy": 1,
+          "presence": 1,
+          "workload": 1,
+          "comfort": 1
+        },
+        "bootstrapDraws": 1000,
+        "seed": 2611,
+        "tieTolerance": 1e-8,
+        "contrasts": []
+      }
+    },
+    "assets": [],
+    "conditions": [
+      {
+        "id": "text-only",
+        "label": "Text only",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 5,
+            "maxOutputTokens": 32000,
+            "maxTokens": 150000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "text-only",
+            "label": "Text only",
+            "rationale": "Baseline: the written study brief alone. Each other configuration adds one ingredient to it.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief"
+            ],
+            "tools": [],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief"
+            ],
+            "maxToolCalls": 5,
+            "maxOutputTokens": 32000,
+            "maxTokens": 150000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "none",
+            "repetitions": 36
+          }
+        },
+        "jobs": [
+          {
+            "id": "text-only-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r18",
+            "repetition": 18,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r19",
+            "repetition": 19,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r20",
+            "repetition": 20,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r21",
+            "repetition": 21,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r22",
+            "repetition": 22,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r23",
+            "repetition": 23,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r24",
+            "repetition": 24,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r25",
+            "repetition": 25,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r26",
+            "repetition": 26,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r27",
+            "repetition": 27,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r28",
+            "repetition": 28,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r29",
+            "repetition": 29,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r30",
+            "repetition": 30,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r31",
+            "repetition": 31,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r32",
+            "repetition": 32,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r33",
+            "repetition": 33,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r34",
+            "repetition": 34,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r35",
+            "repetition": 35,
+            "assetIds": []
+          },
+          {
+            "id": "text-only-r36",
+            "repetition": 36,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "reads-evidence",
+        "label": "Text + evidence note",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": true,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 5,
+            "maxOutputTokens": 32000,
+            "maxTokens": 150000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "reads-evidence",
+            "label": "Text + evidence note",
+            "rationale": "Compared with Text only, one ingredient: the background note on tactile feedback (general knowledge, no results of this study).",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "evidence"
+            ],
+            "tools": [
+              "read-evidence"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "evidence"
+            ],
+            "maxToolCalls": 5,
+            "maxOutputTokens": 32000,
+            "maxTokens": 150000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "none",
+            "repetitions": 36
+          }
+        },
+        "jobs": [
+          {
+            "id": "reads-evidence-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r18",
+            "repetition": 18,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r19",
+            "repetition": 19,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r20",
+            "repetition": 20,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r21",
+            "repetition": 21,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r22",
+            "repetition": 22,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r23",
+            "repetition": 23,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r24",
+            "repetition": 24,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r25",
+            "repetition": 25,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r26",
+            "repetition": 26,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r27",
+            "repetition": 27,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r28",
+            "repetition": 28,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r29",
+            "repetition": 29,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r30",
+            "repetition": 30,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r31",
+            "repetition": 31,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r32",
+            "repetition": 32,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r33",
+            "repetition": 33,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r34",
+            "repetition": 34,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r35",
+            "repetition": 35,
+            "assetIds": []
+          },
+          {
+            "id": "reads-evidence-r36",
+            "repetition": 36,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "knows-cohort",
+        "label": "Text + cohort background",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [
+            "demographics"
+          ],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 5,
+            "maxOutputTokens": 32000,
+            "maxTokens": 150000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "knows-cohort",
+            "label": "Text + cohort background",
+            "rationale": "Compared with Text only, one ingredient: a summary of who took part (counts and means of the allowed background fields over all 36 people, never their answers).",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "tools": [
+              "read-participant-data"
+            ],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief",
+              "demographics"
+            ],
+            "maxToolCalls": 5,
+            "maxOutputTokens": 32000,
+            "maxTokens": 150000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "none",
+            "repetitions": 36
+          }
+        },
+        "jobs": [
+          {
+            "id": "knows-cohort-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r18",
+            "repetition": 18,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r19",
+            "repetition": 19,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r20",
+            "repetition": 20,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r21",
+            "repetition": 21,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r22",
+            "repetition": 22,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r23",
+            "repetition": 23,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r24",
+            "repetition": 24,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r25",
+            "repetition": 25,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r26",
+            "repetition": 26,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r27",
+            "repetition": 27,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r28",
+            "repetition": 28,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r29",
+            "repetition": 29,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r30",
+            "repetition": 30,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r31",
+            "repetition": 31,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r32",
+            "repetition": 32,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r33",
+            "repetition": 33,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r34",
+            "repetition": 34,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r35",
+            "repetition": 35,
+            "assetIds": []
+          },
+          {
+            "id": "knows-cohort-r36",
+            "repetition": 36,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "measured-inputs",
+        "label": "Text + measured task data",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": false,
+          "evidence": false,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 5,
+            "maxOutputTokens": 32000,
+            "maxTokens": 150000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "measured-inputs",
+            "label": "Text + measured task data",
+            "rationale": "Compared with Text only, one ingredient: each group's measured code entry time and error rate (group means, attached by the framework). It predicts only the subjective measures, after the experience.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief"
+            ],
+            "tools": [],
+            "observation": "none",
+            "requiredCaseIds": [],
+            "requiredSourceIds": [
+              "brief"
+            ],
+            "maxToolCalls": 5,
+            "maxOutputTokens": 32000,
+            "maxTokens": 150000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "none",
+            "targets": [
+              "presence",
+              "workload",
+              "comfort"
+            ],
+            "inputs": [
+              "completion-time",
+              "error-rate"
+            ],
+            "repetitions": 36
+          }
+        },
+        "jobs": [
+          {
+            "id": "measured-inputs-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r18",
+            "repetition": 18,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r19",
+            "repetition": 19,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r20",
+            "repetition": 20,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r21",
+            "repetition": 21,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r22",
+            "repetition": 22,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r23",
+            "repetition": 23,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r24",
+            "repetition": 24,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r25",
+            "repetition": 25,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r26",
+            "repetition": 26,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r27",
+            "repetition": 27,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r28",
+            "repetition": 28,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r29",
+            "repetition": 29,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r30",
+            "repetition": 30,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r31",
+            "repetition": 31,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r32",
+            "repetition": 32,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r33",
+            "repetition": 33,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r34",
+            "repetition": 34,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r35",
+            "repetition": 35,
+            "assetIds": []
+          },
+          {
+            "id": "measured-inputs-r36",
+            "repetition": 36,
+            "assetIds": []
+          }
+        ]
+      },
+      {
+        "id": "uses-app",
+        "label": "Uses the app",
+        "stage": "population",
+        "kind": "llm",
+        "recipe": {
+          "files": false,
+          "pie": true,
+          "evidence": false,
+          "personalInformation": [],
+          "workflow": "standardized-exposure/as-listed",
+          "limits": {
+            "maxToolCalls": 160,
+            "maxOutputTokens": 32000,
+            "maxTokens": 12000000
+          },
+          "instructions": [
+            "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately."
+          ],
+          "protocol": {
+            "id": "uses-app",
+            "label": "Uses the app",
+            "rationale": "Compared with Text only, one ingredient: typing the codes on the running app like a participant, with every design (two practice and twelve scored codes each); each press shows its visual feedback and describes the vibration in words.",
+            "autonomy": "standardized-exposure",
+            "caseOrder": "as-listed",
+            "sourceIds": [
+              "brief"
+            ],
+            "tools": [
+              "xr-interact"
+            ],
+            "observation": "mono",
+            "requiredCaseIds": [
+              "visual-practice",
+              "visual-main",
+              "buzz-practice",
+              "buzz-main",
+              "pulse-practice",
+              "pulse-main"
+            ],
+            "requiredSourceIds": [
+              "brief"
+            ],
+            "maxToolCalls": 160,
+            "maxOutputTokens": 32000,
+            "maxTokens": 12000000,
+            "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+            "level": "population",
+            "runtime": "webxr",
+            "repetitions": 36
+          }
+        },
+        "jobs": [
+          {
+            "id": "uses-app-r1",
+            "repetition": 1,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r2",
+            "repetition": 2,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r3",
+            "repetition": 3,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r4",
+            "repetition": 4,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r5",
+            "repetition": 5,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r6",
+            "repetition": 6,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r7",
+            "repetition": 7,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r8",
+            "repetition": 8,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r9",
+            "repetition": 9,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r10",
+            "repetition": 10,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r11",
+            "repetition": 11,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r12",
+            "repetition": 12,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r13",
+            "repetition": 13,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r14",
+            "repetition": 14,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r15",
+            "repetition": 15,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r16",
+            "repetition": 16,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r17",
+            "repetition": 17,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r18",
+            "repetition": 18,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r19",
+            "repetition": 19,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r20",
+            "repetition": 20,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r21",
+            "repetition": 21,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r22",
+            "repetition": 22,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r23",
+            "repetition": 23,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r24",
+            "repetition": 24,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r25",
+            "repetition": 25,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r26",
+            "repetition": 26,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r27",
+            "repetition": 27,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r28",
+            "repetition": 28,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r29",
+            "repetition": 29,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r30",
+            "repetition": 30,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r31",
+            "repetition": 31,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r32",
+            "repetition": 32,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r33",
+            "repetition": 33,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r34",
+            "repetition": 34,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r35",
+            "repetition": 35,
+            "assetIds": []
+          },
+          {
+            "id": "uses-app-r36",
+            "repetition": 36,
+            "assetIds": []
+          }
+        ]
+      }
+    ],
+    "scoring": {
+      "adapter": "xr-study-sim-analyzer/1",
+      "assetIds": [],
+      "notes": [
+        "Built-in deterministic analyzer using the embedded study outcomes, family weights, tie tolerance, bootstrap draws and seed.",
+        "Contrasts may be added by later continuations; they do not change the scoring definition of existing outcomes."
+      ]
+    },
+    "notes": [
+      "Frozen from workbench plan cb3e7b6129f7ace59c31729365b8d5140834a81d310c83da9c958ddd9de538db.",
+      "Each condition is one agent protocol. Continuations may add models, protocols and repetitions; unchanged jobs are reused."
+    ]
+  },
+  "protocolDigest": "b3a0886b4e3c2f86d162fcbbcdb14ac21e9ce30f609484b486dde698e7eaea65",
+  "model": {
+    "provider": "claude-code",
+    "model": "claude-opus-5-5",
+    "reasoning": "default"
+  },
+  "jobs": [
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "text-only-r1",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r1"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "text-only-r2",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r2"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "text-only-r3",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r3"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "text-only-r4",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r4"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "text-only-r5",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r5"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "text-only-r6",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r6"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "text-only-r7",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r7"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "text-only-r8",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r8"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "text-only-r9",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r9"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "text-only-r10",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r10"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "text-only-r11",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r11"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "text-only-r12",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r12"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "text-only-r13",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r13"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "text-only-r14",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r14"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "text-only-r15",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r15"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "text-only-r16",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r16"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "text-only-r17",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r17"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "text-only-r18",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r18"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r19",
+      "repetition": 19,
+      "assetIds": [],
+      "templateJobId": "text-only-r19",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r19"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r20",
+      "repetition": 20,
+      "assetIds": [],
+      "templateJobId": "text-only-r20",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r20"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r21",
+      "repetition": 21,
+      "assetIds": [],
+      "templateJobId": "text-only-r21",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r21"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r22",
+      "repetition": 22,
+      "assetIds": [],
+      "templateJobId": "text-only-r22",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r22"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r23",
+      "repetition": 23,
+      "assetIds": [],
+      "templateJobId": "text-only-r23",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r23"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r24",
+      "repetition": 24,
+      "assetIds": [],
+      "templateJobId": "text-only-r24",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r24"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r25",
+      "repetition": 25,
+      "assetIds": [],
+      "templateJobId": "text-only-r25",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r25"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r26",
+      "repetition": 26,
+      "assetIds": [],
+      "templateJobId": "text-only-r26",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r26"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r27",
+      "repetition": 27,
+      "assetIds": [],
+      "templateJobId": "text-only-r27",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r27"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r28",
+      "repetition": 28,
+      "assetIds": [],
+      "templateJobId": "text-only-r28",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r28"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r29",
+      "repetition": 29,
+      "assetIds": [],
+      "templateJobId": "text-only-r29",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r29"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r30",
+      "repetition": 30,
+      "assetIds": [],
+      "templateJobId": "text-only-r30",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r30"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r31",
+      "repetition": 31,
+      "assetIds": [],
+      "templateJobId": "text-only-r31",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r31"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r32",
+      "repetition": 32,
+      "assetIds": [],
+      "templateJobId": "text-only-r32",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r32"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r33",
+      "repetition": 33,
+      "assetIds": [],
+      "templateJobId": "text-only-r33",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r33"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r34",
+      "repetition": 34,
+      "assetIds": [],
+      "templateJobId": "text-only-r34",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r34"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r35",
+      "repetition": 35,
+      "assetIds": [],
+      "templateJobId": "text-only-r35",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r35"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--text-only-r36",
+      "repetition": 36,
+      "assetIds": [],
+      "templateJobId": "text-only-r36",
+      "conditionId": "text-only",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--text-only-r36"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r1",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r1"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r2",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r2"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r3",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r3"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r4",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r4"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r5",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r5"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r6",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r6"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r7",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r7"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r8",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r8"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r9",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r9"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r10",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r10"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r11",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r11"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r12",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r12"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r13",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r13"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r14",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r14"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r15",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r15"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r16",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r16"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r17",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r17"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r18",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r18"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r19",
+      "repetition": 19,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r19",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r19"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r20",
+      "repetition": 20,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r20",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r20"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r21",
+      "repetition": 21,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r21",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r21"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r22",
+      "repetition": 22,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r22",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r22"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r23",
+      "repetition": 23,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r23",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r23"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r24",
+      "repetition": 24,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r24",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r24"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r25",
+      "repetition": 25,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r25",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r25"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r26",
+      "repetition": 26,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r26",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r26"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r27",
+      "repetition": 27,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r27",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r27"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r28",
+      "repetition": 28,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r28",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r28"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r29",
+      "repetition": 29,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r29",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r29"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r30",
+      "repetition": 30,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r30",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r30"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r31",
+      "repetition": 31,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r31",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r31"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r32",
+      "repetition": 32,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r32",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r32"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r33",
+      "repetition": 33,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r33",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r33"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r34",
+      "repetition": 34,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r34",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r34"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r35",
+      "repetition": 35,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r35",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r35"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--reads-evidence-r36",
+      "repetition": 36,
+      "assetIds": [],
+      "templateJobId": "reads-evidence-r36",
+      "conditionId": "reads-evidence",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--reads-evidence-r36"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r1",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r1"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r2",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r2"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r3",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r3"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r4",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r4"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r5",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r5"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r6",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r6"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r7",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r7"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r8",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r8"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r9",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r9"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r10",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r10"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r11",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r11"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r12",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r12"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r13",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r13"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r14",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r14"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r15",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r15"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r16",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r16"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r17",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r17"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r18",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r18"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r19",
+      "repetition": 19,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r19",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r19"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r20",
+      "repetition": 20,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r20",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r20"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r21",
+      "repetition": 21,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r21",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r21"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r22",
+      "repetition": 22,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r22",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r22"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r23",
+      "repetition": 23,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r23",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r23"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r24",
+      "repetition": 24,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r24",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r24"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r25",
+      "repetition": 25,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r25",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r25"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r26",
+      "repetition": 26,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r26",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r26"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r27",
+      "repetition": 27,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r27",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r27"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r28",
+      "repetition": 28,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r28",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r28"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r29",
+      "repetition": 29,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r29",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r29"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r30",
+      "repetition": 30,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r30",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r30"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r31",
+      "repetition": 31,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r31",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r31"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r32",
+      "repetition": 32,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r32",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r32"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r33",
+      "repetition": 33,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r33",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r33"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r34",
+      "repetition": 34,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r34",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r34"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r35",
+      "repetition": 35,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r35",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r35"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--knows-cohort-r36",
+      "repetition": 36,
+      "assetIds": [],
+      "templateJobId": "knows-cohort-r36",
+      "conditionId": "knows-cohort",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--knows-cohort-r36"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r1",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r1"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r2",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r2"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r3",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r3"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r4",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r4"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r5",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r5"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r6",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r6"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r7",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r7"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r8",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r8"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r9",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r9"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r10",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r10"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r11",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r11"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r12",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r12"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r13",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r13"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r14",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r14"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r15",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r15"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r16",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r16"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r17",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r17"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r18",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r18"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r19",
+      "repetition": 19,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r19",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r19"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r20",
+      "repetition": 20,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r20",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r20"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r21",
+      "repetition": 21,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r21",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r21"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r22",
+      "repetition": 22,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r22",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r22"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r23",
+      "repetition": 23,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r23",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r23"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r24",
+      "repetition": 24,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r24",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r24"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r25",
+      "repetition": 25,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r25",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r25"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r26",
+      "repetition": 26,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r26",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r26"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r27",
+      "repetition": 27,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r27",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r27"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r28",
+      "repetition": 28,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r28",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r28"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r29",
+      "repetition": 29,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r29",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r29"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r30",
+      "repetition": 30,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r30",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r30"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r31",
+      "repetition": 31,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r31",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r31"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r32",
+      "repetition": 32,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r32",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r32"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r33",
+      "repetition": 33,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r33",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r33"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r34",
+      "repetition": 34,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r34",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r34"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r35",
+      "repetition": 35,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r35",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r35"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--measured-inputs-r36",
+      "repetition": 36,
+      "assetIds": [],
+      "templateJobId": "measured-inputs-r36",
+      "conditionId": "measured-inputs",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--measured-inputs-r36"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r1",
+      "repetition": 1,
+      "assetIds": [],
+      "templateJobId": "uses-app-r1",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r1"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r2",
+      "repetition": 2,
+      "assetIds": [],
+      "templateJobId": "uses-app-r2",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r2"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r3",
+      "repetition": 3,
+      "assetIds": [],
+      "templateJobId": "uses-app-r3",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r3"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r4",
+      "repetition": 4,
+      "assetIds": [],
+      "templateJobId": "uses-app-r4",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r4"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r5",
+      "repetition": 5,
+      "assetIds": [],
+      "templateJobId": "uses-app-r5",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r5"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r6",
+      "repetition": 6,
+      "assetIds": [],
+      "templateJobId": "uses-app-r6",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r6"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r7",
+      "repetition": 7,
+      "assetIds": [],
+      "templateJobId": "uses-app-r7",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r7"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r8",
+      "repetition": 8,
+      "assetIds": [],
+      "templateJobId": "uses-app-r8",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r8"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r9",
+      "repetition": 9,
+      "assetIds": [],
+      "templateJobId": "uses-app-r9",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r9"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r10",
+      "repetition": 10,
+      "assetIds": [],
+      "templateJobId": "uses-app-r10",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r10"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r11",
+      "repetition": 11,
+      "assetIds": [],
+      "templateJobId": "uses-app-r11",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r11"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r12",
+      "repetition": 12,
+      "assetIds": [],
+      "templateJobId": "uses-app-r12",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r12"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r13",
+      "repetition": 13,
+      "assetIds": [],
+      "templateJobId": "uses-app-r13",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r13"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r14",
+      "repetition": 14,
+      "assetIds": [],
+      "templateJobId": "uses-app-r14",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r14"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r15",
+      "repetition": 15,
+      "assetIds": [],
+      "templateJobId": "uses-app-r15",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r15"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r16",
+      "repetition": 16,
+      "assetIds": [],
+      "templateJobId": "uses-app-r16",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r16"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r17",
+      "repetition": 17,
+      "assetIds": [],
+      "templateJobId": "uses-app-r17",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r17"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r18",
+      "repetition": 18,
+      "assetIds": [],
+      "templateJobId": "uses-app-r18",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r18"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r19",
+      "repetition": 19,
+      "assetIds": [],
+      "templateJobId": "uses-app-r19",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r19"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r20",
+      "repetition": 20,
+      "assetIds": [],
+      "templateJobId": "uses-app-r20",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r20"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r21",
+      "repetition": 21,
+      "assetIds": [],
+      "templateJobId": "uses-app-r21",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r21"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r22",
+      "repetition": 22,
+      "assetIds": [],
+      "templateJobId": "uses-app-r22",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r22"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r23",
+      "repetition": 23,
+      "assetIds": [],
+      "templateJobId": "uses-app-r23",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r23"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r24",
+      "repetition": 24,
+      "assetIds": [],
+      "templateJobId": "uses-app-r24",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r24"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r25",
+      "repetition": 25,
+      "assetIds": [],
+      "templateJobId": "uses-app-r25",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r25"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r26",
+      "repetition": 26,
+      "assetIds": [],
+      "templateJobId": "uses-app-r26",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r26"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r27",
+      "repetition": 27,
+      "assetIds": [],
+      "templateJobId": "uses-app-r27",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r27"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r28",
+      "repetition": 28,
+      "assetIds": [],
+      "templateJobId": "uses-app-r28",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r28"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r29",
+      "repetition": 29,
+      "assetIds": [],
+      "templateJobId": "uses-app-r29",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r29"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r30",
+      "repetition": 30,
+      "assetIds": [],
+      "templateJobId": "uses-app-r30",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r30"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r31",
+      "repetition": 31,
+      "assetIds": [],
+      "templateJobId": "uses-app-r31",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r31"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r32",
+      "repetition": 32,
+      "assetIds": [],
+      "templateJobId": "uses-app-r32",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r32"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r33",
+      "repetition": 33,
+      "assetIds": [],
+      "templateJobId": "uses-app-r33",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r33"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r34",
+      "repetition": 34,
+      "assetIds": [],
+      "templateJobId": "uses-app-r34",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r34"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r35",
+      "repetition": 35,
+      "assetIds": [],
+      "templateJobId": "uses-app-r35",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r35"
+    },
+    {
+      "id": "campaign-starter-f906f98ac4a4--uses-app-r36",
+      "repetition": 36,
+      "assetIds": [],
+      "templateJobId": "uses-app-r36",
+      "conditionId": "uses-app",
+      "kind": "llm",
+      "sessionKey": "campaign-starter-f906f98ac4a4--uses-app-r36"
+    }
+  ],
+  "digest": "0e2ee678c4bc3f56e264ca1d327f0388c5c3ce3b6de14f7fa3ea8e172525575f"
+}

@@ -19,6 +19,7 @@ A synthetic within-subjects study of four VR keyboards (raycast QWERTY, drum-lik
 | `evidence/text-entry-in-vr.md` | A short, neutral background note on text entry in VR (measures, keyboard families, arm fatigue), with references; no results of this study |
 | `workspace.json` | Where each source lives |
 | `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
+| `webxr/` | **Suite 7-w**: this study with a WebXR app of the four keyboards, a study of its own (see the end of this page) |
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are seeded and write UTF-8 with LF line endings, so rerunning them reproduces the committed files byte for byte.
 
@@ -129,3 +130,7 @@ At 1 run per participant (the default), the population configurations get 24 run
 6. **Compare agents**, then **Compare with humans:** **Analyze campaign**. The views are Agreement, Agent vs human (for example Entry speed), Correlation, Population vs individual, and Participants (participant lines for the two individual configurations).
 
 Simulated runs and invented participants show how the method behaves, not how good agents are.
+
+## Suite 7-w: the same study with a WebXR app
+
+[`webxr/`](webxr/README.md) holds **suite 7-w**: this study (the same designs, participants, synthetic data and configurations) with a WebXR app of the four keyboards (the swipe keyboard adds its word actions at run time) and two app configurations; forecasts are still made before the study. It runs with Claude Code and the built-in WebXR runtime in Chrome. It is a study of its own (ID `examples/text-entry/webxr`, with its own campaigns, runs and starter) that sits inside this folder; this study's sources never include it, and this suite's configurations stay app-free.

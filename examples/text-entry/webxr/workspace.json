@@ -1,0 +1,45 @@
+{
+  "title": "Mid-air text entry with four virtual keyboards (WebXR app)",
+  "suite": "Suite 7-w · Mid-air text entry (WebXR)",
+  "description": "Suite 7's synthetic study (24 invented participants, four keyboards, forecasts before the study) with a runnable WebXR app of the four keyboards. Real agent runs use Claude Code + the built-in WebXR runtime.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "evidence": "evidence/text-entry-in-vr.md",
+    "background": "data/raw/background.csv"
+  },
+  "app": {
+    "serve": "webxr-app",
+    "query": "?keyboard={condition}&study=1&participant={participant}",
+    "capabilities": [
+      "look",
+      "actions",
+      "phase-events",
+      "quality-lock"
+    ],
+    "actions": [
+      {
+        "name": "type",
+        "description": "Type letters and spaces with this keyboard, key after key",
+        "params": {
+          "text": "lowercase letters and spaces"
+        },
+        "scored": false
+      },
+      {
+        "name": "backspace",
+        "description": "Remove the last characters",
+        "params": {
+          "count": "how many (default 1)"
+        },
+        "scored": false
+      },
+      {
+        "name": "enter-phrase",
+        "description": "Press Enter: submits the phrase as typed, with or without errors; the next phrase appears",
+        "params": {},
+        "scored": true
+      }
+    ],
+    "instructions": "The panel shows the phrase to type and, below it, the text typed so far. act type types letters and spaces the way this keyboard does (the reply says what it took: trigger pulls, drum strikes, or thumbstick tilts and button presses); act backspace removes characters; act enter-phrase submits the phrase. On the swipe keyboard, act swipe types whole words (one stroke per word) and replies with the three next-best words; act choose-word replaces the last word with one of them, act delete-word removes it, and type taps single letters. look turns the head: polar 90 is level; each keyboard starts with a view of it and the panel."
+  }
+}

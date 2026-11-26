@@ -1,0 +1,22 @@
+[
+  {
+    "candidate": "reads-evidence",
+    "baseline": "text-only",
+    "domain": "objective"
+  },
+  {
+    "candidate": "knows-participant-and-movement",
+    "baseline": "knows-participant",
+    "domain": "objective"
+  },
+  {
+    "candidate": "knows-participant-and-task-data",
+    "baseline": "knows-participant",
+    "domain": "subjective"
+  },
+  {
+    "candidate": "uses-app",
+    "baseline": "text-only",
+    "domain": "objective"
+  }
+]

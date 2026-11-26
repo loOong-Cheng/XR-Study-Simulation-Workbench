@@ -25,6 +25,7 @@ A synthetic within-subjects study of three kinds of press feedback for a keypad 
 | `evidence/haptics-evidence.md` | A short, neutral background note on haptic feedback for mid-air buttons; no results of this study |
 | `workspace.json` | Title, suite name and where each source lives |
 | `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
+| `webxr/` | **Suite 5-w**: this study with a WebXR keypad app, a study of its own (see the end of this page) |
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are deterministic (seeded) and write UTF-8 with LF line endings, so a rerun reproduces the committed files byte for byte.
 
@@ -113,3 +114,7 @@ At 1 run per participant: 3 population configurations × 18 runs + 3 individual 
 4. **Real agents:** every configuration runs with Claude Code right away; there is no runtime to set up. Run one session first (**Run this session only**), then the rest.
 
 Simulated runs and invented participants show how the method behaves, not how good agents are.
+
+## Suite 5-w: the same study with a WebXR app
+
+[`webxr/`](webxr/README.md) holds **suite 5-w**: this study (the same designs, participants, synthetic data and configurations) with a WebXR keypad app the agent clicks like a fingertip press, and two app configurations (*Uses the app*, *Uses the app + participant background*). It runs with Claude Code and the built-in WebXR runtime in Chrome. It is a study of its own (ID `examples/haptic-buttons/webxr`, with its own campaigns, runs and starter) that sits inside this folder; this study's sources never include it, and this suite's configurations stay app-free.

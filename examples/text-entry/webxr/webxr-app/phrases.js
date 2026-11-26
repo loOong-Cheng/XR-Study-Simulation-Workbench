@@ -1,0 +1,56 @@
+// The study's phrase pool and the swipe recogniser's lexicon, copied from suite 7's
+// data/generate_synthetic.py (PHRASES, LEXICON); practice phrases are from outside the pool.
+// test/example-webxr-variants.test.ts checks that the pool still matches the generator.
+export const PHRASES = [
+  "the kettle is on the stove",
+  "please water the plants today",
+  "our bus leaves at seven",
+  "bring a coat in case it rains",
+  "the library closes early on friday",
+  "she painted the fence bright blue",
+  "a quiet room helps me think",
+  "the river froze last winter",
+  "we watched the sunrise from the hill",
+  "my sister plays the cello",
+  "keep the receipt for the shoes",
+  "the meeting moved to tuesday",
+  "he forgot his umbrella again",
+  "fresh bread smells wonderful",
+  "turn left after the bakery",
+  "the cat sleeps on the windowsill",
+  "call me when you get home",
+  "the soup needs a pinch of salt",
+  "they planted apple trees in spring",
+  "the elevator is out of order",
+  "a long walk clears the mind",
+  "the train was full this morning",
+  "please close the door quietly",
+  "the museum opens at ten",
+  "we ran out of milk",
+  "the kite got stuck in a tree",
+  "his garden grows huge pumpkins",
+  "dinner will be ready soon",
+  "the map was folded the wrong way",
+  "the children built a sand castle",
+  "my phone battery is almost empty",
+  "the bridge is closed for repairs",
+  "she knits warm socks for winter",
+  "the concert starts at eight",
+  "leave the keys under the mat",
+  "the old clock still keeps time",
+  "we found a path through the park",
+  "the printer needs new paper",
+  "the lake is calm this evening",
+  "the puppy chewed my slipper"
+];
+export const PRACTICE = [
+  "the sky is clear today",
+  "a cup of tea please",
+  "the dog ran home",
+  "open the window a little",
+  "we sat by the warm fire",
+  "music fills the room",
+  "the shop sells fresh fruit",
+  "write your name here"
+];
+export const LEXICON = ["a", "after", "again", "almost", "an", "apple", "as", "at", "bag", "bake", "bakery", "ban", "band", "bank", "bark", "barn", "bat", "battery", "be", "bean", "bear", "beat", "bed", "bell", "belt", "bend", "best", "bet", "big", "bike", "bird", "bit", "blow", "blue", "boat", "bold", "bolt", "bond", "bone", "book", "boot", "bowl", "bread", "brew", "brick", "bridge", "bright", "bring", "brown", "bud", "built", "bun", "bunch", "bus", "but", "by", "cab", "cake", "call", "calm", "came", "camp", "can", "cane", "cap", "car", "card", "care", "cart", "case", "cash", "cast", "castle", "cat", "cave", "cell", "cello", "chain", "chair", "chalk", "cheap", "cheer", "chest", "chewed", "child", "children", "chill", "clean", "clear", "clears", "clock", "close", "closed", "closes", "cloth", "cloud", "coal", "coat", "code", "coin", "cold", "come", "concert", "cook", "cool", "cope", "cord", "core", "corn", "cost", "cot", "cove", "crew", "crop", "cross", "crow", "cup", "cut", "dance", "dark", "dart", "date", "dawn", "deal", "dear", "deep", "deer", "den", "desk", "dig", "dim", "dine", "dinner", "dish", "dive", "dock", "dog", "door", "dose", "dot", "down", "drag", "draw", "drew", "drop", "drum", "dry", "duck", "dull", "dune", "dust", "each", "early", "earn", "east", "easy", "edge", "eight", "elevator", "empty", "evening", "ever", "face", "fact", "fade", "fail", "fair", "fall", "fame", "fan", "far", "farm", "fast", "fat", "fear", "feed", "feel", "fence", "few", "field", "fig", "file", "fill", "fills", "film", "fin", "find", "fine", "fire", "firm", "fish", "fit", "five", "flag", "flat", "flew", "flow", "fog", "fold", "folded", "folk", "fond", "food", "fool", "foot", "for", "forgot", "form", "fort", "found", "four", "free", "fresh", "friday", "frog", "from", "frost", "froze", "fruit", "full", "fun", "game", "gap", "garden", "gas", "gate", "gave", "get", "gift", "give", "glad", "glow", "goal", "goes", "gold", "golf", "gone", "good", "got", "grab", "grain", "grand", "grass", "grew", "grow", "grows", "gum", "hall", "hand", "hard", "harm", "hat", "have", "he", "head", "heal", "heap", "hear", "heat", "help", "helps", "hen", "herd", "here", "hid", "hide", "high", "hill", "him", "hint", "hip", "his", "hit", "hold", "hole", "home", "hope", "horn", "horse", "hose", "hot", "hug", "huge", "hunt", "hut", "idle", "if", "in", "ink", "iron", "is", "it", "item", "jam", "jar", "jet", "job", "jog", "jump", "just", "keen", "keep", "keeps", "kept", "kettle", "key", "keys", "kid", "kin", "kind", "king", "kit", "kite", "knee", "knit", "knits", "knot", "know", "lace", "lake", "lamb", "lamp", "land", "lane", "lap", "last", "late", "law", "lawn", "lead", "leaf", "lean", "leave", "leaves", "left", "leg", "lend", "less", "let", "library", "lid", "life", "lift", "like", "lime", "line", "link", "lion", "lip", "list", "lit", "little", "live", "load", "loaf", "loan", "lock", "log", "long", "look", "loop", "lose", "lot", "loud", "love", "luck", "mad", "made", "mail", "main", "make", "mall", "many", "map", "mark", "mask", "mat", "me", "meal", "mean", "meat", "meet", "meeting", "melt", "men", "met", "mild", "mile", "milk", "mind", "mine", "mint", "miss", "mix", "mob", "mode", "mold", "mom", "moon", "more", "morning", "most", "move", "moved", "much", "mud", "mug", "museum", "music", "must", "my", "nail", "name", "nap", "near", "neat", "neck", "need", "needs", "nest", "net", "new", "next", "nice", "nine", "no", "none", "noon", "nose", "not", "note", "nut", "oak", "odd", "of", "oil", "old", "on", "one", "open", "opens", "or", "order", "our", "out", "oven", "over", "pace", "pack", "page", "paid", "pain", "painted", "pair", "pale", "palm", "pan", "paper", "park", "part", "pass", "past", "pat", "path", "peak", "pear", "pen", "pet", "phone", "pick", "pile", "pin", "pinch", "pine", "pink", "pipe", "pit", "plan", "planted", "plants", "play", "plays", "please", "plot", "plum", "poem", "pole", "pond", "pool", "poor", "pork", "port", "pose", "post", "pot", "pour", "printer", "pull", "pump", "pumpkins", "puppy", "pure", "push", "put", "quiet", "quietly", "race", "rain", "rains", "rake", "ramp", "ran", "rang", "rare", "rat", "rate", "read", "ready", "real", "receipt", "red", "repairs", "rest", "rib", "rice", "rich", "rid", "ride", "rim", "ring", "rip", "rise", "river", "road", "rock", "rod", "role", "roll", "roof", "room", "root", "rope", "rose", "rot", "row", "rub", "rule", "run", "rush", "sad", "safe", "sail", "salt", "same", "sand", "sat", "save", "saw", "seal", "seat", "seed", "seek", "seen", "self", "sell", "sells", "send", "set", "seven", "she", "ship", "shoe", "shoes", "shop", "shot", "show", "shut", "side", "sign", "silk", "sing", "sink", "sip", "sister", "sit", "site", "six", "size", "skin", "sky", "sleeps", "slip", "slipper", "slow", "smells", "snow", "so", "soap", "sock", "socks", "soft", "soil", "sold", "some", "son", "song", "soon", "sort", "soup", "spin", "spot", "spring", "star", "starts", "stay", "step", "still", "stir", "stop", "stove", "stuck", "such", "suit", "sun", "sunrise", "sure", "swim", "tail", "take", "tale", "talk", "tall", "tame", "tan", "tank", "tap", "tape", "task", "tea", "team", "tell", "ten", "tend", "tent", "term", "test", "than", "that", "the", "them", "then", "they", "thin", "think", "this", "through", "tide", "tile", "time", "tin", "tiny", "tip", "tire", "to", "today", "toe", "told", "toll", "ton", "tone", "took", "tool", "top", "tour", "town", "toy", "train", "tray", "tree", "trees", "trim", "trip", "true", "tub", "tuesday", "tune", "turn", "twin", "two", "type", "umbrella", "under", "unit", "up", "use", "van", "vase", "vast", "very", "vet", "view", "vine", "vote", "wade", "wage", "wait", "wake", "walk", "wall", "want", "war", "ward", "warm", "warn", "was", "wash", "watched", "water", "wave", "wax", "way", "we", "wear", "web", "weed", "week", "well", "went", "were", "west", "wet", "what", "when", "whip", "who", "why", "wide", "wife", "wild", "will", "win", "wind", "window", "windowsill", "wine", "wing", "winter", "wire", "wise", "wish", "wit", "with", "wolf", "wonderful", "wood", "wool", "word", "wore", "work", "worm", "write", "wrong", "yard", "yarn", "year", "yell", "yes", "yet", "you", "your", "zip", "zone"];

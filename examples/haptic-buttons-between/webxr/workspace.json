@@ -1,0 +1,38 @@
+{
+  "title": "Haptic feedback for mid-air buttons in VR, between subjects (WebXR app)",
+  "suite": "Suite 6-w · Haptic buttons, between subjects (WebXR)",
+  "description": "Suite 6's synthetic between-subjects study (36 invented people, 12 per design) with a runnable WebXR keypad: the app configuration types codes with every design. Real agent runs use Claude Code + the built-in WebXR runtime.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "evidence": "evidence/tactile-feedback-note.md",
+    "demographics": "data/raw/background.csv"
+  },
+  "app": {
+    "serve": "webxr-app",
+    "query": "?feedback={condition}&task=codes&study=1&participant={participant}",
+    "capabilities": [
+      "look",
+      "actions",
+      "phase-events",
+      "quality-lock"
+    ],
+    "actions": [
+      {
+        "name": "press-key",
+        "description": "Press keypad keys with the index fingertip, one after another",
+        "params": {
+          "key": "one key: 0-9 or delete",
+          "keys": "or several digits pressed in order, for example 7391"
+        },
+        "scored": true
+      },
+      {
+        "name": "confirm-code",
+        "description": "Press Enter: submits the code as typed on the panel; the next code appears",
+        "params": {},
+        "scored": true
+      }
+    ],
+    "instructions": "The keypad floats below eye level in front of you; the panel above it shows the 4-digit code and the digits typed so far. act press-key presses keys (key: one of 0-9 or delete; or keys: several digits in order); act confirm-code presses Enter. Each press replies with what the participant saw and what the vibrotactile ring did, in words, since you cannot feel it. look turns the head: polar 90 is level, the start view (about 127) looks down at the keypad."
+  }
+}

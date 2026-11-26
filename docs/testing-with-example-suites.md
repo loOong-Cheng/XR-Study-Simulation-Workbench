@@ -1,6 +1,6 @@
 # Testing the workbench with the example suites
 
-This guide is for testing XR Study Sim on a machine from a **git clone**: set it up, try each of the seven synthetic example suites and suite 3-a (suite 3 on Apple Vision Pro), and report what you find. Every suite ships a ready-made **starter campaign**, so you can press **Simulate** or **Start** right after setup, without approving or freezing anything first.
+This guide is for testing XR Study Sim on a machine from a **git clone**: set it up, try each of the seven synthetic example suites and the variants inside them (suite 3-a: suite 3 on Apple Vision Pro; suites 5-w, 6-w and 7-w: suites 5–7 with a WebXR app), and report what you find. Every suite ships a ready-made **starter campaign**, so you can press **Simulate** or **Start** right after setup, without approving or freezing anything first.
 
 All participants and data in `examples/` are invented. **Simulated runs test the pipeline, not prediction quality.**
 
@@ -20,7 +20,7 @@ On Windows, clone into a short folder that is not under OneDrive, for example `C
 You need:
 - Node.js 22.13 or newer;
 - for real sessions, [Claude Code](https://claude.com/claude-code), logged in;
-- for the WebXR suites (3 and 4), Google Chrome;
+- for the WebXR suites (3, 4, 5-w, 6-w and 7-w), Google Chrome;
 - for suite 2's Unity bridge and for regenerating data, Python 3;
 - for suite 3-a (Apple Vision Pro), a Mac with Xcode and its visionOS simulator runtime (Xcode → Settings → Components → visionOS, about 8 GB).
 
@@ -144,6 +144,16 @@ Each starter's `starter.json` lists its sessions per configuration and what each
 | Try first | Simulate all. One real *Text only* session and one *Participant background + practice movement* session. Compare with humans → Population vs individual, Participants. |
 | Expect | **Agents read about the feedback; they cannot feel it.** The brief describes the actuator, its timing and the visual feedback in words. Movement reaches individual configurations only, and only from the practice phase. |
 
+### Suite 5-w · Haptic buttons in WebXR, `examples/haptic-buttons/webxr`
+
+| | |
+| --- | --- |
+| Exercises | Suite 5's study, with the same designs, participants, synthetic data and six configurations, plus a runnable **WebXR keypad app** and two app configurations: *Uses the app* (population) and *Uses the app + participant background* (individual). It tests **pointer input** (`pointer-xy`): the agent clicks keys on the screenshot like a fingertip press, and a press in a gap between keys is refused. |
+| Needs | **Chrome** for the two app configurations; **nothing** for the others. Check with `node dist/cli.js app-check examples/haptic-buttons/webxr`. |
+| Starter | 144 sessions. |
+| Try first | app-check. Simulate all. One real *Uses the app* session: about 165 tool calls, about $1.15 with Opus 5.5. Then Compare with humans → Agreement (*Uses the app* vs *Text only*, a planned comparison). |
+| Expect | Every press replies with what the participant would see and feel, in words, because agents cannot feel the buzz. The agent types 13 sequences per design. |
+
 ### Suite 6 · Haptic buttons, between subjects, `examples/haptic-buttons-between`
 
 | | |
@@ -154,6 +164,16 @@ Each starter's `starter.json` lists its sessions per configuration and what each
 | Try first | Simulate all. One real *Text only* session. Compare with humans → Show human data, then Analyze campaign → Agreement, Agent vs human. |
 | Expect | **Group tests, no rankings.** Groups are compared with Mann–Whitney U (Holm). Design differences count only where the human groups differ significantly, and each configuration's absolute values are checked against each group's 95% interval. There are no preference rankings and no individual configurations, so the views that need one (Population vs individual, Participants) have nothing to draw. Agents read about the feedback; they cannot feel it. |
 
+### Suite 6-w · Haptic buttons, between subjects, in WebXR, `examples/haptic-buttons-between/webxr`
+
+| | |
+| --- | --- |
+| Exercises | Suite 6's study with suite 5-w's keypad app in its `codes` task, and *Uses the app* (population). The agent uses **declared actions with arguments**: `press-key` takes one `key` or several `keys`, and `confirm-code` presses Enter. The analysis is between subjects, as in suite 6. |
+| Needs | **Chrome** for *Uses the app*; **nothing** for the others. Check with `node dist/cli.js app-check examples/haptic-buttons-between/webxr`. |
+| Starter | 180 sessions (36 runs per configuration). |
+| Try first | app-check. Simulate all. Run one real *Uses the app* session (about 93 tool calls, about $0.70 with Opus 5.5). Press **Stop** during it, then run it again: the rerun starts in a fresh attempt. |
+| Expect | Agents usually type a whole code with one `press-key` call that gives several `keys`. |
+
 ### Suite 7 · Mid-air text entry, `examples/text-entry`
 
 | | |
@@ -163,6 +183,16 @@ Each starter's `starter.json` lists its sessions per configuration and what each
 | Starter | 144 sessions. |
 | Try first | Simulate all. One real *Text only* session and one session of the model arm. Compare agents (the two models side by side), then Compare with humans → Population vs individual. |
 | Expect | **No measured inputs**: Give as input is disabled, and configurations get only what is known before anyone types. If the model arm's model is not available, its first session fails with "Claude Code does not know the model …". Change the model on Agent configurations, then freeze a new campaign (the starter keeps the model it was frozen with). |
+
+### Suite 7-w · Mid-air text entry in WebXR, `examples/text-entry/webxr`
+
+| | |
+| --- | --- |
+| Exercises | Suite 7's study with a **WebXR app of the four keyboards**, plus two app configurations. The app **adds actions at run time**: while the swipe keyboard is open, it lists `swipe`, `choose-word` and `delete-word` through `actions()`. Forecasts are still made before the study: the agent tries the keyboards like a pilot participant. Individual jobs carry the participant into the app: their own keyboard order and phrases. |
+| Needs | **Chrome** for the two app configurations; **nothing** for the others. Check with `node dist/cli.js app-check examples/text-entry/webxr`. The model arm needs what it needs in suite 7. |
+| Starter | 192 sessions. |
+| Try first | app-check. Simulate all. One real *Uses the app* session: about 106 tool calls, about $1.02 with Opus 5.5. Then Compare with humans → Agreement (*Uses the app* vs *Text only*). |
+| Expect | Replies say what each keyboard took: trigger pulls, drum strikes or thumbstick tilts. Two swipe strokes with identical paths can swap words ("soon" comes out as "son"). The agent sees the swap in the reply and fixes it with `choose-word`. |
 
 ## 6 · Cost of real sessions
 

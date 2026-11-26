@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Mid-air text entry — synthetic WebXR study</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #111;
+        color: #eee;
+        font: 14px/1.4 system-ui, sans-serif;
+        overflow: hidden;
+      }
+      #hud {
+        position: fixed;
+        top: 12px;
+        left: 12px;
+        max-width: 400px;
+        background: rgba(0, 0, 0, 0.6);
+        padding: 10px 14px;
+        border-radius: 8px;
+      }
+      #hud[hidden] {
+        display: none;
+      }
+      #hud h1 {
+        font-size: 15px;
+        margin: 0 0 6px;
+      }
+      #hud p {
+        margin: 4px 0;
+      }
+      #keyboards {
+        display: flex;
+        gap: 6px;
+        margin-top: 8px;
+      }
+      #keyboards button,
+      #type-form button {
+        background: #2c684f;
+        color: #fff;
+        border: 0;
+        border-radius: 6px;
+        padding: 6px 10px;
+        cursor: pointer;
+        font: inherit;
+      }
+      #keyboards button[aria-pressed="true"] {
+        background: #f0c419;
+        color: #111;
+      }
+      #type-input {
+        width: 230px;
+        font: inherit;
+      }
+    </style>
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "./vendor/three/build/three.module.js",
+          "three/addons/": "./vendor/three/examples/jsm/"
+        }
+      }
+    </script>
+  </head>
+  <body>
+    <!-- Desktop help for people trying the app; hidden in study mode (?study=1), where the phrase is on the in-scene panel. -->
+    <div id="hud" hidden>
+      <h1>Mid-air text entry</h1>
+      <p>Type letters below (on the swipe keyboard, words become strokes), or submit an empty line to press Enter.</p>
+      <form id="type-form"><input id="type-input" autocomplete="off" /> <button>Type</button></form>
+      <div id="keyboards" role="group" aria-label="Keyboard"></div>
+    </div>
+    <script type="module" src="./main.js"></script>
+  </body>
+</html>

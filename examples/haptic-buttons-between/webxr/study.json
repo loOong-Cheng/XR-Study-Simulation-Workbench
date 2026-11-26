@@ -1,0 +1,521 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-haptic-buttons-between-webxr",
+  "title": "Haptic feedback for mid-air buttons in VR, between subjects (WebXR app)",
+  "researchQuestion": "How does the feedback of a mid-air keypad in VR (visual feedback only, a short vibrotactile buzz, or a patterned vibrotactile pulse) affect code-entry time and errors, presence, perceived workload and comfort?",
+  "agentQuestions": "Which agent configurations (text only, adding an evidence document, the cohort's background, or the measured task performance) reproduce the significant differences between the groups, and whose absolute values fall inside each group's 95% interval?",
+  "synthetic": true,
+  "design": "between-subjects",
+  "predictionLevel": "population",
+  "predictionTiming": "after-experience",
+  "conditions": [
+    {
+      "id": "visual",
+      "label": "Visual feedback only"
+    },
+    {
+      "id": "buzz",
+      "label": "Vibrotactile buzz (one short vibration when a key registers)"
+    },
+    {
+      "id": "pulse",
+      "label": "Patterned pulse (contact tick, double pulse when a key registers, release tick)"
+    }
+  ],
+  "phases": [
+    {
+      "id": "practice",
+      "label": "Practice codes",
+      "kind": "practice"
+    },
+    {
+      "id": "main",
+      "label": "Scored codes",
+      "kind": "main"
+    },
+    {
+      "id": "questionnaire",
+      "label": "Questionnaire after the codes",
+      "kind": "questionnaire"
+    }
+  ],
+  "cases": [
+    {
+      "id": "visual-practice",
+      "conditionId": "visual",
+      "phaseId": "practice",
+      "label": "Practice: type two 4-digit codes",
+      "requiredActions": [
+        "press-key",
+        "confirm-code"
+      ],
+      "minActions": 2
+    },
+    {
+      "id": "visual-main",
+      "conditionId": "visual",
+      "phaseId": "main",
+      "label": "Type the twelve scored 4-digit codes",
+      "requiredActions": [
+        "press-key",
+        "confirm-code"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "buzz-practice",
+      "conditionId": "buzz",
+      "phaseId": "practice",
+      "label": "Practice: type two 4-digit codes",
+      "requiredActions": [
+        "press-key",
+        "confirm-code"
+      ],
+      "minActions": 2
+    },
+    {
+      "id": "buzz-main",
+      "conditionId": "buzz",
+      "phaseId": "main",
+      "label": "Type the twelve scored 4-digit codes",
+      "requiredActions": [
+        "press-key",
+        "confirm-code"
+      ],
+      "minActions": 12
+    },
+    {
+      "id": "pulse-practice",
+      "conditionId": "pulse",
+      "phaseId": "practice",
+      "label": "Practice: type two 4-digit codes",
+      "requiredActions": [
+        "press-key",
+        "confirm-code"
+      ],
+      "minActions": 2
+    },
+    {
+      "id": "pulse-main",
+      "conditionId": "pulse",
+      "phaseId": "main",
+      "label": "Type the twelve scored 4-digit codes",
+      "requiredActions": [
+        "press-key",
+        "confirm-code"
+      ],
+      "minActions": 12
+    }
+  ],
+  "participants": [
+    {
+      "id": "p01",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p02",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p03",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p04",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p05",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p06",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p07",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p08",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p09",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p10",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p11",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p12",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p13",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p14",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p15",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p16",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p17",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p18",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p19",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p20",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p21",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p22",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p23",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p24",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p25",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p26",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p27",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p28",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p29",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p30",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p31",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p32",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    },
+    {
+      "id": "p33",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p34",
+      "stratum": "group-pulse",
+      "conditionOrder": [
+        "pulse"
+      ]
+    },
+    {
+      "id": "p35",
+      "stratum": "group-buzz",
+      "conditionOrder": [
+        "buzz"
+      ]
+    },
+    {
+      "id": "p36",
+      "stratum": "group-visual",
+      "conditionOrder": [
+        "visual"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "brief",
+      "label": "Study brief",
+      "kind": "brief",
+      "description": "agent-brief.md: the keypad, the three feedback designs, the procedure and the measures, without any participant answers."
+    },
+    {
+      "id": "evidence",
+      "label": "Background note on tactile feedback",
+      "kind": "evidence",
+      "description": "evidence/tactile-feedback-note.md: invented, general statements about feedback for mid-air buttons; written without the synthetic answers and not fitted to them."
+    },
+    {
+      "id": "demographics",
+      "label": "Participant background",
+      "kind": "demographics",
+      "description": "data/raw/background.csv: invented background per participant, collected before the task; never results. Population configurations get a summary of the cohort.",
+      "fields": [
+        "age",
+        "vr_experience",
+        "prior_haptic_devices",
+        "motion_sickness_susceptibility",
+        "dominant_hand"
+      ]
+    }
+  ],
+  "runtime": {
+    "engine": "custom",
+    "backend": "custom",
+    "observation": "mono",
+    "deviceProfile": "webxr-desktop-browser-1280x720",
+    "requiredCapabilities": [
+      "screenshot",
+      "look",
+      "actions",
+      "phase-events",
+      "quality-lock"
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "completion-time",
+      "label": "Code entry time",
+      "domain": "objective",
+      "unit": "seconds per code",
+      "scale": "continuous",
+      "range": [
+        1,
+        60
+      ],
+      "aggregation": "geometric",
+      "family": "task-time",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Seconds from a code appearing to the Enter press, geometric mean over the twelve scored codes; practice excluded, corrections included."
+    },
+    {
+      "id": "error-rate",
+      "label": "Error rate",
+      "domain": "objective",
+      "unit": "proportion of digit presses",
+      "scale": "proportion",
+      "range": [
+        0,
+        1
+      ],
+      "aggregation": "arithmetic",
+      "family": "task-accuracy",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Wrong digit presses (a wrong key, or one key registered twice) / all digit presses in the scored codes; Delete and Enter not counted."
+    },
+    {
+      "id": "presence",
+      "label": "Presence",
+      "domain": "subjective",
+      "unit": "1–7",
+      "scale": "ordinal",
+      "range": [
+        1,
+        7
+      ],
+      "aggregation": "arithmetic",
+      "family": "presence",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "'The keypad felt as if it were really there in front of me' (1 = not at all, 7 = completely), after the codes."
+    },
+    {
+      "id": "workload",
+      "label": "Perceived workload (Raw TLX)",
+      "domain": "subjective",
+      "unit": "0–100 item mean",
+      "scale": "continuous",
+      "range": [
+        0,
+        100
+      ],
+      "aggregation": "arithmetic",
+      "family": "workload",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "components": [
+        "mental",
+        "physical",
+        "temporal",
+        "performance",
+        "effort",
+        "frustration"
+      ],
+      "description": "Unweighted mean of the six NASA-TLX items, each 0–100 in steps of 5 (performance: 0 = perfect, 100 = failure), after the codes."
+    },
+    {
+      "id": "comfort",
+      "label": "Comfort",
+      "domain": "subjective",
+      "unit": "1–7",
+      "scale": "ordinal",
+      "range": [
+        1,
+        7
+      ],
+      "aggregation": "arithmetic",
+      "family": "comfort",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "'How comfortable was typing on the keypad?' (1 = very uncomfortable, 7 = very comfortable), after the codes."
+    }
+  ],
+  "analysis": {
+    "mode": "both",
+    "familyWeights": {
+      "task-time": 1,
+      "task-accuracy": 1,
+      "presence": 1,
+      "workload": 1,
+      "comfort": 1
+    },
+    "bootstrapDraws": 1000,
+    "seed": 2611,
+    "tieTolerance": 1e-08,
+    "contrasts": []
+  }
+}

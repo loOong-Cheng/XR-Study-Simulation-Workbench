@@ -29,6 +29,7 @@ Each person experienced one design, so the designs are compared as **independent
 | `comparisons.json` | Two planned comparisons between configurations |
 | `workspace.json` | Title, suite name and where each source lives |
 | `starter/` | The starter campaign: this suite frozen at 1 run per participant (`starter.json` lists its sessions), installed into `campaigns/` the first time the study opens without a campaign; rebuilt with `npm run starters` ([testing with the example suites](../../docs/testing-with-example-suites.md)) |
+| `webxr/` | **Suite 6-w**: this study with a WebXR keypad app, a study of its own (see the end of this page) |
 
 To regenerate the data: `python3 data/generate_synthetic.py && python3 data/convert_to_human.py`. Both are seeded and write UTF-8 with LF line ends, so rerunning reproduces the committed files byte for byte.
 
@@ -118,3 +119,7 @@ npm start      # then open the study: ?study=examples%2Fhaptic-buttons-between
 4. **Compare with humans:** **Show human data** shows the groups with their Mann–Whitney brackets; **Analyze campaign** shows the significant pairs, the scores on them, and each configuration's absolute values against the groups' 95% intervals.
 
 Simulated runs and invented participants show how the method behaves, not how good agents are.
+
+## Suite 6-w: the same study with a WebXR app
+
+[`webxr/`](webxr/README.md) holds **suite 6-w**: this study (the same designs, participants, synthetic data and configurations) with suite 5-w's keypad app in a code-entry task, driven by declared key actions (`press-key`, `confirm-code`), and *Uses the app*. It runs with Claude Code and the built-in WebXR runtime in Chrome. It is a study of its own (ID `examples/haptic-buttons-between/webxr`, with its own campaigns, runs and starter) that sits inside this folder; this study's sources never include it, and this suite's configurations stay app-free.

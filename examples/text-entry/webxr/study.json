@@ -1,0 +1,564 @@
+{
+  "schemaVersion": "1.0",
+  "id": "synthetic-text-entry-webxr",
+  "title": "Mid-air text entry with four virtual keyboards in VR (WebXR app)",
+  "researchQuestion": "How do four virtual keyboards for mid-air text entry in VR (a raycast QWERTY keyboard, a drum-like keyboard, a swipe gesture keyboard and a split keyboard) differ in entry speed, uncorrected errors, entry time per phrase, perceived workload, arm and shoulder comfort and preference?",
+  "agentQuestions": "The forecasts are made before the study, from what is known in advance; no measured outcome is ever an input. Which configurations reproduce the human differences between the keyboards: the brief alone, the brief with a background note on text entry, or the brief with the cohort's background? Does knowing a person's background help to forecast that person? Does another model, given the same, forecast differently?",
+  "synthetic": true,
+  "design": "within-subjects",
+  "predictionLevel": "population",
+  "predictionTiming": "before-experience",
+  "conditions": [
+    {
+      "id": "raycast",
+      "label": "Raycast QWERTY"
+    },
+    {
+      "id": "drum",
+      "label": "Drum-like keyboard"
+    },
+    {
+      "id": "swipe",
+      "label": "Swipe (gesture) keyboard"
+    },
+    {
+      "id": "split",
+      "label": "Split keyboard"
+    }
+  ],
+  "phases": [
+    {
+      "id": "practice",
+      "label": "Two minutes of practice per keyboard",
+      "kind": "practice"
+    },
+    {
+      "id": "main",
+      "label": "Ten scored phrases per keyboard",
+      "kind": "main"
+    },
+    {
+      "id": "questionnaire",
+      "label": "Questionnaire after each keyboard; ranking after all four",
+      "kind": "questionnaire"
+    },
+    {
+      "id": "break",
+      "label": "Two-minute break between keyboards",
+      "kind": "break"
+    }
+  ],
+  "cases": [
+    {
+      "id": "raycast-practice",
+      "conditionId": "raycast",
+      "phaseId": "practice",
+      "label": "Practice: two minutes of free typing",
+      "requiredActions": [
+        "enter-phrase"
+      ]
+    },
+    {
+      "id": "raycast-main",
+      "conditionId": "raycast",
+      "phaseId": "main",
+      "label": "Transcribe ten phrases",
+      "requiredActions": [
+        "enter-phrase"
+      ],
+      "minActions": 10
+    },
+    {
+      "id": "drum-practice",
+      "conditionId": "drum",
+      "phaseId": "practice",
+      "label": "Practice: two minutes of free typing",
+      "requiredActions": [
+        "enter-phrase"
+      ]
+    },
+    {
+      "id": "drum-main",
+      "conditionId": "drum",
+      "phaseId": "main",
+      "label": "Transcribe ten phrases",
+      "requiredActions": [
+        "enter-phrase"
+      ],
+      "minActions": 10
+    },
+    {
+      "id": "swipe-practice",
+      "conditionId": "swipe",
+      "phaseId": "practice",
+      "label": "Practice: two minutes of free typing",
+      "requiredActions": [
+        "enter-phrase"
+      ]
+    },
+    {
+      "id": "swipe-main",
+      "conditionId": "swipe",
+      "phaseId": "main",
+      "label": "Transcribe ten phrases",
+      "requiredActions": [
+        "enter-phrase"
+      ],
+      "minActions": 10
+    },
+    {
+      "id": "split-practice",
+      "conditionId": "split",
+      "phaseId": "practice",
+      "label": "Practice: two minutes of free typing",
+      "requiredActions": [
+        "enter-phrase"
+      ]
+    },
+    {
+      "id": "split-main",
+      "conditionId": "split",
+      "phaseId": "main",
+      "label": "Transcribe ten phrases",
+      "requiredActions": [
+        "enter-phrase"
+      ],
+      "minActions": 10
+    }
+  ],
+  "participants": [
+    {
+      "id": "P01",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "raycast",
+        "drum",
+        "split",
+        "swipe"
+      ]
+    },
+    {
+      "id": "P02",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "drum",
+        "swipe",
+        "raycast",
+        "split"
+      ]
+    },
+    {
+      "id": "P03",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "swipe",
+        "split",
+        "drum",
+        "raycast"
+      ]
+    },
+    {
+      "id": "P04",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "split",
+        "raycast",
+        "swipe",
+        "drum"
+      ]
+    },
+    {
+      "id": "P05",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "raycast",
+        "drum",
+        "split",
+        "swipe"
+      ]
+    },
+    {
+      "id": "P06",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "drum",
+        "swipe",
+        "raycast",
+        "split"
+      ]
+    },
+    {
+      "id": "P07",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "swipe",
+        "split",
+        "drum",
+        "raycast"
+      ]
+    },
+    {
+      "id": "P08",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "split",
+        "raycast",
+        "swipe",
+        "drum"
+      ]
+    },
+    {
+      "id": "P09",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "raycast",
+        "drum",
+        "split",
+        "swipe"
+      ]
+    },
+    {
+      "id": "P10",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "drum",
+        "swipe",
+        "raycast",
+        "split"
+      ]
+    },
+    {
+      "id": "P11",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "swipe",
+        "split",
+        "drum",
+        "raycast"
+      ]
+    },
+    {
+      "id": "P12",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "split",
+        "raycast",
+        "swipe",
+        "drum"
+      ]
+    },
+    {
+      "id": "P13",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "raycast",
+        "drum",
+        "split",
+        "swipe"
+      ]
+    },
+    {
+      "id": "P14",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "drum",
+        "swipe",
+        "raycast",
+        "split"
+      ]
+    },
+    {
+      "id": "P15",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "swipe",
+        "split",
+        "drum",
+        "raycast"
+      ]
+    },
+    {
+      "id": "P16",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "split",
+        "raycast",
+        "swipe",
+        "drum"
+      ]
+    },
+    {
+      "id": "P17",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "raycast",
+        "drum",
+        "split",
+        "swipe"
+      ]
+    },
+    {
+      "id": "P18",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "drum",
+        "swipe",
+        "raycast",
+        "split"
+      ]
+    },
+    {
+      "id": "P19",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "swipe",
+        "split",
+        "drum",
+        "raycast"
+      ]
+    },
+    {
+      "id": "P20",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "split",
+        "raycast",
+        "swipe",
+        "drum"
+      ]
+    },
+    {
+      "id": "P21",
+      "stratum": "order-1",
+      "conditionOrder": [
+        "raycast",
+        "drum",
+        "split",
+        "swipe"
+      ]
+    },
+    {
+      "id": "P22",
+      "stratum": "order-2",
+      "conditionOrder": [
+        "drum",
+        "swipe",
+        "raycast",
+        "split"
+      ]
+    },
+    {
+      "id": "P23",
+      "stratum": "order-3",
+      "conditionOrder": [
+        "swipe",
+        "split",
+        "drum",
+        "raycast"
+      ]
+    },
+    {
+      "id": "P24",
+      "stratum": "order-4",
+      "conditionOrder": [
+        "split",
+        "raycast",
+        "swipe",
+        "drum"
+      ]
+    }
+  ],
+  "sources": [
+    {
+      "id": "brief",
+      "label": "Study brief",
+      "kind": "brief",
+      "description": "agent-brief.md: the task, the four keyboards, the phrases, the procedure and the measures; no results."
+    },
+    {
+      "id": "evidence",
+      "label": "Background note on text entry in VR",
+      "kind": "evidence",
+      "description": "evidence/text-entry-in-vr.md: a short neutral note on how text entry is measured and what each keyboard family involves; written without this study's data."
+    },
+    {
+      "id": "background",
+      "label": "Participant background",
+      "kind": "demographics",
+      "description": "data/raw/background.csv: invented background per participant, recorded before the study (age band, a desktop typing test, smartphone swipe use, first language, glasses, handedness, arm length); never results.",
+      "fields": [
+        "age_band",
+        "desktop_typing_wpm",
+        "smartphone_swipe_use",
+        "first_language_english",
+        "wears_glasses",
+        "handedness",
+        "arm_length_cm"
+      ]
+    }
+  ],
+  "runtime": {
+    "engine": "custom",
+    "backend": "custom",
+    "observation": "mono",
+    "deviceProfile": "webxr-desktop-browser-1280x720",
+    "requiredCapabilities": [
+      "screenshot",
+      "look",
+      "actions",
+      "phase-events",
+      "quality-lock"
+    ]
+  },
+  "outcomes": [
+    {
+      "id": "wpm",
+      "label": "Entry speed",
+      "domain": "objective",
+      "unit": "words per minute",
+      "scale": "continuous",
+      "range": [
+        0,
+        60
+      ],
+      "aggregation": "arithmetic",
+      "family": "entry-speed",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "(|T| - 1) / S x 60 / 5 per phrase, with T the transcribed phrase and S the seconds from the first key (or gesture) to Enter; a word is five characters. Mean over the ten scored phrases per participant and keyboard."
+    },
+    {
+      "id": "error-rate",
+      "label": "Uncorrected error rate",
+      "domain": "objective",
+      "unit": "proportion of characters (0-1)",
+      "scale": "proportion",
+      "range": [
+        0,
+        1
+      ],
+      "aggregation": "arithmetic",
+      "family": "accuracy",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Errors left in the submitted phrase: the minimum string distance between presented and transcribed phrase divided by the longer of the two. Errors corrected before Enter do not count. Mean over the ten scored phrases."
+    },
+    {
+      "id": "entry-time",
+      "label": "Entry time per phrase",
+      "domain": "objective",
+      "unit": "seconds per phrase",
+      "scale": "continuous",
+      "range": [
+        1,
+        180
+      ],
+      "aggregation": "geometric",
+      "family": "entry-speed",
+      "weight": 1,
+      "phaseIds": [
+        "main"
+      ],
+      "description": "Seconds from the first key (or gesture) to Enter; a phrase not finished after 180 s is ended. Geometric mean over the ten scored phrases, because times are right-skewed. In one family with entry speed, so the two share one weight."
+    },
+    {
+      "id": "tlx",
+      "label": "Workload (raw NASA-TLX)",
+      "domain": "subjective",
+      "unit": "0-100 item mean",
+      "scale": "continuous",
+      "range": [
+        0,
+        100
+      ],
+      "aggregation": "arithmetic",
+      "family": "workload",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "components": [
+        "mental",
+        "physical",
+        "temporal",
+        "performance",
+        "effort",
+        "frustration"
+      ],
+      "componentRule": "mean",
+      "description": "Raw (unweighted) NASA-TLX after each keyboard: six items on 0-100 scales in steps of 5; the score is their mean. Lower means less workload; for performance, 0 = perfect and 100 = failure."
+    },
+    {
+      "id": "arm-comfort",
+      "label": "Arm and shoulder comfort",
+      "domain": "subjective",
+      "unit": "1-7 agreement",
+      "scale": "ordinal",
+      "range": [
+        1,
+        7
+      ],
+      "aggregation": "arithmetic",
+      "family": "comfort",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "Single item after each keyboard: 'My arms and shoulders felt comfortable while typing with this keyboard' (1 = strongly disagree, 7 = strongly agree)."
+    },
+    {
+      "id": "preference",
+      "label": "Preference rank",
+      "domain": "subjective",
+      "unit": "rank; 1 = first",
+      "scale": "rank",
+      "aggregation": "arithmetic",
+      "family": "preference",
+      "weight": 1,
+      "phaseIds": [
+        "practice",
+        "main"
+      ],
+      "description": "After all four keyboards: 'Which keyboard would you choose to enter text in VR?', ranked from 1 (first choice) to 4, without ties."
+    }
+  ],
+  "analysis": {
+    "mode": "both",
+    "familyWeights": {
+      "entry-speed": 1,
+      "accuracy": 1,
+      "workload": 1,
+      "comfort": 1,
+      "preference": 1
+    },
+    "bootstrapDraws": 1000,
+    "seed": 7207,
+    "tieTolerance": 1e-08,
+    "contrasts": [
+      {
+        "id": "evidence-vs-text-objective",
+        "baseline": "text-only",
+        "candidate": "reads-evidence",
+        "domain": "objective"
+      },
+      {
+        "id": "cohort-vs-text-objective",
+        "baseline": "text-only",
+        "candidate": "knows-cohort",
+        "domain": "objective"
+      },
+      {
+        "id": "person-evidence-vs-person-subjective",
+        "baseline": "knows-participant",
+        "candidate": "knows-participant-evidence",
+        "domain": "subjective"
+      }
+    ]
+  }
+}

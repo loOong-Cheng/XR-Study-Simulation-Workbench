@@ -1,0 +1,22 @@
+{
+  "title": "Haptic feedback for mid-air buttons in VR (WebXR app)",
+  "suite": "Suite 5-w · Haptic buttons (WebXR)",
+  "description": "Suite 5's synthetic study (18 invented participants, three press-feedback designs) with a runnable WebXR keypad: app configurations click the keys like a participant. Real agent runs use Claude Code + the built-in WebXR runtime.",
+  "sources": {
+    "brief": "agent-brief.md",
+    "evidence": "evidence/haptics-evidence.md",
+    "demographics": "data/raw/demographics.csv",
+    "trajectory": "data/raw/movement_practice.csv"
+  },
+  "app": {
+    "serve": "webxr-app",
+    "query": "?feedback={condition}&task=sequences&study=1&participant={participant}",
+    "capabilities": [
+      "look",
+      "pointer-xy",
+      "phase-events",
+      "quality-lock"
+    ],
+    "instructions": "The keypad floats below eye level in front of you; the panel above it shows the 4-digit sequence and the digits typed so far. click on a key presses it with the right index fingertip (point_at moves the fingertip over a key without pressing). Bottom row: delete (left), 0 and an unused blank key (right). Each press replies with what the participant saw and what the fingertip actuator did, in words, since you cannot feel it. look turns the head: polar 90 is level, the start view (about 127) looks down at the keypad."
+  }
+}

@@ -10,7 +10,7 @@ import { join, resolve } from "node:path";
 import { verifyCampaign, type Campaign } from "../src/core/campaign.js";
 import { until } from "./until.js";
 
-const SUITES = ["examples/ecolar", "examples/graphics-quality", "examples/graphics-quality/apple-vision-pro", "examples/haptic-buttons", "examples/haptic-buttons-between", "examples/material-cues", "examples/selection", "examples/text-entry"];
+const SUITES = ["examples/ecolar", "examples/graphics-quality", "examples/graphics-quality/apple-vision-pro", "examples/haptic-buttons", "examples/haptic-buttons-between", "examples/haptic-buttons-between/webxr", "examples/haptic-buttons/webxr", "examples/material-cues", "examples/selection", "examples/text-entry", "examples/text-entry/webxr"];
 const REBUILD = "Rebuild the starters from the suites' current files with `npm run starters` and commit examples/*/starter/.";
 const removeDir = (dir: string) => rm(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 250 });
 

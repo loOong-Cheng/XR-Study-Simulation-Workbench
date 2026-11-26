@@ -1,0 +1,272 @@
+[
+  {
+    "id": "text-only",
+    "label": "Text only",
+    "rationale": "Baseline: the study brief alone (task, designs, procedure, measures).",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 5,
+    "maxOutputTokens": 64000,
+    "maxTokens": 200000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "reads-evidence",
+    "label": "Text + evidence",
+    "rationale": "Adds the background note on haptic feedback for mid-air buttons to the brief.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "evidence"
+    ],
+    "tools": [
+      "read-evidence"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "evidence"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 200000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "cohort-background",
+    "label": "Text + cohort background",
+    "rationale": "Adds a summary of the cohort's background (means, ranges and counts over the 18 participants) to the brief.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 200000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "none"
+  },
+  {
+    "id": "knows-participant",
+    "label": "Text + participant background (individual)",
+    "rationale": "Adds the person's own background (age, handedness, hand length, fingertip sensitivity, gaming hours, VR experience) to the brief; forecasts each participant.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 200000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "none"
+  },
+  {
+    "id": "knows-participant-and-movement",
+    "label": "Participant background + practice movement (individual)",
+    "rationale": "Adds the person's fingertip movement during the practice sequences of each design (practice phase only) to the participant's background.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "demographics",
+      "trajectory"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "demographics",
+      "trajectory"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 200000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "none"
+  },
+  {
+    "id": "knows-participant-and-task-data",
+    "label": "Participant background + measured task data (individual)",
+    "rationale": "Adds the person's measured completion time, error rate and overshoot per design as inputs to the participant's background; predicts only the subjective measures.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "tools": [
+      "read-participant-data"
+    ],
+    "observation": "none",
+    "requiredCaseIds": [],
+    "requiredSourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "maxToolCalls": 10,
+    "maxOutputTokens": 64000,
+    "maxTokens": 200000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "none",
+    "targets": [
+      "confidence",
+      "workload",
+      "presence",
+      "preference"
+    ],
+    "inputs": [
+      "completion-time",
+      "error-rate",
+      "overshoot"
+    ]
+  },
+  {
+    "id": "uses-app",
+    "label": "Uses the app",
+    "rationale": "Compared with Text only, one ingredient: pressing the keys of the running app like a participant (three practice and ten scored sequences per design); each press shows its visual feedback and describes the vibration in words.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief"
+    ],
+    "tools": [
+      "xr-interact"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "visual-practice",
+      "visual-main",
+      "buzz-practice",
+      "buzz-main",
+      "pulse-practice",
+      "pulse-main"
+    ],
+    "requiredSourceIds": [
+      "brief"
+    ],
+    "maxToolCalls": 260,
+    "maxOutputTokens": 64000,
+    "maxTokens": 20000000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "population",
+    "runtime": "webxr"
+  },
+  {
+    "id": "uses-app-knows-participant",
+    "label": "Uses the app + participant background (individual)",
+    "rationale": "Uses the app, plus the person's own background, forecasting each participant.",
+    "model": {
+      "provider": "claude-code",
+      "model": "claude-opus-5-5",
+      "reasoning": "default"
+    },
+    "autonomy": "standardized-exposure",
+    "caseOrder": "as-listed",
+    "sourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "tools": [
+      "read-participant-data",
+      "xr-interact"
+    ],
+    "observation": "mono",
+    "requiredCaseIds": [
+      "visual-practice",
+      "visual-main",
+      "buzz-practice",
+      "buzz-main",
+      "pulse-practice",
+      "pulse-main"
+    ],
+    "requiredSourceIds": [
+      "brief",
+      "demographics"
+    ],
+    "maxToolCalls": 260,
+    "maxOutputTokens": 64000,
+    "maxTokens": 20000000,
+    "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
+    "level": "individual",
+    "runtime": "webxr"
+  }
+]

@@ -38,6 +38,7 @@ Every suite comes with a ready-made **starter campaign** (frozen at 1 run per pa
 | 5 · No app | [Haptic buttons](../examples/haptic-buttons/README.md) (synthetic: 18 participants; hand size, tactile sensitivity, gaming, VR experience, practice movement) | Individual forecasts with background and movement data, measured task data as input |
 | 6 · No app | [Haptic buttons, between subjects](../examples/haptic-buttons-between/README.md) (synthetic: 3 groups × 12; VR experience, haptic devices, motion sickness) | Between-subjects analysis: group tests, absolute values, no rankings or individual forecasts |
 | 7 · No app | [Mid-air text entry](../examples/text-entry/README.md) (synthetic: 24 participants; typing speed, swipe use, first language, arm length) | Forecasts made before the study (no measured inputs), a second-model arm |
+| 5-w, 6-w, 7-w · WebXR | [Haptic buttons](../examples/haptic-buttons/webxr/README.md), [between subjects](../examples/haptic-buttons-between/webxr/README.md) and [text entry](../examples/text-entry/webxr/README.md) in WebXR (inside suites 5–7: the same studies and synthetic data, each with a WebXR app) | Real app runs with Claude Code in your Chrome: pointer clicks on a keypad, declared key actions, keyboards whose actions change per design |
 
 **Without a coding agent**, read [Start your own study](getting-started.md).
 

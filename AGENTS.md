@@ -76,14 +76,14 @@ Several workbenches (checkouts, ports) may run on one machine, and every one is 
 
 ## "Test this suite and set it up"
 
-When the researcher asks you to test an example suite (or "suite 1–7", or 3-a), follow [Testing with the example suites](docs/testing-with-example-suites.md): you prepare, the researcher runs and analyses.
+When the researcher asks you to test an example suite (or "suite 1–7", 3-a, or 5-w–7-w), follow [Testing with the example suites](docs/testing-with-example-suites.md): you prepare, the researcher runs and analyses.
 
 1. **Machine.** Do "New machine" above (`node scripts/setup.mjs --test`). Setup also installs every suite's **starter campaign** (`examples/<suite>/starter/`, frozen at 1 run per participant), so the researcher can Simulate or Start without freezing. Opening a study with no campaign installs it too, once; a deleted starter is not put back.
 2. **Runtime**, only for app configurations:
    - Suite 1 (`examples/ecolar`): C, C-Dem, D, D-Dem and the U-series need an Unreal study bridge (`UNREAL_SETUP.md`; use a lab bridge under `private/studies/<name>/runtime/` if one exists).
    - Suite 2 (`examples/selection`): "Uses the app" needs the Unity project and `runtime/bridge.py`.
    - Suites 3–4 need Chrome; check suite 4 with `node dist/cli.js app-check examples/material-cues`.
-   - Suites 5–7 need nothing.
+   - Suites 5–7 need nothing. Their WebXR versions 5-w, 6-w and 7-w (`examples/<suite>/webxr`) need Chrome; check each with `node dist/cli.js app-check examples/<suite>/webxr`.
    - Suite 3-a (`examples/graphics-quality/apple-vision-pro`) needs a Mac with Xcode and the visionOS simulator runtime: build the app (`node examples/graphics-quality/apple-vision-pro/runtime/build.mjs`), set Settings → Runtimes → visionos (`VISIONOS_SETUP.md`), and check it with `node examples/graphics-quality/apple-vision-pro/runtime/check.mjs`.
 
    If an engine part is not ready, say which configurations can run now; do not fake a runtime.
@@ -124,7 +124,7 @@ private/studies/<name>/            (or examples/<name>/ for synthetic studies)
 
 **Attempts** always start in a fresh, empty folder `jobs/<job>/a<n>/` (never one that exists); only the forecast the study MCP server accepted in that attempt counts. Each starts with a marker, `attempt.json` (start, mode, the claude process, the workbench process), and ends with a receipt, also when stopped. If the workbench is stopped (Ctrl+C) or crashes, running sessions are recorded as **interrupted**; after a crash the next start stops the processes left behind (only those whose command line names the attempt folder) and finishes an attempt whose forecast was already accepted, marked "completed after a workbench restart". **Parallel sessions** and each runtime's sessions-at-a-time are one limit for all campaigns together.
 
-Templates: `examples/graphics-quality/` (WebXR, runnable), `examples/material-cues/` (WebXR app with declared actions), `examples/ecolar/` (Unreal; mixed levels, measured inputs, movement data), `examples/selection/` (Unity app and bridge; participant background), `examples/haptic-buttons/` (background + practice-only movement), `examples/haptic-buttons-between/` (between-subjects), `examples/text-entry/` (forecasts before the study), `examples/graphics-quality/apple-vision-pro/` (Apple Vision Pro app and a visionOS simulator bridge), `examples/bridge-template/` (a study bridge skeleton). Contracts: `src/core/types.ts`, `docs/data-contract.md`.
+Templates: `examples/graphics-quality/` (WebXR, runnable), `examples/material-cues/` (WebXR app with declared actions), `examples/ecolar/` (Unreal; mixed levels, measured inputs, movement data), `examples/selection/` (Unity app and bridge; participant background), `examples/haptic-buttons/` (background + practice-only movement), `examples/haptic-buttons-between/` (between-subjects), `examples/text-entry/` (forecasts before the study), `examples/haptic-buttons/webxr/` (a WebXR app played with pointer clicks), `examples/text-entry/webxr/` (app actions that appear with a design), `examples/graphics-quality/apple-vision-pro/` (Apple Vision Pro app and a visionOS simulator bridge), `examples/bridge-template/` (a study bridge skeleton). Contracts: `src/core/types.ts`, `docs/data-contract.md`.
 
 ## Workflow for a new study
 
@@ -202,6 +202,8 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
 5. **Haptic buttons.** Synthetic, no app: 18 participants, three feedback types; background (handedness, hand length, tactile sensitivity, gaming, VR experience) and practice-only movement for individual configurations; measured task data as input.
 6. **Haptic buttons, between subjects.** Synthetic, no app: 3 groups × 12; group comparisons with independent-samples tests, no rankings, population configurations only.
 7. **Mid-air text entry.** Synthetic, no app: 24 participants, four keyboards, forecasts made before the study (no measured inputs); background (typing speed, swipe use, first language, arm length); a second-model arm.
+
+   **5-w, 6-w, 7-w. The same suites with a WebXR app, inside suites 5–7** (`examples/haptic-buttons/webxr`, `examples/haptic-buttons-between/webxr`, `examples/text-entry/webxr`, studies of their own): each suite's study, synthetic data and configurations, with a runnable WebXR app and app configurations. In 5-w the agent clicks a keypad with the pointer. 6-w is the same keypad driven by declared key actions. 7-w has the four keyboards, and the swipe keyboard adds actions at run time. They need Chrome, like suites 3 and 4.
 
 Each suite's `data/generate_synthetic.py` and `convert_to_human.py` regenerate its data exactly (seeded); its README states the invented effects. Each suite's `starter/` holds its starter campaign ([testing with the example suites](docs/testing-with-example-suites.md)).
 

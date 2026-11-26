@@ -1,0 +1,37 @@
+participant,age,vr_experience,prior_haptic_devices,motion_sickness_susceptibility,dominant_hand
+p01,39,occasional,haptic gloves,low,right
+p02,37,regular,controller rumble,medium,right
+p03,38,occasional,controller rumble,low,right
+p04,43,none,controller rumble,low,right
+p05,33,regular,haptic gloves,high,right
+p06,41,regular,controller rumble,medium,right
+p07,32,regular,controller rumble,high,right
+p08,29,occasional,controller rumble,medium,right
+p09,41,occasional,controller rumble,high,right
+p10,33,regular,haptic gloves,low,right
+p11,20,occasional,controller rumble,medium,right
+p12,25,none,controller rumble,low,right
+p13,38,none,none,medium,right
+p14,24,regular,haptic gloves,low,right
+p15,38,regular,controller rumble,low,right
+p16,26,none,none,low,right
+p17,26,none,none,low,right
+p18,40,occasional,none,low,right
+p19,35,occasional,controller rumble,low,right
+p20,29,occasional,none,medium,right
+p21,30,occasional,controller rumble,low,right
+p22,46,none,none,low,right
+p23,22,regular,haptic gloves,low,right
+p24,22,none,none,medium,right
+p25,34,none,controller rumble,low,right
+p26,44,none,none,low,right
+p27,19,occasional,none,medium,right
+p28,33,occasional,haptic gloves,medium,right
+p29,44,none,none,low,right
+p30,19,occasional,controller rumble,medium,right
+p31,35,none,controller rumble,high,right
+p32,19,none,none,medium,left
+p33,40,regular,controller rumble,low,right
+p34,33,regular,haptic gloves,low,left
+p35,24,none,none,low,right
+p36,39,occasional,haptic gloves,medium,right

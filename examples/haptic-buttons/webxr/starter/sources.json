@@ -1,0 +1,28 @@
+{
+  "campaignId": "campaign-starter-8598647c5e3a",
+  "recordedAt": "2026-01-01T00:00:00.000Z",
+  "sources": {
+    "brief": {
+      "path": "agent-brief.md",
+      "sha256": "d5f47263e779b0de7f217b0bbf550e3d37c404548b2ed70b42131863bdd0df4d"
+    },
+    "evidence": {
+      "path": "evidence/haptics-evidence.md",
+      "sha256": "342d347a37830413e2c2f0a26d919a78e9775e08f7358222344d66705c859ddb"
+    },
+    "demographics": {
+      "path": "data/raw/demographics.csv",
+      "sha256": "0879788608073ec4970791d9a741a8bee4462ed0b82aa8565dce3636da12c2ce"
+    },
+    "trajectory": {
+      "path": "data/raw/movement_practice.csv",
+      "sha256": "206e86afe12459ece2622204783205ede059c21be6d123b50db123aae81ca503"
+    }
+  },
+  "app": {
+    "serve": "webxr-app",
+    "query": "?feedback={condition}&task=sequences&study=1&participant={participant}",
+    "sha256": "bed2c30d4670d11a53bd448fc7f11af3f8e35db147de8a206cc52e4ebe3b97a0",
+    "declared": "e8b7942ecf20d21ab6caa2dc54ce5a00822d81c701e14838117d7fe4263568af"
+  }
+}
