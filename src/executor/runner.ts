@@ -10,14 +10,15 @@ import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { campaignPlan, conditionModel, type Campaign, type CampaignReceipt } from "../core/campaign.js";
 import { simulatedResults } from "../core/example.js";
-import { lineageRuns, reusedUsage } from "../history.js";
+import { COST_UNKNOWN, lineageRuns, noSpending, reusedUsage, unknownCostTokens, type CostManifest, type Spent } from "../history.js";
 import { agentLevel, agentTargets, hash, jobPacket, protocolForJob } from "../core/planner.js";
+import { runtimeIssues } from "../core/protocol.js";
 import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent } from "../core/types.js";
 import { claudeEffort, effortProblem, requireThat } from "../core/validation.js";
 import { claudeCommand, claudeProblem, readSettings, runtimeLimits, type Settings } from "../settings.js";
-import { claudeFeatures, killTree, spawnTree } from "./processes.js";
+import { claudeFeatures, killTree, removeProfiles, spawnTree } from "./processes.js";
 import { changedApp, changedSources, listCampaigns, listWorkspaces, missingSources, readCampaign, readHuman, readReceipts, readSourceText, readStudyFolder, repoRoot, runDir, sourceLocation, workspaceDir, type WorkspaceManifest } from "../workspace.js";
-import { appActions, runtimeFor, runtimeStatus, webxrCapabilities, webxrIdleFps, webxrPointer, webxrSettleMs } from "./runtimes.js";
+import { appActions, runtimeFor, runtimeStatus, webxrCapabilities, webxrIdleFps, webxrPointer, webxrProfilePrefix, webxrSettleMs } from "./runtimes.js";
 import { runRecordPath } from "./archive.js";
 import { activeAttempts, appendLine, SERVER, serverAlive, stopLeftovers, unfinishedAttempts, writeMarker, type AttemptMarker } from "./attempts.js";
 import { joinScheduler, leaveScheduler, schedule, type Schedulable } from "./scheduler.js";
@@ -36,8 +37,8 @@ export type JobStatus = "not-started" | "queued" | "running" | "done" | "failed"
 export const STOPPED = "Stopped by you.";
 /** The error of an attempt that has a folder but no receipt (the words of sessionAttempts in history.ts). */
 export const STOPPED_UNRECORDED = "Stopped before it finished; no result was recorded.";
-/** Shown for a real session that ended before Claude Code reported its cost. */
-export const COST_UNKNOWN = "unknown (stopped before the end)";
+/** Shown for a real session that ended before Claude Code reported its cost (defined in history.ts). */
+export { COST_UNKNOWN };
 /**
  * The error of an attempt the workbench could not see to its end: it was shut down, or crashed,
  * while the session ran (also in its receipt). The session can be run again, in a new attempt folder.
@@ -89,6 +90,11 @@ export interface JobState {
   tokensOut: number | null;
   /** Session cost reported by Claude Code; null for simulated runs or when not reported. */
   costUsd: number | null;
+  /**
+   * What every real attempt of this session in this campaign spent: reported costs, and the
+   * attempts stopped before Claude Code reported one (with their tokens). Cost sums use this.
+   */
+  spent?: Spent;
   /** A finished session to look at, e.g. "over budget: 97,712 of 60,000 tokens". */
   warning: string | null;
   lastTool: string | null;
@@ -223,7 +229,7 @@ export function callsUntilForecast(total: number, forecast: { toolCalls?: unknow
  * (bridge.jsonl starts or repeated runtime reports in the trace), and tool calls made after the
  * forecast was accepted (not counted).
  */
-export function sessionWarnings(requiredCaseIds: string[], runtime: string, run: RunResult): string[] {
+export function sessionWarnings(requiredCaseIds: string[], runtime: string, run: RunResult, plan?: Plan, agent?: AgentProtocol): string[] {
   if (run.status !== "completed" || run.execution?.synthetic) return [];
   const trace = Array.isArray(run.trace) ? run.trace : [];
   const out: string[] = [];
@@ -236,6 +242,11 @@ export function sessionWarnings(requiredCaseIds: string[], runtime: string, run:
   if (Math.max(reports, run.execution?.runtimeStarts ?? 0) > 1) out.push(`${runtimeName(runtime)} restarted during the session`);
   const after = run.execution?.toolCallsAfterForecast ?? 0;
   if (after > 0) out.push(`${after} tool call${after === 1 ? "" : "s"} after the forecast was accepted (not counted)`);
+  // What the runtime reported against the frozen recipe, as the audit will list it (a device the
+  // study does not declare makes every app session a protocol deviation). Restarts are said above.
+  if (plan && agent?.tools.includes("xr-interact"))
+    for (const issue of runtimeIssues(plan, agent, trace))
+      if (!issue.startsWith("The runtime restarted")) out.push(`protocol deviation: ${issue[0].toLowerCase()}${issue.slice(1).replace(/\.$/, "")}`);
   return out;
 }
 /**
@@ -537,10 +548,19 @@ export class Executor implements Schedulable {
           const required = job && this.agent(s.agentId).tools.includes("xr-interact") ? protocolForJob(this.plan, job).requiredCaseIds : [];
           s.warning = joinWarnings(
             budgetWarning(s.tokensIn === null ? null : s.tokensIn + (s.tokensOut ?? 0), this.agent(s.agentId).maxTokens, run.execution.tokensAtSubmit ?? null),
-            ...sessionWarnings(required, s.runtime, run),
+            ...sessionWarnings(required, s.runtime, run, this.plan, this.agent(s.agentId)),
           );
         }
       }
+    // What every real attempt spent, from its execution manifest: known costs, and attempts whose
+    // cost is unknown (stopped before Claude Code reported it) with their tokens.
+    for (const r of receipts) {
+      const s = this.jobs.get(r.jobId);
+      if (!s || s.status === "reused" || !r.executionManifest?.path.endsWith("execution-manifest.json")) continue;
+      const path = runRecordPath(this.dir, r.executionManifest.path);
+      const m = path ? await json<NonNullable<CostManifest>>(path) : null;
+      s.spent = addSpending(s.spent, typeof m?.costUsd === "number" ? m.costUsd : null, unknownCostTokens(m));
+    }
     // Cost of the attempt that counts, from its execution manifest.
     for (const r of receipts)
       if (r.status === "completed" && r.executionManifest?.path.endsWith("execution-manifest.json")) {
@@ -932,6 +952,8 @@ export class Executor implements Schedulable {
     if (marker.mode === "simulate") return interrupted({ inputTokens: null, outputTokens: null });
     const job = this.planJob(jobId);
     const a = this.agent(job.agentId);
+    // Its processes were stopped (recover): the Chrome profile of a WebXR attempt is left; remove it.
+    if (runtimeFor(this.plan.study, a) === "webxr") void removeProfiles(webxrProfilePrefix(jobId, attempt));
     const study = this.plan.study;
     const text = async (f: string) => (existsSync(join(dir, f)) ? await readFile(join(dir, f), "utf8") : "");
     const parse = <T>(s: string): T | null => {
@@ -1295,6 +1317,8 @@ export class Executor implements Schedulable {
             runtime === "webxr"
               ? {
                   jobId,
+                  // The Chrome profile's name for this attempt: removed by name after Stop.
+                  profilePrefix: webxrProfilePrefix(jobId, attempt),
                   budget: a.maxToolCalls,
                   tokenBudget: a.maxTokens ?? null,
                   chromePath: settings.chromePath,
@@ -1742,7 +1766,7 @@ export class Executor implements Schedulable {
       measurements: forecast?.measurements ?? [],
       trace,
     };
-    const warnings = sessionWarnings(usesApp ? protocol.requiredCaseIds : [], runtime, run);
+    const warnings = sessionWarnings(usesApp ? protocol.requiredCaseIds : [], runtime, run, this.plan, a);
     if (mine()) for (const w of warnings) this.emit({ type: "log", jobId, text: `Warning: ${w[0].toUpperCase()}${w.slice(1)}.` });
     const full: FullUsage = {
       inputTokens: usage.input_tokens ?? null,
@@ -1806,6 +1830,10 @@ export class Executor implements Schedulable {
       jobDir,
     );
     if (unknownModel && mine()) this.emit({ type: "log", jobId, text: error! });
+    // A stopped (or crashed) WebXR session never removed its Chrome profile: remove this attempt's now.
+    if (runtime === "webxr") void removeProfiles(webxrProfilePrefix(jobId, attempt));
+    // Every attempt's spending counts, also a stopped one whose cost is unknown (its tokens are known).
+    this.update(jobId, { spent: addSpending(this.jobs.get(jobId)!.spent, costUsd, costUsd === null && meter.modelRan ? total : null) });
     // A stopped run stays "stopped" (a rerun may already hold the session); only its counts are kept.
     if (handle.stopped && !ok) {
       if (this.jobs.get(jobId)!.attempts === attempt && this.jobs.get(jobId)!.status === "stopped")
@@ -1824,6 +1852,13 @@ export class Executor implements Schedulable {
       error,
     });
   }
+}
+/** A session's spending plus one attempt: its reported cost, or (unknown cost) its tokens. */
+function addSpending(spent: Spent | undefined, costUsd: number | null, unknownTokens: number | null): Spent {
+  const next = { ...(spent ?? noSpending()) };
+  if (costUsd !== null) next.usd += costUsd;
+  else if (unknownTokens !== null) (next.unknownAttempts += 1), (next.unknownTokens += unknownTokens);
+  return next;
 }
 /** The JSON lines of a file (unreadable lines skipped); none when it does not exist. */
 async function jsonLines(path: string): Promise<Record<string, any>[]> {

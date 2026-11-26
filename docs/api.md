@@ -16,8 +16,8 @@ The website at `http://127.0.0.1:<port>` (`XR_STUDY_PORT`, default 4317) uses th
 | Route | Query | Returns |
 | --- | --- | --- |
 | `/api/workspaces` | | every study: `id`, `title`, engine, campaigns, human data or not |
-| `/api/workspace` | `id` | study, agent configurations (templates if none are saved), approval, sources, campaigns, a `problem` if the files disagree. An example suite with no campaign gets its starter campaign (`starter/`) installed first, once per study (`src/starters.ts`) |
-| `/api/workspace/campaigns` | `id` | every campaign with label, parent, progress and cost |
+| `/api/workspace` | `id` | study, agent configurations (templates if none are saved), approval, sources, campaigns, a `problem` if the files disagree, and `warnings` (what the agents get; also a study device that the WebXR runtime does not report, which would make every app session a protocol deviation). An example suite with no campaign gets its starter campaign (`starter/`) installed first, once per study (`src/starters.ts`) |
+| `/api/workspace/campaigns` | `id` | every campaign with label, parent, progress and cost: `costUsd` adds up reported costs only; `unknownCost` counts the real attempts left out because they stopped before Claude Code reported a cost, with their tokens |
 | `/api/workspace/campaign-inputs` | `id`, `campaign` | the frozen sources the campaign's agents get, and whether each still exists |
 | `/api/workspace/evidence` | `id` | brief, general knowledge and participant knowledge, with the outcome-blind check |
 | `/api/workspace/source` | `id`, `source` | one source as plain text (never human data) |
@@ -36,7 +36,7 @@ The website at `http://127.0.0.1:<port>` (`XR_STUDY_PORT`, default 4317) uses th
 | `/api/workspace/create` | `{name?}` | a new study under `private/studies/` |
 | `/api/workspace/save` | `{id, study?, agents?, comparisons?}` | saves study, configurations, comparisons (validated) |
 | `/api/workspace/approve` | `{id, note?}` | records the researcher's approval of the saved files |
-| `/api/workspace/freeze` | `{id, repetitions?, label?, check?}` | freezes a campaign; `repetitions` = runs per participant (1–50, default 1). `check: true` freezes nothing and returns `{duplicates, jobs}` |
+| `/api/workspace/freeze` | `{id, repetitions?, label?, check?}` | freezes a campaign and returns `{campaignId, jobs, warnings}` (`warnings`: a study device the WebXR runtime does not report); `repetitions` = runs per participant (1–50, default 1). `check: true` freezes nothing and returns `{duplicates, jobs}` |
 | `/api/workspace/brief-save` | `{id, text}` | writes the study brief (outcome-blind check) |
 | `/api/workspace/knowledge-draft` | `{id, name, base64}` | drafts knowledge from a file (the assistant reads documents); nothing is saved |
 | `/api/workspace/knowledge-save` | `{id, study, agents, write?: [{sourceId, path, text}], unmap?: [sourceId]}` | saves reviewed knowledge files and their sources |

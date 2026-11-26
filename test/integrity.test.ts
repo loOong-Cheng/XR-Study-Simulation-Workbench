@@ -781,3 +781,53 @@ process.stdin.on("end", () => {
     await removeDir(bin);
   }
 });
+
+test("issue 2: a session whose runtime reports another device than the study says so on its row", async () => {
+  const { sessionWarnings } = await import("../src/executor/runner.js");
+  const { WEBXR_DEVICE_PROFILE, webxrDeviceWarning } = await import("../src/executor/runtimes.js");
+  const dir = resolve("examples/graphics-quality");
+  const study = validateStudy(JSON.parse(await readFile(join(dir, "study.json"), "utf8")));
+  const agents = validateAgents(study, JSON.parse(await readFile(join(dir, "agents.json"), "utf8")));
+  assert.equal(webxrDeviceWarning(study, agents), null, "the suite's device is the runtime's");
+  assert.equal(webxrDeviceWarning({ ...study, runtime: { ...study.runtime, deviceProfile: "meta-quest-3" } }, agents.filter((a) => !a.tools.includes("xr-interact"))), null, "no configuration uses the app");
+  const quest = { ...study, runtime: { ...study.runtime, deviceProfile: "meta-quest-3" } };
+  assert.match(webxrDeviceWarning(quest, agents) ?? "", /every real app session of .*uses-app/);
+  const plan = freezePlan(quest, withDefaultRuns(quest, agents, 1), 1);
+  const agent = plan.agents.find((a) => a.tools.includes("xr-interact"))!;
+  const report = { type: "runtime", engine: "webxr", backend: "chrome-headless", deviceProfile: WEBXR_DEVICE_PROFILE, observation: agent.observation, capabilities: ["screenshot", ...quest.runtime.requiredCapabilities] };
+  const run = (trace: unknown[]) => ({ status: "completed", execution: { synthetic: false }, trace }) as never;
+  const warned = sessionWarnings([], "webxr", run([report]), plan, agent);
+  assert.deepEqual(warned, [`protocol deviation: runtime reported device profile '${WEBXR_DEVICE_PROFILE}', but the frozen recipe says 'meta-quest-3'`]);
+  // The same report against the suite's own study: nothing to say. A configuration without the app: nothing either.
+  const own = freezePlan(study, withDefaultRuns(study, agents, 1), 1);
+  assert.deepEqual(sessionWarnings([], "webxr", run([report]), own, own.agents.find((a) => a.id === agent.id)), []);
+  assert.deepEqual(sessionWarnings([], "none", run([]), plan, plan.agents.find((a) => !a.tools.includes("xr-interact"))), []);
+});
+
+test("issue 4: a WebXR attempt's Chrome profile names its session and is removed by name after Stop", async () => {
+  const { webxrProfilePrefix } = await import("../src/executor/runtimes.js");
+  const { removeProfiles } = await import("../src/executor/processes.js");
+  const jobId = "campaign-55ab68b0-42a4-4e66-9232-e30c2b9a1b2c--uses-app-P03-r1";
+  const p1 = webxrProfilePrefix(jobId, 1);
+  assert.match(p1, /^xr-webxr-uses-app-P03-r1-[0-9a-f]{8}-a1-$/, "the configuration, participant and run, not the campaign's UUID");
+  assert.notEqual(p1, webxrProfilePrefix(jobId, 2), "each attempt has its own");
+  assert.notEqual(p1, webxrProfilePrefix(jobId.replace("55ab", "66ab"), 1), "the hash tells campaigns apart");
+  assert.ok(webxrProfilePrefix(`campaign-x--${"c".repeat(80)}-P01-r1`, 12).length <= 60, "long configuration IDs are cut");
+  assert.match(webxrProfilePrefix("test-synthetic-haptic-buttons-webxr", "x"), /^xr-webxr-test-synthetic-/, "an ID without a campaign part keeps its start");
+  // Removal takes exactly that attempt's folders. (Named xr-webxr-test-…, which the WebXR runtime
+  // tests running at the same time leave alone as another test's.)
+  const job = `campaign-unit-${process.pid}--test-unit-r1`;
+  const mine = await mkdtemp(join(tmpdir(), webxrProfilePrefix(job, 1)));
+  const next = await mkdtemp(join(tmpdir(), webxrProfilePrefix(job, 2)));
+  try {
+    assert.ok(webxrProfilePrefix(job, 1).startsWith("xr-webxr-test-"));
+    await writeFile(join(mine, "Local State"), "{}");
+    assert.equal(await removeProfiles(webxrProfilePrefix(job, 1), 3, 10), 1);
+    assert.equal(existsSync(mine), false);
+    assert.equal(existsSync(next), true, "a rerun's profile stays");
+    assert.equal(await removeProfiles("../xr-webxr-", 1, 10), 0, "only a profile name is accepted");
+  } finally {
+    await removeDir(mine);
+    await removeDir(next);
+  }
+});

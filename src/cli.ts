@@ -36,7 +36,7 @@ import {
   explainStudy,
 } from "./core/explain.js";
 import { approvalState } from "./review.js";
-import { capabilityWarnings, webxrActionWarnings, webxrPointerProblem } from "./executor/runtimes.js";
+import { capabilityWarnings, webxrActionWarnings, webxrDeviceWarning, webxrPointerProblem } from "./executor/runtimes.js";
 import { fairnessWarnings } from "./core/fairness.js";
 import {
   extractProposal,
@@ -642,6 +642,7 @@ async function main(): Promise<void> {
       ...(agents
         ? [
             ...webxrActionWarnings(study, agents, workspace),
+            ...[webxrDeviceWarning(study, agents)].filter((w): w is string => !!w),
             ...capabilityWarnings(study, agents, workspace, await readSettings().catch(() => undefined)),
             ...agents.map((a) => tokenBudgetWarning(study, a)).filter((w): w is string => !!w),
           ]
@@ -718,7 +719,7 @@ async function main(): Promise<void> {
     }
     const n = checks.reduce((s, c) => s + c.problems.length, 0);
     if (n) {
-      console.log(`${n} problem${n === 1 ? "" : "s"}: fix the app or workspace.json → app before the first real session.`);
+      console.log(`${n} problem${n === 1 ? "" : "s"}: fix the app, workspace.json → app or study.json → runtime before the first real session.`);
       process.exitCode = 2;
     } else console.log("Every design opened, and the runtime could read the app. Look at the screenshots; then run one real session (Run this session only).");
     return;

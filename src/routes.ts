@@ -22,7 +22,7 @@ import { briefOverview, saveBrief } from "./brief.js";
 import { closeExecutor, Executor, liveStatuses, receiptsChanged, type ExecutorEvent } from "./executor/runner.js";
 import { exportRunsReport, importRuns, runRecordPath } from "./executor/archive.js";
 import { LOADING, loadingInto } from "./executor/loading.js";
-import { capabilityWarnings, runtimeFor, runtimeStatus } from "./executor/runtimes.js";
+import { capabilityWarnings, runtimeFor, runtimeStatus, webxrDeviceWarning } from "./executor/runtimes.js";
 import { approvalState, approve } from "./review.js";
 import { readSettings, writeSettings, type Settings } from "./settings.js";
 import {
@@ -273,7 +273,8 @@ export async function handleGet(path: string, url: URL, res: ServerResponse, jso
         // Fairness of what the agents get (fairness.ts): shown on Study & variables and Freeze & campaigns.
         warnings: (() => {
           try {
-            return fairnessWarnings(ws.study, agents, ws.comparisons);
+            const device = webxrDeviceWarning(ws.study, agents);
+            return [...(device ? [device] : []), ...fairnessWarnings(ws.study, agents, ws.comparisons)];
           } catch {
             return [] as string[];
           }
@@ -439,7 +440,9 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       // What the sources hold now, beside the campaign: the executor refuses sessions whose source changed since.
       await saveSourceFingerprints(id, campaign);
       if (label.trim()) await writeLabel(id, campaign.id, label);
-      json({ campaignId: campaign.id, jobs: campaign.jobs.length });
+      // The freeze goes ahead; a study device the WebXR runtime does not report is said here too.
+      const device = webxrDeviceWarning(ws.study, agents);
+      json({ campaignId: campaign.id, jobs: campaign.jobs.length, warnings: device ? [device] : [] });
       return true;
     }
     case "/api/workspace/human-figure": {

@@ -12,12 +12,14 @@ import { existsSync, realpathSync, statSync } from "node:fs";
 import { appendFile, mkdir, mkdtemp, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { constants as osConstants, setPriority, tmpdir } from "node:os";
 import { extname, join, resolve } from "node:path";
-import { normalAction, type AppAction } from "../executor/runtimes.js";
+import { normalAction, WEBXR_DEVICE_PROFILE, webxrProfilePrefix, type AppAction } from "../executor/runtimes.js";
 import { agentPath } from "./guard.js";
 import { budgetNearlyUsed, serveMcp, takeToolCall, text, ToolError, type Tool } from "./mcp.js";
 
 interface WebXRSpec {
   jobId: string;
+  /** The profile folder's name start for this attempt (runtimes.ts → webxrProfilePrefix), set by the runner. */
+  profilePrefix?: string;
   budget: number;
   tokenBudget?: number | null;
   chromePath: string;
@@ -151,8 +153,11 @@ async function resetBrowser() {
 }
 async function browser(): Promise<void> {
   if (ws) return;
-  // Named after the job: a Chrome left behind shows only --user-data-dir, which then names its session.
-  profile = await mkdtemp(join(tmpdir(), `xr-webxr-${String(spec.jobId ?? "job").replace(/[^A-Za-z0-9_-]/g, "").slice(0, 40)}-`));
+  // Named after the job and attempt (the end of the job ID and a hash of all of it): a Chrome left
+  // behind shows only --user-data-dir, which then names its session, and the runner removes the
+  // folder of a stopped attempt by this name.
+  const prefix = typeof spec.profilePrefix === "string" && /^xr-webxr-[A-Za-z0-9_-]{1,80}-$/.test(spec.profilePrefix) ? spec.profilePrefix : webxrProfilePrefix(String(spec.jobId ?? "job"), "x");
+  profile = await mkdtemp(join(tmpdir(), prefix));
   chrome = spawn(
     spec.chromePath,
     [
@@ -226,7 +231,7 @@ async function reportRuntime() {
       engine: "webxr",
       engineVersion: version,
       backend: "chrome-headless",
-      deviceProfile: "webxr-desktop-browser-1280x720",
+      deviceProfile: WEBXR_DEVICE_PROFILE,
       observation: "mono",
       capabilities: [...caps],
     },

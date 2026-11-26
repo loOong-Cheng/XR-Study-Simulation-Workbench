@@ -126,8 +126,34 @@ function killAllNow() {
 process.on("exit", killAllNow);
 
 /**
+ * The Chrome profile(s) of one WebXR attempt (folders starting with `prefix`, runtimes.ts →
+ * webxrProfilePrefix) in the temporary folder, removed once the session has ended: Stop ends the
+ * session's process tree before the runtime can remove its own. Tries again for a while, since on
+ * Windows the files stay locked until Chrome has exited. Returns how many were removed.
+ */
+export async function removeProfiles(prefix: string, tries = 15, waitMs = 1000): Promise<number> {
+  if (!/^xr-webxr-[A-Za-z0-9_-]+-$/.test(prefix)) return 0;
+  const left = async () => (await readdir(tmpdir()).catch(() => [] as string[])).filter((n) => n.startsWith(prefix));
+  let removed = 0;
+  for (let i = 0; i < tries; i++) {
+    const names = await left();
+    if (!names.length) break;
+    for (const name of names)
+      try {
+        await rm(join(tmpdir(), name), { recursive: true, force: true, maxRetries: 3, retryDelay: 200 });
+        removed++;
+      } catch {
+        // still locked: next try
+      }
+    // Wait only while a folder is left (locked on Windows until Chrome has exited).
+    if (i < tries - 1 && (await left()).length) await new Promise((ok) => setTimeout(ok, waitMs));
+  }
+  return removed;
+}
+/**
  * Chrome profiles of the WebXR runtime (xr-webxr-* in the temporary folder) that a session ended
- * by force left behind, older than a day so that running sessions keep theirs.
+ * by force left behind, older than a day so that running sessions keep theirs. Runs at server
+ * start and then every few hours (server.ts).
  */
 export async function removeStaleProfiles(now = Date.now()): Promise<number> {
   let removed = 0;

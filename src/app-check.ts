@@ -78,6 +78,9 @@ export async function appCheck(studyDir: string, study: Study, manifest: Workspa
     return c ? { caseId: c.id, phaseId: phase!.id } : null;
   };
   const results: DesignCheck[] = [];
+  // What the runtime reported about itself that differs from the study (protocol.ts → runtimeIssues
+  // would list each of these for every real session); said once, not per design.
+  const mismatches = new Set<string>();
   await mkdir(opts.out, { recursive: true });
   for (const d of designs) {
     const check: DesignCheck = { design: d.id, problems: [], notes: [], screenshots: [] };
@@ -164,10 +167,23 @@ export async function appCheck(studyDir: string, study: Study, manifest: Workspa
       : [];
     for (const type of ["runtime", "phase", "case-start", "observation"])
       if (!events.some((e: any) => e.type === type)) check.problems.push(`The trace has no ${type} event.`);
+    const reported = events.filter((e: any) => e.type === "runtime").at(-1);
+    if (reported) {
+      const want = study.runtime;
+      if (reported.deviceProfile !== want.deviceProfile)
+        mismatches.add(
+          `The runtime reports the device "${reported.deviceProfile}", but study.json → runtime.deviceProfile is "${want.deviceProfile}": every real app session would be recorded as a protocol deviation. Set the study's device to "${reported.deviceProfile}".`,
+        );
+      if (want.backend !== "custom" && reported.backend !== want.backend)
+        mismatches.add(`The runtime reports the backend "${reported.backend}", but study.json → runtime.backend is "${want.backend}": every real app session would be a protocol deviation.`);
+      if (reported.observation !== want.observation)
+        mismatches.add(`The runtime reports "${reported.observation}" observation, but study.json → runtime.observation is "${want.observation}": configurations that require it cannot run their app sessions as agents.`);
+    }
     const shots = existsSync(join(jobDir, "screenshots")) ? readdirSync(join(jobDir, "screenshots")) : [];
     check.screenshots = shots.map((f) => join(jobDir, "screenshots", f));
   }
   const pointerProblem = webxrPointerProblem(manifest);
   if (pointerProblem && results[0]) results[0].problems.push(pointerProblem);
+  if (results[0]) results[0].problems.push(...mismatches);
   return results;
 }

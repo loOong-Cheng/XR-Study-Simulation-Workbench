@@ -68,6 +68,8 @@ export interface CampaignSummary {
   simulated: number;
   /** Total of real sessions' reported cost (all attempts), null when none reported one. */
   costUsd: number | null;
+  /** Real attempts left out of costUsd because their cost is unknown (stopped before the end), with their tokens. */
+  unknownCost: { attempts: number; tokens: number };
   models: Record<string, CampaignModel>;
   /**
    * The campaign's configurations, including model copies added by continuations (which are not
@@ -77,6 +79,27 @@ export interface CampaignSummary {
   configs: { id: string; label: string; individual: boolean; runs: number }[];
   designKey: string;
 }
+/** The cost label of a real attempt that ended before Claude Code reported its cost. */
+export const COST_UNKNOWN = "unknown (stopped before the end)";
+/** What an attempt's execution manifest says about its cost (execution-manifest.json). */
+export type CostManifest = { costUsd?: number | null; cost?: string; usage?: Record<string, unknown> } | null;
+/**
+ * All tokens (input, cache and output) of a real attempt whose cost Claude Code never reported
+ * (stopped, timed out or crashed before its final message), from its execution manifest; null when
+ * its cost is known or no model ran. Cost totals add up known costs only and name these beside them.
+ */
+export function unknownCostTokens(m: CostManifest): number | null {
+  if (!m || typeof m.costUsd === "number" || m.cost !== COST_UNKNOWN) return null;
+  const u = m.usage ?? {};
+  return ["inputTokens", "cacheReadTokens", "cacheWriteTokens", "outputTokens"].reduce((n, k) => n + (typeof u[k] === "number" ? (u[k] as number) : 0), 0);
+}
+/** Spending of real attempts: the reported costs, and the attempts whose cost is unknown with their tokens. */
+export interface Spent {
+  usd: number;
+  unknownAttempts: number;
+  unknownTokens: number;
+}
+export const noSpending = (): Spent => ({ usd: 0, unknownAttempts: 0, unknownTokens: 0 });
 // ---------- what the summaries read, kept between requests ----------
 // The page asks for the summaries every few seconds while sessions run. Frozen campaign files are
 // read again only when they change on disk; receipts.jsonl is append-only, so only lines added
@@ -123,6 +146,8 @@ interface RunTally {
   completed: Set<string>;
   tried: Set<string>;
   cost: number | null;
+  /** Attempts whose cost is unknown, and their tokens. */
+  unknownCost: { attempts: number; tokens: number };
   /** results/: whether each file's run is simulated, read once (null: not readable yet, read again next time). */
   results: Map<string, boolean | null>;
   resultsStamp: string;
@@ -179,7 +204,7 @@ async function tallyNow(dir: string): Promise<RunTally> {
   const st = await statOrNull(receiptsPath);
   // A new or replaced receipts file (another inode, or shorter than what was read): count again.
   if (!t || (st && (st.ino !== t.ino || st.size < t.offset)) || (!st && t.offset > 0)) {
-    t = { ino: st?.ino ?? 0, offset: 0, completed: new Set(), tried: new Set(), cost: null, results: t?.results ?? new Map(), resultsStamp: t?.resultsStamp ?? "" };
+    t = { ino: st?.ino ?? 0, offset: 0, completed: new Set(), tried: new Set(), cost: null, unknownCost: { attempts: 0, tokens: 0 }, results: t?.results ?? new Map(), resultsStamp: t?.resultsStamp ?? "" };
     tallies.set(dir, t);
   }
   if (st && st.size > t.offset) {
@@ -201,8 +226,8 @@ async function tallyNow(dir: string): Promise<RunTally> {
       const withManifest = receipts.filter((r) => r.executionManifest);
       summaryReads.manifests += withManifest.length;
       const costs = await inTurns(withManifest, async (r) => {
-        const m = await json<{ costUsd?: number | null }>(runRecordPath(dir, r.executionManifest!.path));
-        return typeof m?.costUsd === "number" ? m.costUsd : null;
+        const m = await json<NonNullable<CostManifest>>(runRecordPath(dir, r.executionManifest!.path));
+        return { usd: typeof m?.costUsd === "number" ? m.costUsd : null, unknownTokens: unknownCostTokens(m) };
       });
       summaryReads.receiptLines += receipts.length;
       for (const r of receipts) {
@@ -210,7 +235,10 @@ async function tallyNow(dir: string): Promise<RunTally> {
         if (r.status === "completed") t.completed.add(r.jobId);
       }
       // Added in receipt order, as reading the whole file adds them.
-      for (const c of costs) if (c !== null) t.cost = (t.cost ?? 0) + c;
+      for (const c of costs) {
+        if (c.usd !== null) t.cost = (t.cost ?? 0) + c.usd;
+        else if (c.unknownTokens !== null) (t.unknownCost.attempts += 1), (t.unknownCost.tokens += c.unknownTokens);
+      }
       t.offset += end + 1;
     }
   }
@@ -306,6 +334,7 @@ async function computeSummaries(id: string, live?: (campaignId: string) => Map<s
       real,
       simulated,
       costUsd: cost,
+      unknownCost: { ...tally.unknownCost },
       models: Object.fromEntries(c.suite.conditions.map((x) => [x.id, conditionModel(c, x.id)])),
       configs: c.suite.conditions
         .filter((x) => x.kind === "llm")
@@ -396,7 +425,7 @@ export async function sessionAttempts(id: string, campaign: Campaign, jobId: str
     const r = receipts.find((x) => x.attempt === n);
     const a = join(jobDir, `a${n}`);
     const calls = existsSync(join(a, "calls.log")) ? (await readFile(join(a, "calls.log"), "utf8")).split("\n").filter((l) => l && l !== "submit_forecast").length : 0;
-    const manifest = await json<{ costUsd?: number | null }>(join(a, "execution-manifest.json"));
+    const manifest = await json<NonNullable<CostManifest>>(join(a, "execution-manifest.json"));
     const result = await json<RunResult>(join(a, "result.json"));
     // Tokens: the session's totals, else the live count the executor kept (usage.json).
     const live = await json<{ input?: number; output?: number }>(join(a, "usage.json"));
@@ -413,7 +442,7 @@ export async function sessionAttempts(id: string, campaign: Campaign, jobId: str
       tokensIn,
       tokensOut,
       costUsd,
-      cost: costUsd !== null ? null : real && (tokensIn !== null || tokensOut !== null) ? "unknown (stopped before the end)" : null,
+      cost: costUsd !== null ? null : real && (tokensIn !== null || tokensOut !== null) ? COST_UNKNOWN : null,
       simulated: e?.synthetic ?? null,
       counts: n === selected,
     });

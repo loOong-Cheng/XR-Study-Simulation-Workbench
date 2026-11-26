@@ -7,7 +7,7 @@ import { clippedToScale, focusMark, focusTarget, markdownToHtml, money, plural, 
 
 type Page = "home" | "study" | "evidence" | "configs" | "freeze" | "compare" | "executor" | "analyzer" | "continue" | "settings";
 interface WorkspaceInfo { id: string; title: string; suite: string | null; description: string | null; synthetic: boolean; engine: string; hasAgents: boolean; hasHuman: boolean; campaigns: number }
-interface CampaignInfo { id: string; digest: string; createdAt: string; parentDigest: string | null; parentId: string | null; label: string | null; note: string | null; jobs: number; reused: number; done: number; failed: number; notStarted: number; running?: number; dropped?: string[]; real: number; simulated: number; costUsd: number | null; models: Record<string, { provider: string; model: string; reasoning: string }>; configs?: { id: string; label: string; individual: boolean; runs: number }[]; designKey: string }
+interface CampaignInfo { id: string; digest: string; createdAt: string; parentDigest: string | null; parentId: string | null; label: string | null; note: string | null; jobs: number; reused: number; done: number; failed: number; notStarted: number; running?: number; dropped?: string[]; real: number; simulated: number; costUsd: number | null; unknownCost?: { attempts: number; tokens: number }; models: Record<string, { provider: string; model: string; reasoning: string }>; configs?: { id: string; label: string; individual: boolean; runs: number }[]; designKey: string }
 interface Attempt { attempt: number; status: string; error: string | null; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; cost: string | null; simulated: boolean | null; counts: boolean }
 interface WorkspaceView {
   id: string; study: Study; agents: AgentProtocol[]; agentsSaved: boolean; comparisons: Comparison[];
@@ -28,7 +28,7 @@ interface WorkspaceView {
 interface ConfigProblem { configId: string; label: string; unknownSources: string[]; unknownOutcomes: string[]; unknownCases: string[]; message: string | null }
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
 interface RuntimeStatus { id: string; label: string; available: boolean; builtIn: boolean; message: string; maxParallel?: number }
-interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; noResult?: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null }
+interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; noResult?: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; spent?: { usd: number; unknownAttempts: number; unknownTokens: number }; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null }
 interface Snapshot { campaignId: string; mode: string; paused: boolean; running: number; queued: number; waiting?: string | null; counts: Record<string, number>; jobs: JobState[] }
 interface AnalysisView {
   campaignId: string; configs: { id: string; label: string; level: string; model: { model: string }; targets: string[] }[];
@@ -93,7 +93,16 @@ function campaignBar() {
   const options = ws.campaigns
     .map((x) => `<option value="${esc(x.id)}" ${x.id === c.id ? "selected" : ""}>${esc(campaignName(x))} · ${esc(new Date(x.createdAt).toLocaleString())}</option>`)
     .join("");
-  return `<div class="campaign-bar"><label class="field">Campaign shown<select id="campaign-switch">${options}</select></label><p class="caption">Frozen ${esc(new Date(c.createdAt).toLocaleString())}${c.parentId ? ` · continues ${esc(campaignName(campaignOf(c.parentId)))}` : ""} · ${c.jobs} sessions${c.reused ? `, ${c.reused} reused` : ""} · ${c.done} done · ${c.failed} failed${c.running ? ` · ${c.running} running or waiting` : ""} · ${c.notStarted} not run yet${c.costUsd != null ? ` · ${money(c.costUsd)} so far` : ""}. Rename or compare campaigns on Freeze &amp; campaigns.</p></div>`;
+  return `<div class="campaign-bar"><label class="field">Campaign shown<select id="campaign-switch">${options}</select></label><p class="caption">Frozen ${esc(new Date(c.createdAt).toLocaleString())}${c.parentId ? ` · continues ${esc(campaignName(campaignOf(c.parentId)))}` : ""} · ${c.jobs} sessions${c.reused ? `, ${c.reused} reused` : ""} · ${c.done} done · ${c.failed} failed${c.running ? ` · ${c.running} running or waiting` : ""} · ${c.notStarted} not run yet${c.costUsd != null ? ` · ${money(c.costUsd)} so far` : ""}${unknownCostNote(c, c.costUsd != null)}. Rename or compare campaigns on Freeze &amp; campaigns.</p></div>`;
+}
+/**
+ * Real attempts that cost totals leave out because Claude Code never reported their cost (stopped,
+ * timed out or crashed before its final message): said beside the total, with their tokens.
+ */
+function unknownCostNote(c: Pick<CampaignInfo, "unknownCost">, afterTotal: boolean) {
+  const u = c.unknownCost;
+  if (!u?.attempts) return "";
+  return `${afterTotal ? " +" : " ·"} ${plural(u.attempts, "attempt")} with unknown cost (${fmtTokens(u.tokens)} tokens; stopped before Claude Code reported the cost)`;
 }
 const fmtTokens = (x: number | null) => (x == null ? "?" : x >= 10000 ? `${Math.round(x / 1000)}k` : String(x));
 /** Runtimes the campaign shown (or, before freezing, the study) uses: e.g. "No app" and "Unreal" for suite 1. */
@@ -117,10 +126,16 @@ function configSum(list: JobState[], toggle = "") {
   const sim = list.filter((j) => j.simulated && (j.status === "done" || j.status === "reused")).length;
   const done = list.filter((j) => j.status === "done" || (j.status === "reused" && !j.noResult)).length;
   const sum = (f: (j: JobState) => number | null) => real.reduce((s, j) => s + (f(j) ?? 0), 0);
-  const cost = real.some((j) => j.costUsd != null) ? sum((j) => j.costUsd) : null;
+  // Every real attempt's spending in this campaign (stopped and rerun ones too); attempts whose cost
+  // Claude Code never reported are named beside the sum, with their tokens.
+  const spent = list.filter((j) => j.status !== "reused" && j.spent).map((j) => j.spent!);
+  const unknown = spent.reduce((n, x) => n + x.unknownAttempts, 0);
+  const unknownTokens = spent.reduce((n, x) => n + x.unknownTokens, 0);
+  const cost = spent.length ? (spent.some((x) => x.usd > 0) || !unknown ? spent.reduce((n, x) => n + x.usd, 0) : null) : real.some((j) => j.costUsd != null) ? sum((j) => j.costUsd) : null;
+  const unknownNote = unknown ? `<br><span class="small">${cost != null ? "+ " : ""}${plural(unknown, "attempt")} with unknown cost (${fmtTokens(unknownTokens)} tokens)</span>` : "";
   // Reused runs were paid in the campaign they ran in: shown per row, not added to this campaign's cost.
   const reusedCost = list.filter((j) => j.status === "reused" && j.costUsd != null).reduce((s, j) => s + j.costUsd!, 0);
-  return `<tr class="config-sum"><td></td><td colspan="3"><strong>${esc(list[0].label)}</strong> · ${done} of ${list.length} done${sim ? ` (${sim} simulated)` : ""}${toggle}</td><td></td><td></td><td>${real.length ? `${fmtTokens(sum((j) => j.tokensIn))} / ${fmtTokens(sum((j) => j.tokensOut))}` : ""}</td><td>${cost != null ? `<strong>${money(cost)}</strong>` : ""}${reusedCost ? `<br><span class="small">reused: ${money(reusedCost)}, paid earlier</span>` : ""}</td></tr>`;
+  return `<tr class="config-sum"><td></td><td colspan="3"><strong>${esc(list[0].label)}</strong> · ${done} of ${list.length} done${sim ? ` (${sim} simulated)` : ""}${toggle}</td><td></td><td></td><td>${real.length ? `${fmtTokens(sum((j) => j.tokensIn))} / ${fmtTokens(sum((j) => j.tokensOut))}` : ""}</td><td>${cost != null ? `<strong>${money(cost)}</strong>` : ""}${unknownNote}${reusedCost ? `<br><span class="small">reused: ${money(reusedCost)}, paid earlier</span>` : ""}</td></tr>`;
 }
 /**
  * What the agents of the campaign shown get, as links the researcher can read while sessions run.
@@ -794,11 +809,13 @@ function templates() {
  * declares another one are listed as deviations. Offer the runtime's profile when they differ.
  */
 const WEBXR_PROFILE = "webxr-desktop-browser-1280x720";
+/** The server's warnings without its device warning, which the website shows as its own notice. */
+const fairnessList = () => (ws?.warnings ?? []).filter((w) => !w.startsWith("The study's device is"));
 function usesWebxr() {
   return !!study && agents.some((a) => a.tools.includes("xr-interact") && (a.runtime ?? ws?.runtimes[a.id]) === "webxr");
 }
 function webxrProfileHint() {
-  if (!study || study.runtime.engine !== "custom" || study.runtime.deviceProfile === WEBXR_PROFILE) return "";
+  if (!study || study.runtime.deviceProfile === WEBXR_PROFILE || (study.runtime.engine !== "custom" && !usesWebxr())) return "";
   return `<p class="caption">${usesWebxr() ? '<span class="warn">' : "<span>"}The built-in WebXR runtime reports the device <code>${WEBXR_PROFILE}</code>. For WebXR app sessions the study's device must match it, or every session is listed as a protocol deviation.</span> ${btn("use-webxr-profile", "Use the WebXR runtime's device")}</p>`;
 }
 /** The built-in WebXR runtime captures one image; a stereo study cannot run its app sessions there. */
@@ -1239,7 +1256,7 @@ function campaignHistory() {
     for (const c of (children.get(parent) ?? []).sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
       // A continuation repeats its parent's design on purpose; only unrelated repeats are flagged.
       const same = ws!.campaigns.some((x) => x.id !== c.id && x.designKey === c.designKey && x.parentId !== c.id && c.parentId !== x.id);
-      rows.push(`<tr class="${c.id === campaignId ? "selected-row" : ""}"><td><span class="indent-${Math.min(depth, 4)}">${depth ? "↳ " : ""}</span><input class="label-input" data-campaign-label="${esc(c.id)}" value="${esc(c.label ?? "")}" placeholder="${esc(campaignName({ ...c, label: null }))}" aria-label="Label of campaign ${esc(c.id)}">${c.note ? `<br><span class="small">${esc(c.note)}</span>` : ""}${same ? `<br><span class="small warn">Same configurations as another campaign</span>` : ""}</td><td class="small">${esc(new Date(c.createdAt).toLocaleString())}</td><td>${c.jobs}${c.reused ? `<br><span class="small">${c.reused} reused</span>` : ""}</td><td>${c.done}</td><td>${c.failed}</td><td>${c.notStarted}</td><td>${c.real}${c.simulated ? ` + ${c.simulated} sim` : ""}</td><td>${money(c.costUsd)}</td><td>${c.id === campaignId ? `<button class="button current" data-action="use-campaign:${esc(c.id)}" aria-pressed="true">Shown</button>` : btn(`use-campaign:${c.id}`, "Show", false, 'aria-pressed="false"')} ${btn(`delete-campaign:${c.id}`, "Delete")}</td></tr>`);
+      rows.push(`<tr class="${c.id === campaignId ? "selected-row" : ""}"><td><span class="indent-${Math.min(depth, 4)}">${depth ? "↳ " : ""}</span><input class="label-input" data-campaign-label="${esc(c.id)}" value="${esc(c.label ?? "")}" placeholder="${esc(campaignName({ ...c, label: null }))}" aria-label="Label of campaign ${esc(c.id)}">${c.note ? `<br><span class="small">${esc(c.note)}</span>` : ""}${same ? `<br><span class="small warn">Same configurations as another campaign</span>` : ""}</td><td class="small">${esc(new Date(c.createdAt).toLocaleString())}</td><td>${c.jobs}${c.reused ? `<br><span class="small">${c.reused} reused</span>` : ""}</td><td>${c.done}</td><td>${c.failed}</td><td>${c.notStarted}</td><td>${c.real}${c.simulated ? ` + ${c.simulated} sim` : ""}</td><td>${money(c.costUsd)}${c.unknownCost?.attempts ? `<br><span class="small">+ ${plural(c.unknownCost.attempts, "attempt")} with unknown cost (${fmtTokens(c.unknownCost.tokens)} tokens)</span>` : ""}</td><td>${c.id === campaignId ? `<button class="button current" data-action="use-campaign:${esc(c.id)}" aria-pressed="true">Shown</button>` : btn(`use-campaign:${c.id}`, "Show", false, 'aria-pressed="false"')} ${btn(`delete-campaign:${c.id}`, "Delete")}</td></tr>`);
       walk(c.id, depth + 1);
     }
   };
@@ -1293,7 +1310,7 @@ function renderFreeze() {
         ? `<div class="notice">Some configurations read a source that has no file on this machine (workspace.json → sources). You can freeze, but the executor will not run them as agents until the file is there: ${esc(agents.filter((a) => ws!.missingSources?.[a.id]?.length).map((a) => a.label).join(", "))}.</div>`
         : ""
     }${
-      usesWebxr() && study!.runtime.deviceProfile !== WEBXR_PROFILE && study!.runtime.engine === "custom"
+      usesWebxr() && study!.runtime.deviceProfile !== WEBXR_PROFILE
         ? `<div class="notice">The study's device is "${esc(study!.runtime.deviceProfile)}", but the WebXR runtime reports <code>${WEBXR_PROFILE}</code>. App sessions would be listed as protocol deviations. Set the device on the Study page (one click) before freezing.</div>`
         : ""
     }${capabilityNotice()}${
@@ -1302,8 +1319,9 @@ function renderFreeze() {
         : ""
     }${
       // Fairness of what agents get, as last saved (fairness.ts): a configuration comparison should change one ingredient.
-      ws.warnings?.length
-        ? `<div class="notice"><strong>Before freezing, check what the agents get${unsaved() ? " (as last saved)" : ""}:</strong><ul class="notes">${ws.warnings.map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>`
+      // The server's device warning is left out: the notice above says it and follows unsaved edits.
+      fairnessList().length
+        ? `<div class="notice"><strong>Before freezing, check what the agents get${unsaved() ? " (as last saved)" : ""}:</strong><ul class="notes">${fairnessList().map((w) => `<li>${esc(w)}</li>`).join("")}</ul></div>`
         : ""
     }${
       agents.every((a) => a.repetitions) ? `<div class="notice">Runs per participant changes nothing here: every configuration has a fixed run count. Clear a Runs box to make it follow runs per participant.</div>` : ""
@@ -2103,7 +2121,7 @@ async function action(name: string) {
       // The summary asks with the latest numbers (also sessions that failed a moment ago).
       ws!.campaigns = await api<CampaignInfo[]>(`workspace/campaigns?id=${encodeURIComponent(ws!.id)}`);
       const c = campaignOf(arg)!;
-      if (!confirm(`Delete ${campaignName(c)}?\n\n${c.jobs} sessions: ${c.done} done (${c.real} real, ${c.simulated} simulated), ${c.failed} failed${c.costUsd != null ? `, ${money(c.costUsd)} spent` : ""}.\n\nThe campaign and its runs move to the study's deleted/ folder (remove that folder to free the space). A campaign that another one continues from cannot be deleted.`)) break;
+      if (!confirm(`Delete ${campaignName(c)}?\n\n${c.jobs} sessions: ${c.done} done (${c.real} real, ${c.simulated} simulated), ${c.failed} failed${c.costUsd != null ? `, ${money(c.costUsd)} spent` : ""}${c.unknownCost?.attempts ? ` (+ ${plural(c.unknownCost.attempts, "attempt")} with unknown cost)` : ""}.\n\nThe campaign and its runs move to the study's deleted/ folder (remove that folder to free the space). A campaign that another one continues from cannot be deleted.`)) break;
       const r = await api<{ movedTo: string }>("workspace/campaign-delete", { id: ws!.id, campaignId: arg });
       await refreshWorkspace();
       if (campaignId === arg) showCampaign(ws!.campaigns.at(-1)?.id ?? null);

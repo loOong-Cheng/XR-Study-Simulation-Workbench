@@ -152,8 +152,11 @@ server.listen(port, "127.0.0.1", () => {
   void recoverLeftovers()
     .then((n) => n && console.log(`Closed the sessions a previous run of the workbench left unfinished, in ${n} campaign(s).`))
     .catch((e) => console.error("Could not check for sessions left unfinished:", (e as Error).message));
-  // Chrome profiles that sessions ended by force left in the temporary folder (older than a day).
-  void removeStaleProfiles().then((n) => n && console.log(`Removed ${n} Chrome profile(s) of earlier WebXR sessions from the temporary folder.`));
+  // Chrome profiles that sessions ended by force left in the temporary folder (older than a day),
+  // at start and every six hours while the server runs (a stopped session's own is removed at once).
+  const sweep = () => void removeStaleProfiles().then((n) => n && console.log(`Removed ${n} Chrome profile(s) of earlier WebXR sessions from the temporary folder.`));
+  sweep();
+  setInterval(sweep, 6 * 3600_000).unref();
   console.log(
     `XR Study Sim — http://127.0.0.1:${port}\nLocal planning, execution and analysis. Stop with Ctrl+C (running sessions end with the server).`,
   );

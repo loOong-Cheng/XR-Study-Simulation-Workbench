@@ -248,3 +248,14 @@ test("npm test runs every test file, with a time limit per test (CI never hangs)
   assert.match(script, /node --test --test-timeout=\d+ /);
   assert.doesNotMatch(script, /--test-force-exit/);
 });
+
+test("cli: study-check warns when a WebXR study's device is not the runtime's (issue 2)", async (t) => {
+  const dir = await sandbox(t);
+  const study = await json<Record<string, any>>(join(dir, "gq/study.json"));
+  study.runtime.deviceProfile = "meta-quest-3";
+  await writeFile(join(dir, "gq/study.json"), JSON.stringify(study, null, 2));
+  const r = await cli(dir, "study-check", "gq/study.json", "--agents", "gq/agents.json");
+  ok(r);
+  assert.match(r.out, /## Warnings[\s\S]*The study's device is "meta-quest-3", but the built-in WebXR runtime reports "webxr-desktop-browser-1280x720"/);
+  assert.match(r.out, /Study is valid, with the warnings above\./);
+});

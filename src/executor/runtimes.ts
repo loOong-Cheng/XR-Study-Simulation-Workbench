@@ -30,6 +30,34 @@ const missing: Record<string, string> = {
 };
 
 // ---------- the built-in WebXR runtime: what the app declares (workspace.json → app) ----------
+/**
+ * The start of the WebXR runtime's Chrome profile folder name (in the temporary folder) for one
+ * attempt: the job's own part of its ID (configuration, participant, run: what follows the campaign
+ * ID and "--"; the whole ID when it has none), a short hash of the whole job ID, and the attempt.
+ * A folder left behind names its session, and the runner removes exactly that attempt's profile
+ * after Stop (processes.ts → removeProfiles).
+ */
+export function webxrProfilePrefix(jobId: string, attempt: number | string): string {
+  const id = jobId.replace(/[^A-Za-z0-9_-]/g, "");
+  const sep = id.indexOf("--");
+  const tail = (sep >= 0 ? id.slice(sep + 2) : id).slice(0, 32).replace(/^[-_]+|[-_]+$/g, "") || "job";
+  const att = String(attempt).replace(/[^A-Za-z0-9]/g, "").slice(0, 8) || "0";
+  return `xr-webxr-${tail}-${createHash("sha256").update(jobId).digest("hex").slice(0, 8)}-a${att}-`;
+}
+/** The device profile the built-in WebXR runtime reports in its "runtime" trace event. */
+export const WEBXR_DEVICE_PROFILE = "webxr-desktop-browser-1280x720";
+/**
+ * Configurations that use the app through the built-in WebXR runtime, in a study whose device
+ * (study.json → runtime.deviceProfile) is not the runtime's: the audit compares the two exactly
+ * (protocol.ts → runtimeIssues), so every real app session would be a protocol deviation. Null when
+ * they match or no configuration uses the WebXR app.
+ */
+export function webxrDeviceWarning(study: Study, agents: AgentProtocol[]): string | null {
+  const users = agents.filter((a) => a.tools.includes("xr-interact") && runtimeFor(study, a) === "webxr");
+  if (!users.length || study.runtime.deviceProfile === WEBXR_DEVICE_PROFILE) return null;
+  const ids = users.map((a) => a.id);
+  return `The study's device is "${study.runtime.deviceProfile}", but the built-in WebXR runtime reports "${WEBXR_DEVICE_PROFILE}", so every real app session of ${ids.slice(0, 4).join(", ")}${ids.length > 4 ? ", …" : ""} would be recorded as a protocol deviation. Set study.json → runtime.deviceProfile to "${WEBXR_DEVICE_PROFILE}" (the device the agents use; the participants' headset belongs in the study's description).`;
+}
 /** Capability names of the WebXR runtime and its app (docs/runtime-adapters.md → "The window.xrStudy contract"). */
 export const WEBXR_CAPABILITIES: Record<string, string> = {
   screenshot: "mono screenshots; always provided (Chrome takes them)",

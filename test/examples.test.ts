@@ -1682,3 +1682,65 @@ test("reused sessions: simulated ones say so; ones an early continuation reused 
     await removeDir(a.dir);
   }
 });
+
+test("issue 2: a WebXR study whose device is not the runtime's is warned about in the API and when freezing", async () => {
+  const { handleGet } = await import("../src/routes.js");
+  const { WEBXR_DEVICE_PROFILE } = await import("../src/executor/runtimes.js");
+  const a = await tempWorkspace(resolve("examples/graphics-quality"));
+  try {
+    const view = async () => {
+      let out: Record<string, any> = {};
+      await handleGet("/api/workspace", new URL(`http://x/api/workspace?id=${encodeURIComponent(a.id)}`), null as never, (v) => (out = v as Record<string, any>));
+      return out;
+    };
+    const device = (w: string) => w.startsWith("The study's device is");
+    assert.equal((await view()).warnings.filter(device).length, 0, "the suite's own device matches the runtime");
+    const study = JSON.parse(await readFile(join(a.dir, "study.json"), "utf8"));
+    study.runtime.deviceProfile = "meta-quest-3";
+    await writeFile(join(a.dir, "study.json"), JSON.stringify(study, null, 2));
+    const warned = (await view()).warnings.filter(device);
+    assert.equal(warned.length, 1);
+    assert.match(warned[0], /"meta-quest-3".*reports "webxr-desktop-browser-1280x720".*uses-app.*protocol deviation/);
+    assert.ok(warned[0].includes(`Set study.json → runtime.deviceProfile to "${WEBXR_DEVICE_PROFILE}"`));
+    // Freezing goes ahead and says it too.
+    const frozen = await post("/api/workspace/freeze", { id: a.id });
+    assert.ok(frozen.campaignId);
+    assert.equal(frozen.warnings.filter(device).length, 1);
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+test("issue 3: attempts stopped before Claude Code reported a cost are counted beside the campaign's cost", async () => {
+  const { readWorkspace, saveCampaign, runDir } = await import("../src/workspace.js");
+  const { campaignSummaries, COST_UNKNOWN, unknownCostTokens } = await import("../src/history.js");
+  assert.equal(unknownCostTokens({ costUsd: 0.5 }), null);
+  assert.equal(unknownCostTokens({ costUsd: null }), null, "no model ran: no label, nothing spent");
+  assert.equal(unknownCostTokens({ costUsd: null, cost: COST_UNKNOWN, usage: { inputTokens: 10, cacheReadTokens: 307_000, cacheWriteTokens: 22_800, outputTokens: 3_200 } }), 333_010);
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, withDefaultRuns(ws.study, ws.agents!, 1), 1), undefined, "cost-unknown", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const job = c.jobs.find((j) => j.conditionId === "text-only")!;
+    // a1 stopped (cost unknown, tokens known), a2 completed at $0.67.
+    await writeRuns(a.id, c, { [job.id]: { kind: "real", costUsd: 0.67 } });
+    const dir = runDir(a.id, c.id);
+    const receipts = (await readFile(join(dir, "receipts.jsonl"), "utf8")).trim().split("\n").map((l) => JSON.parse(l));
+    const done = receipts[0];
+    await mkdir(join(dir, "jobs", job.id, "a2"), { recursive: true });
+    await writeFile(join(dir, "jobs", job.id, "a2", "execution-manifest.json"), JSON.stringify({ costUsd: 0.67 }));
+    await writeFile(
+      join(dir, "jobs", job.id, "a1", "execution-manifest.json"),
+      JSON.stringify({ costUsd: null, cost: COST_UNKNOWN, usage: { inputTokens: 10, cacheReadTokens: 307_000, cacheWriteTokens: 22_800, outputTokens: 3_200, source: "live" } }),
+    );
+    const stopped = { ...done, attempt: 1, status: "failed", output: null, error: "Stopped by you.", executionManifest: { path: `jobs/${job.id}/a1/execution-manifest.json`, sha256: "0".repeat(64) } };
+    const completed = { ...done, attempt: 2, executionManifest: { path: `jobs/${job.id}/a2/execution-manifest.json`, sha256: "0".repeat(64) } };
+    await writeFile(join(dir, "receipts.jsonl"), [stopped, completed].map((r) => JSON.stringify(r)).join("\n") + "\n");
+    const summary = (await campaignSummaries(a.id)).find((x) => x.id === c.id)!;
+    assert.ok(Math.abs(summary.costUsd! - 0.67) < 1e-9);
+    assert.deepEqual(summary.unknownCost, { attempts: 1, tokens: 333_010 });
+  } finally {
+    await removeDir(a.dir);
+  }
+});
