@@ -378,6 +378,8 @@ function publicObject(o: Raw): Record<string, unknown> {
 // ---------- case bookkeeping (audit trace) ----------
 let design: WebXRSpec["designs"][number] | undefined;
 let stage: "practice" | "main" | "done" = "done";
+/** Designs whose last task the app reported done in this session. */
+const finished = new Set<string>();
 let openedAt = 0;
 let frames = 0;
 let opened = 0;
@@ -430,6 +432,7 @@ async function track(now: Raw) {
     await action("complete-task", { scored: false });
     await end(true);
     stage = "done";
+    finished.add(design.id);
     await saveAppLog();
   }
 }
@@ -492,14 +495,26 @@ async function flush(): Promise<void> {
 function requireOpen() {
   if (!design) throw new ToolError("Open a design first with open_design.");
 }
+/**
+ * What to do once the open design's last task ended: open the next design of the session's order
+ * that is not finished yet; after the last, submit the forecast, or first open again a design left
+ * unfinished earlier. Null while a task runs or no design is open. Procedure, not an outcome: every
+ * app session gets it (GitHub issue 10).
+ */
+function nextStep(): string | null {
+  if (!design || stage !== "done") return null;
+  const i = spec.designs.findIndex((d) => d.id === design!.id);
+  const next = spec.designs.slice(i + 1).find((d) => !finished.has(d.id));
+  if (next) return `The task of ${design.label} is finished. Open the next design with open_design (${next.id}).`;
+  const left = spec.designs.slice(0, Math.max(0, i)).filter((d) => !finished.has(d.id)).map((d) => d.id);
+  return `The task of ${design.label} is finished. That was the last design${
+    left.length ? `; ${left.join(", ")} ${left.length === 1 ? "is" : "are"} not finished: open ${left.length === 1 ? "it" : "them"} again with open_design, or submit your forecast.` : ": submit your forecast."
+  }`;
+}
 function requireActive() {
   requireOpen();
-  if (stage !== "done") return;
-  const i = spec.designs.findIndex((d) => d.id === design!.id);
-  const next = spec.designs[i + 1];
-  throw new ToolError(
-    `The task of ${design!.label} is finished. ${next ? `Open the next design with open_design (${next.id}).` : "That was the last design: submit your forecast."}`,
-  );
+  const next = nextStep();
+  if (next) throw new ToolError(next);
 }
 
 // ---------- the app's log (kept in the job folder, never shown to the agent) ----------
@@ -892,8 +907,15 @@ if (caps.has("actions"))
 let chain: Promise<unknown> = Promise.resolve();
 for (const t of tools) {
   const run = t.handler;
+  // Once the open design's last task ended, every reply says what to do next, from the action that
+  // ended it on (also screenshot, look and app_state), so an agent that looks around is told too.
+  const told = async (args: Record<string, unknown>) => {
+    const out = await run(args);
+    const next = t.name === "open_design" ? null : nextStep();
+    return next ? [...out, { type: "text" as const, text: next }] : out;
+  };
   t.handler = (args) => {
-    const next = chain.then(() => paced(() => run(args)));
+    const next = chain.then(() => paced(() => told(args)));
     chain = next.catch(() => undefined);
     return next;
   };

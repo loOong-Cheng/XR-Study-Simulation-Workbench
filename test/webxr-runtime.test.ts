@@ -231,11 +231,22 @@ test("WebXR runtime: pointer tools only with pointer-xy; hits and misses, filter
     assert.equal((await mcp.call("screenshot")).content?.[0]?.type, "image");
     assert.equal(JSON.parse((await mcp.call("click", { x: 0.5, y: 0.1 })).text!).result.hit, false, "a click beside the target misses");
     // The second practice click ends practice; the main block starts 300 ms later, within this call.
-    const last = JSON.parse((await mcp.call("click", at(1))).text!);
+    const lastReply = await mcp.call("click", at(1));
+    const last = JSON.parse(lastReply.text!);
     assert.equal(last.result.hit, true);
     assert.equal(last.state.phase, "main");
-    for (const i of [1, 2, 3]) assert.equal(JSON.parse((await mcp.call("click", at(i))).text!).result.hit, true);
-    assert.equal(JSON.parse((await mcp.call("app_state")).text!).done, true);
+    assert.equal(lastReply.content?.length, 1, "no hint while a task runs");
+    let ending: Awaited<ReturnType<typeof mcp.call>> | null = null;
+    for (const i of [1, 2, 3]) assert.equal(JSON.parse((ending = await mcp.call("click", at(i))).text!).result.hit, true);
+    // From the action that ended the design's last task on, every reply says what to do next (GitHub issue 10).
+    const hint = /^The task of fn is finished\. Open the next design with open_design \(events\)\.$/;
+    assert.match(String(ending!.content?.[1]?.text), hint);
+    const state = await mcp.call("app_state");
+    assert.equal(JSON.parse(state.text!).done, true);
+    assert.match(String(state.content?.[1]?.text), hint);
+    const shot = await mcp.call("screenshot");
+    assert.deepEqual([shot.content?.[0]?.type, shot.content?.[1]?.type], ["image", "text"]);
+    assert.match(String(shot.content?.[1]?.text), hint);
     assert.match((await mcp.call("click", at(0))).text!, /finished\. Open the next design with open_design \(events\)/);
 
     // Real mouse events: the app's own click handler decides; the runtime records no outcome.
@@ -323,7 +334,9 @@ test("WebXR runtime: app actions, late and hidden objects, limited view, abandon
     const rock = Object.entries(ids.at(-1).shownToApp as Record<string, string>).find(([, app]) => app === "rock")![0];
     assert.equal(JSON.parse((await mcp.call("act", { name: "inspect", args: { target: flag, list: [rock] } })).text!).result.accepted, true);
     assert.equal(JSON.parse((await mcp.call("select", { object: flag })).text!).result.correct, true);
-    assert.match((await mcp.call("select", { object: flag })).text!, /finished\. That was the last design: submit your forecast\./);
+    // Design one was left unfinished: the hint offers to open it again (GitHub issue 10).
+    const refusedAgain = await mcp.call("select", { object: flag });
+    assert.match(refusedAgain.text!, /finished\. That was the last design; one is not finished: open it again with open_design, or submit your forecast\./);
     await mcp.close();
 
     assert.deepEqual(ids.filter((m) => m.added).map((m) => [m.design, Object.values(m.added)]), [["one", ["flag"]], ["two", ["flag"]]]);

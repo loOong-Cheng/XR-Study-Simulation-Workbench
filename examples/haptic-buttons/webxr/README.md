@@ -45,8 +45,10 @@ Suite 5's six configurations, plus these two:
 
 | ID | Level | Gets | Budget |
 | --- | --- | --- | --- |
-| `uses-app` | population | the brief and the app (all six cases) | 260 tool calls, 20M tokens |
-| `uses-app-knows-participant` | individual | the brief, the participant's background and the app | 260 tool calls, 20M tokens |
+| `uses-app` | population | the brief and the app (all six cases) | 340 tool calls, 26M tokens |
+| `uses-app-knows-participant` | individual | the brief, the participant's background and the app | 340 tool calls, 26M tokens |
+
+The budget fits a session that moves the fingertip over each key (`point_at`) before it presses it, as a participant does: 39 sequences × 4 keys = 156 presses, so 312 calls, plus opening the designs and the screenshots, about 321 (GitHub issue 8). Clicking each key directly needs about 163.
 
 ## Checking it
 

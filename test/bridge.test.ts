@@ -51,7 +51,7 @@ const STEREO = { engine: "unity", engineVersion: "6000-fake", backend: "editor",
  */
 async function session(
   example: "graphics-quality" | "selection",
-  opts: { runtime: string; env: Record<string, string>; bridge?: string[]; settings?: Record<string, unknown>; agent?: Partial<AgentProtocol>; until?: "done" | "failed" },
+  opts: { runtime: string; env: Record<string, string>; bridge?: string[]; settings?: Record<string, unknown>; agent?: Partial<AgentProtocol>; until?: "done" | "incomplete" | "failed" },
 ) {
   const { Executor } = await import("../src/executor/runner.js");
   const { readWorkspace, saveCampaign, readHuman, readResults, runDir } = await import("../src/workspace.js");
@@ -73,7 +73,7 @@ async function session(
     await saveCampaign(a.id, c);
     const ex = await Executor.open(a.id, c.id);
     await ex.start("agent");
-    await until(() => !!ex.snapshot().counts.done || !!ex.snapshot().counts.failed, "the session to end", { executor: ex });
+    await until(() => !!ex.snapshot().counts.done || !!ex.snapshot().counts.incomplete || !!ex.snapshot().counts.failed, "the session to end", { executor: ex });
     const job = ex.snapshot().jobs[0];
     assert.equal(job.status, opts.until ?? "done", JSON.stringify(job));
     const jobDir = join(runDir(a.id, c.id), "jobs", c.jobs[0].id, "a1");
@@ -163,7 +163,8 @@ test("a bridge that never answers tools/list fails the session after startupSeco
 });
 
 test("forecast gate: no forecast before the required cases, unless the budget is nearly used up; the row says so", async () => {
-  const s = await session("graphics-quality", { runtime: "unreal", env: { FAKE_PLAN: "gate", FAKE_ENGINE_IDENTITY: JSON.stringify(MONO) }, agent: { maxTokens: 20_000 } });
+  // Accepted at the end of its budget with every task unfinished: an incomplete session (GitHub issue 7).
+  const s = await session("graphics-quality", { runtime: "unreal", env: { FAKE_PLAN: "gate", FAKE_ENGINE_IDENTITY: JSON.stringify(MONO) }, agent: { maxTokens: 20_000 }, until: "incomplete" });
   try {
     assert.match(s.out.find((o) => o.what === "first-submit")!.text, /^Forecast not accepted yet: experience the app first\. Not done yet: the practice task of design Low quality \(low-practice\); the main task of design Low quality \(low-main\);/);
     assert.match(s.out.find((o) => o.what === "second-submit")!.text, /Forecast accepted/);

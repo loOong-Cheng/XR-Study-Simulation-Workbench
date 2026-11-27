@@ -17,6 +17,8 @@ export interface ClaudeFeatures {
   partialMessages: boolean;
   /** --system-prompt-file. */
   systemPromptFile: boolean;
+  /** --input-format stream-json: the prompt as a message on stdin, so a session can get a second message (the forecast reminder). */
+  streamInput: boolean;
 }
 const features = new Map<string, Promise<ClaudeFeatures>>();
 /** Read once per Claude Code path (an unreadable help is tried again next time). */
@@ -41,10 +43,11 @@ export function featuresFromHelp(help: string): ClaudeFeatures | null {
     partialMessages: /--include-partial-messages\b/.test(help),
     // Listed as its own option, or (newer versions) as "--system-prompt[-file]" in another option's text.
     systemPromptFile: /--system-prompt(-file\b|\[-file\])/.test(help),
+    streamInput: /--input-format\b/.test(help),
   };
 }
 function readHelp(command: string, prefix: string[]): Promise<ClaudeFeatures> {
-  const unknown: ClaudeFeatures = { known: false, partialMessages: true, systemPromptFile: false };
+  const unknown: ClaudeFeatures = { known: false, partialMessages: true, systemPromptFile: false, streamInput: true };
   return new Promise((done) => {
     let p: ChildProcess;
     try {

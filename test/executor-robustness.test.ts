@@ -562,3 +562,157 @@ test("server: at start it closes sessions a killed workbench left; on SIGTERM it
     await removeDir(bin);
   }
 });
+
+/**
+ * A stand-in for Claude Code on a local model behind ANTHROPIC_BASE_URL, with stream-json input as
+ * the real CLI has it (checked against Claude Code 2.1.326): every user message on stdin is a turn
+ * that begins with init and ends with a result; usage is per turn, total_cost_usd and modelUsage
+ * are running totals; a model Claude Code does not know is priced at its fallback rate
+ * (costBasis "unknown") and named on stderr in every session. FAKE_LOCAL: "remind" answers the
+ * first turn with text and submits after the reminder; "never" answers with text twice; "unknown"
+ * never runs a model (Claude Code's own error message). Each received line goes to FAKE_STDIN_LOG.
+ */
+async function localModelClaude(bin: string) {
+  await writeFile(
+    join(bin, "claude.cjs"),
+    `const { spawn } = require("child_process"); const fs = require("fs");
+const args = process.argv.slice(2);
+if (args[0] === "--help") { console.log("  --input-format <format>\\n  --output-format <format>\\n  --include-partial-messages\\n  --system-prompt-file <file>"); process.exit(0); }
+// Messages on stdin are JSON only with --input-format stream-json; without it Claude Code reads plain text.
+if (args[args.indexOf("--input-format") + 1] !== "stream-json") { process.stderr.write("stdin is not stream-json: " + args.join(" ")); process.exit(2); }
+const cfg = JSON.parse(fs.readFileSync(args[args.indexOf("--mcp-config") + 1], "utf8"));
+const model = args[args.indexOf("--model") + 1];
+const mode = process.env.FAKE_LOCAL;
+const out = (m) => console.log(JSON.stringify(m));
+process.stderr.write('[claude-code:unrecognized_model] {"model":' + JSON.stringify(model) + ',"query_source":"sdk"}\\n');
+const s = cfg.mcpServers.study; const dir = s.args[1];
+const job = JSON.parse(fs.readFileSync(dir + "/job.json", "utf8"));
+const p = spawn(s.command, s.args); let buf = ""; const wait = {}; let id = 0;
+p.stdout.on("data", (d) => { buf += d; let i; while ((i = buf.indexOf("\\n")) >= 0) { const m = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1); wait[m.id] && wait[m.id](m); } });
+const call = (method, params) => new Promise((r) => { const n = ++id; wait[n] = r; p.stdin.write(JSON.stringify({ jsonrpc: "2.0", id: n, method, params }) + "\\n"); });
+const message = (mid, input, output, content) => {
+  out({ type: "stream_event", event: { type: "message_start", message: { id: mid, usage: { input_tokens: input, output_tokens: 1 } } } });
+  out({ type: "assistant", message: { id: mid, model, usage: { input_tokens: input, output_tokens: 1 }, content } });
+  out({ type: "stream_event", event: { type: "message_delta", usage: { output_tokens: output } } });
+};
+let turn = 0, cost = 0, inTotal = 0, outTotal = 0;
+const result = (input, output) => {
+  cost += input * 4e-6 + output * 2e-5; inTotal += input; outTotal += output;
+  out({ type: "result", subtype: "success", num_turns: 1, usage: { input_tokens: input, cache_read_input_tokens: 0, cache_creation_input_tokens: 0, output_tokens: output }, total_cost_usd: cost,
+    modelUsage: { [model]: { inputTokens: inTotal, outputTokens: outTotal, costUSD: cost, costBasis: "unknown" } } });
+};
+const predictions = () => {
+  const list = [];
+  for (const d of job.designs) for (const t of job.targets) {
+    const value = t.scale === "proportion" ? 0.5 : t.scale === "rank" ? 1 + job.designs.indexOf(d) : t.aggregation === "geometric" ? 20 : 3;
+    list.push(t.components ? { design: d.id, outcome: t.id, items: Object.fromEntries(t.components.map((c) => [c, 4])) } : { design: d.id, outcome: t.id, value });
+  }
+  return list;
+};
+let queue = Promise.resolve(); let rest = "";
+const ready = call("initialize", {});
+process.stdin.setEncoding("utf8");
+process.stdin.on("data", (d) => { rest += d; let i; while ((i = rest.indexOf("\\n")) >= 0) { const line = rest.slice(0, i); rest = rest.slice(i + 1); queue = queue.then(() => handle(line)); } });
+process.stdin.on("end", () => queue.then(() => { p.stdin.end(); process.exit(0); }));
+async function handle(line) {
+  fs.appendFileSync(process.env.FAKE_STDIN_LOG, line + "\\n");
+  await ready;
+  turn++;
+  out({ type: "system", subtype: "init", session_id: "local-" + job.jobId.slice(-6), model, claude_code_version: "2.1.332", mcp_servers: [{ name: "study", status: "connected" }] });
+  if (mode === "unknown") {
+    out({ type: "assistant", message: { id: "e" + turn, model: "<synthetic>", usage: { input_tokens: 0, output_tokens: 0 }, content: [{ type: "text", text: "There's an issue with the selected model (" + model + "). It may not exist or you may not have access to it." }] } });
+    return out({ type: "result", subtype: "success", is_error: true, num_turns: 1, usage: { input_tokens: 0, output_tokens: 0 }, total_cost_usd: 0, modelUsage: {} });
+  }
+  if (turn === 1 || mode === "never") {
+    message("m" + turn, 1000 * turn, 10, [{ type: "text", text: "Here is my forecast as JSON: " + JSON.stringify(predictions().slice(0, 2)) }]);
+    return result(1000 * turn, 10);
+  }
+  message("m2", 2000, 20, [{ type: "tool_use", id: "t1", name: "mcp__study__submit_forecast", input: {} }]);
+  const r = await call("tools/call", { name: "submit_forecast", arguments: { predictions: predictions(), uncertainty: "test" } });
+  out({ type: "user", message: { content: [{ type: "tool_result", tool_use_id: "t1", content: r.result.isError ? "rejected" : "accepted" }] } });
+  message("m3", 2500, 5, [{ type: "text", text: "Submitted." }]);
+  result(4500, 25);
+}`,
+  );
+  await writeSettings(bin, {});
+}
+
+test("issues 5, 6, 11: a local model's session is reminded once to submit, its fallback price is not counted, and its failure is not called an unknown model", async () => {
+  const { Executor, closeExecutor, COST_UNPRICED, FORECAST_REMINDER, UNPRICED_NOTE } = await import("../src/executor/runner.js");
+  const { campaignSummaries, sessionAttempts } = await import("../src/history.js");
+  const { runDir } = await import("../src/workspace.js");
+  const a = await tempWorkspace(gq);
+  const bin = await mkdtemp(join(tmpdir(), "fake-local-claude-"));
+  await localModelClaude(bin);
+  process.env.XR_STUDY_SETTINGS = join(bin, "settings.json");
+  process.env.FAKE_STDIN_LOG = join(bin, "stdin.jsonl");
+  try {
+    const run = async (mode: string, label: string) => {
+      process.env.FAKE_LOCAL = mode;
+      await writeFile(process.env.FAKE_STDIN_LOG!, "");
+      const c = await campaign(a.id, textOnly(1), label);
+      const ex = await Executor.open(a.id, c.id);
+      const [jobId] = [...ex.jobs.keys()];
+      await ex.start("agent", [jobId]);
+      assert.ok(await until(() => ["done", "failed"].includes(ex.jobs.get(jobId)!.status), 30_000), JSON.stringify(ex.jobs.get(jobId)));
+      await until(() => ex.running.size === 0);
+      const dir = join(runDir(a.id, c.id), "jobs", jobId, "a1");
+      const manifest = JSON.parse(await readFile(join(dir, "execution-manifest.json"), "utf8"));
+      const [receipt] = await receiptsOf(runDir(a.id, c.id));
+      const stdin = (await readFile(process.env.FAKE_STDIN_LOG!, "utf8")).trim().split("\n").map((l) => JSON.parse(l));
+      const state = { ...ex.jobs.get(jobId)! };
+      closeExecutor(a.id, c.id);
+      return { c, jobId, dir, manifest, receipt, stdin, state };
+    };
+
+    // The model answers with text first: one reminder in the same session, then it submits.
+    const r = await run("remind", "local-remind");
+    assert.equal(r.state.status, "done", r.state.error ?? "");
+    assert.equal(r.stdin.length, 2, "the prompt and one reminder, as stream-json user messages");
+    assert.equal(r.stdin[0].type, "user");
+    assert.equal(r.stdin[1].message.content[0].text, FORECAST_REMINDER);
+    const result = JSON.parse(await readFile(join(r.dir, "result.json"), "utf8"));
+    assert.equal(result.execution.forecastReminders, 1);
+    assert.match(r.state.warning ?? "", /forecast submitted after one reminder/);
+    // Usage is per turn and is added up; the cost is Claude Code's fallback price for an unknown model: not counted.
+    assert.equal(result.execution.inputTokens, 1000 + 4500);
+    assert.equal(result.execution.outputTokens, 10 + 25);
+    assert.equal((r.receipt.usage as { source?: string }).source, "final");
+    assert.equal(r.manifest.costUsd, null);
+    assert.equal(r.manifest.cost, COST_UNPRICED);
+    assert.deepEqual(r.manifest.unpricedModels, ["claude-opus-5-5"]);
+    assert.ok(r.manifest.fallbackCostUsd > 0, "Claude Code's figure is kept apart");
+    assert.equal(r.manifest.forecastReminders, 1);
+    assert.equal(r.state.costUsd, null);
+    assert.equal(r.state.costNote, UNPRICED_NOTE);
+    assert.deepEqual(r.state.spent, { usd: 0, unknownAttempts: 1, unknownTokens: 1000 + 4500 + 10 + 25, unpricedAttempts: 1 });
+    const summary = (await campaignSummaries(a.id)).find((x) => x.id === r.c.id)!;
+    assert.equal(summary.costUsd, null, "no dollars spent on a local model");
+    assert.deepEqual(summary.unknownCost, { attempts: 1, tokens: 5535, unpriced: 1 });
+    const attempts = await sessionAttempts(a.id, r.c, r.jobId);
+    assert.equal(attempts.attempts[0].cost, COST_UNPRICED);
+    assert.ok(typeof attempts.attempts[0].durationMs === "number" && attempts.attempts[0].durationMs >= 0, "the attempt's time");
+    assert.ok(typeof r.state.durationMs === "number" && r.state.durationMs >= 0, "the session's time");
+
+    // Text again after the reminder: failed, for that reason, not as an unknown model (it ran).
+    const n = await run("never", "local-never");
+    assert.equal(n.state.status, "failed");
+    assert.equal(n.state.error, "The session ended without an accepted forecast.");
+    assert.equal(n.stdin.length, 2, "one reminder only");
+    assert.equal(n.receipt.actualModel?.model, "claude-opus-5-5", "the model that ran is recorded");
+    assert.equal(n.manifest.cost, COST_UNPRICED);
+
+    // No model answered at all: that is an unknown model, and no reminder is sent.
+    const u = await run("unknown", "local-unknown");
+    assert.equal(u.state.status, "failed");
+    assert.match(u.state.error ?? "", /does not know the model "claude-opus-5-5"/);
+    assert.equal(u.stdin.length, 1);
+    assert.equal(u.receipt.actualModel, null);
+  } finally {
+    delete process.env.FAKE_LOCAL;
+    delete process.env.FAKE_STDIN_LOG;
+    delete process.env.XR_STUDY_SETTINGS;
+    await removeDir(a.dir);
+    await removeDir(bin);
+  }
+});

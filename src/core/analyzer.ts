@@ -1,4 +1,5 @@
 import type {
+  AnalysisOptions,
   AnalysisReport,
   Comparison,
   ContrastScore,
@@ -392,9 +393,10 @@ export function analyze(
   human: HumanData,
   bundle: ResultBundle,
   comparisons?: Comparison[],
+  options: AnalysisOptions = {},
 ): AnalysisReport {
   verifyPlan(plan);
-  return analyzeVerifiedPlan(plan, human, bundle, comparisons);
+  return analyzeVerifiedPlan(plan, human, bundle, comparisons, undefined, options);
 }
 /**
  * Comparisons are an analysis choice: they are not needed to collect data. If
@@ -443,6 +445,7 @@ export function analyzeVerifiedPlan(
   comparisons?: Comparison[],
   /** Scores kept from an analysis of the same plan, human data and results (see AnalysisMemo). */
   memo?: AnalysisMemo,
+  options: AnalysisOptions = {},
 ): AnalysisReport {
   // Configs can predict at different levels; each level is analysed with its own
   // resampling, then merged. Comparisons must stay within one level.
@@ -468,6 +471,7 @@ export function analyzeVerifiedPlan(
       resolved.filter((c) => ids.has(c.candidate)),
       undefined,
       memo,
+      options,
     );
   });
   const report = mergeLevels(plan, parts);
@@ -481,7 +485,7 @@ export function analyzeVerifiedPlan(
     const ids = new Set(plan.agents.filter((a) => levelOf.get(a.id) === "population").map((a) => a.id));
     const jobIds = new Set(plan.jobs.filter((j) => ids.has(j.agentId)).map((j) => j.id));
     const sub: Plan = { ...plan, study: { ...plan.study, predictionLevel: "population" }, agents: plan.agents.filter((a) => ids.has(a.id)), jobs: plan.jobs.filter((j) => ids.has(j.agentId)) };
-    const sig = analyzeLevel(sub, human, { ...bundle, runs: bundle.runs.filter((r) => jobIds.has(r.jobId)) }, [], "significant", memo);
+    const sig = analyzeLevel(sub, human, { ...bundle, runs: bundle.runs.filter((r) => jobIds.has(r.jobId)) }, [], "significant", memo, options);
     report.significantOnly = { summaries: sig.summaries, exclusions: sig.exclusions, humanPairs: sig.humanPairs ?? [] };
   }
   return report;
@@ -745,12 +749,13 @@ function analyzeLevel(
   // Between subjects, a design difference counts only when a test supports it (independent groups).
   pairRule: "means" | "significant" = plan.study.design === "between-subjects" ? "significant" : "means",
   memo?: AnalysisMemo,
+  options: AnalysisOptions = {},
 ): AnalysisReport {
   const chosen = resolveComparisons(plan, comparisons);
-  const key = `${plan.study.predictionLevel}|${pairRule}`;
+  const key = `${plan.study.predictionLevel}|${pairRule}|${options.excludeIncomplete ? "complete-only" : "all"}`;
   let core = memo?.get(key);
   if (!core) {
-    core = scoreLevel(plan, human, bundle, pairRule);
+    core = scoreLevel(plan, human, bundle, pairRule, options);
     memo?.set(key, core);
   }
   const contrasts = levelContrasts(core.contrasts, chosen);
@@ -794,6 +799,7 @@ function scoreLevel(
   human: HumanData,
   bundle: ResultBundle,
   pairRule: "means" | "significant",
+  options: AnalysisOptions = {},
 ): LevelCore {
   validateHumanData(plan.study, human);
   requireThat(
@@ -818,7 +824,7 @@ function scoreLevel(
     bundle.runs.every((r) => jobs.has(r.jobId)),
     "Results contain an unscheduled job.",
   );
-  const audits = plan.jobs.map((j) => auditRun(plan, j, returned.get(j.id)));
+  const audits = plan.jobs.map((j) => auditRun(plan, j, returned.get(j.id), options));
   const sessions = new Map<string, string[]>();
   for (const r of bundle.runs) {
     const ids = sessions.get(r.sessionId) ?? [];
@@ -1171,6 +1177,11 @@ function scoreLevel(
         simulated: ret.filter((j) => isSimulated(returned.get(j.id)!)).length,
         scoreable: validJobs(a.id).length,
         compliant: validJobs(a.id, true).length,
+        // Only when there are any, so the summaries of studies without app tasks are as before.
+        ...(() => {
+          const n = ret.filter((j) => auditMap.get(j.id)?.unfinishedTasks?.length).length;
+          return n ? { incomplete: n } : {};
+        })(),
       });
     }
   // Distribution data for plots: agreement per population run or per participant

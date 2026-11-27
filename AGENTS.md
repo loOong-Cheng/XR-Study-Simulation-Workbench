@@ -170,7 +170,7 @@ Setup: `npm ci && npm run build`. Commands are `node dist/cli.js <command>`.
    - correlation;
    - population vs individual;
    - participant lines.
-9. **Continue or rerun.** Use **Continue / rerun** in the website (new models, model arms, more runs, retries) or `campaign-continue … --receipts …`. Unchanged finished runs are reused. **Rerun failed** in the executor retries failed sessions in the same campaign.
+9. **Continue or rerun.** Use **Continue / rerun** in the website (new models, model arms, more runs, retries) or `campaign-continue … --receipts …`. Unchanged finished runs are reused. **Rerun failed** in the executor retries failed sessions in the same campaign. Sessions whose forecast was accepted before every required task was finished are **incomplete** (counted apart from done); **Rerun incomplete** runs them again in a new campaign, and the analyzer can leave them out.
 
 ## Commands at a glance
 

@@ -45,7 +45,7 @@ To see the app yourself: `cd examples/text-entry/webxr/webxr-app && python3 -m h
 ## Configurations
 
 Suite 7's six configurations, plus:
-- `uses-app`: population; gets the brief and the app; covers all eight cases; 200 tool calls, 15M tokens.
+- `uses-app`: population; gets the brief and the app; covers all eight cases; 340 tool calls, 26M tokens. The budget fits typing one word per call, as on the swipe keyboard: 48 phrases × (5.6 words + Enter), about 315 actions, plus opening the keyboards and the screenshots, about 327 calls (GitHub issue 8). Typing a whole phrase per call needs about 106.
 - `uses-app-knows-participant`: individual; the same, plus the participant's background.
 
 ## Checking it

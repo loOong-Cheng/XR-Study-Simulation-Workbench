@@ -37,7 +37,7 @@ Each design has two practice codes and twelve scored 4-digit codes. Enter submit
 
 ## Configurations
 
-Suite 6's four configurations, plus `uses-app`. It is a population configuration that gets the brief and the app: every design's practice and main case, with a budget of 160 tool calls and 12M tokens. Each person used one design, but a population forecast covers all three, so the agent uses all three.
+Suite 6's four configurations, plus `uses-app`. It is a population configuration that gets the brief and the app: every design's practice and main case, with a budget of 260 tool calls and 20M tokens. Each person used one design, but a population forecast covers all three, so the agent uses all three. The budget fits typing one digit per call, as a participant presses keys: 42 codes × (4 digits + Enter) = 210 actions, plus opening the designs and the screenshots, about 219 calls (GitHub issue 8). Typing a whole code with one `press-key` (`keys`) needs about 93.
 
 ## Checking it
 

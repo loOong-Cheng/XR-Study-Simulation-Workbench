@@ -62,7 +62,14 @@ const message = (mid, usage, final, content) => {
 };
 (async () => {
   // What the session got: the prompt on stdin, the command line, the system prompt file, the job marker.
-  let stdin = ""; process.stdin.setEncoding("utf8"); for await (const d of process.stdin) stdin += d;
+  // With --input-format stream-json the prompt is the first user message, and stdin stays open
+  // until the turn's result (as in Claude Code); otherwise it is all of stdin.
+  let stdin = ""; process.stdin.setEncoding("utf8");
+  if (args.includes("--input-format")) {
+    let line = ""; for await (const d of process.stdin) { line += d; if (line.includes("\\n")) break; }
+    const m = JSON.parse(line.slice(0, line.indexOf("\\n")));
+    stdin = m.type === "user" ? m.message.content[0].text : "";
+  } else for await (const d of process.stdin) stdin += d;
   const sp = args.indexOf("--system-prompt-file");
   fs.writeFileSync("seen.json", JSON.stringify({ args, stdin, job: process.env.XR_STUDY_JOB || null, systemFile: sp >= 0 ? fs.readFileSync(args[sp + 1], "utf8") : null }));
   out({ type: "system", subtype: "init", session_id: "fake-session", model, claude_code_version: "fake", mcp_servers: [{ name: "study", status: "connected" }] });
@@ -600,6 +607,7 @@ test("executor: the prompt goes on stdin and the system prompt in a file; an old
       assert.ok((await readFile(join(dir, "prompt.md"), "utf8")).endsWith(`## Prompt\n${seen.stdin}\n`), "the prompt as written to prompt.md, characters intact");
       assert.ok(Math.max(...seen.args.map((x) => x.length)) < 1000, "nothing long on the command line");
       assert.ok(!seen.args.includes("--include-partial-messages") && !seen.args.includes("--system-prompt"), seen.args.join(" "));
+      assert.ok(!seen.args.includes("--input-format"), "an older Claude Code gets the prompt as plain text on stdin");
       assert.match(seen.systemFile ?? "", /^You are an AI agent forecasting the results of a completed XR user study/);
       assert.equal(seen.job, j.id, "every process of the session carries XR_STUDY_JOB");
       // Usage still counts, from each message as it ends.
@@ -728,9 +736,9 @@ test("processes: a session's whole process tree ends; the help text tells the fl
   killTree(parent, 300);
   await until(() => !alive(pid), "the server the session started to end", { limitMs: 30_000 });
 
-  const current = "  --include-partial-messages  Include partial message chunks\n  --output-format <format>\n  --bare  provide context via: --system-prompt[-file], --append-system-prompt[-file]\n";
-  assert.deepEqual(featuresFromHelp(current), { known: true, partialMessages: true, systemPromptFile: true });
-  assert.deepEqual(featuresFromHelp("  --output-format <format>\n  --system-prompt <prompt>\n"), { known: true, partialMessages: false, systemPromptFile: false });
+  const current = "  --include-partial-messages  Include partial message chunks\n  --input-format <format>\n  --output-format <format>\n  --bare  provide context via: --system-prompt[-file], --append-system-prompt[-file]\n";
+  assert.deepEqual(featuresFromHelp(current), { known: true, partialMessages: true, systemPromptFile: true, streamInput: true });
+  assert.deepEqual(featuresFromHelp("  --output-format <format>\n  --system-prompt <prompt>\n"), { known: true, partialMessages: false, systemPromptFile: false, streamInput: false });
   assert.equal(featuresFromHelp("node: bad option: --help"), null);
   assert.match(claudeProblem({ claudePath: "C:\\Users\\x\\AppData\\Roaming\\npm\\claude.CMD" }) ?? "", /\.cmd\/\.bat script/);
   assert.match(claudeProblem({ claudePath: join(tmpdir(), "no-such-folder", "claude") }) ?? "", /was not found at/);

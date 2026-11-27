@@ -1739,7 +1739,71 @@ test("issue 3: attempts stopped before Claude Code reported a cost are counted b
     await writeFile(join(dir, "receipts.jsonl"), [stopped, completed].map((r) => JSON.stringify(r)).join("\n") + "\n");
     const summary = (await campaignSummaries(a.id)).find((x) => x.id === c.id)!;
     assert.ok(Math.abs(summary.costUsd! - 0.67) < 1e-9);
-    assert.deepEqual(summary.unknownCost, { attempts: 1, tokens: 333_010 });
+    assert.deepEqual(summary.unknownCost, { attempts: 1, tokens: 333_010, unpriced: 0 });
+  } finally {
+    await removeDir(a.dir);
+  }
+});
+
+test("issue 7: a session accepted before every required task was finished is incomplete: counted apart, rerun in a new campaign, and left out of the analysis on request", async () => {
+  const { readWorkspace, saveCampaign, runDir, readCampaign, readHuman } = await import("../src/workspace.js");
+  const { campaignSummaries, sessionAttempts } = await import("../src/history.js");
+  const { Executor, closeExecutor } = await import("../src/executor/runner.js");
+  const { unfinishedTasks } = await import("../src/core/progress.js");
+  const { analyzeCampaign } = await import("../src/core/campaign-study.js");
+  const a = await tempWorkspace(resolve("examples/selection"));
+  try {
+    const ws = await readWorkspace(a.id);
+    const c = campaignFromPlan(freezePlan(ws.study, withDefaultRuns(ws.study, ws.agents!, 1), 1), undefined, "incomplete", new Date(Date.now() - 1000).toISOString());
+    await saveCampaign(a.id, c);
+    const app = c.suite.conditions.find((x) => x.id === "uses-app")!;
+    const [complete, partial] = c.jobs.filter((j) => j.conditionId === app.id);
+    await writeRuns(a.id, c, { [complete.id]: { kind: "real" }, [partial.id]: { kind: "real" } });
+    // The partial session's last required task never ended before its forecast.
+    const file = join(runDir(a.id, c.id), "results", `${partial.id}.json`);
+    const run = JSON.parse(await readFile(file, "utf8"));
+    const lastTask = app.recipe.protocol!.requiredCaseIds.at(-1)!;
+    run.trace = run.trace.filter((e: { type: string; caseId?: string }) => !(e.type === "case-end" && e.caseId === lastTask));
+    run.execution.inferenceWallTimeMs = 348_000;
+    await writeFile(file, JSON.stringify(run));
+    assert.deepEqual(unfinishedTasks(app.recipe.protocol!, run), [lastTask]);
+    assert.deepEqual(unfinishedTasks(app.recipe.protocol!, { ...run, execution: { ...run.execution, synthetic: true } }), [], "a simulated run plays nothing");
+    assert.deepEqual(unfinishedTasks(c.suite.conditions.find((x) => x.id === "text-only")!.recipe.protocol!, run), [], "no app, no tasks");
+
+    // Run agents: a status of its own, counted apart from done; never run again in place.
+    const ex = await Executor.open(a.id, c.id);
+    assert.equal(ex.jobs.get(partial.id)!.status, "incomplete");
+    assert.equal(ex.jobs.get(complete.id)!.status, "done");
+    assert.equal(ex.snapshot().counts.incomplete, 1);
+    assert.equal(ex.jobs.get(partial.id)!.durationMs, 348_000, "the session's time, from its result");
+    closeExecutor(a.id, c.id);
+    const summary = (await campaignSummaries(a.id)).find((x) => x.id === c.id)!;
+    assert.deepEqual([summary.done, summary.incomplete], [1, 1]);
+    assert.equal((await sessionAttempts(a.id, c, partial.id)).attempts[0].status, "incomplete");
+
+    // Analysis: scored by default (as frozen) and counted; left out on request, with a reason.
+    const camp = await readCampaign(a.id, c.id);
+    const human = (await readHuman(a.id))!;
+    const { readResults } = await import("../src/workspace.js");
+    const bundles = await readResults(a.id, camp.suite.study!, [c.id]);
+    const kept = analyzeCampaign(camp, human, bundles);
+    const left = analyzeCampaign(camp, human, bundles, undefined, undefined, undefined, { excludeIncomplete: true });
+    const row = (r: typeof kept) => r.report.summaries.find((s) => s.agentId === app.id)!;
+    assert.deepEqual([row(kept).scoreable, row(kept).incomplete], [2, 1]);
+    assert.deepEqual([row(left).scoreable, row(left).incomplete], [1, 1]);
+    assert.deepEqual(kept.report.audits.find((x) => x.jobId === partial.id)!.unfinishedTasks, [lastTask]);
+    assert.ok(left.report.audits.find((x) => x.jobId === partial.id)!.issues.some((i) => /^Left out \(your choice\): an incomplete session/.test(i)));
+    assert.ok(kept.report.notes.some((n) => /1 scored session\(s\) are incomplete/.test(n)));
+    assert.ok(left.report.notes.some((n) => /1 incomplete session\(s\) left out at your choice/.test(n)));
+    const viaApi = await post("/api/workspace/analyze", { id: a.id, campaignId: c.id, excludeIncomplete: true });
+    assert.equal(viaApi.summaries.find((s: { agentId: string }) => s.agentId === app.id).scoreable, 1);
+
+    // Rerun incomplete: a new campaign runs that session again; the complete one is reused.
+    const next = await post("/api/workspace/continue", { id: a.id, campaignId: c.id, changes: { retryJobs: [partial.templateJobId], note: "Rerun of 1 incomplete session(s)" } });
+    const nc = await readCampaign(a.id, next.campaignId);
+    const byTemplate = (t: string) => nc.jobs.find((j) => j.templateJobId === t)!;
+    assert.equal(byTemplate(partial.templateJobId).inheritedFrom, undefined, "the incomplete session runs again");
+    assert.equal(byTemplate(complete.templateJobId).inheritedFrom?.jobId, complete.id, "the complete one is reused");
   } finally {
     await removeDir(a.dir);
   }

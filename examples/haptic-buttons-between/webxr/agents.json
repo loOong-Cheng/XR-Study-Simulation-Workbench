@@ -153,9 +153,9 @@
     "requiredSourceIds": [
       "brief"
     ],
-    "maxToolCalls": 160,
+    "maxToolCalls": 260,
     "maxOutputTokens": 32000,
-    "maxTokens": 12000000,
+    "maxTokens": 20000000,
     "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
     "level": "population",
     "runtime": "webxr"

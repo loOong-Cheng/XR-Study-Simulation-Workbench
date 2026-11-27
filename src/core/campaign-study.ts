@@ -14,6 +14,7 @@ import { syntheticResults } from "./example.js";
 import { hash } from "./planner.js";
 import { modelConfoundWarnings } from "./fairness.js";
 import type {
+  AnalysisOptions,
   AnalysisReport,
   Comparison,
   HumanData,
@@ -152,10 +153,21 @@ export function analyzeCampaign(
   receipts?: CampaignReceipt[],
   /** Scores kept from an analysis of the same campaign, human data and results with other comparisons. */
   memo?: AnalysisMemo,
+  /** Analysis choices, e.g. leaving out incomplete sessions. */
+  options: AnalysisOptions = {},
 ): CampaignAnalysis {
   const plan = campaignPlan(c);
   const merged = mergeCampaignResults(c, bundles);
-  const report = analyzeVerifiedPlan(plan, human, merged.bundle, comparisons, memo);
+  const report = analyzeVerifiedPlan(plan, human, merged.bundle, comparisons, memo, options);
+  // Incomplete sessions (forecast accepted before every required task was finished): said in a
+  // note, scored or left out as chosen.
+  const incomplete = report.audits.filter((a) => a.unfinishedTasks?.length).length;
+  if (incomplete)
+    report.notes.push(
+      options.excludeIncomplete
+        ? `${incomplete} incomplete session(s) left out at your choice: their forecast was accepted before every required task was finished.`
+        : `${incomplete} scored session(s) are incomplete: their forecast was accepted before every required task was finished (the audit lists them). Leave them out to score complete sessions only.`,
+    );
   if (receipts) addFailureReasons(c, report, receipts);
   if (merged.reused.length)
     report.notes.push(

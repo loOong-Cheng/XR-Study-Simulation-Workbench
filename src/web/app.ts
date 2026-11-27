@@ -7,8 +7,8 @@ import { clippedToScale, focusMark, focusTarget, markdownToHtml, money, plural, 
 
 type Page = "home" | "study" | "evidence" | "configs" | "freeze" | "compare" | "executor" | "analyzer" | "continue" | "settings";
 interface WorkspaceInfo { id: string; title: string; suite: string | null; description: string | null; synthetic: boolean; engine: string; hasAgents: boolean; hasHuman: boolean; campaigns: number }
-interface CampaignInfo { id: string; digest: string; createdAt: string; parentDigest: string | null; parentId: string | null; label: string | null; note: string | null; jobs: number; reused: number; done: number; failed: number; notStarted: number; running?: number; dropped?: string[]; real: number; simulated: number; costUsd: number | null; unknownCost?: { attempts: number; tokens: number }; models: Record<string, { provider: string; model: string; reasoning: string }>; configs?: { id: string; label: string; individual: boolean; runs: number }[]; designKey: string }
-interface Attempt { attempt: number; status: string; error: string | null; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; cost: string | null; simulated: boolean | null; counts: boolean }
+interface CampaignInfo { id: string; digest: string; createdAt: string; parentDigest: string | null; parentId: string | null; label: string | null; note: string | null; jobs: number; reused: number; done: number; incomplete?: number; failed: number; notStarted: number; running?: number; dropped?: string[]; real: number; simulated: number; costUsd: number | null; unknownCost?: { attempts: number; tokens: number; unpriced?: number }; models: Record<string, { provider: string; model: string; reasoning: string }>; configs?: { id: string; label: string; individual: boolean; runs: number }[]; designKey: string }
+interface Attempt { attempt: number; status: string; error: string | null; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; cost: string | null; simulated: boolean | null; durationMs?: number | null; counts: boolean }
 interface WorkspaceView {
   id: string; study: Study; agents: AgentProtocol[]; agentsSaved: boolean; comparisons: Comparison[];
   manifest: { title?: string; suite?: string; description?: string; app?: unknown; sources?: Record<string, string> };
@@ -28,12 +28,12 @@ interface WorkspaceView {
 interface ConfigProblem { configId: string; label: string; unknownSources: string[]; unknownOutcomes: string[]; unknownCases: string[]; message: string | null }
 interface Settings { assistant: { kind: string; model: string }; forecasting: { provider: string; model: string; reasoning: string }; runtimes: Record<string, { command?: string; args?: string[]; instructions?: string; capabilities?: string[]; timeoutMinutes?: number; maxParallel?: number; note?: string }>; chromePath: string; claudePath?: string; concurrency: number; jobTimeoutMinutes: number }
 interface RuntimeStatus { id: string; label: string; available: boolean; builtIn: boolean; message: string; maxParallel?: number }
-interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; noResult?: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; spent?: { usd: number; unknownAttempts: number; unknownTokens: number }; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null }
+interface JobState { jobId: string; agentId: string; label: string; level: string; participantId: string | null; repetition: number; runtime: string; status: string; attempts: number; simulated: boolean; noResult?: boolean; toolCalls: number; tokensIn: number | null; tokensOut: number | null; costUsd: number | null; costNote?: string | null; spent?: { usd: number; unknownAttempts: number; unknownTokens: number; unpricedAttempts?: number }; warning: string | null; lastTool: string | null; screenshot: string | null; error: string | null; startedAt?: string | null; endedAt?: string | null; durationMs?: number | null }
 interface Snapshot { campaignId: string; mode: string; paused: boolean; running: number; queued: number; waiting?: string | null; counts: Record<string, number>; jobs: JobState[] }
 interface AnalysisView {
   campaignId: string; configs: { id: string; label: string; level: string; model: { model: string }; targets: string[] }[];
   outcomes: { id: string; label: string; domain: Domain; unit: string }[];
-  summaries: { agentId: string; level?: string; domain: Domain; agreement: number | null; ci95: { low: number; high: number } | null; assigned: number; returned: number; real?: number; simulated?: number; scoreable: number; compliant: number }[];
+  summaries: { agentId: string; level?: string; domain: Domain; agreement: number | null; ci95: { low: number; high: number } | null; assigned: number; returned: number; real?: number; simulated?: number; scoreable: number; compliant: number; incomplete?: number }[];
   contrasts: { candidate: string; baseline: string; domain: Domain; difference: number | null; ci95: { low: number; high: number } | null; holmP: number | null; declared: string; status: string }[];
   design?: string; pairRule?: "means" | "significant";
   humanPairs?: HumanPairView[]; absoluteFit?: { agentId: string; outcomeId: string; conditionId: string; human: number; low: number; high: number; n: number; agent: number; error: number; inside: boolean; degenerate?: boolean; note?: string }[];
@@ -42,6 +42,8 @@ interface AnalysisView {
 }
 interface HumanPairView { outcomeId: string; a: string; b: string; meanA: number; meanB: number; test: string; p: number | null; pHolm: number | null; significant: boolean; used: boolean }
 let showSignificantOnly = false;
+/** Leave out incomplete sessions (forecast accepted before every required task was finished) when analysing. */
+let leaveOutIncomplete = false;
 type View = "agreement" | "agent-vs-human" | "correlation" | "population-vs-individual" | "trajectories";
 
 let page: Page = "home";
@@ -93,7 +95,7 @@ function campaignBar() {
   const options = ws.campaigns
     .map((x) => `<option value="${esc(x.id)}" ${x.id === c.id ? "selected" : ""}>${esc(campaignName(x))} · ${esc(new Date(x.createdAt).toLocaleString())}</option>`)
     .join("");
-  return `<div class="campaign-bar"><label class="field">Campaign shown<select id="campaign-switch">${options}</select></label><p class="caption">Frozen ${esc(new Date(c.createdAt).toLocaleString())}${c.parentId ? ` · continues ${esc(campaignName(campaignOf(c.parentId)))}` : ""} · ${c.jobs} sessions${c.reused ? `, ${c.reused} reused` : ""} · ${c.done} done · ${c.failed} failed${c.running ? ` · ${c.running} running or waiting` : ""} · ${c.notStarted} not run yet${c.costUsd != null ? ` · ${money(c.costUsd)} so far` : ""}${unknownCostNote(c, c.costUsd != null)}. Rename or compare campaigns on Freeze &amp; campaigns.</p></div>`;
+  return `<div class="campaign-bar"><label class="field">Campaign shown<select id="campaign-switch">${options}</select></label><p class="caption">Frozen ${esc(new Date(c.createdAt).toLocaleString())}${c.parentId ? ` · continues ${esc(campaignName(campaignOf(c.parentId)))}` : ""} · ${c.jobs} sessions${c.reused ? `, ${c.reused} reused` : ""} · ${c.done} done${c.incomplete ? ` · ${c.incomplete} incomplete` : ""} · ${c.failed} failed${c.running ? ` · ${c.running} running or waiting` : ""} · ${c.notStarted} not run yet${c.costUsd != null ? ` · ${money(c.costUsd)} so far` : ""}${unknownCostNote(c, c.costUsd != null)}. Rename or compare campaigns on Freeze &amp; campaigns.</p></div>`;
 }
 /**
  * Real attempts that cost totals leave out because Claude Code never reported their cost (stopped,
@@ -102,7 +104,18 @@ function campaignBar() {
 function unknownCostNote(c: Pick<CampaignInfo, "unknownCost">, afterTotal: boolean) {
   const u = c.unknownCost;
   if (!u?.attempts) return "";
-  return `${afterTotal ? " +" : " ·"} ${plural(u.attempts, "attempt")} with unknown cost (${fmtTokens(u.tokens)} tokens; stopped before Claude Code reported the cost)`;
+  return `${afterTotal ? " +" : " ·"} ${plural(u.attempts, "attempt")} with unknown cost (${fmtTokens(u.tokens)} tokens; ${unknownWhy(u.attempts, u.unpriced ?? 0)})`;
+}
+/**
+ * Why costs are unknown: stopped before Claude Code reported one, or a model it has no price for
+ * (a local model, whose fallback price was never charged), or both.
+ */
+function unknownWhy(attempts: number, unpriced: number) {
+  const stopped = "stopped before Claude Code reported the cost";
+  const noPrice = "on a model Claude Code has no price for, e.g. a local model";
+  if (!unpriced) return stopped;
+  if (unpriced >= attempts) return noPrice;
+  return `${unpriced} ${noPrice}; ${attempts - unpriced} ${stopped}`;
 }
 const fmtTokens = (x: number | null) => (x == null ? "?" : x >= 10000 ? `${Math.round(x / 1000)}k` : String(x));
 /** Runtimes the campaign shown (or, before freezing, the study) uses: e.g. "No app" and "Unreal" for suite 1. */
@@ -121,21 +134,23 @@ function reusedNote(s: { jobs: JobState[] } | null | undefined): string {
 }
 /** A per-configuration sum row: sessions, real usage and cost so far. */
 function configSum(list: JobState[], toggle = "") {
-  const real = list.filter((j) => (j.status === "done" || j.status === "failed") && !j.simulated);
+  const real = list.filter((j) => (j.status === "done" || j.status === "incomplete" || j.status === "failed") && !j.simulated);
   // Reused sessions count with the run they reuse (simulated or real); one that never ran is not done.
   const sim = list.filter((j) => j.simulated && (j.status === "done" || j.status === "reused")).length;
   const done = list.filter((j) => j.status === "done" || (j.status === "reused" && !j.noResult)).length;
+  const incomplete = list.filter((j) => j.status === "incomplete").length;
   const sum = (f: (j: JobState) => number | null) => real.reduce((s, j) => s + (f(j) ?? 0), 0);
   // Every real attempt's spending in this campaign (stopped and rerun ones too); attempts whose cost
   // Claude Code never reported are named beside the sum, with their tokens.
   const spent = list.filter((j) => j.status !== "reused" && j.spent).map((j) => j.spent!);
   const unknown = spent.reduce((n, x) => n + x.unknownAttempts, 0);
   const unknownTokens = spent.reduce((n, x) => n + x.unknownTokens, 0);
+  const unpriced = spent.reduce((n, x) => n + (x.unpricedAttempts ?? 0), 0);
   const cost = spent.length ? (spent.some((x) => x.usd > 0) || !unknown ? spent.reduce((n, x) => n + x.usd, 0) : null) : real.some((j) => j.costUsd != null) ? sum((j) => j.costUsd) : null;
-  const unknownNote = unknown ? `<br><span class="small">${cost != null ? "+ " : ""}${plural(unknown, "attempt")} with unknown cost (${fmtTokens(unknownTokens)} tokens)</span>` : "";
+  const unknownNote = unknown ? `<br><span class="small">${cost != null ? "+ " : ""}${plural(unknown, "attempt")} with unknown cost (${fmtTokens(unknownTokens)} tokens${unpriced ? `; ${unpriced >= unknown ? "no price for the model" : `${unpriced} with no price for the model`}` : ""})</span>` : "";
   // Reused runs were paid in the campaign they ran in: shown per row, not added to this campaign's cost.
   const reusedCost = list.filter((j) => j.status === "reused" && j.costUsd != null).reduce((s, j) => s + j.costUsd!, 0);
-  return `<tr class="config-sum"><td></td><td colspan="3"><strong>${esc(list[0].label)}</strong> · ${done} of ${list.length} done${sim ? ` (${sim} simulated)` : ""}${toggle}</td><td></td><td></td><td>${real.length ? `${fmtTokens(sum((j) => j.tokensIn))} / ${fmtTokens(sum((j) => j.tokensOut))}` : ""}</td><td>${cost != null ? `<strong>${money(cost)}</strong>` : ""}${unknownNote}${reusedCost ? `<br><span class="small">reused: ${money(reusedCost)}, paid earlier</span>` : ""}</td></tr>`;
+  return `<tr class="config-sum"><td></td><td colspan="3"><strong>${esc(list[0].label)}</strong> · ${done} of ${list.length} done${sim ? ` (${sim} simulated)` : ""}${incomplete ? ` · <span class="warn">${incomplete} incomplete</span>` : ""}${toggle}</td><td></td><td></td><td>${timeSum(list)}</td><td>${real.length ? `${fmtTokens(sum((j) => j.tokensIn))} / ${fmtTokens(sum((j) => j.tokensOut))}` : ""}</td><td>${cost != null ? `<strong>${money(cost)}</strong>` : ""}${unknownNote}${reusedCost ? `<br><span class="small">reused: ${money(reusedCost)}, paid earlier</span>` : ""}</td></tr>`;
 }
 /**
  * What the agents of the campaign shown get, as links the researcher can read while sessions run.
@@ -163,12 +178,17 @@ function nextStep(): string {
   });
   // A configuration a continuation dropped on purpose is not missing.
   const absent = agents.filter((a) => !c.models[a.id] && !c.dropped?.includes(a.id));
-  const finished = n("done") + n("reused");
+  const finished = n("done") + n("reused") + n("incomplete");
   let text: string;
-  if (n("running") || n("queued")) text = `${n("running")} running, ${n("queued")} waiting. You can analyze the finished ones in the meantime (interim).`;
+  if (n("running") || n("queued")) text = `${n("running")} running, ${n("queued")} waiting${timeLeftText(s)}. You can analyze the finished ones in the meantime (interim).`;
   else if (n("failed") + n("stopped")) text = `${n("failed") + n("stopped")} failed or stopped → <strong>Rerun failed</strong> (same campaign; each try is kept as an attempt).`;
   else if (n("not-started")) text = `${n("not-started")} sessions not run yet → <strong>Start</strong>, or choose a few for a pilot.`;
   else text = `Complete: all ${finished} sessions finished → <strong>Compare agents</strong> or <strong>Compare with humans</strong>.`;
+  // Incomplete sessions: their forecasts are kept; a new campaign can run them again.
+  if (n("incomplete") && !n("running") && !n("queued"))
+    text += n("incomplete") === 1
+      ? ` 1 session is incomplete (its forecast was accepted before every required task was finished) → <strong>Rerun incomplete</strong> runs it again in a new campaign, or leave it out when you compare.`
+      : ` ${n("incomplete")} sessions are incomplete (their forecast was accepted before every required task was finished) → <strong>Rerun incomplete</strong> runs them again in a new campaign, or leave them out when you compare.`;
   if (changed.length && !n("running"))
     text += ` The model of ${esc(changed.map((a) => a.label).join(", "))} changed since this campaign was frozen → <strong>Continue / rerun</strong> makes a new campaign that reuses the ${finished} finished runs that still match.`;
   if (absent.length && !n("running"))
@@ -444,6 +464,7 @@ async function openWorkspace(id: string) {
   // The analyzer starts on a domain this study measures (subjective first), not the last study's choice.
   domain = ws.study.outcomes.some((o) => o.domain === "subjective") || !ws.study.outcomes.length ? "subjective" : "objective";
   showSignificantOnly = false;
+  leaveOutIncomplete = false;
   logs.clear();
   // Real studies start in "Run agents" (nothing starts without your OK); synthetic ones in "Simulate".
   mode = ws.study.synthetic ? "simulate" : "agent";
@@ -616,7 +637,7 @@ function updateJob(jobId: string, changed: Partial<JobState>, whole: boolean) {
     if (!snapshot.counts[before]) delete snapshot.counts[before];
     snapshot.counts[after] = (snapshot.counts[after] ?? 0) + 1;
     // A session started, ended or was stopped: the campaign's progress changes.
-    if (["running", "done", "failed", "stopped", "not-started"].includes(after)) scheduleSummaryRefresh();
+    if (["running", "done", "incomplete", "failed", "stopped", "not-started"].includes(after)) scheduleSummaryRefresh();
   }
   if (whole) groupCache = null;
 }
@@ -1256,7 +1277,7 @@ function campaignHistory() {
     for (const c of (children.get(parent) ?? []).sort((a, b) => a.createdAt.localeCompare(b.createdAt))) {
       // A continuation repeats its parent's design on purpose; only unrelated repeats are flagged.
       const same = ws!.campaigns.some((x) => x.id !== c.id && x.designKey === c.designKey && x.parentId !== c.id && c.parentId !== x.id);
-      rows.push(`<tr class="${c.id === campaignId ? "selected-row" : ""}"><td><span class="indent-${Math.min(depth, 4)}">${depth ? "↳ " : ""}</span><input class="label-input" data-campaign-label="${esc(c.id)}" value="${esc(c.label ?? "")}" placeholder="${esc(campaignName({ ...c, label: null }))}" aria-label="Label of campaign ${esc(c.id)}">${c.note ? `<br><span class="small">${esc(c.note)}</span>` : ""}${same ? `<br><span class="small warn">Same configurations as another campaign</span>` : ""}</td><td class="small">${esc(new Date(c.createdAt).toLocaleString())}</td><td>${c.jobs}${c.reused ? `<br><span class="small">${c.reused} reused</span>` : ""}</td><td>${c.done}</td><td>${c.failed}</td><td>${c.notStarted}</td><td>${c.real}${c.simulated ? ` + ${c.simulated} sim` : ""}</td><td>${money(c.costUsd)}${c.unknownCost?.attempts ? `<br><span class="small">+ ${plural(c.unknownCost.attempts, "attempt")} with unknown cost (${fmtTokens(c.unknownCost.tokens)} tokens)</span>` : ""}</td><td>${c.id === campaignId ? `<button class="button current" data-action="use-campaign:${esc(c.id)}" aria-pressed="true">Shown</button>` : btn(`use-campaign:${c.id}`, "Show", false, 'aria-pressed="false"')} ${btn(`delete-campaign:${c.id}`, "Delete")}</td></tr>`);
+      rows.push(`<tr class="${c.id === campaignId ? "selected-row" : ""}"><td><span class="indent-${Math.min(depth, 4)}">${depth ? "↳ " : ""}</span><input class="label-input" data-campaign-label="${esc(c.id)}" value="${esc(c.label ?? "")}" placeholder="${esc(campaignName({ ...c, label: null }))}" aria-label="Label of campaign ${esc(c.id)}">${c.note ? `<br><span class="small">${esc(c.note)}</span>` : ""}${same ? `<br><span class="small warn">Same configurations as another campaign</span>` : ""}</td><td class="small">${esc(new Date(c.createdAt).toLocaleString())}</td><td>${c.jobs}${c.reused ? `<br><span class="small">${c.reused} reused</span>` : ""}</td><td>${c.done}${c.incomplete ? `<br><span class="small">+ ${c.incomplete} incomplete</span>` : ""}</td><td>${c.failed}</td><td>${c.notStarted}</td><td>${c.real}${c.simulated ? ` + ${c.simulated} sim` : ""}</td><td>${money(c.costUsd)}${c.unknownCost?.attempts ? `<br><span class="small">+ ${plural(c.unknownCost.attempts, "attempt")} with unknown cost (${fmtTokens(c.unknownCost.tokens)} tokens${c.unknownCost.unpriced ? `; ${c.unknownCost.unpriced} with no price for the model` : ""})</span>` : ""}</td><td>${c.id === campaignId ? `<button class="button current" data-action="use-campaign:${esc(c.id)}" aria-pressed="true">Shown</button>` : btn(`use-campaign:${c.id}`, "Show", false, 'aria-pressed="false"')} ${btn(`delete-campaign:${c.id}`, "Delete")}</td></tr>`);
       walk(c.id, depth + 1);
     }
   };
@@ -1354,7 +1375,7 @@ function chooser(byConfig: Map<string, JobState[]>) {
     .map(([id, list]) => {
       const open = list.filter(canRun).length;
       const picked = list.filter((j) => chosen.has(j.jobId) && canRun(j)).length;
-      const finished = list.filter((j) => j.status === "done" || j.status === "reused").length;
+      const finished = list.filter((j) => j.status === "done" || j.status === "incomplete" || j.status === "reused").length;
       return `<tr><td><input type="checkbox" data-pick-config="${esc(id)}" ${pickConfigs.has(id) ? "checked" : ""} aria-label="Choose ${esc(list[0].label)}"></td><td>${esc(list[0].label)}</td><td>${finished}</td><td>${open}</td><td>${picked || ""}</td></tr>`;
     })
     .join("");
@@ -1406,27 +1427,119 @@ function jobGroups(): Map<string, JobState[]> {
 function groupStatusText(list: JobState[]) {
   const n: Record<string, number> = {};
   for (const j of list) n[j.status] = (n[j.status] ?? 0) + 1;
-  const words: [string, string][] = [["running", "running"], ["queued", "waiting"], ["failed", "failed"], ["stopped", "stopped"], ["not-started", "not started"]];
+  const words: [string, string][] = [["running", "running"], ["queued", "waiting"], ["incomplete", "incomplete"], ["failed", "failed"], ["stopped", "stopped"], ["not-started", "not started"]];
   return words.filter(([k]) => n[k]).map(([k, w]) => `${n[k]} ${w}`).join(" · ");
 }
 function tokenCell(j: JobState) {
   if (j.tokensIn == null && j.tokensOut == null) return "";
   return `${fmtTokens(j.tokensIn)} / ${fmtTokens(j.tokensOut)}${j.status === "running" ? ' <span class="small">live</span>' : ""}`;
 }
-/** Cost of a real session; one stopped or killed before Claude Code reported it has an unknown cost. */
+/**
+ * Cost of a real session; one stopped or killed before Claude Code reported it has an unknown cost,
+ * as has one on a model Claude Code has no price for (a local model: its fallback price is not shown).
+ */
 function costCell(j: JobState) {
   if (j.simulated) return "";
   if (j.costUsd != null) return money(j.costUsd);
+  if (j.costNote && (j.tokensIn != null || j.tokensOut != null)) return `<span class="small">${esc(j.costNote)}</span>`;
   return (j.status === "stopped" || j.status === "failed") && (j.tokensIn != null || j.tokensOut != null) ? '<span class="small">cost unknown (stopped before the end)</span>' : "";
 }
+/**
+ * Incomplete sessions (forecast accepted before every required task was finished) are scored by
+ * default, as frozen; the researcher may leave them out to score complete sessions only.
+ */
+function incompleteChoice(a: AnalysisView) {
+  const n = a.summaries.reduce((m, s) => Math.max(m, s.incomplete ?? 0), 0);
+  if (!n && !leaveOutIncomplete) return "";
+  return `<div class="actions">${btn("toggle-incomplete", leaveOutIncomplete ? "Score incomplete sessions too" : "Leave out incomplete sessions")}</div><p class="caption">${leaveOutIncomplete ? "Incomplete sessions are left out: only sessions that finished every required task are scored. Figures and comparisons follow this choice." : "Some sessions are incomplete: their forecast was accepted before every required task was finished. They are scored, as the frozen plan does; leave them out to score complete sessions only."}</p>`;
+}
+/** A duration as people read it: "6.7 s", "348 s", "5.8 min", "1.6 h". */
+function fmtDuration(ms: number) {
+  if (ms < 10_000) return `${(ms / 1000).toFixed(1)} s`;
+  if (ms < 100_000) return `${Math.round(ms / 1000)} s`;
+  if (ms < 100 * 60_000) return `${(ms / 60_000).toFixed(1)} min`;
+  return `${(ms / 3_600_000).toFixed(1)} h`;
+}
+/** Elapsed time of a running session, as a clock: "5:48", "1:02:07". */
+function fmtClock(ms: number) {
+  const t = Math.max(0, Math.floor(ms / 1000));
+  const [h, m, sec] = [Math.floor(t / 3600), Math.floor((t % 3600) / 60), t % 60];
+  const two = (x: number) => String(x).padStart(2, "0");
+  return h ? `${h}:${two(m)}:${two(sec)}` : `${m}:${two(sec)}`;
+}
+/** A running session's elapsed time (updated every second, see tickClocks), or a finished attempt's duration. */
+function timeCell(j: JobState) {
+  if (j.status === "running" && j.startedAt) {
+    const since = Date.parse(j.startedAt);
+    return Number.isFinite(since) ? `<span class="small" data-since="${esc(j.startedAt)}">${fmtClock(Date.now() - since)}</span>` : "";
+  }
+  return j.durationMs != null ? `<span class="small">${fmtDuration(j.durationMs)}</span>` : "";
+}
+/** Finished sessions of one kind (real, or simulated) and their durations: what medians and estimates use. */
+function durations(list: JobState[], simulated: boolean) {
+  return list.filter((j) => ["done", "incomplete", "failed"].includes(j.status) && j.simulated === simulated && j.durationMs != null).map((j) => j.durationMs!);
+}
+const median = (xs: number[]) => {
+  const v = [...xs].sort((a, b) => a - b);
+  return v.length ? (v.length % 2 ? v[(v.length - 1) / 2] : (v[v.length / 2 - 1] + v[v.length / 2]) / 2) : null;
+};
+/** A configuration's real sessions: the median duration and the total. */
+function timeSum(list: JobState[]) {
+  const d = durations(list, false);
+  if (!d.length) return "";
+  return `<span class="small">median ${fmtDuration(median(d)!)}<br>total ${fmtDuration(d.reduce((a, b) => a + b, 0))}</span>`;
+}
+/**
+ * About how long the sessions that run or wait still take: per configuration, the median of its
+ * finished sessions of the kind that runs (real or simulated; a campaign's configuration keeps one
+ * model), minus what a running one has done, spread over the sessions that run at once (the
+ * Parallel sessions setting, and each runtime's own limit). Empty without a finished session to go by.
+ */
+function timeLeftText(s: Snapshot | null) {
+  if (!s) return "";
+  const simulated = s.mode === "simulate";
+  const byConfig = new Map<string, JobState[]>();
+  for (const j of s.jobs) byConfig.set(j.agentId, [...(byConfig.get(j.agentId) ?? []), j]);
+  let total = 0,
+    untimed = 0;
+  const perRuntime = new Map<string, number>();
+  for (const list of byConfig.values()) {
+    const left = list.filter((j) => j.status === "queued" || j.status === "running");
+    if (!left.length) continue;
+    const m = median(durations(list, simulated));
+    if (m === null) {
+      untimed += left.length;
+      continue;
+    }
+    for (const j of left) {
+      const done = j.status === "running" && j.startedAt ? Date.now() - Date.parse(j.startedAt) : 0;
+      const rest = Math.max(0, m - (Number.isFinite(done) ? done : 0));
+      total += rest;
+      perRuntime.set(j.runtime, (perRuntime.get(j.runtime) ?? 0) + rest);
+    }
+  }
+  if (!total) return untimed ? " (time left: known once a session of each configuration has finished)" : "";
+  const slots = Math.max(1, settings?.concurrency ?? 1);
+  const capOf = (r: string) => settings?.runtimes[r]?.maxParallel ?? runtimes.find((x) => x.id === r)?.maxParallel ?? (r === "none" ? slots : 1);
+  const left = Math.max(total / slots, ...[...perRuntime].map(([r, w]) => w / Math.max(1, Math.min(slots, capOf(r)))));
+  return ` · about ${fmtDuration(left)} left${untimed ? ` (+ ${untimed} session(s) of configurations without a finished session yet)` : ""}`;
+}
+/** Running sessions' clocks go on between updates from the server. */
+function tickClocks() {
+  document.querySelectorAll<HTMLElement>("[data-since]").forEach((el) => {
+    const since = Date.parse(el.dataset.since ?? "");
+    if (Number.isFinite(since)) el.textContent = fmtClock(Date.now() - since);
+  });
+}
+setInterval(tickClocks, 1000);
 /** One previewed session: status, live tokens, latest screenshot and messages; details when it is the only one. */
 function previewTile(j: JobState, single: boolean) {
   const lines = logs.get(j.jobId) ?? [];
   const shown = single ? lines : lines.slice(-4);
   const attempts =
     single && attemptsOf?.jobId === j.jobId && attemptsOf.attempts.length
-      ? `<table class="attempts"><thead><tr><th>Attempt</th><th>Result</th><th>Tools</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${attemptsOf.attempts
-          .map((x) => `<tr><td>a${x.attempt}${x.counts ? " <strong>counts</strong>" : ""}</td><td>${esc(x.status)}${x.simulated ? " · sim" : ""}${x.error ? `<br><span class="small">${esc(x.error.slice(0, 160))}</span>` : ""}</td><td>${x.toolCalls || ""}</td><td>${x.tokensIn != null || x.tokensOut != null ? `${fmtTokens(x.tokensIn)} / ${fmtTokens(x.tokensOut)}` : ""}</td><td>${x.cost ? `<span class="small">cost ${esc(x.cost)}</span>` : money(x.costUsd)}</td></tr>`)
+      ? `<table class="attempts"><thead><tr><th>Attempt</th><th>Result</th><th>Tools</th><th>Time</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${attemptsOf.attempts
+          .map((x) => `<tr><td>a${x.attempt}${x.counts ? " <strong>counts</strong>" : ""}</td><td>${esc(x.status)}${x.simulated ? " · sim" : ""}${x.error ? `<br><span class="small">${esc(x.error.slice(0, 160))}</span>` : ""}</td><td>${x.toolCalls || ""}</td><td>${x.durationMs != null ? fmtDuration(x.durationMs) : ""}</td><td>${x.tokensIn != null || x.tokensOut != null ? `${fmtTokens(x.tokensIn)} / ${fmtTokens(x.tokensOut)}` : ""}</td><td>${x.cost ? `<span class="small">cost ${esc(x.cost)}</span>` : money(x.costUsd)}</td></tr>`)
           .join("")}</tbody></table><p class="caption">The first completed attempt counts; the others are kept in the job folder. Tools: calls before the forecast (submitting it is not counted).</p>`
       : "";
   return `<div class="card preview-tile"><div class="card-heading"><div><h3>${esc(j.label)}</h3><p class="caption">${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition} · ${esc(j.runtime)} · <span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status}${j.simulated ? " · sim" : ""}</span></p></div>${btn(`preview-close:${j.jobId}`, "×", false, 'aria-label="Close this preview"')}</div>
@@ -1486,9 +1599,9 @@ function renderExecutor() {
   // Pause and Stop act on sessions that run or wait; with none they are off (no "Paused" while idle).
   const active = !!(s && (s.running || s.queued || counts.running || counts.queued));
   // SVG, because the page's security policy blocks inline style attributes.
-  const colors: Record<string, string> = { done: "#3f9b6b", reused: "#9cc5ad", running: "#4c78a8", failed: "#c8564b", stopped: "#d9a441", queued: "#b9c9d9", "not-started": "#e8ebe6" };
+  const colors: Record<string, string> = { done: "#3f9b6b", incomplete: "#b5a642", reused: "#9cc5ad", running: "#4c78a8", failed: "#c8564b", stopped: "#d9a441", queued: "#b9c9d9", "not-started": "#e8ebe6" };
   let x = 0;
-  const bar = `<svg class="progress-svg" viewBox="0 0 1000 10" preserveAspectRatio="none" role="img" aria-label="Progress: ${esc(Object.entries(counts).map(([k, v]) => `${v} ${k === "not-started" ? "not started" : k}`).join(", ") || "no sessions")}">${["done", "reused", "running", "failed", "stopped", "queued", "not-started"]
+  const bar = `<svg class="progress-svg" viewBox="0 0 1000 10" preserveAspectRatio="none" role="img" aria-label="Progress: ${esc(Object.entries(counts).map(([k, v]) => `${v} ${k === "not-started" ? "not started" : k}`).join(", ") || "no sessions")}">${["done", "incomplete", "reused", "running", "failed", "stopped", "queued", "not-started"]
     .map((k) => {
       if (!counts[k] || !total) return "";
       const w = (counts[k] / total) * 1000;
@@ -1506,14 +1619,14 @@ function renderExecutor() {
       .map((r) => `<div class="card runtime ${r.available ? "ok" : "off"}"><strong>${esc(r.label)}</strong><p class="caption">${esc(r.message)}</p></div>`)
       .join("")}</div><p class="caption">${showAllRuntimes ? "All runtimes. " : "The runtimes this campaign uses. "}${btn("toggle-runtimes", showAllRuntimes ? "Show only this study's" : "Show all runtimes")}</p>
     ${studyInputs()}
-    <div class="card"><div class="card-heading"><div><h2>${esc(campaignName(campaignOf(campaignId)))}</h2><p>${total} sessions · ${counts.done ?? 0} done · ${counts.reused ?? 0} reused${reusedNote(s)} · ${counts.running ?? 0} running · ${counts.queued ?? 0} waiting to start · ${counts.failed ?? 0} failed · ${counts.stopped ?? 0} stopped · ${counts["not-started"] ?? 0} not started${queueState(s)}</p></div>${s && (s.running || counts.queued) ? `<span class="tag">${s.mode === "agent" ? "agents running" : "simulating"}</span>` : ""}</div>${bar}
+    <div class="card"><div class="card-heading"><div><h2>${esc(campaignName(campaignOf(campaignId)))}</h2><p>${total} sessions · ${counts.done ?? 0} done${counts.incomplete ? ` · ${counts.incomplete} incomplete` : ""} · ${counts.reused ?? 0} reused${reusedNote(s)} · ${counts.running ?? 0} running · ${counts.queued ?? 0} waiting to start · ${counts.failed ?? 0} failed · ${counts.stopped ?? 0} stopped · ${counts["not-started"] ?? 0} not started${queueState(s)}</p></div>${s && (s.running || counts.queued) ? `<span class="tag">${s.mode === "agent" ? "agents running" : "simulating"}</span>` : ""}</div>${bar}
     ${modeChoice()}
     <div class="row"><label class="field">Parallel sessions<input type="number" id="exec-concurrency" min="1" max="8" value="${settings?.concurrency ?? 1}"></label></div>
     ${chooser(byConfig)}
-    <div class="actions">${startButton(s)}${active ? btn("exec-pause", "Pause") : btn("exec-pause", "Pause", false, 'disabled title="Nothing is running or waiting."')}${resumeButton(s)}${active ? btn("exec-stop", "Stop") : btn("exec-stop", "Stop", false, 'disabled title="Nothing is running or waiting."')}${(counts.failed ?? 0) + (counts.stopped ?? 0) ? btn("exec-rerun", "Rerun failed", executorNext(s) === "rerun") : btn("exec-rerun", "Rerun failed", false, 'disabled title="No session failed or was stopped."')}${btn("exec-export", "Save runs as zip")}${btn("exec-import", "Load runs zip")}${executorNext(s) === "analyze" ? btn("goto:compare", "Compare agents →", true) : ""}</div>
+    <div class="actions">${startButton(s)}${active ? btn("exec-pause", "Pause") : btn("exec-pause", "Pause", false, 'disabled title="Nothing is running or waiting."')}${resumeButton(s)}${active ? btn("exec-stop", "Stop") : btn("exec-stop", "Stop", false, 'disabled title="Nothing is running or waiting."')}${(counts.failed ?? 0) + (counts.stopped ?? 0) ? btn("exec-rerun", "Rerun failed", executorNext(s) === "rerun") : btn("exec-rerun", "Rerun failed", false, 'disabled title="No session failed or was stopped."')}${counts.incomplete && !active ? btn("exec-rerun-incomplete", `Rerun incomplete (${counts.incomplete})`) : ""}${btn("exec-export", "Save runs as zip")}${btn("exec-import", "Load runs zip")}${executorNext(s) === "analyze" ? btn("goto:compare", "Compare agents →", true) : ""}</div>
     <p class="caption">${study?.synthetic ? "Simulated runs are labelled, and never pooled with real runs of the same configuration." : "This is a research study: simulated runs only test the pipeline. They are labelled and never scored against the human data."} Agent runs use your Claude usage; the start button asks first.</p></div>
     <div class="preview-bar"><label class="check"><input type="checkbox" id="watch-running" ${watchRunning ? "checked" : ""}> Preview all running sessions</label>${shown.length ? btn("preview-none", "Close previews") : ""}<span class="small">Click a session (or focus it and press Enter or Space) to preview it; Ctrl/⌘ or Shift with it previews several; again closes it.${total > LARGE_CAMPAIGN ? ` With more than ${LARGE_CAMPAIGN} sessions, each configuration's sessions are shown on request, ${GROUP_PAGE} at a time.` : ""}</span></div>
-    <div class="exec-layout ${shown.length ? (shown.length > 1 ? "multi" : "") : "no-preview"}"><div class="card job-table"><div class="table-scroll"><table><thead><tr><th><span class="sr-only">Choose</span></th><th>Configuration</th><th>Job</th><th>Status</th><th title="Tool calls before the forecast; submitting the forecast is not counted">Tools</th><th>Last step</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${[...byConfig]
+    <div class="exec-layout ${shown.length ? (shown.length > 1 ? "multi" : "") : "no-preview"}"><div class="card job-table"><div class="table-scroll"><table><thead><tr><th><span class="sr-only">Choose</span></th><th>Configuration</th><th>Job</th><th>Status</th><th title="Tool calls before the forecast; submitting the forecast is not counted">Tools</th><th>Last step</th><th title="Elapsed while it runs; how long the attempt shown ran once it ended">Time</th><th>Tokens in / out</th><th>Cost</th></tr></thead><tbody>${[...byConfig]
       .map(([agentId, list]) => {
         // Large campaigns: a configuration's sessions on request, a page at a time.
         const open = groupOpen(agentId, total);
@@ -1526,14 +1639,14 @@ function renderExecutor() {
             : "";
         const pager =
           open && pages > 1
-            ? `<tr class="group-pager"><td></td><td colspan="7"><span class="small">Sessions ${at * GROUP_PAGE + 1}–${Math.min(list.length, (at + 1) * GROUP_PAGE)} of ${list.length}</span> ${btn(`group-prev:${agentId}`, "Previous", false, at === 0 ? "disabled" : "")}${btn(`group-next:${agentId}`, "Next", false, at >= pages - 1 ? "disabled" : "")}</td></tr>`
+            ? `<tr class="group-pager"><td></td><td colspan="8"><span class="small">Sessions ${at * GROUP_PAGE + 1}–${Math.min(list.length, (at + 1) * GROUP_PAGE)} of ${list.length}</span> ${btn(`group-prev:${agentId}`, "Previous", false, at === 0 ? "disabled" : "")}${btn(`group-next:${agentId}`, "Next", false, at >= pages - 1 ? "disabled" : "")}</td></tr>`
             : "";
         return (
           configSum(list, toggle) +
           rows
             .map(
               (j, i) =>
-                `<tr class="${shownIds.has(j.jobId) ? "selected-row" : ""}" data-job="${esc(j.jobId)}" tabindex="0" aria-selected="${shownIds.has(j.jobId)}"><td>${canRun(j) ? `<input type="checkbox" data-pick-job="${esc(j.jobId)}" ${chosen.has(j.jobId) ? "checked" : ""} aria-label="Choose ${esc(j.label)} ${esc(j.jobId)}">` : ""}</td><td>${i === 0 ? esc(j.label) : ""}</td><td>${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition}${j.attempts > 1 ? ` (a${j.attempts})` : ""}</td><td><span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status === "queued" ? "waiting" : j.status}${j.simulated ? " · sim" : ""}</span></td><td>${j.toolCalls || ""}</td><td class="wrap small">${j.warning ? `<span class="warn">${esc(j.warning)}</span>${j.error || j.lastTool ? "<br>" : ""}` : ""}${esc(j.error ?? j.lastTool ?? "")}</td><td>${j.simulated ? '<span class="small">— (simulated)</span>' : tokenCell(j)}</td><td>${costCell(j)}</td></tr>`,
+                `<tr class="${shownIds.has(j.jobId) ? "selected-row" : ""}" data-job="${esc(j.jobId)}" tabindex="0" aria-selected="${shownIds.has(j.jobId)}"><td>${canRun(j) ? `<input type="checkbox" data-pick-job="${esc(j.jobId)}" ${chosen.has(j.jobId) ? "checked" : ""} aria-label="Choose ${esc(j.label)} ${esc(j.jobId)}">` : ""}</td><td>${i === 0 ? esc(j.label) : ""}</td><td>${j.participantId ? esc(j.participantId) + " · " : ""}r${j.repetition}${j.attempts > 1 ? ` (a${j.attempts})` : ""}</td><td><span class="status ${j.status}">${j.status === "not-started" ? "not started" : j.status === "queued" ? "waiting" : j.status}${j.simulated ? " · sim" : ""}</span></td><td>${j.toolCalls || ""}</td><td class="wrap small">${j.warning ? `<span class="warn">${esc(j.warning)}</span>${j.error || j.lastTool ? "<br>" : ""}` : ""}${esc(j.error ?? j.lastTool ?? "")}</td><td>${timeCell(j)}</td><td>${j.simulated ? '<span class="small">— (simulated)</span>' : tokenCell(j)}</td><td>${costCell(j)}</td></tr>`,
             )
             .join("") +
           pager
@@ -1721,7 +1834,7 @@ function renderHumans() {
       const c = a.configs.find((x) => x.id === s.agentId);
       // Runs that could be scored, next to an agreement of "—": say why nothing was scored.
       const why = s.agreement == null && s.scoreable && !usedPairs ? `<br><span class="small">none scored: no ${a.design === "between-subjects" || showSignificantOnly ? "significant " : ""}design pair</span>` : "";
-      return `<tr><td>${esc(c?.label ?? s.agentId)}</td><td>${esc(s.level ?? c?.level)}</td><td>${esc(c?.model.model)}</td><td>${pct(s.agreement)}</td><td>${s.ci95 ? `${pct(s.ci95.low)} – ${pct(s.ci95.high)}` : "—"}</td><td>${s.scoreable} / ${s.assigned}${why}${s.simulated ? `<br><span class="small">${s.real ? `${s.real} real + ${s.simulated} simulated; simulated left out` : `${s.simulated} simulated`}</span>` : ""}</td></tr>`;
+      return `<tr><td>${esc(c?.label ?? s.agentId)}</td><td>${esc(s.level ?? c?.level)}</td><td>${esc(c?.model.model)}</td><td>${pct(s.agreement)}</td><td>${s.ci95 ? `${pct(s.ci95.low)} – ${pct(s.ci95.high)}` : "—"}</td><td>${s.scoreable} / ${s.assigned}${why}${s.incomplete ? `<br><span class="small warn">${s.incomplete} incomplete, ${leaveOutIncomplete ? "left out" : "scored"}</span>` : ""}${s.simulated ? `<br><span class="small">${s.real ? `${s.real} real + ${s.simulated} simulated; simulated left out` : `${s.simulated} simulated`}</span>` : ""}</td></tr>`;
     })
     .join("");
   const name = (id: string) => a.configs.find((c) => c.id === id)?.label ?? id;
@@ -1747,7 +1860,7 @@ function renderHumans() {
             .join("")}</tbody></table></div>`
         : ""
     }${explainText ? `<div class="notice neutral explain"><p class="explain-by">The assistant's explanation:</p>${markdownToHtml(explainText)}</div>` : ""}</div>
-    <div class="card"><h2>Scores (${domain})${showSignificantOnly ? " · significant human differences only" : ""}</h2><p class="caption">${pairRuleText(a)}</p>${a.significantOnly ? `<div class="actions">${btn("toggle-significant", showSignificantOnly ? "Show scores on all mean differences" : "Show scores on significant differences only")}</div>` : ""}<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Model</th><th>Agreement</th><th>95% interval</th><th>Scoreable runs</th></tr></thead><tbody>${summaryRows}</tbody></table></div></div>
+    <div class="card"><h2>Scores (${domain})${showSignificantOnly ? " · significant human differences only" : ""}</h2><p class="caption">${pairRuleText(a)}</p>${a.significantOnly ? `<div class="actions">${btn("toggle-significant", showSignificantOnly ? "Show scores on all mean differences" : "Show scores on significant differences only")}</div>` : ""}${incompleteChoice(a)}<div class="table-scroll"><table><thead><tr><th>Configuration</th><th>Level</th><th>Model</th><th>Agreement</th><th>95% interval</th><th>Scoreable runs</th></tr></thead><tbody>${summaryRows}</tbody></table></div></div>
     ${humanPairsCard(a)}${absoluteCard(a)}
     <div class="card"><h2>Planned comparisons</h2><p class="caption">Chosen at analysis (they are not needed for data collection). One Holm correction covers all of them; choosing them changes no other number.</p><div class="table-scroll"><table><thead><tr><th>Candidate − baseline</th><th>Domain</th><th>Difference</th><th>95% interval</th><th>Holm p</th><th></th></tr></thead><tbody>${comparisons
       .map((c, i) => {
@@ -1900,7 +2013,7 @@ async function drawFigure() {
     return;
   }
   const [forStudy, forCampaign] = [ws.id, campaignId];
-  const data = await api("workspace/figure", { id: ws.id, campaignId, comparisons, kind: view, agentIds: kindIds, domain, outcomeId: outcomeId || analysis.outcomes[0].id });
+  const data = await api("workspace/figure", { id: ws.id, campaignId, comparisons, excludeIncomplete: leaveOutIncomplete, kind: view, agentIds: kindIds, domain, outcomeId: outcomeId || analysis.outcomes[0].id });
   // A study or campaign switched while the figure was computed: it belongs to neither.
   if (ws?.id !== forStudy || campaignId !== forCampaign || !analysis) return;
   figureData = data;
@@ -2121,7 +2234,7 @@ async function action(name: string) {
       // The summary asks with the latest numbers (also sessions that failed a moment ago).
       ws!.campaigns = await api<CampaignInfo[]>(`workspace/campaigns?id=${encodeURIComponent(ws!.id)}`);
       const c = campaignOf(arg)!;
-      if (!confirm(`Delete ${campaignName(c)}?\n\n${c.jobs} sessions: ${c.done} done (${c.real} real, ${c.simulated} simulated), ${c.failed} failed${c.costUsd != null ? `, ${money(c.costUsd)} spent` : ""}${c.unknownCost?.attempts ? ` (+ ${plural(c.unknownCost.attempts, "attempt")} with unknown cost)` : ""}.\n\nThe campaign and its runs move to the study's deleted/ folder (remove that folder to free the space). A campaign that another one continues from cannot be deleted.`)) break;
+      if (!confirm(`Delete ${campaignName(c)}?\n\n${c.jobs} sessions: ${c.done} done${c.incomplete ? `, ${c.incomplete} incomplete` : ""} (${c.real} real, ${c.simulated} simulated), ${c.failed} failed${c.costUsd != null ? `, ${money(c.costUsd)} spent` : ""}${c.unknownCost?.attempts ? ` (+ ${plural(c.unknownCost.attempts, "attempt")} with unknown cost)` : ""}.\n\nThe campaign and its runs move to the study's deleted/ folder (remove that folder to free the space). A campaign that another one continues from cannot be deleted.`)) break;
       const r = await api<{ movedTo: string }>("workspace/campaign-delete", { id: ws!.id, campaignId: arg });
       await refreshWorkspace();
       if (campaignId === arg) showCampaign(ws!.campaigns.at(-1)?.id ?? null);
@@ -2207,6 +2320,19 @@ async function action(name: string) {
       if (!failed.length) throw new Error("No failed or stopped sessions.");
       if (mode === "agent" && !confirm(`Rerun ${failed.length} session(s) with Claude Code?`)) break;
       await api("executor/start", { id: ws!.id, campaignId, mode, jobIds: failed });
+      break;
+    }
+    case "exec-rerun-incomplete": {
+      const list = snapshot?.jobs.filter((j) => j.status === "incomplete") ?? [];
+      if (!list.length) throw new Error("No incomplete sessions.");
+      const keepSimulated = mode === "simulate";
+      if (!confirm(`Run the ${list.length} incomplete session(s) again?\n\nTheir forecasts were accepted before every required task was finished. Finished runs are never overwritten: this makes a new campaign that continues this one. These sessions get fresh sessions there; every other session reuses its finished run, and sessions that failed, stopped or never ran are run again too. This campaign stays as it is, and the new one says which sessions were run again.\n\nNothing starts until you press Start.`)) break;
+      // The campaign's job IDs are "<campaign>--<template job>"; a continuation names template jobs.
+      const template = (j: JobState) => (j.jobId.startsWith(`${campaignId}--`) ? j.jobId.slice(campaignId!.length + 2) : j.jobId);
+      const r = await api<{ campaignId: string; reused: number; jobs: number }>("workspace/continue", { id: ws!.id, campaignId, changes: { retryJobs: list.map(template), note: `Rerun of ${list.length} incomplete session(s)` }, keepSimulated });
+      await refreshWorkspace();
+      showCampaign(r.campaignId);
+      toast(`New campaign: ${r.jobs - r.reused} sessions to run, ${r.reused} reused. The executor now shows it; press Start, or choose a few first.`);
       break;
     }
     case "exec-export":
@@ -2348,10 +2474,19 @@ async function action(name: string) {
     case "toggle-significant":
       showSignificantOnly = !showSignificantOnly;
       break;
+    case "toggle-incomplete": {
+      // Scored again with or without the incomplete sessions; figures drawn before are out of date.
+      leaveOutIncomplete = !leaveOutIncomplete;
+      figureSvg = "";
+      figureData = null;
+      explainText = "";
+      analysis = await api<AnalysisView>("workspace/analyze", { id: ws!.id, campaignId, comparisons, excludeIncomplete: leaveOutIncomplete });
+      break;
+    }
     case "compare-campaigns": {
       const { before, after } = comparedCampaigns();
       if (before === after) throw new Error("Choose two different campaigns.");
-      const r = await api<{ rows: CampaignCmpRow[]; notes: string[] }>("workspace/compare", { id: ws!.id, before, after, comparisons });
+      const r = await api<{ rows: CampaignCmpRow[]; notes: string[] }>("workspace/compare", { id: ws!.id, before, after, comparisons, excludeIncomplete: leaveOutIncomplete });
       campaignCmp = { before, after, rows: r.rows, notes: r.notes };
       break;
     }
@@ -2361,7 +2496,7 @@ async function action(name: string) {
     case "analyze": {
       // A fresh analysis: nothing drawn or explained for an earlier one stays on the page.
       resetAnalyzer();
-      const a = await api<AnalysisView>("workspace/analyze", { id: ws!.id, campaignId, comparisons });
+      const a = await api<AnalysisView>("workspace/analyze", { id: ws!.id, campaignId, comparisons, excludeIncomplete: leaveOutIncomplete });
       analysis = a;
       if (!selected.size || [...selected].some((id) => !a.configs.some((c) => c.id === id)))
         selected = new Set(a.configs.filter((c) => c.level === "population").slice(0, 3).map((c) => c.id));
@@ -2392,18 +2527,18 @@ async function action(name: string) {
       break;
     case "explain":
       toast("Asking the assistant…");
-      explainText = (await api("assistant/explain", { id: ws!.id, campaignId, comparisons })).text;
+      explainText = (await api("assistant/explain", { id: ws!.id, campaignId, comparisons, excludeIncomplete: leaveOutIncomplete })).text;
       break;
     case "cmp-add": {
       const c: Comparison = { candidate: $<HTMLSelectElement>("cmp-a").value, baseline: $<HTMLSelectElement>("cmp-b").value, domain: $<HTMLSelectElement>("cmp-d").value as Domain };
       if (c.candidate === c.baseline) throw new Error("Choose two different configurations.");
       comparisons.push(c);
-      analysis = await api("workspace/analyze", { id: ws!.id, campaignId, comparisons });
+      analysis = await api("workspace/analyze", { id: ws!.id, campaignId, comparisons, excludeIncomplete: leaveOutIncomplete });
       break;
     }
     case "cmp-remove":
       comparisons.splice(Number(arg), 1);
-      analysis = await api("workspace/analyze", { id: ws!.id, campaignId, comparisons });
+      analysis = await api("workspace/analyze", { id: ws!.id, campaignId, comparisons, excludeIncomplete: leaveOutIncomplete });
       break;
     case "cmp-save":
       await api("workspace/save", { id: ws!.id, comparisons });

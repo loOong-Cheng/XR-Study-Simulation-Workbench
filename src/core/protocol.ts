@@ -1,5 +1,6 @@
 import type {
   AgentProtocol,
+  AnalysisOptions,
   Audit,
   Job,
   Plan,
@@ -9,6 +10,15 @@ import type {
 import { measurementKey, measurementValue, requireThat } from "./validation.js";
 import { agentTargets, protocolForJob, verifyPlan } from "./planner.js";
 import { casesInOrder, validOrder } from "./fairness.js";
+import { unfinishedTasks } from "./progress.js";
+/** A list from malformed data is empty, never an error (the audit lists the malformation itself). */
+const guardedList = (fn: () => string[]): string[] => {
+  try {
+    return fn();
+  } catch {
+    return [];
+  }
+};
 
 /**
  * Whether an action event is a scored action (a task answer): marked `scored: true` when the
@@ -302,12 +312,14 @@ export function tokenBudgetIssue(
 /**
  * Audit one returned run. Every check runs and every deviation is listed: one failed check
  * (for example the token budget) never hides the others. Scoreability depends only on the
- * forecast itself; any listed issue makes the run non-compliant.
+ * forecast itself; any listed issue makes the run non-compliant. An incomplete session (forecast
+ * accepted before every required task was finished) is scored unless `options.excludeIncomplete`.
  */
 export function auditRun(
   plan: Plan,
   job: Job,
   run: RunResult | undefined,
+  options: AnalysisOptions = {},
 ): Audit {
   const issues: string[] = [];
   if (!run)
@@ -367,6 +379,10 @@ export function auditRun(
         measurementValue(plan.study, r);
       }
     });
+  // The required tasks it left unfinished; leaving such sessions out is an analysis choice.
+  const unfinished = guardedList(() => unfinishedTasks(agent, run));
+  if (options.excludeIncomplete && unfinished.length)
+    issues.push(`Left out (your choice): an incomplete session, its forecast accepted with ${unfinished.length} of ${agent.requiredCaseIds.length} required tasks not finished (${unfinished.slice(0, 4).join(", ")}${unfinished.length > 4 ? ", …" : ""}).`);
   const scoreable = issues.length === 0;
   // Compliance: how the forecast was made. Each check is independent.
   check(
@@ -472,6 +488,7 @@ export function auditRun(
     issues: [...new Set(issues)],
     // Information, not a deviation: how many project files a configuration with project access opened.
     ...(agent.tools.includes("read-files") && trace ? { filesRead: filesRead(trace) } : {}),
+    ...(unfinished.length ? { unfinishedTasks: unfinished } : {}),
   };
 }
 

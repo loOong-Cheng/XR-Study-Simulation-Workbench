@@ -1,8 +1,8 @@
 {
   "schemaVersion": "xr-starter/1",
   "label": "Starter · 1 run per participant",
-  "campaignId": "campaign-starter-613cf1ad23fc",
-  "campaignDigest": "e8a00dd933d77252c186dc91ea993e7f58d72cc64b8a89c53dfc230379002b65",
+  "campaignId": "campaign-starter-d712b3526114",
+  "campaignDigest": "6ce5034afd1e4c2307fa329946bb243b02e915edac439ae00dfc32363d41a76f",
   "runsPerParticipant": 1,
   "sessions": 192,
   "configurations": [

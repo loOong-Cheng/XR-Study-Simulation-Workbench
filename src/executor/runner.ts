@@ -10,7 +10,7 @@ import { isAbsolute, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { campaignPlan, conditionModel, type Campaign, type CampaignReceipt } from "../core/campaign.js";
 import { simulatedResults } from "../core/example.js";
-import { COST_UNKNOWN, lineageRuns, noSpending, reusedUsage, unknownCostTokens, type CostManifest, type Spent } from "../history.js";
+import { COST_UNKNOWN, COST_UNPRICED, lineageRuns, noSpending, reusedUsage, unknownCostOf, type CostManifest, type Spent } from "../history.js";
 import { agentLevel, agentTargets, hash, jobPacket, protocolForJob } from "../core/planner.js";
 import { runtimeIssues } from "../core/protocol.js";
 import type { AgentProtocol, HumanData, Job, Plan, RunResult, Study, TraceEvent } from "../core/types.js";
@@ -28,17 +28,28 @@ import { backgroundText, trajectoryText } from "../participant-knowledge.js";
 import { agentFileList, ReadRefused } from "../runtimes/guard.js";
 import { readText } from "../files.js";
 import { caseProgress } from "../runtimes/exposure.js";
+import { unfinishedTasks } from "../core/progress.js";
 import { casesInOrder, designOrder } from "../core/fairness.js";
 import { buildPrompt, READ_FILES_LINE, type PromptSection } from "./prompt.js";
 
-/** not-started: never asked to run; queued: asked to run and waiting for a free slot. */
-export type JobStatus = "not-started" | "queued" | "running" | "done" | "failed" | "stopped" | "reused";
+/**
+ * not-started: never asked to run; queued: asked to run and waiting for a free slot; incomplete: its
+ * forecast was accepted (at the end of its budget) before every required task was finished.
+ */
+export type JobStatus = "not-started" | "queued" | "running" | "done" | "incomplete" | "failed" | "stopped" | "reused";
 /** The error of an attempt you stopped (also in its receipt, so it reads as stopped after a restart). */
 export const STOPPED = "Stopped by you.";
 /** The error of an attempt that has a folder but no receipt (the words of sessionAttempts in history.ts). */
 export const STOPPED_UNRECORDED = "Stopped before it finished; no result was recorded.";
-/** Shown for a real session that ended before Claude Code reported its cost (defined in history.ts). */
-export { COST_UNKNOWN };
+/** Shown for a real session that ended before Claude Code reported its cost, or ran on a model Claude Code has no price for (defined in history.ts). */
+export { COST_UNKNOWN, COST_UNPRICED };
+/**
+ * The message a session gets once when it ends its turn with text instead of an accepted forecast
+ * (Claude Code -p ends at the first answer without a tool call). It is procedure, the same for every
+ * configuration, and the attempt records it (execution.forecastReminders).
+ */
+export const FORECAST_REMINDER =
+  "No forecast was recorded: only an accepted submit_forecast call records one, and text answers are not read. Call submit_forecast now with your complete forecast.";
 /**
  * The error of an attempt the workbench could not see to its end: it was shut down, or crashed,
  * while the session ran (also in its receipt). The session can be run again, in a new attempt folder.
@@ -88,8 +99,10 @@ export interface JobState {
   /** Real sessions: all input tokens (uncached + cache writes + cache reads). Simulated: null. */
   tokensIn: number | null;
   tokensOut: number | null;
-  /** Session cost reported by Claude Code; null for simulated runs or when not reported. */
+  /** Session cost reported by Claude Code; null for simulated runs, when not reported, or for a model it has no price for. */
   costUsd: number | null;
+  /** Why a real session's cost is unknown when it is not the usual reason (stopped before the end), e.g. "no price for this model". */
+  costNote?: string | null;
   /**
    * What every real attempt of this session in this campaign spent: reported costs, and the
    * attempts stopped before Claude Code reported one (with their tokens). Cost sums use this.
@@ -102,6 +115,8 @@ export interface JobState {
   error: string | null;
   startedAt: string | null;
   endedAt: string | null;
+  /** How long the attempt shown ran (a finished real or simulated session), in ms; null while it runs or when unknown. */
+  durationMs?: number | null;
 }
 export interface ExecutorEvent {
   t: number;
@@ -226,8 +241,8 @@ export function callsUntilForecast(total: number, forecast: { toolCalls?: unknow
  * What the row of a finished real session says besides the token budget: a forecast accepted
  * before every required case was started and finished (allowed only when a budget was nearly used
  * up; a case left unfinished counts as not finished), a runtime that was started more than once
- * (bridge.jsonl starts or repeated runtime reports in the trace), and tool calls made after the
- * forecast was accepted (not counted).
+ * (bridge.jsonl starts or repeated runtime reports in the trace), tool calls made after the
+ * forecast was accepted (not counted), and a forecast submitted only after the reminder.
  */
 export function sessionWarnings(requiredCaseIds: string[], runtime: string, run: RunResult, plan?: Plan, agent?: AgentProtocol): string[] {
   if (run.status !== "completed" || run.execution?.synthetic) return [];
@@ -242,6 +257,7 @@ export function sessionWarnings(requiredCaseIds: string[], runtime: string, run:
   if (Math.max(reports, run.execution?.runtimeStarts ?? 0) > 1) out.push(`${runtimeName(runtime)} restarted during the session`);
   const after = run.execution?.toolCallsAfterForecast ?? 0;
   if (after > 0) out.push(`${after} tool call${after === 1 ? "" : "s"} after the forecast was accepted (not counted)`);
+  if ((run.execution?.forecastReminders ?? 0) > 0) out.push("forecast submitted after one reminder (the session first ended its turn with text instead of submit_forecast)");
   // What the runtime reported against the frozen recipe, as the audit will list it (a device the
   // study does not declare makes every app session a protocol deviation). Restarts are said above.
   if (plan && agent?.tools.includes("xr-interact"))
@@ -321,6 +337,56 @@ export class UsageMeter {
     const input = t.uncached + t.cacheWrite + t.cacheRead;
     return { ...t, input, total: input + t.output, lastTurnInput: last ? last.uncached + last.cacheWrite + last.cacheRead : 0 };
   }
+}
+/** What the row says about the cost of a session on a model Claude Code has no price for. */
+export const UNPRICED_NOTE = "cost unknown: Claude Code has no price for this model (e.g. a local model)";
+/**
+ * The models a session ran on that Claude Code has no price for, such as a local model behind
+ * ANTHROPIC_BASE_URL: Claude Code prices them at a fallback rate that was never charged. From its
+ * result (modelUsage → costBasis "unknown", Claude Code 2.1.246 and later) and, for older versions
+ * or a session without a result, its `[claude-code:unrecognized_model]` warning on stderr, which it
+ * prints in every session on such a model, also in sessions that succeed (counted only when a
+ * model answered).
+ */
+export function unpricedModels(result: Record<string, any> | null, stderr: string, modelRan: boolean): string[] {
+  const out = new Set<string>();
+  const usage = result?.modelUsage;
+  if (usage && typeof usage === "object") for (const [name, u] of Object.entries(usage)) if ((u as { costBasis?: unknown })?.costBasis === "unknown") out.add(name);
+  if (modelRan)
+    for (const m of stderr.matchAll(/\[claude-code:unrecognized_model\]\s*(\{[^\n]*\})/g))
+      try {
+        const x = JSON.parse(m[1]) as { model?: unknown };
+        if (typeof x.model === "string" && x.model) out.add(x.model);
+      } catch {
+        // not the JSON Claude Code prints
+      }
+  return [...out];
+}
+/**
+ * What Claude Code reported for a session over all its turns (a forecast reminder adds one; each
+ * turn ends with a result): `usage` covers one turn, so the turns' usages are added, while
+ * total_cost_usd and modelUsage are running totals, so the last result's count. Null usage when no
+ * turn ended with a result. A session on a model Claude Code has no price for has an unknown cost;
+ * the fallback figure it reported is kept apart (fallbackCostUsd), never counted.
+ */
+export function sessionReport(results: Record<string, any>[], stderr: string, modelRan: boolean) {
+  const last = results.at(-1) ?? null;
+  const usages = results.map((r) => r?.usage).filter((u): u is Record<string, any> => !!u && typeof u === "object");
+  let usage: Record<string, any> | null = usages.length === 1 ? usages[0] : null;
+  if (usages.length > 1) {
+    const add = (k: string) => (usages.every((u) => u[k] == null) ? null : usages.reduce((n, u) => n + (Number(u[k]) || 0), 0));
+    const thinking = usages.map((u) => u.output_tokens_details?.thinking_tokens);
+    usage = {
+      input_tokens: add("input_tokens"),
+      cache_read_input_tokens: add("cache_read_input_tokens"),
+      cache_creation_input_tokens: add("cache_creation_input_tokens"),
+      output_tokens: add("output_tokens"),
+      ...(thinking.every((t) => Number.isSafeInteger(t)) ? { output_tokens_details: { thinking_tokens: thinking.reduce((n, t) => n + t, 0) } } : {}),
+    };
+  }
+  const unpriced = unpricedModels(last, stderr, modelRan);
+  const reported = typeof last?.total_cost_usd === "number" ? (last.total_cost_usd as number) : null;
+  return { usage, costUsd: unpriced.length ? null : reported, fallbackCostUsd: unpriced.length ? reported : null, unpriced, turns: typeof last?.num_turns === "number" ? (last.num_turns as number) : null };
 }
 /**
  * Whether the tools should refuse and ask for the forecast: when what is left of the budget is
@@ -527,6 +593,7 @@ export class Executor implements Schedulable {
       const run = await json<RunResult>(join(dir, "result.json"));
       // A stopped or interrupted simulation has a receipt but no result: its marker says it was simulated.
       state.simulated = run?.execution.synthetic ?? (await json<{ mode?: string }>(join(dir, "attempt.json")))?.mode === "simulate";
+      if (run) Object.assign(state, timesOf(run));
       if (!u || u.outputTokens == null) continue;
       state.tokensIn = totalInput({ inputTokens: u.inputTokens ?? null, cacheReadTokens: u.cacheReadTokens ?? null, cacheWriteTokens: u.cacheWriteTokens ?? null });
       state.tokensOut = u.outputTokens;
@@ -541,10 +608,13 @@ export class Executor implements Schedulable {
         if (!s || s.status !== "done") continue;
         s.simulated = run.execution.synthetic;
         s.toolCalls = run.execution.toolCalls;
+        Object.assign(s, timesOf(run));
         if (!run.execution.synthetic) {
           s.tokensIn = totalInput(run.execution);
           s.tokensOut = run.execution.outputTokens;
           const job = this.plan.jobs.find((j) => j.id === run.jobId);
+          // Accepted before every required task was finished: a status of its own.
+          if (job && unfinishedTasks(protocolForJob(this.plan, job), run).length) s.status = "incomplete";
           const required = job && this.agent(s.agentId).tools.includes("xr-interact") ? protocolForJob(this.plan, job).requiredCaseIds : [];
           s.warning = joinWarnings(
             budgetWarning(s.tokensIn === null ? null : s.tokensIn + (s.tokensOut ?? 0), this.agent(s.agentId).maxTokens, run.execution.tokensAtSubmit ?? null),
@@ -553,13 +623,15 @@ export class Executor implements Schedulable {
         }
       }
     // What every real attempt spent, from its execution manifest: known costs, and attempts whose
-    // cost is unknown (stopped before Claude Code reported it) with their tokens.
+    // cost is unknown (stopped before Claude Code reported it, or a model it has no price for) with
+    // their tokens. The row says why for the attempt shown (receipts are in the order they ran).
     for (const r of receipts) {
       const s = this.jobs.get(r.jobId);
       if (!s || s.status === "reused" || !r.executionManifest?.path.endsWith("execution-manifest.json")) continue;
       const path = runRecordPath(this.dir, r.executionManifest.path);
       const m = path ? await json<NonNullable<CostManifest>>(path) : null;
-      s.spent = addSpending(s.spent, typeof m?.costUsd === "number" ? m.costUsd : null, unknownCostTokens(m));
+      s.spent = addSpending(s.spent, typeof m?.costUsd === "number" ? m.costUsd : null, unknownCostOf(m));
+      if (r.attempt === s.attempts) s.costNote = m?.cost === COST_UNPRICED ? UNPRICED_NOTE : null;
     }
     // Cost of the attempt that counts, from its execution manifest.
     for (const r of receipts)
@@ -588,7 +660,7 @@ export class Executor implements Schedulable {
     // A forecast finished after a restart says so in the table.
     for (const s of this.jobs.values()) {
       const done = receipts.find((r) => r.jobId === s.jobId && r.status === "completed");
-      if (s.status === "done" && done?.recovered) s.warning = [s.warning, "completed after a workbench restart"].filter(Boolean).join("; ");
+      if ((s.status === "done" || s.status === "incomplete") && done?.recovered) s.warning = [s.warning, "completed after a workbench restart"].filter(Boolean).join("; ");
     }
   }
   snapshot() {
@@ -970,24 +1042,31 @@ export class Executor implements Schedulable {
       cliVersion = "",
       submitted = false,
       atSubmit: number | null = null,
-      result: Record<string, any> | null = null;
+      turns = 0;
+    const results: Record<string, any>[] = [];
     for (const line of (await text("stream.jsonl")).split("\n")) {
       const m = parse<Record<string, any>>(line);
       if (!m || typeof m !== "object") continue;
       // As while running: the forecast counts from the turn after the one that submitted it.
       if (submitted && atSubmit === null && meter.startsTurn(m)) atSubmit = meter.totals().total;
+      // Each turn begins with init (a reminder adds a turn); the first names the session.
       if (m.type === "system" && m.subtype === "init") {
+        turns++;
+        if (turns > 1) continue;
         sessionId = m.session_id ?? "";
         actualModel = m.model ?? "";
         cliVersion = m.claude_code_version ?? "";
       } else if (m.type === "stream_event" || m.type === "assistant") {
         meter.add(m);
         if (m.type === "assistant" && (m.message?.content ?? []).some((c: Record<string, unknown>) => c?.type === "tool_use" && /submit_forecast$/.test(String(c.name)))) submitted = true;
-      } else if (m.type === "result") result = m;
+      } else if (m.type === "result") results.push(m);
     }
     const live = meter.totals();
-    const usage: Record<string, any> = result?.usage ?? (meter.modelRan ? { input_tokens: live.uncached, cache_read_input_tokens: live.cacheRead, cache_creation_input_tokens: live.cacheWrite, output_tokens: live.output } : {});
-    const costUsd = typeof result?.total_cost_usd === "number" ? result.total_cost_usd : null;
+    // Claude Code's totals when every turn that began ended with a result, else the live count.
+    const report = sessionReport(results, "", meter.modelRan);
+    const finalUsage = results.length >= Math.max(1, turns) ? report.usage : null;
+    const usage: Record<string, any> = finalUsage ?? (meter.modelRan ? { input_tokens: live.uncached, cache_read_input_tokens: live.cacheRead, cache_creation_input_tokens: live.cacheWrite, output_tokens: live.output } : {});
+    const costUsd = finalUsage ? report.costUsd : null;
     const noted = parse<{ tokensAtSubmit?: number | null }>(await text("usage.json"))?.tokensAtSubmit;
     const full: FullUsage = {
       inputTokens: usage.input_tokens ?? null,
@@ -996,7 +1075,7 @@ export class Executor implements Schedulable {
       cacheWriteTokens: usage.cache_creation_input_tokens ?? null,
       reasoningTokens: null,
       costUsd,
-      source: result?.usage ? "final" : "live",
+      source: finalUsage ? "final" : "live",
       tokensAtSubmit: null,
     };
     // Only the forecast the study server accepted in this attempt (it carries the attempt's ID from job.json).
@@ -1061,6 +1140,7 @@ export class Executor implements Schedulable {
         ...(bridged ? { runtimeStarts } : {}),
         ...(designOrder ? { designOrder } : {}),
         ...(full.tokensAtSubmit !== null ? { tokensAtSubmit: full.tokensAtSubmit } : {}),
+        ...(turns > 1 ? { forecastReminders: turns - 1 } : {}),
         recovered: RECOVERED,
       },
       measurements: forecast!.measurements as RunResult["measurements"],
@@ -1078,8 +1158,10 @@ export class Executor implements Schedulable {
         ...(bridged ? { runtimeStarts } : {}),
         mcp: Object.keys(servers),
         costUsd,
-        ...(costUsd === null ? { cost: COST_UNKNOWN } : {}),
-        turns: result?.num_turns ?? null,
+        ...(costUsd === null ? { cost: report.unpriced.length ? COST_UNPRICED : COST_UNKNOWN } : {}),
+        ...(report.unpriced.length ? { unpricedModels: report.unpriced, fallbackCostUsd: report.fallbackCostUsd } : {}),
+        turns: report.turns,
+        ...(turns > 1 ? { forecastReminders: turns - 1 } : {}),
         exitCode: null,
         usage: full,
         tokensAtSubmit: full.tokensAtSubmit,
@@ -1162,7 +1244,8 @@ export class Executor implements Schedulable {
     const a = this.agent(job.agentId);
     const { attempt, jobDir } = await this.newAttempt(jobId, handle, "simulate");
     if (handle.stopped) return;
-    this.update(jobId, { status: "running", attempts: attempt, simulated: true, startedAt: new Date().toISOString(), toolCalls: 0, lastTool: null, warning: null });
+    const simStart = Date.now();
+    this.update(jobId, { status: "running", attempts: attempt, simulated: true, startedAt: new Date(simStart).toISOString(), endedAt: null, durationMs: null, toolCalls: 0, lastTool: null, warning: null });
     // Tool calls are counted as in real sessions: the forecast submission is not one of them.
     const tools = (
       a.tools.includes("xr-interact")
@@ -1205,7 +1288,7 @@ export class Executor implements Schedulable {
       },
       jobDir,
     );
-    if (!handle.stopped) this.update(jobId, { status: "done", endedAt: new Date().toISOString(), tokensIn: null, tokensOut: null, costUsd: null, toolCalls: tools.length });
+    if (!handle.stopped) this.update(jobId, { status: "done", endedAt: new Date().toISOString(), durationMs: Date.now() - simStart, tokensIn: null, tokensOut: null, costUsd: null, toolCalls: tools.length });
   }
 
   // ---------- real execution: headless Claude Code ----------
@@ -1392,6 +1475,9 @@ export class Executor implements Schedulable {
     // per command line and Linux 128 KB per argument, less than a brief with evidence or movement data.
     const args = [
       "-p",
+      // The prompt as a stream-json message, so a session that ends with text instead of its
+      // forecast can get one reminder in the same process (stdin stays open until it is done).
+      ...(cli.streamInput ? ["--input-format", "stream-json"] : []),
       "--output-format",
       "stream-json",
       "--verbose",
@@ -1416,7 +1502,7 @@ export class Executor implements Schedulable {
     if (handle.stopped) return;
     const startedAt = new Date();
     const mine = () => !handle.stopped;
-    this.update(jobId, { status: "running", attempts: attempt, simulated: false, startedAt: startedAt.toISOString(), toolCalls: 0, lastTool: "starting session", error: null, warning: null, tokensIn: null, tokensOut: null, costUsd: null });
+    this.update(jobId, { status: "running", attempts: attempt, simulated: false, startedAt: startedAt.toISOString(), endedAt: null, durationMs: null, toolCalls: 0, lastTool: "starting session", error: null, warning: null, tokensIn: null, tokensOut: null, costUsd: null, costNote: null });
     const claude = claudeCommand(settings);
     let proc: ChildProcess;
     try {
@@ -1429,7 +1515,10 @@ export class Executor implements Schedulable {
     let startError: Error | null = null;
     proc.on("error", (e) => (startError = e));
     proc.stdin!.on("error", () => undefined); // a session that ended early reads no more of its prompt
-    proc.stdin!.end(prompt);
+    /** One user message on stdin (stream-json input). */
+    const say = (text: string) => proc.stdin!.write(JSON.stringify({ type: "user", message: { role: "user", content: [{ type: "text", text }] }, parent_tool_use_id: null }) + "\n");
+    if (cli.streamInput) say(prompt);
+    else proc.stdin!.end(prompt);
     this.running.set(jobId, proc);
     // The marker names the claude process, so a workbench restarted after a crash can stop it (and finish this attempt from its files).
     void writeMarker(jobDir, {
@@ -1440,13 +1529,18 @@ export class Executor implements Schedulable {
       pid: proc.pid ?? null,
       sourceEvents,
     }).catch(() => undefined);
+    /** Each turn's result (a reminder adds a turn), in order. */
+    const results: Record<string, any>[] = [];
     const box: { result: Record<string, any> | null } = { result: null };
     let sessionId = "",
       actualModel = "",
       cliVersion = "",
       stderr = "",
+      // Claude Code's warnings about the model, kept apart: they come first and stderr keeps only its end.
+      modelWarnings = "",
       buf = "",
-      tools = 0;
+      tools = 0,
+      reminders = 0;
     const { timeoutMinutes, startupSeconds } = runtimeLimits(settings, runtime);
     let timedOut = false;
     const timer = setTimeout(() => {
@@ -1585,7 +1679,10 @@ export class Executor implements Schedulable {
     // Text, decoded across chunks: a character split between two chunks stays whole.
     proc.stdout!.setEncoding("utf8");
     proc.stderr!.setEncoding("utf8");
-    proc.stderr!.on("data", (d: string) => (stderr = (stderr + d).slice(-4000)));
+    proc.stderr!.on("data", (d: string) => {
+      stderr = (stderr + d).slice(-4000);
+      for (const line of d.split("\n")) if (/\[claude-code:unrecognized_model\]/.test(line) && modelWarnings.length < 2000) modelWarnings += line + "\n";
+    });
     const shots = new ScreenshotIndex(join(jobDir, "screenshots"));
     const handleLine = async (line: string) => {
       let m: Record<string, any> | null = null;
@@ -1601,6 +1698,8 @@ export class Executor implements Schedulable {
       // A tool result counts as the next turn only once the submitting message's final usage is in
       // (or without partial messages, which never bring it).
       if (meter.startsTurn(m) && (m.type !== "user" || submitFinal || !cli.partialMessages)) await noteForecast();
+      // Claude Code says init again at the start of each further turn (after a reminder): only the first counts.
+      if (m.type === "system" && m.subtype === "init" && sessionId) return;
       if (m.type === "system" && m.subtype === "init") {
         sessionId = m.session_id ?? "";
         actualModel = m.model ?? "";
@@ -1648,7 +1747,24 @@ export class Executor implements Schedulable {
         // submission and calls refused for the budget are not counted (the same as the final count).
         const made = await callsMade();
         if (made !== tools && mine()) this.update(jobId, { toolCalls: (tools = made) });
-      } else if (m.type === "result") box.result = m;
+      } else if (m.type === "result") {
+        results.push(m);
+        box.result = m;
+        if (cli.streamInput) endTurn(m);
+      }
+    };
+    /**
+     * A turn ended (stream-json input keeps the session open until stdin closes). A session whose
+     * model answered with text instead of an accepted forecast gets one reminder in the same
+     * session (FORECAST_REMINDER), with the same tools and budgets; any other ends here.
+     */
+    const endTurn = (m: Record<string, any>) => {
+      const remind =
+        m.subtype === "success" && reminders < 1 && meter.modelRan && mine() && !timedOut && !overBudget && !outOfAttempts && !runtimeFailure && !startupFailed && !existsSync(forecastPath);
+      if (!remind) return void proc.stdin!.end();
+      reminders++;
+      this.emit({ type: "log", jobId, text: "The session ended its turn without an accepted forecast: reminded once to call submit_forecast (text answers are not recorded)." });
+      say(FORECAST_REMINDER);
     };
     // Lines are handled one after another, and all of them before the session's end is read.
     let lines: Promise<void> = Promise.resolve();
@@ -1658,7 +1774,11 @@ export class Executor implements Schedulable {
       while ((i = buf.indexOf("\n")) >= 0) {
         const line = buf.slice(0, i);
         buf = buf.slice(i + 1);
-        if (line.trim()) lines = lines.then(() => handleLine(line)).catch(() => undefined);
+        if (line.trim())
+          lines = lines
+            .then(() => handleLine(line))
+            // A turn's end that could not be handled still ends the session (stdin stays open otherwise).
+            .catch(() => void (cli.streamInput && /"type"\s*:\s*"result"/.test(line) && proc.stdin!.end()));
       }
     });
     const code = await new Promise<number | null>((ok) => proc.on("close", ok));
@@ -1686,10 +1806,17 @@ export class Executor implements Schedulable {
     // Each start of a wrapped bridge (Claude Code may start a crashed one again within the session).
     const runtimeStarts = bridge ? (await jsonLines(bridgeLog)).filter((x) => x.type === "start").length : 0;
     const result = box.result;
-    // Claude Code's own totals; a session that ended early (stopped, killed, timed out) has only the live count.
+    // Claude Code's own totals over all turns; a session that ended early (stopped, killed, timed
+    // out, also during the reminder's turn) has only the live count.
     const live = meter.totals();
-    const usage: Record<string, any> = result?.usage ?? (meter.modelRan ? { input_tokens: live.uncached, cache_read_input_tokens: live.cacheRead, cache_creation_input_tokens: live.cacheWrite, output_tokens: live.output } : {});
-    const costUsd = typeof result?.total_cost_usd === "number" ? result.total_cost_usd : null;
+    const report = sessionReport(results, modelWarnings, meter.modelRan);
+    const finalUsage = results.length === 1 + reminders ? report.usage : null;
+    const usage: Record<string, any> = finalUsage ?? (meter.modelRan ? { input_tokens: live.uncached, cache_read_input_tokens: live.cacheRead, cache_creation_input_tokens: live.cacheWrite, output_tokens: live.output } : {});
+    // Known only when every turn ended with a result (a session stopped in the reminder's turn has
+    // only the first turn's total), and never the fallback price of a model Claude Code does not
+    // know (a local model): that was never charged.
+    const costUsd = finalUsage ? report.costUsd : null;
+    const unpriced = report.unpriced;
     // Only the forecast the study server accepted in this attempt (it carries this attempt's ID).
     const forecast = await acceptedForecast(forecastPath, attemptId);
     // The tool budget covers what the agent does before forecasting; submitting the forecast is not
@@ -1697,7 +1824,9 @@ export class Executor implements Schedulable {
     // Counted up to the accepted forecast; calls after it are reported apart (toolCallsAfterForecast).
     const { calls, afterForecast } = callsUntilForecast(existsSync(join(jobDir, "calls.log")) ? (await readFile(join(jobDir, "calls.log"), "utf8")).trim().split("\n").filter((l) => l && l !== "submit_forecast").length : 0, forecast);
     const ok = !!forecast;
-    const unknownModel = /unrecognized_model|issue with the selected model/i.test(`${stderr} ${JSON.stringify(result ?? "")}`);
+    // An unknown model only when no model answered: Claude Code warns about a model it does not know
+    // (unrecognized_model) in every session on it, also when the model runs (a local model).
+    const unknownModel = !meter.modelRan && /unrecognized_model|issue with the selected model/i.test(`${stderr} ${modelWarnings} ${JSON.stringify(result ?? "")}`);
     const error = ok
       ? null
       : handle.stopped
@@ -1762,6 +1891,8 @@ export class Executor implements Schedulable {
         designOrder: order,
         // The audit checks the token budget up to here; the closing turn after acceptance is reported apart.
         ...(atForecast !== null ? { tokensAtSubmit: atForecast } : {}),
+        // The session ended a turn with text instead of its forecast and was reminded (FORECAST_REMINDER).
+        ...(reminders ? { forecastReminders: reminders } : {}),
       },
       measurements: forecast?.measurements ?? [],
       trace,
@@ -1775,7 +1906,7 @@ export class Executor implements Schedulable {
       cacheWriteTokens: usage.cache_creation_input_tokens ?? null,
       reasoningTokens: run.execution.reasoningTokens,
       costUsd,
-      source: result?.usage ? "final" : "live",
+      source: finalUsage ? "final" : "live",
       tokensAtSubmit: atForecast,
     };
     const total = (totalInput(run.execution) ?? 0) + run.execution.outputTokens;
@@ -1783,15 +1914,18 @@ export class Executor implements Schedulable {
       {
         requestedModel: model,
         effort: effortArgs(model.reasoning)[1] ?? "default",
-        actualModel: (meter.modelRan && !unknownModel) || ok ? actualModel : null,
+        actualModel: meter.modelRan || ok ? actualModel : null,
         cliVersion,
         runtime,
         runtimeCommand: runtime === "webxr" || runtime === "none" ? "built in" : bridge,
         ...(bridge ? { runtimeWrapper: "bridge-proxy (records starts and readiness in bridge.jsonl)", runtimeStarts } : {}),
         mcp: Object.keys(servers),
         costUsd,
-        ...(costUsd === null && meter.modelRan ? { cost: COST_UNKNOWN } : {}),
-        turns: result?.num_turns ?? null,
+        ...(costUsd === null && meter.modelRan ? { cost: unpriced.length ? COST_UNPRICED : COST_UNKNOWN } : {}),
+        // Claude Code's figure for a model it has no price for (its fallback rate): never counted as spent.
+        ...(unpriced.length ? { unpricedModels: unpriced, fallbackCostUsd: report.fallbackCostUsd } : {}),
+        turns: report.turns,
+        ...(reminders ? { forecastReminders: reminders } : {}),
         exitCode: code,
         usage: full,
         // All tokens (input including cache, plus output) when the forecast was accepted: the budget applies up to here.
@@ -1804,7 +1938,7 @@ export class Executor implements Schedulable {
     await writeFile(join(jobDir, "execution-manifest.json"), manifestBody);
     const requested = conditionModel(this.campaign, job.agentId);
     // No model answered (for example an unknown model ID): no effective model is recorded.
-    const effective = (!meter.modelRan || unknownModel) && !ok ? null : !actualModel || actualModel === requested.model || actualModel.startsWith(requested.model) ? { ...requested } : { ...requested, model: actualModel };
+    const effective = !meter.modelRan && !ok ? null : !actualModel || actualModel === requested.model || actualModel.startsWith(requested.model) ? { ...requested } : { ...requested, model: actualModel };
     const receiptUsage: CampaignReceipt["usage"] = full;
     await this.finish(
       job,
@@ -1833,17 +1967,21 @@ export class Executor implements Schedulable {
     // A stopped (or crashed) WebXR session never removed its Chrome profile: remove this attempt's now.
     if (runtime === "webxr") void removeProfiles(webxrProfilePrefix(jobId, attempt));
     // Every attempt's spending counts, also a stopped one whose cost is unknown (its tokens are known).
-    this.update(jobId, { spent: addSpending(this.jobs.get(jobId)!.spent, costUsd, costUsd === null && meter.modelRan ? total : null) });
+    this.update(jobId, {
+      spent: addSpending(this.jobs.get(jobId)!.spent, costUsd, costUsd === null && meter.modelRan ? { tokens: total, unpriced: unpriced.length > 0 } : null),
+      costNote: unpriced.length ? UNPRICED_NOTE : null,
+    });
     // A stopped run stays "stopped" (a rerun may already hold the session); only its counts are kept.
     if (handle.stopped && !ok) {
       if (this.jobs.get(jobId)!.attempts === attempt && this.jobs.get(jobId)!.status === "stopped")
-        this.update(jobId, { tokensIn: totalInput(run.execution), tokensOut: run.execution.outputTokens, toolCalls: calls, costUsd: null });
+        this.update(jobId, { tokensIn: totalInput(run.execution), tokensOut: run.execution.outputTokens, toolCalls: calls, costUsd: null, durationMs: Date.now() - startedAt.getTime() });
       return;
     }
     if (handle.stopped && this.jobs.get(jobId)!.attempts !== attempt) return;
     this.update(jobId, {
-      status: ok ? "done" : "failed",
+      status: !ok ? "failed" : unfinishedTasks(protocol, run).length ? "incomplete" : "done",
       endedAt: new Date().toISOString(),
+      durationMs: Date.now() - startedAt.getTime(),
       toolCalls: calls,
       tokensIn: totalInput(run.execution),
       tokensOut: run.execution.outputTokens,
@@ -1853,11 +1991,18 @@ export class Executor implements Schedulable {
     });
   }
 }
-/** A session's spending plus one attempt: its reported cost, or (unknown cost) its tokens. */
-function addSpending(spent: Spent | undefined, costUsd: number | null, unknownTokens: number | null): Spent {
-  const next = { ...(spent ?? noSpending()) };
+/** When a recorded attempt started and ended, and how long it ran (its model wall time), from its result. */
+function timesOf(run: RunResult): Partial<Pick<JobState, "startedAt" | "endedAt" | "durationMs">> {
+  const start = Date.parse(run.execution?.startedAt ?? "");
+  const ms = run.execution?.inferenceWallTimeMs;
+  if (!Number.isFinite(start) || typeof ms !== "number" || !Number.isFinite(ms) || ms < 0) return {};
+  return { startedAt: new Date(start).toISOString(), endedAt: new Date(start + ms).toISOString(), durationMs: Math.round(ms) };
+}
+/** A session's spending plus one attempt: its reported cost, or (unknown cost) its tokens and whether the model has no price. */
+function addSpending(spent: Spent | undefined, costUsd: number | null, unknown: { tokens: number; unpriced: boolean } | null): Spent {
+  const next = { ...noSpending(), ...spent };
   if (costUsd !== null) next.usd += costUsd;
-  else if (unknownTokens !== null) (next.unknownAttempts += 1), (next.unknownTokens += unknownTokens);
+  else if (unknown) (next.unknownAttempts += 1), (next.unknownTokens += unknown.tokens), (next.unpricedAttempts += unknown.unpriced ? 1 : 0);
   return next;
 }
 /** The JSON lines of a file (unreadable lines skipped); none when it does not exist. */

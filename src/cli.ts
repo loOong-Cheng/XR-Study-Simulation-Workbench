@@ -109,7 +109,7 @@ const usage: Record<string, string> = {
   unpack: "unpack <package.json> <new-directory>",
   "campaign-status": "campaign-status <campaign.json> [<receipts.jsonl> ...]",
   "campaign-analyze":
-    "campaign-analyze <campaign.json> <human.json> <new-directory> <results> [<earlier-results> ...] [--comparisons comparisons.json]",
+    "campaign-analyze <campaign.json> <human.json> <new-directory> <results> [<earlier-results> ...] [--comparisons comparisons.json] [--exclude-incomplete]",
   "campaign-compare":
     "campaign-compare <old-campaign.json> <old-scores.json> <new-campaign.json> <new-scores.json> <new-directory>",
   analyze: "analyze <plan.json> <human.json> <results> <new-directory> [--comparisons comparisons.json]",
@@ -214,7 +214,7 @@ const optionsOf: Record<string, { values?: string[]; lists?: string[]; switches?
   "app-check": { values: ["--design"] },
   plan: { values: ["--agents", "--repetitions"] },
   analyze: { values: ["--comparisons"] },
-  "campaign-analyze": { values: ["--comparisons"] },
+  "campaign-analyze": { values: ["--comparisons"], switches: ["--exclude-incomplete"] },
   "campaign-continue": { lists: ["--receipts"] },
 };
 const optionValue: Record<string, string> = {
@@ -998,7 +998,8 @@ async function main(): Promise<void> {
     // The executor's receipts beside each results folder (runs/<campaign>/receipts.jsonl) name why sessions failed.
     const runFolders = args.slice(3).filter(isFolder).map((p) => (isFolder(join(p, "results")) ? p : dirname(resolve(p))));
     const receipts = await loadReceipts(runFolders.filter((d) => existsSync(join(d, "receipts.jsonl"))));
-    const analysis = analyzeCampaign(campaign, human, bundles, comparisons, receipts);
+    // --exclude-incomplete leaves out sessions whose forecast was accepted before every required task was finished.
+    const analysis = analyzeCampaign(campaign, human, bundles, comparisons, receipts, undefined, switches.has("--exclude-incomplete") ? { excludeIncomplete: true } : {});
     const out = await freshDirectory(args[2]);
     await writeFiles(out, {
       "report.json": pretty(analysis.report),

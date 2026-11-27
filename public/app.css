@@ -1025,6 +1025,7 @@ ul.gets {
 .status.done { background: #e3f1e8; color: #2c684f; } .status.running { background: #e5edf6; color: #2f5a8a; }
 .status.failed { background: #fbe9e6; color: #9b3d33; } .status.stopped { background: #fbf3dc; color: #7f6b36; }
 .status.reused { background: #eef4f0; color: #44684f; }
+.status.incomplete { background: #f3f0dc; color: #6b5f1f; }
 td.small { font-size: 11px; color: #55635a; max-width: 320px; }
 span.small { font-size: 11px; color: #55635a; }
 .job-detail { position: sticky; top: 12px; }

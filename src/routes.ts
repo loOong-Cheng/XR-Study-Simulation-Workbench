@@ -15,7 +15,7 @@ import { agentLevel, agentTargets, methodGets, proposeAgents } from "./core/plan
 import { extractProposal } from "./core/proposal.js";
 import { studyWarnings } from "./core/explain.js";
 import { fairnessWarnings } from "./core/fairness.js";
-import type { AgentProtocol, Comparison, Domain, Study } from "./core/types.js";
+import type { AgentProtocol, AnalysisOptions, Comparison, Domain, Study } from "./core/types.js";
 import { checkModelSettings, requireThat } from "./core/validation.js";
 import { understandStudy, explainResults } from "./assistant.js";
 import { briefOverview, saveBrief } from "./brief.js";
@@ -91,11 +91,11 @@ async function lineage(id: string, campaign: Campaign) {
   const all = await listCampaigns(id);
   return [...(campaign.lineage ?? []).map((d) => all.find((c) => c.digest === d)!).filter(Boolean), campaign];
 }
-async function analysis(id: string, campaignId: string, comparisons?: Comparison[]) {
+async function analysis(id: string, campaignId: string, comparisons?: Comparison[], options: AnalysisOptions = {}) {
   const campaign = await readCampaign(id, campaignId);
   const chain = await lineage(id, campaign);
   const receipts = await receiptsWithResults(id, chain.map((c) => c.id));
-  const key = `${id}|${campaign.digest}|${JSON.stringify(comparisons ?? null)}`;
+  const key = `${id}|${campaign.digest}|${JSON.stringify(comparisons ?? null)}|${options.excludeIncomplete ? "complete-only" : "all"}`;
   const kept = analysisCache.get(key);
   if (kept && kept.receipts === receipts.length) {
     // Most recently used last.
@@ -122,7 +122,7 @@ async function analysis(id: string, campaignId: string, comparisons?: Comparison
   scoreMemos.set(memoKey, scores);
   while (scoreMemos.size > SCORES_KEPT) scoreMemos.delete(scoreMemos.keys().next().value!);
   // Receipts name why a session failed (report exclusions and audits).
-  const result = analyzeCampaign(campaign, human!, bundles, usable, receipts, scores.memo);
+  const result = analyzeCampaign(campaign, human!, bundles, usable, receipts, scores.memo, options);
   if (skipped.length)
     result.report.notes.push(
       `Skipped ${skipped.length} saved comparison(s) whose configurations are not in this campaign: ${skipped.map((c) => `${c.candidate} − ${c.baseline} (${c.domain})`).join("; ")}. The Holm family covers the remaining ${usable!.length}.`,
@@ -180,6 +180,10 @@ function comparisonsOf(body: Body): Comparison[] | undefined {
     'Invalid request: each comparison needs "candidate", "baseline" and "domain" (objective or subjective).',
   );
   return list as unknown as Comparison[] | undefined;
+}
+/** Analysis choices in a request: { excludeIncomplete } leaves out incomplete sessions. */
+function analysisOptions(body: Body): AnalysisOptions {
+  return flag(body, "excludeIncomplete") ? { excludeIncomplete: true } : {};
 }
 /** How long the event stream gathers session changes before sending them in one "jobs" event. */
 export const SSE_BATCH_MS = 250;
@@ -653,7 +657,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       return true;
     }
     case "/api/workspace/analyze": {
-      const { campaign, analysis: a, receipts } = await analysis(id, campaignId(), comparisonsOf(body));
+      const { campaign, analysis: a, receipts } = await analysis(id, campaignId(), comparisonsOf(body), analysisOptions(body));
       const study = campaign.suite.study!;
       // Interim or final: only sessions with an accepted result count as finished, their own or the
       // run they reuse (a completed receipt where it ran, or its result in the lineage). A session
@@ -709,7 +713,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       const domain: Domain = choice(body, "domain", ["objective", "subjective"] as const, "subjective");
       const kind = text(body, "kind", { max: 100 });
       const outcomeId = text(body, "outcomeId", { optional: true, max: 200 });
-      const { campaign, analysis: a } = await analysis(id, campaignId(), comparisonsOf(body));
+      const { campaign, analysis: a } = await analysis(id, campaignId(), comparisonsOf(body), analysisOptions(body));
       const study = campaign.suite.study!;
       const labels = Object.fromEntries(campaign.suite.conditions.map((c) => [c.id, c.label]));
       // Figures follow the summaries: unscored partial configurations and measures a configuration does not predict are left out, with a note.
@@ -746,8 +750,8 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
     }
     case "/api/workspace/compare": {
       const comparisons = comparisonsOf(body);
-      const before = await analysis(id, campaignId("before"), comparisons);
-      const after = await analysis(id, campaignId("after"), comparisons);
+      const before = await analysis(id, campaignId("before"), comparisons, analysisOptions(body));
+      const after = await analysis(id, campaignId("after"), comparisons, analysisOptions(body));
       json(compareCampaignScores(before.campaign, before.analysis.scorecard, after.campaign, after.analysis.scorecard));
       return true;
     }
@@ -763,7 +767,7 @@ export async function handlePost(path: string, body: Body, json: Json): Promise<
       return true;
     }
     case "/api/assistant/explain": {
-      const { campaign, analysis: a } = await analysis(id, campaignId(), comparisonsOf(body));
+      const { campaign, analysis: a } = await analysis(id, campaignId(), comparisonsOf(body), analysisOptions(body));
       const study = campaign.suite.study!;
       // Every configuration by name, with what it gets, its level, model and effort, so the answer uses names and invents no differences.
       const configurations = campaign.suite.conditions.flatMap((c) => {

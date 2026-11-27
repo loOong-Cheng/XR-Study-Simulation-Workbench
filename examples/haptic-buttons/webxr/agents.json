@@ -223,9 +223,9 @@
     "requiredSourceIds": [
       "brief"
     ],
-    "maxToolCalls": 260,
+    "maxToolCalls": 340,
     "maxOutputTokens": 64000,
-    "maxTokens": 20000000,
+    "maxTokens": 26000000,
     "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
     "level": "population",
     "runtime": "webxr"
@@ -262,9 +262,9 @@
       "brief",
       "demographics"
     ],
-    "maxToolCalls": 260,
+    "maxToolCalls": 340,
     "maxOutputTokens": 64000,
-    "maxTokens": 20000000,
+    "maxTokens": 26000000,
     "forecastInstruction": "Predict the declared human outcomes for every design. Keep your own behaviour and time separate from the participants'. Use only supplied sources. Return every requested numeric outcome, including the named items for composites. Report uncertainty and limitations separately.",
     "level": "individual",
     "runtime": "webxr"

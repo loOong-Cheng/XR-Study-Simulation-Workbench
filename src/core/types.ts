@@ -286,6 +286,11 @@ export interface RunResult {
     /** Set when the session was finished from its files after a workbench restart (its end was never seen). */
     recovered?: string;
     /**
+     * Reminders the session got after it ended a turn with text instead of an accepted forecast
+     * (at most 1; the executor's FORECAST_REMINDER). Absent when it submitted without one.
+     */
+    forecastReminders?: number;
+    /**
      * The design order the executor assigned this session at launch (play order for the app, and
      * the order designs are listed in): the participant's own order, or for population sessions the
      * human orders in rotation over repetitions. The audit checks visits against it. Absent in runs
@@ -309,6 +314,16 @@ export interface Audit {
   issues: string[];
   /** Project files the session opened (configurations with project access); information, not a deviation. */
   filesRead?: number;
+  /**
+   * Required tasks the session left unfinished although its forecast was accepted (an incomplete
+   * session). Listed as a deviation too; left out of the scores only when the analysis is asked to.
+   */
+  unfinishedTasks?: string[];
+}
+/** Choices made when analysing: they change which runs are scored, never the runs themselves. */
+export interface AnalysisOptions {
+  /** Leave out sessions whose forecast was accepted before every required task was finished. */
+  excludeIncomplete?: boolean;
 }
 export interface Interval {
   low: number;
@@ -338,6 +353,8 @@ export interface SummaryScore {
   simulated?: number;
   scoreable: number;
   compliant: number;
+  /** Returned runs that are incomplete (see Audit.unfinishedTasks): scored, or left out when the analysis was asked to. */
+  incomplete?: number;
 }
 export interface ContrastScore {
   id: string;
